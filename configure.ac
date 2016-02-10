@@ -53,6 +53,7 @@ AC_SUBST(CFLAGS_COMMON)
 AC_CONFIG_FILES([
     Makefile
     common/Makefile
+    orchagent/Makefile
     tests/Makefile
     fpmsyncd/Makefile
     neighsyncd/Makefile
