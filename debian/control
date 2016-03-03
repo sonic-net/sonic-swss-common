@@ -1,0 +1,23 @@
+Source: sonic
+Maintainer: Shuotian Cheng <shuche@microsoft.com>
+Section: net
+Priority: optional
+Build-Depends: dh-exec (>=0.3), debhelper (>= 9), autotools-dev
+Standards-Version: 1.0.0
+
+Package: swss
+Architecture: any
+Depends: ${shlibs:Depends}
+Description: This package contains Switch State Service for SONiC project.
+
+Package: libswsscommon
+Architecture: any
+Section: libs
+Description: Tihs package contains Switch State Service common library.
+
+Package: libswsscommon-dev
+Architecture: any
+Depends: libswsscommon (= ${binary:Version})
+Section: libdevel
+Description: This package contains development files for Switch State Service.
+
