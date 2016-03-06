@@ -12,7 +12,8 @@ libswsscommon_la_SOURCES = \
 	logger.cpp                \
 	redisreply.cpp            \
 	dbconnector.cpp           \
-	table.cpp
+	table.cpp                 \
+	json.cpp
 
 libswsscommon_la_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON)
 libswsscommon_la_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON)
