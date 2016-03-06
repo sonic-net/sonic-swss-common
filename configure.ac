@@ -22,12 +22,26 @@ AC_ARG_ENABLE(debug,
 esac],[debug=false])
 AM_CONDITIONAL(DEBUG, test x$debug = xtrue)
 
+
+AC_ARG_WITH(gtest,
+[  --with-gtest=<dir>   Compiles tests using the location of google tests],
+AC_MSG_NOTICE(Using gtest path from:$with_gtest), with_gtest="none")
+
+GTEST_PATH=
+if test "x$with_gtest" != xnone; then
+GTEST_PATH=$with_gtest
+fi
+AC_SUBST(GTEST_PATH)
+AM_CONDITIONAL(TESTS, test "x$with_gtest" != xnone)
+
+
 CFLAGS_COMMON="-std=c++11 -Wall -fPIC -Wno-write-strings -I/usr/include/libnl3"
 AC_SUBST(CFLAGS_COMMON)
 
 AC_CONFIG_FILES([
     Makefile
     common/Makefile
+    tests/Makefile
 ])
 
 AC_OUTPUT
