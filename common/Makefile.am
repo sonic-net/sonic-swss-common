@@ -9,7 +9,9 @@ DBGFLAGS = -g
 endif
 
 libswsscommon_la_SOURCES = \
-	logger.cpp
+	logger.cpp                \
+	redisreply.cpp            \
+	dbconnector.cpp
 
 libswsscommon_la_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON)
 libswsscommon_la_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON)
