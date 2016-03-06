@@ -55,6 +55,7 @@ AC_CONFIG_FILES([
     common/Makefile
     tests/Makefile
     fpmsyncd/Makefile
+    neighsyncd/Makefile
 ])
 
 AC_OUTPUT
