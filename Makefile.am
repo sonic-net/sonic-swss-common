@@ -1,4 +1,4 @@
-SUBDIRS = common neighsyncd
+SUBDIRS = common neighsyncd intfsyncd
 
 if TESTS
 SUBDIRS += tests
