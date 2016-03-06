@@ -18,7 +18,8 @@ libswsscommon_la_SOURCES = \
 	select.cpp                \
 	consumertable.cpp         \
 	ipaddress.cpp             \
-	ipprefix.cpp
+	ipprefix.cpp              \
+	ipaddresses.cpp
 
 libswsscommon_la_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON)
 libswsscommon_la_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON)
