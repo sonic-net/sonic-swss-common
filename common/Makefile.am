@@ -14,7 +14,8 @@ libswsscommon_la_SOURCES = \
 	dbconnector.cpp           \
 	table.cpp                 \
 	json.cpp                  \
-	producertable.cpp
+	producertable.cpp         \
+	select.cpp
 
 libswsscommon_la_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON)
 libswsscommon_la_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON)
