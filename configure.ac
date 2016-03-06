@@ -57,6 +57,7 @@ AC_CONFIG_FILES([
     fpmsyncd/Makefile
     neighsyncd/Makefile
     intfsyncd/Makefile
+    portsyncd/Makefile
 ])
 
 AC_OUTPUT

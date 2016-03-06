@@ -1,4 +1,4 @@
-SUBDIRS = common neighsyncd intfsyncd
+SUBDIRS = common neighsyncd intfsyncd portsyncd
 
 if TESTS
 SUBDIRS += tests
