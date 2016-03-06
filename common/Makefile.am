@@ -20,7 +20,8 @@ libswsscommon_la_SOURCES = \
 	ipaddress.cpp             \
 	ipprefix.cpp              \
 	ipaddresses.cpp           \
-	macaddress.cpp
+	macaddress.cpp            \
+	netdispatcher.cpp
 
 libswsscommon_la_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON)
 libswsscommon_la_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON)
