@@ -9,7 +9,7 @@
 
 #include <map>
 
-#include "common/netmsg.h"
+#include "netmsg.h"
 
 namespace swss {
 

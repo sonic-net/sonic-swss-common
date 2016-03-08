@@ -2,7 +2,7 @@
 #define __REDISREPLY__
 
 #include <hiredis/hiredis.h>
-#include "common/dbconnector.h"
+#include "dbconnector.h"
 
 namespace swss {
 

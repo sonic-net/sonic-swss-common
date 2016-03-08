@@ -5,9 +5,9 @@
 #include <queue>
 #include <tuple>
 #include "hiredis/hiredis.h"
-#include "common/dbconnector.h"
-#include "common/redisreply.h"
-#include "common/scheme.h"
+#include "dbconnector.h"
+#include "redisreply.h"
+#include "scheme.h"
 
 namespace swss {
 

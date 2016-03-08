@@ -3,7 +3,7 @@
 
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
-#include "common/selectable.h"
+#include "selectable.h"
 
 namespace swss {
 

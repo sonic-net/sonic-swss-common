@@ -5,7 +5,7 @@
 #include <vector>
 #include <limits>
 #include <hiredis/hiredis.h>
-#include "common/selectable.h"
+#include "selectable.h"
 
 namespace swss {
 

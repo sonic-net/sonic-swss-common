@@ -5,9 +5,9 @@
 #include <vector>
 
 #include <hiredis/hiredis.h>
-#include "common/dbconnector.h"
-#include "common/table.h"
-#include "common/scheme.h"
+#include "dbconnector.h"
+#include "table.h"
+#include "scheme.h"
 
 namespace swss {
 
