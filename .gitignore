@@ -1,0 +1,60 @@
+# Compiled Source #
+###################
+*.la
+*.lo
+*.o
+
+# Packaging Files #
+###################
+debian/files
+debian/libswsscommon-dev.debhelper.log
+debian/libswsscommon-dev.substvars
+debian/libswsscommon.debhelper.log
+debian/libswsscommon.postinst.debhelper
+debian/libswsscommon.postrm.debhelper
+debian/libswsscommon.substvars
+debian/swss.debhelper.log
+debian/swss.substvars
+
+debian/libswsscommon-dev/
+debian/libswsscommon/
+debian/swss/
+debian/tmp/
+
+# autogen.sh Files #
+####################
+AUTHORS
+COPYING
+ChangeLog
+INSTALL
+NEWS
+README
+
+aclocal.m4
+config.h
+config.h.in
+config.log
+config.status
+configure
+libtool
+Makefile.in
+stamp-h1
+**/.deps/
+**/.libs/
+**/Makefile
+
+# Dependency Folder #
+#####################
+deps/
+fpmsyncd/fpm/
+
+# Executables #
+###############
+fpmsyncd/fpmsyncd
+intfsyncd/intfsyncd
+neighsyncd/neighsyncd
+portsyncd/portsyncd
+orchagent/orchagent
+orchagent/routeresync
+
+
