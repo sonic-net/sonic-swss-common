@@ -1,7 +1,7 @@
 Schema data is defined in ABNF [RFC5234](https://tools.ietf.org/html/rfc5234) syntax.  
 
 ###PORT_TABLE
-Stores information for physical switch ports managed by the switch chip.  device_names are defined in [port_config.ini](https://github.com/stcheng/swss/blob/mock/portsyncd/port_config.ini).  Ports to the CPU (ie: management port) and logical ports (loopback) are not declared in the PORT_TABLE.   See INTF_TABLE.
+Stores information for physical switch ports managed by the switch chip.  device_names are defined in [port_config.ini](../portsyncd/port_config.ini).  Ports to the CPU (ie: management port) and logical ports (loopback) are not declared in the PORT_TABLE.   See INTF_TABLE.
 
     ;Defines layer 2 ports
     ;In SONiC, Data is loaded from configuration file by portsyncd
