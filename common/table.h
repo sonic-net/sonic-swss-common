@@ -33,6 +33,12 @@ public:
     /* Delete an entry in the DB directly (op not in used) */
     virtual void del(std::string key, std::string op = "");
 
+    bool getField(std::string key, std::string field, std::string &value);
+    void setField(std::string key, std::string field, std::string value);
+    void delField(std::string key, std::string field);
+
+    virtual ~Table();
+
 protected:
     /* Return the actual key name as a comibation of tableName:key */
     std::string getKeyName(std::string key);
@@ -56,6 +62,14 @@ protected:
     static std::string formatHSET(const std::string &key,
                                   const std::string &field,
                                   const std::string &value);
+
+    /* Format HGET key field command */
+    static std::string formatHGET(const std::string& key,
+                                  const std::string& field);
+
+    /* Format HDEL key field command */
+    static std::string formatHDEL(const std::string& key,
+                                  const std::string& field);
 
     DBConnector *m_db;
     std::string m_tableName;

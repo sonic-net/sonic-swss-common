@@ -83,6 +83,47 @@ void Table::del(std::string key, std::string /* op */)
                            "DEL operation failed");
 }
 
+bool Table::getField(std::string key, std::string field, std::string &value)
+{
+    std::string hget = formatHGET(getKeyName(key).c_str(),
+                                  field.c_str());
+
+    RedisReply r(m_db, hget, REDIS_REPLY_INTEGER);
+
+    if (r.getContext()->type != REDIS_REPLY_STRING)
+    {
+        return false;
+    }
+
+    value = std::string(r.getContext()->str);
+
+    return true;
+}
+
+void Table::setField(std::string key, std::string field, std::string value)
+{
+    FieldValueTuple entry(field, value);
+
+    std::vector<FieldValueTuple> values { entry };
+
+    set(key, values);
+}
+
+void Table::delField(std::string key, std::string field)
+{
+    std::string hdel = formatHDEL(getKeyName(key), field);
+
+    RedisReply r(m_db, hdel, REDIS_REPLY_INTEGER);
+
+    if (r.getContext()->type != REDIS_REPLY_INTEGER)
+        throw system_error(make_error_code(errc::io_error),
+                           "DEL operation failed");
+}
+
+Table::~Table()
+{
+}
+
 void Table::multi()
 {
     while (!m_expectedResults.empty())
@@ -164,6 +205,28 @@ string Table::formatHSET(const string& key, const string& field,
         string hset(temp, len);
         free(temp);
         return hset;
+}
+
+string Table::formatHGET(const string& key, const string& field)
+{
+        char *temp;
+        int len = redisFormatCommand(&temp, "HGET %s %s",
+                                     key.c_str(),
+                                     field.c_str());
+        string hget(temp, len);
+        free(temp);
+        return hget;
+}
+
+string Table::formatHDEL(const string& key, const string& field)
+{
+        char *temp;
+        int len = redisFormatCommand(&temp, "HDEL %s %s",
+                                     key.c_str(),
+                                     field.c_str());
+        string hdel(temp, len);
+        free(temp);
+        return hdel;
 }
 
 }
