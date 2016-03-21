@@ -7,28 +7,48 @@ The Switch State Service (SwSS) is a collection of software that provides a data
 
 ## Getting Started
 
-### Install from Debian Repo
+### Install
 
-For your convenience, you can install prepared packages on Debian Jessie:
+Before installing, add key and package sources:
 
     sudo apt-key adv --keyserver apt-mo.trafficmanager.net --recv-keys 417A0893
     echo 'deb http://apt-mo.trafficmanager.net/repos/sonic/ trusty main' | sudo tee -a /etc/apt/sources.list.d/sonic.list
     sudo apt-get update
+
+Install dependencies:
+
+    sudo apt-get install redis-server -t trusty
+    sudo apt-get install libhiredis0.13 -t trusty
+
+There are a few different ways you can install SONiC-SWSS.
+
+#### Install from Debian Repo
+
+For your convenience, you can install prepared packages on Debian Jessie:
+
     sudo apt-get install sonic-swss
 
-### Install from Source
+#### Install from Source
+
+Checkout the source: `git clone https://github.com/Azure/sonic-swss.git` and install it yourself.
+Get `fpm.h` header file before compiling:
+
+    mkdir fpmsyncd/fpm
+    wget http://git.savannah.gnu.org/cgit/quagga.git/plain/fpm/fpm.h -O fpmsyncd/fpm/fpm.h
 
 You can compile and install from source using:
 
-    git clone https://github.com/Azure/sonic-swss.git
-    #TODO: ./getdeps.sh
+    ./autogen.sh
+    ./configure
     make && sudo make install
 
 You can also build a debian package using:
 
+    ./autogen.sh
+    ./configure
     fakeroot debian/rules binary
 
-### Need Help?
+## Need Help?
 
 For general questions, setup help, or troubleshooting:
 - [sonicproject on Google Groups](https://groups.google.com/d/forum/sonicproject)
