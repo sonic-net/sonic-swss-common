@@ -30,7 +30,8 @@ int main(int argc, char **argv)
     }
     else if (op == "start")
     {
-        std::vector<FieldValueTuple> fvVector = {};
+        FieldValueTuple fv("nexthop", "0.0.0.0");
+        std::vector<FieldValueTuple> fvVector = { fv };
         r.set("resync", fvVector);
     }
     else
