@@ -1,4 +1,4 @@
-AC_INIT([sonic-swss],[1.0])
+AC_INIT([sonic-swss-common],[1.0])
 AC_CONFIG_SRCDIR([])
 AC_CONFIG_AUX_DIR(config)
 AM_CONFIG_HEADER(config.h)
@@ -53,12 +53,7 @@ AC_SUBST(CFLAGS_COMMON)
 AC_CONFIG_FILES([
     Makefile
     common/Makefile
-    orchagent/Makefile
     tests/Makefile
-    fpmsyncd/Makefile
-    neighsyncd/Makefile
-    intfsyncd/Makefile
-    portsyncd/Makefile
 ])
 
 AC_OUTPUT
