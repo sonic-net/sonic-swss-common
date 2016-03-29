@@ -13,24 +13,35 @@ namespace swss {
 
 RedisReply::RedisReply(DBConnector *db, string command, int exepectedType, bool isFormatted)
 {
+    SWSS_LOG_ENTER();
+
+    SWSS_LOG_DEBUG("Redis reply command: %s", command.c_str());
+
     if (isFormatted)
     {
         redisAppendFormattedCommand(db->getContext(), command.c_str(), command.length());
         redisGetReply(db->getContext(), (void**)&m_reply);
-    } else
+    }
+    else
     {
         m_reply = (redisReply *)redisCommand(db->getContext(), command.c_str());
     }
 
     if (!m_reply)
+    {
+        SWSS_LOG_ERROR("Redis reply is NULL, memory exception");
+
         throw system_error(make_error_code(errc::not_enough_memory),
                            "Memory exception");
+    }
 
-    if (m_reply->type != exepectedType) {
-        SWSS_LOG_INFO("Except to get redis type %d got type %d\n",
+    if (m_reply->type != exepectedType)
+    {
+        SWSS_LOG_ERROR("Expected to get redis type %d got type %d",
                       exepectedType, m_reply->type);
         freeReplyObject(m_reply);
         m_reply = NULL; /* Some compilers call destructor in this case */
+
         throw system_error(make_error_code(errc::io_error),
                            "Wrong expected type of result");
     }
@@ -55,8 +66,12 @@ redisReply *RedisReply::getContext()
 void RedisReply::checkStatus(char *status)
 {
     if (strcmp(m_reply->str, status) != 0)
+    {
+        SWSS_LOG_ERROR("Redis reply %s != %s", m_reply->str, status);
+
         throw system_error(make_error_code(errc::io_error),
                            "Invalid return code");
+    }
 }
 
 void RedisReply::checkStatusOK()
