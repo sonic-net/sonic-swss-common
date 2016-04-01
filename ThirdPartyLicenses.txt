@@ -4,8 +4,9 @@ This Microsoft Open Source project incorporates material from the project(s) lis
 (Third Party Code).  Microsoft is not the original author of the Third Party Code.  Microsoft 
 reserves all other rights not expressly granted, whether by implication, estoppel or otherwise.
 
+1. common/json.hpp            https://github.com/nlohmann/json
 
-
+1. json.hpp license
 
 The library is licensed under the MIT License 
 <http://opensource.org/licenses/MIT>:
