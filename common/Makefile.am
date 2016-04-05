@@ -13,6 +13,7 @@ libswsscommon_la_SOURCES = \
     redisreply.cpp            \
     dbconnector.cpp           \
     table.cpp                 \
+    counter.cpp               \
     json.cpp                  \
     producertable.cpp         \
     select.cpp                \
