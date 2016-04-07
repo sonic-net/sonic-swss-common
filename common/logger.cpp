@@ -30,3 +30,13 @@ void Logger::write(Priority prio, const char *fmt, ...)
     vsyslog(prio, fmt, ap);
     va_end(ap);
 }
+
+Logger::ScopeLogger::ScopeLogger(int line, const char *fun) : m_line(line), m_fun(fun)
+{
+    swss::Logger::getInstance().write(swss::Logger::SWSS_DEBUG, ":> %s: enter", m_fun);
+}
+
+Logger::ScopeLogger::~ScopeLogger()
+{
+    swss::Logger::getInstance().write(swss::Logger::SWSS_DEBUG, ":< %s: exit", m_fun);
+}
