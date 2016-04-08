@@ -58,9 +58,9 @@ void RedisClient::set(std::string key, std::string value)
     std::string set(temp, len);
     free(temp);
 
-    RedisReply r(m_db, set, REDIS_REPLY_INTEGER, true);
+    RedisReply r(m_db, set, REDIS_REPLY_STATUS, true);
 
-    if (r.getContext()->type != REDIS_REPLY_INTEGER)
+    if (r.getContext()->type != REDIS_REPLY_STATUS)
         throw std::runtime_error("SET operation failed");
 }
 
@@ -210,4 +210,53 @@ std::shared_ptr<std::string> RedisClient::hget(std::string key, std::string fiel
     throw std::runtime_error("HGET failed, memory exception");
 }
 
+int64_t RedisClient::rpush(std::string list, std::string item)
+{
+    char *temp;
+    int len = redisFormatCommand(&temp, "RPUSH %s %s", list.c_str(), item.c_str());
+
+    std::string rpush(temp, len);
+    free(temp);
+
+    RedisReply r(m_db, rpush, REDIS_REPLY_INTEGER, true);
+
+    if (r.getContext()->type != REDIS_REPLY_INTEGER)
+        throw std::runtime_error("RPUSH command failed");
+
+    return r.getContext()->integer;
+}
+
+std::shared_ptr<std::string> RedisClient::blpop(std::string list, int timeout)
+{
+    char *temp;
+    int len = redisFormatCommand(&temp, "BLPOP %s %d", list.c_str(), timeout);
+
+    std::string blpop(temp, len);
+    free(temp);
+
+    redisReply *reply;
+
+    redisAppendFormattedCommand(m_db->getContext(), blpop.c_str(), blpop.length());
+    redisGetReply(m_db->getContext(), (void**)&reply);
+
+    if (!reply)
+        throw std::runtime_error("BLPOP failed, memory exception");
+
+    if (reply->type == REDIS_REPLY_NIL)
+    {
+        freeReplyObject(reply);
+        return std::shared_ptr<std::string>(NULL);
+    }
+
+    if (reply->type == REDIS_REPLY_STRING)
+    {
+        std::shared_ptr<std::string> ptr(new std::string(reply->str));
+        freeReplyObject(reply);
+        return ptr;
+    }
+
+    freeReplyObject(reply);
+
+    throw std::runtime_error("GET failed, memory exception");
+}
 }

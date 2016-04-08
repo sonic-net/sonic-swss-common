@@ -54,6 +54,10 @@ class RedisClient
 
         int64_t decr(std::string key);
 
+        int64_t rpush(std::string list, std::string item);
+
+        std::shared_ptr<std::string> blpop(std::string list, int timeout);
+
     private:
         swss::DBConnector *m_db;
 };
