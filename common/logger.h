@@ -30,7 +30,11 @@ public:
 
     static Logger &getInstance();
     static void setMinPrio(Priority prio);
+    static Priority getMinPrio();
     void write(Priority prio, const char *fmt, ...);
+
+    static std::string priorityToString(Priority prio);
+    static Priority stringToPriority(const std::string);
 
     class ScopeLogger
     {
