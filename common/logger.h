@@ -1,6 +1,8 @@
 #ifndef SWSS_COMMON_LOGGER_H
 #define SWSS_COMMON_LOGGER_H
 
+#include <string>
+
 namespace swss {
 
 #define SWSS_LOG_ERROR(MSG, ...)       swss::Logger::getInstance().write(swss::Logger::SWSS_ERROR,  ":- %s: " MSG, __FUNCTION__, ##__VA_ARGS__)
@@ -43,9 +45,11 @@ public:
     };
 
 private:
-    Logger() {};
+    Logger();
     Logger(const Logger&);
     Logger &operator=(const Logger&);
+
+    std::string m_self;
 
     static Priority m_minPrio;
 };
