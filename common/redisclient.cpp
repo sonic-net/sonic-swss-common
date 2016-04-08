@@ -129,6 +129,40 @@ int64_t RedisClient::decr(std::string key)
     return r.getContext()->integer;
 }
 
+std::shared_ptr<std::string> RedisClient::get(std::string key)
+{
+    char *temp;
+    int len = redisFormatCommand(&temp, "GET %s", key.c_str());
+
+    std::string get(temp, len);
+    free(temp);
+
+    redisReply *reply;
+
+    redisAppendFormattedCommand(m_db->getContext(), get.c_str(), get.length());
+    redisGetReply(m_db->getContext(), (void**)&reply);
+
+    if (!reply)
+        throw std::runtime_error("GET failed, memory exception");
+
+    if (reply->type == REDIS_REPLY_NIL)
+    {
+        freeReplyObject(reply);
+        return std::shared_ptr<std::string>(NULL);
+    }
+
+    if (reply->type == REDIS_REPLY_STRING)
+    {
+        std::shared_ptr<std::string> ptr(new std::string(reply->str));
+        freeReplyObject(reply);
+        return ptr;
+    }
+
+    freeReplyObject(reply);
+
+    throw std::runtime_error("GET failed, memory exception");
+}
+
 std::shared_ptr<std::string> RedisClient::hget(std::string key, std::string field)
 {
     char *temp;
