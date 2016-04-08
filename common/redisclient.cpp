@@ -51,6 +51,19 @@ void RedisClient::hset(std::string key, std::string field, std::string value)
         throw std::runtime_error("HSET operation failed");
 }
 
+void RedisClient::set(std::string key, std::string value)
+{
+    char *temp;
+    int len = redisFormatCommand(&temp, "SET %s %s", key.c_str(), value.c_str());
+    std::string set(temp, len);
+    free(temp);
+
+    RedisReply r(m_db, set, REDIS_REPLY_INTEGER, true);
+
+    if (r.getContext()->type != REDIS_REPLY_INTEGER)
+        throw std::runtime_error("SET operation failed");
+}
+
 std::unordered_map<std::string, std::string> RedisClient::hgetall(std::string key)
 {
     std::unordered_map<std::string, std::string> map;
