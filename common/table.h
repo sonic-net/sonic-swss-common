@@ -38,11 +38,11 @@ public:
     void delField(std::string key, std::string field);
 
     virtual ~Table();
+    std::string getTableName()const {return m_tableName;};
 
 protected:
     /* Return the actual key name as a comibation of tableName:key */
     std::string getKeyName(std::string key);
-
     std::string getKeyQueueTableName();
     std::string getValueQueueTableName();
     std::string getOpQueueTableName();

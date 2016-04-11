@@ -37,7 +37,10 @@ ConsumerTable::ConsumerTable(DBConnector *db, string tableName) :
         }
         catch (...)
         {
-            delete m_subscribe;
+            if(m_subscribe) {
+                delete m_subscribe;
+                m_subscribe = NULL;
+            }            
         }
     }
 
@@ -47,7 +50,9 @@ ConsumerTable::ConsumerTable(DBConnector *db, string tableName) :
 
 ConsumerTable::~ConsumerTable()
 {
-    delete m_subscribe;
+    if(m_subscribe) {
+        delete m_subscribe;
+    }
 }
 
 static string pop_front(queue<RedisReply *> &q)
