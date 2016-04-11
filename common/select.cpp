@@ -1,4 +1,6 @@
+#include <algorithm>
 #include "common/selectable.h"
+#include "common/logger.h"
 #include "common/select.h"
 #include <stdio.h>
 #include <sys/time.h>
@@ -8,9 +10,20 @@ using namespace std;
 
 namespace swss {
 
-void Select::addSelectable(Selectable *c)
+void Select::addSelectable(Selectable *selectable)
 {
-    m_objects.push_back(c);
+    if(find(m_objects.begin(), m_objects.end(), selectable) != m_objects.end()) {
+        SWSS_LOG_WARN("Selectable is already added to the list, ignoring.");
+        return;
+    }
+    m_objects.push_back(selectable);
+}
+
+void Select::addSelectables(vector<Selectable *> selectables)
+{
+    for(auto it : selectables) {
+        addSelectable(it);
+    }
 }
 
 void Select::addFd(int fd)
@@ -28,7 +41,7 @@ int Select::select(Selectable **c, int *fd, unsigned int timeout)
     FD_ZERO(&fs);
     *c = NULL;
     *fd = 0;
-    if (timeout != std::numeric_limits<unsigned int>::max())
+    if (timeout != numeric_limits<unsigned int>::max())
         pTimeout = &t;
 
     /* Checking caching from reader */
