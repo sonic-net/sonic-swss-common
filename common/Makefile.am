@@ -23,6 +23,8 @@ libswsscommon_la_SOURCES = \
     macaddress.cpp            \
     netdispatcher.cpp         \
     netlink.cpp               \
+    notificationconsumer.cpp  \
+    notificationproducer.cpp  \
     linkcache.cpp
 
 libswsscommon_la_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON)
