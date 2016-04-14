@@ -7,7 +7,6 @@
 #include <hiredis/hiredis.h>
 #include "selectable.h"
 
-
 namespace swss {
 
 class Select
