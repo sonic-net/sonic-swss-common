@@ -19,7 +19,7 @@ void Select::addSelectable(Selectable *selectable)
     m_objects.push_back(selectable);
 }
 
-void Select::addSelectables(std::vector<Selectable *> selectables)
+void Select::addSelectables(vector<Selectable *> selectables)
 {
     for(auto it : selectables) {
         addSelectable(it);
@@ -41,7 +41,7 @@ int Select::select(Selectable **c, int *fd, unsigned int timeout)
     FD_ZERO(&fs);
     *c = NULL;
     *fd = 0;
-    if (timeout != std::numeric_limits<unsigned int>::max())
+    if (timeout != numeric_limits<unsigned int>::max())
         pTimeout = &t;
 
     /* Checking caching from reader */
