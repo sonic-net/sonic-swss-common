@@ -13,8 +13,8 @@ class Select
 {
 public:
     /* Add object for select */
-    void addSelectables(_in_ std::vector<Selectable *> &selectables);
-    void addSelectable(_in_ Selectable *selectable);
+    void addSelectables(std::vector<Selectable *> selectables);
+    void addSelectable(Selectable *selectable);
 
     /* Add file-descriptor for select  */
     void addFd(int fd);
@@ -29,7 +29,7 @@ public:
         ERROR = 2,
         TIMEOUT = 3
     };
-    int select(_out_ Selectable **c, _out_ int *fd, _in_ unsigned int timeout = std::numeric_limits<unsigned int>::max());
+    int select(Selectable **c, int *fd, unsigned int timeout = std::numeric_limits<unsigned int>::max());
 
 private:
     /* Create a new redisContext, SELECT DB and SUBSRIBE */

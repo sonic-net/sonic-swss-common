@@ -10,16 +10,16 @@ using namespace std;
 
 namespace swss {
 
-void Select::addSelectable(_in_ Selectable *selectable)
+void Select::addSelectable(Selectable *selectable)
 {
     if(std::find(m_objects.begin(), m_objects.end(), selectable) != m_objects.end()) {
-        SWSS_LOG_WARN("Selectable:%p already been added to the list, ignoring\n.");
+        SWSS_LOG_WARN("Selectable:%p already been added to the list, ignoring.");
         return;
     }
     m_objects.push_back(selectable);
 }
-    
-void Select::addSelectables(_in_ std::vector<Selectable *> &selectables)
+
+void Select::addSelectables(std::vector<Selectable *> selectables)
 {
     for(auto it : selectables) {
         addSelectable(it);
@@ -31,7 +31,7 @@ void Select::addFd(int fd)
     m_fds.push_back(fd);
 }
 
-int Select::select(_out_ Selectable **c, _out_ int *fd, _in_ unsigned int timeout)
+int Select::select(Selectable **c, int *fd, unsigned int timeout)
 {
     struct timeval t = {0, (suseconds_t)(timeout)*1000};
     struct timeval *pTimeout = NULL;
