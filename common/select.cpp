@@ -12,8 +12,8 @@ namespace swss {
 
 void Select::addSelectable(Selectable *selectable)
 {
-    if(std::find(m_objects.begin(), m_objects.end(), selectable) != m_objects.end()) {
-        SWSS_LOG_WARN("Selectable:%p already been added to the list, ignoring.");
+    if(find(m_objects.begin(), m_objects.end(), selectable) != m_objects.end()) {
+        SWSS_LOG_WARN("Selectable:%p already been added to the list, ignoring.", selectable);
         return;
     }
     m_objects.push_back(selectable);
