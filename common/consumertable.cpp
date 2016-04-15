@@ -38,6 +38,7 @@ ConsumerTable::ConsumerTable(DBConnector *db, string tableName) :
         catch (...)
         {
             delete m_subscribe;
+            m_subscribe = NULL;
         }
     }
 

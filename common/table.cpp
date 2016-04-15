@@ -15,6 +15,11 @@ Table::Table(DBConnector *db, string tableName) :
 {
 }
 
+std::string Table::getTableName()const
+{
+    return m_tableName;
+}
+
 string Table::getKeyName(string key)
 {
     return m_tableName + ':' + key;
