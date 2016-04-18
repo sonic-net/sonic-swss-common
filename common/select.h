@@ -13,8 +13,9 @@ class Select
 {
 public:
     /* Add object for select */
-    void addSelectables(std::vector<Selectable *> selectables);
     void addSelectable(Selectable *selectable);
+    void removeSelectable(Selectable *selectable);
+    void addSelectables(std::vector<Selectable *> selectables);
 
     /* Add file-descriptor for select  */
     void addFd(int fd);
