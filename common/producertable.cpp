@@ -45,9 +45,6 @@ void ProducerTable::enqueueDbChange(string key, string value, string op)
 void ProducerTable::set(string key, vector<FieldValueTuple> &values, string op)
 {
     multi();
-    for (FieldValueTuple &i : values)
-        enqueue(formatHSET(getKeyName(key), fvField(i), fvValue(i)),
-                REDIS_REPLY_INTEGER, true);
 
     enqueueDbChange(key, JSon::buildJson(values), op);
     exec();
@@ -61,7 +58,6 @@ void ProducerTable::del(string key, string op)
     multi();
 
     enqueueDbChange(key, "{}", op);
-    enqueue(del, REDIS_REPLY_INTEGER);
 
     exec();
 }
