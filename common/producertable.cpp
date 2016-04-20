@@ -46,7 +46,7 @@ void ProducerTable::set(string key, vector<FieldValueTuple> &values, string op)
 {
     multi();
 
-    enqueueDbChange(key, JSon::buildJson(values), op);
+    enqueueDbChange(key, JSon::buildJson(values), "S" + op);
     exec();
 }
 
@@ -57,7 +57,7 @@ void ProducerTable::del(string key, string op)
 
     multi();
 
-    enqueueDbChange(key, "{}", op);
+    enqueueDbChange(key, "{}", "D" + op);
 
     exec();
 }
