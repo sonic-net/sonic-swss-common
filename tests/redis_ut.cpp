@@ -2,6 +2,7 @@
 #include "common/producertable.h"
 #include "common/consumertable.h"
 #include "common/select.h"
+#include "common/selectableevent.h"
 #include <iostream>
 #include <memory>
 #include <thread>
@@ -221,3 +222,45 @@ TEST(DBConnector, multitable)
     cout << endl << "Done." << endl;
 }
 
+void selectableEventThread(swss::Selectable *ev, int *value)
+{
+    swss::Select s;
+
+    s.addSelectable(ev);
+
+    swss::Selectable *sel;
+
+    int fd;
+
+    std::cout << "listening ... " << std::endl;
+
+    int result = s.select(&sel, &fd, 2000);
+
+    if (result == swss::Select::OBJECT)
+    {
+        if (sel == ev)
+        {
+            std::cout << "Got notification: "<<std::endl;
+            *value = 2;
+        }
+    }
+}
+
+TEST(DBConnector, selectableevent)
+{
+    int value = 1;
+
+    swss::SelectableEvent ev;
+
+    std::thread t(selectableEventThread, &ev, &value);
+
+    sleep(1);
+
+    EXPECT_EQ(value, 1);
+
+    ev.notify();
+
+    t.join();
+
+    EXPECT_EQ(value, 2);
+}

@@ -16,6 +16,7 @@ libswsscommon_la_SOURCES = \
     json.cpp                  \
     producertable.cpp         \
     select.cpp                \
+    selectableevent.cpp       \
     consumertable.cpp         \
     ipaddress.cpp             \
     ipprefix.cpp              \
