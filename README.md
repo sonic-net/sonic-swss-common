@@ -20,6 +20,11 @@ Install dependencies:
     sudo apt-get install redis-server -t trusty
     sudo apt-get install libhiredis0.13 -t trusty
 
+Install building dependencies:
+
+    sudo apt-get install libtool
+    sudo apt-get install dh-exec
+
 There are a few different ways you can install SONiC-SWSS.
 
 #### Install from Debian Repo
