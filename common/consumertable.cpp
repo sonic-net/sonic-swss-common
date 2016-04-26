@@ -81,6 +81,11 @@ void ConsumerTable::pop(KeyOpFieldsValuesTuple &kco)
     vector<FieldValueTuple> fieldsValues;
     string key = pop_front(m_results);
     string op = pop_front(m_results);
+
+    string dbop = op.at(0) == 'D' ? DEL_COMMAND : SET_COMMAND;
+
+    op = op.substr(1);
+
     JSon::readJson(pop_front(m_results), fieldsValues);
 
     kco = std::make_tuple(key, op, fieldsValues);
@@ -93,7 +98,7 @@ void ConsumerTable::pop(KeyOpFieldsValuesTuple &kco)
 
     multi();
 
-    if (op == DEL_COMMAND)
+    if (dbop == DEL_COMMAND)
     {
 
         std::string del("DEL ");
