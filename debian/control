@@ -10,9 +10,15 @@ Architecture: any
 Section: libs
 Description: Tihs package contains Switch State Service common library.
 
+Package: libswssnlcommon
+Architecture: any
+Depends: libswsscommon (= ${binary:Version}), ${shlibs:Depends}
+Section: libs
+Description: Tihs package contains Switch State Service common library that depends on libnl.
+
 Package: libswsscommon-dev
 Architecture: any
-Depends: libswsscommon (= ${binary:Version})
+Depends: libswsscommon (= ${binary:Version}), libswssnlcommon (= ${binary:Version})
 Section: libdevel
 Description: This package contains development files for Switch State Service.
 
