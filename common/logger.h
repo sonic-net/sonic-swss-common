@@ -2,6 +2,7 @@
 #define SWSS_COMMON_LOGGER_H
 
 #include <string>
+#include <chrono>
 
 namespace swss {
 
@@ -12,6 +13,7 @@ namespace swss {
 #define SWSS_LOG_DEBUG(MSG, ...)       swss::Logger::getInstance().write(swss::Logger::SWSS_DEBUG,  ":- %s: " MSG, __FUNCTION__, ##__VA_ARGS__)
 
 #define SWSS_LOG_ENTER()               swss::Logger::ScopeLogger logger ## __LINE__ (__LINE__, __FUNCTION__)
+#define SWSS_LOG_TIMER(msg)            swss::Logger::ScopeTimer scopetimer ## __LINE__ (__LINE__, __FUNCTION__, msg)
 
 class Logger
 {
@@ -46,6 +48,25 @@ public:
         private:
             const int m_line;
             const char *m_fun;
+    };
+
+    class ScopeTimer
+    {
+        typedef std::chrono::duration<double, std::ratio<1>> second_t;
+
+        public:
+
+            ScopeTimer(int line, const char* fun, std::string msg);
+            ~ScopeTimer();
+
+        private:
+
+            const int m_line;
+            const char *m_fun;
+
+            std::string m_msg;
+
+            std::chrono::time_point<std::chrono::high_resolution_clock> m_start;
     };
 
 private:
