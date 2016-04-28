@@ -71,12 +71,14 @@ bool Table::get(std::string key, vector<FieldValueTuple> &values)
 void Table::set(std::string key, std::vector<FieldValueTuple> &values,
                 std::string /*op*/)
 {
-    /* We are doing transaction for AON (All or nothing) */
-    multi();
+    if (values.size() == 0)
+        return;
 
-    enqueue(formatHMSET(getKeyName(key), values), REDIS_REPLY_STATUS, true);
+    const std::string &cmd = formatHMSET(getKeyName(key), values);
+    
+    RedisReply r(m_db, cmd, REDIS_REPLY_STATUS);
 
-    exec();
+    r.checkStatusOK();
 }
 
 void Table::del(std::string key, std::string /* op */)
