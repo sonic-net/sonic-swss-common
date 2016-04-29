@@ -76,7 +76,7 @@ void Table::set(std::string key, std::vector<FieldValueTuple> &values,
 
     const std::string &cmd = formatHMSET(getKeyName(key), values);
     
-    RedisReply r(m_db, cmd, REDIS_REPLY_STATUS);
+    RedisReply r(m_db, cmd, REDIS_REPLY_STATUS, true);
 
     r.checkStatusOK();
 }
