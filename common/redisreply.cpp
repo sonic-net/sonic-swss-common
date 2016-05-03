@@ -29,16 +29,19 @@ RedisReply::RedisReply(DBConnector *db, string command, int exepectedType, bool 
 
     if (!m_reply)
     {
-        SWSS_LOG_ERROR("Redis reply is NULL, memory exception");
+        SWSS_LOG_ERROR("Redis reply is NULL, memory exception, command: %s", command.c_str());
 
         throw system_error(make_error_code(errc::not_enough_memory),
-                           "Memory exception");
+                           "Memory exception, reply is null");
     }
 
     if (m_reply->type != exepectedType)
     {
-        SWSS_LOG_ERROR("Expected to get redis type %d got type %d, command: %s",
-                      exepectedType, m_reply->type, command.c_str());
+        const char *err = (m_reply->type == REDIS_REPLY_STRING || m_reply->type == REDIS_REPLY_ERROR) ?
+            m_reply->str : "NON-STRING-REPLY";
+
+        SWSS_LOG_ERROR("Expected to get redis type %d got type %d, command: %s, err: %s",
+                      exepectedType, m_reply->type, command.c_str(), err);
         freeReplyObject(m_reply);
         m_reply = NULL; /* Some compilers call destructor in this case */
 
