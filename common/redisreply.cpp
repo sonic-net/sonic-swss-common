@@ -37,8 +37,8 @@ RedisReply::RedisReply(DBConnector *db, string command, int exepectedType, bool 
 
     if (m_reply->type != exepectedType)
     {
-        SWSS_LOG_ERROR("Expected to get redis type %d got type %d",
-                      exepectedType, m_reply->type);
+        SWSS_LOG_ERROR("Expected to get redis type %d got type %d, command: %s",
+                      exepectedType, m_reply->type, command.c_str());
         freeReplyObject(m_reply);
         m_reply = NULL; /* Some compilers call destructor in this case */
 
