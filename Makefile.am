@@ -1,5 +1,5 @@
 SUBDIRS = common
 
-if TESTS
+if GTEST
 SUBDIRS += tests
 endif
