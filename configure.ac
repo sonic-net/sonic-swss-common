@@ -35,18 +35,6 @@ AC_SUBST(GTEST_PATH)
 AM_CONDITIONAL(TESTS, test "x$with_gtest" != xnone)
 
 
-AC_ARG_WITH(fpm,
-[  --with-fpm=<dir>   Compiles using qauggas fpm library],
-AC_MSG_NOTICE(Using fpmi path from:$with_fpm), with_fpm="none")
-
-FPM_PATH=
-if test "x$with_fpm" != xnone; then
-FPM_PATH=$with_fpm
-fi
-AC_SUBST(FPM_PATH)
-AM_CONDITIONAL(FPM, test "x$with_fpm" != xnone)
-
-
 CFLAGS_COMMON="-std=c++11 -Wall -fPIC -Wno-write-strings -I/usr/include/libnl3"
 AC_SUBST(CFLAGS_COMMON)
 

@@ -16,6 +16,7 @@ libswsscommon_la_SOURCES = \
     json.cpp                  \
     producertable.cpp         \
     select.cpp                \
+    selectableevent.cpp       \
     consumertable.cpp         \
     ipaddress.cpp             \
     ipprefix.cpp              \
@@ -23,6 +24,8 @@ libswsscommon_la_SOURCES = \
     macaddress.cpp            \
     netdispatcher.cpp         \
     netlink.cpp               \
+    notificationconsumer.cpp  \
+    notificationproducer.cpp  \
     linkcache.cpp
 
 libswsscommon_la_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON)

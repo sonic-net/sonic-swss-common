@@ -1,7 +1,7 @@
-#include <algorithm>
 #include "common/selectable.h"
 #include "common/logger.h"
 #include "common/select.h"
+#include <algorithm>
 #include <stdio.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -12,18 +12,25 @@ namespace swss {
 
 void Select::addSelectable(Selectable *selectable)
 {
-    if(find(m_objects.begin(), m_objects.end(), selectable) != m_objects.end()) {
-        SWSS_LOG_WARN("Selectable:%p already been added to the list, ignoring.", selectable);
+    if(find(m_objects.begin(), m_objects.end(), selectable) != m_objects.end())
+    {
+        SWSS_LOG_WARN("Selectable is already added to the list, ignoring.");
         return;
     }
     m_objects.push_back(selectable);
 }
 
+void Select::removeSelectable(Selectable *c)
+{
+    m_objects.erase(remove(m_objects.begin(), m_objects.end(), c), m_objects.end());
+}
+
 void Select::addSelectables(vector<Selectable *> selectables)
 {
-    for(auto it : selectables) {
+    for(auto it : selectables)
+    {
         addSelectable(it);
-    }    
+    }
 }
 
 void Select::addFd(int fd)

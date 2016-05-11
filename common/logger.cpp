@@ -71,6 +71,23 @@ Logger::ScopeLogger::~ScopeLogger()
     swss::Logger::getInstance().write(swss::Logger::SWSS_DEBUG, ":< %s: exit", m_fun);
 }
 
+Logger::ScopeTimer::ScopeTimer(int line, const char *fun, std::string msg) :
+    m_line(line),
+    m_fun(fun),
+    m_msg(msg)
+{
+    m_start = std::chrono::high_resolution_clock::now();
+}
+
+Logger::ScopeTimer::~ScopeTimer()
+{
+    auto end = std::chrono::high_resolution_clock::now();
+
+    double duration = std::chrono::duration_cast<second_t>(end - m_start).count();
+
+    Logger::getInstance().write(swss::Logger::SWSS_INFO, ":- %s: %s took %lf", m_fun, m_msg.c_str(), duration);
+}
+
 std::string Logger::priorityToString(Logger::Priority prio)
 {
     switch(prio)

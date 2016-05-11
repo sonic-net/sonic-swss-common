@@ -81,9 +81,39 @@ void ConsumerTable::pop(KeyOpFieldsValuesTuple &kco)
     vector<FieldValueTuple> fieldsValues;
     string key = pop_front(m_results);
     string op = pop_front(m_results);
+
+    string dbop = op.at(0) == 'D' ? DEL_COMMAND : SET_COMMAND;
+
+    op = op.substr(1);
+
     JSon::readJson(pop_front(m_results), fieldsValues);
 
     kco = std::make_tuple(key, op, fieldsValues);
+
+    // NOTE: not entire pop operation is atomic
+    // since we first get values from the queue
+    // and then put them into table, but that
+    // is fine since we are the only consumer
+    // of this data
+
+    multi();
+
+    if (dbop == DEL_COMMAND)
+    {
+
+        std::string del("DEL ");
+        del += getKeyName(key);
+
+        enqueue(del, REDIS_REPLY_INTEGER);
+    }
+    else
+    {
+        for (FieldValueTuple &i : fieldsValues)
+            enqueue(formatHSET(getKeyName(key), fvField(i), fvValue(i)),
+                    REDIS_REPLY_INTEGER, true);
+    }
+
+    exec();
 }
 
 void ConsumerTable::addFd(fd_set *fd)

@@ -71,13 +71,14 @@ bool Table::get(std::string key, vector<FieldValueTuple> &values)
 void Table::set(std::string key, std::vector<FieldValueTuple> &values,
                 std::string /*op*/)
 {
-    /* We are doing transaction for AON (All or nothing) */
-    multi();
-    for (FieldValueTuple &i : values)
-        enqueue(formatHSET(getKeyName(key), fvField(i), fvValue(i)),
-                REDIS_REPLY_INTEGER, true);
+    if (values.size() == 0)
+        return;
 
-    exec();
+    const std::string &cmd = formatHMSET(getKeyName(key), values);
+    
+    RedisReply r(m_db, cmd, REDIS_REPLY_STATUS, true);
+
+    r.checkStatusOK();
 }
 
 void Table::del(std::string key, std::string /* op */)
@@ -197,6 +198,30 @@ void Table::enqueue(std::string command, int exepectedResult, bool isFormatted)
     RedisReply r(m_db, command, REDIS_REPLY_STATUS, isFormatted);
     r.checkStatusQueued();
     m_expectedResults.push(exepectedResult);
+}
+
+string Table::formatHMSET(const std::string &key,
+                          const std::vector<FieldValueTuple> &values)
+{
+    if (values.size() == 0)
+        throw system_error(make_error_code(errc::io_error),
+                           "HMSET must have some arguments");
+
+    const char* cmd = "HMSET";
+
+    std::vector<const char*> args = { cmd, key.c_str() };
+
+    for (const auto &fvt: values)
+    {
+        args.push_back(fvField(fvt).c_str());
+        args.push_back(fvValue(fvt).c_str());
+    }
+
+    char *temp;
+    int len = redisFormatCommandArgv(&temp, args.size(), args.data(), NULL);
+    string hmset(temp, len);
+    free(temp);
+    return hmset;
 }
 
 string Table::formatHSET(const string& key, const string& field,
