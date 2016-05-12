@@ -38,7 +38,11 @@ public:
     void delField(std::string key, std::string field);
 
     virtual ~Table();
-    std::string getTableName()const;
+    std::string getTableName() const;
+
+    /* Read the whole table content from the DB directly */
+    /* NOTE: Not an atomic function */
+    void getTableContent(std::vector<KeyOpFieldsValuesTuple> &tuples);
 
 protected:
     /* Return the actual key name as a comibation of tableName:key */
@@ -47,6 +51,7 @@ protected:
     std::string getValueQueueTableName();
     std::string getOpQueueTableName();
     std::string getChannelTableName();
+    void getTableKeys(std::vector<std::string> &keys);
 
     /* Start a transaction */
     void multi();

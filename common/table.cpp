@@ -126,6 +126,38 @@ void Table::delField(std::string key, std::string field)
                            "DEL operation failed");
 }
 
+void Table::getTableContent(std::vector<KeyOpFieldsValuesTuple> &tuples)
+{
+    std::vector<std::string> keys;
+    getTableKeys(keys);
+
+    tuples.clear();
+
+    for (auto key: keys)
+    {
+        std::vector<FieldValueTuple> values;
+        std::string op = "";
+
+        get(key, values);
+        tuples.push_back(make_tuple(key, op, values));
+    }
+}
+
+void Table::getTableKeys(std::vector<std::string> &keys)
+{
+    string keys_cmd("KEYS " + getTableName() + ":*");
+    RedisReply r(m_db, keys_cmd, REDIS_REPLY_ARRAY);
+    redisReply *reply = r.getContext();
+    keys.clear();
+
+    for (unsigned int i = 0; i < reply->elements; i++)
+    {
+        string key = reply->element[i]->str;
+        auto pos = key.find(':');
+        keys.push_back(key.substr(pos+1));
+    }
+}
+
 Table::~Table()
 {
 }

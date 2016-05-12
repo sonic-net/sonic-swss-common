@@ -5,6 +5,7 @@
 #include "common/notificationproducer.h"
 #include "common/select.h"
 #include "common/selectableevent.h"
+#include "common/table.h"
 #include <iostream>
 #include <memory>
 #include <thread>
@@ -142,9 +143,9 @@ void clearDB()
 
 TEST(DBConnector, test)
 {
-    std::thread *producerThreads, *consumerThreads;
-    producerThreads = new std::thread[NUMBER_OF_THREADS];
-    consumerThreads = new std::thread[NUMBER_OF_THREADS];
+    thread *producerThreads, *consumerThreads;
+    producerThreads = new thread[NUMBER_OF_THREADS];
+    consumerThreads = new thread[NUMBER_OF_THREADS];
 
     clearDB();
 
@@ -152,8 +153,8 @@ TEST(DBConnector, test)
     /* Starting the consumer before the producer */
     for (int i = 0; i < NUMBER_OF_THREADS; i++)
     {
-        consumerThreads[i] = std::thread(consumerWorker, i);
-        producerThreads[i] = std::thread(producerWorker, i);
+        consumerThreads[i] = thread(consumerWorker, i);
+        producerThreads[i] = thread(producerWorker, i);
     }
 
     cout << "Done. Waiting for all job to finish " << NUMBER_OF_OPS << " jobs." << endl;
@@ -207,6 +208,8 @@ TEST(DBConnector, multitable)
         } else
         {
             numberOfKeyDeleted++;
+            if ((numberOfKeyDeleted % 100) == 0)
+                cout << "-" << flush;
         }
 
         if ((numberOfKeysSet == NUMBER_OF_OPS * NUMBER_OF_THREADS) &&
@@ -230,50 +233,38 @@ void notificationProducer()
     sleep(1);
 
     DBConnector db(TEST_VIEW, "localhost", 6379, 0);
+    NotificationProducer np(&db, "UT_REDIS_CHANNEL");
 
-    swss::NotificationProducer np(&db, "fooChannel");
+    vector<FieldValueTuple> values;
+    FieldValueTuple tuple("foo", "bar");
+    values.push_back(tuple);
 
-    std::vector<swss::FieldValueTuple> values;
-
-    swss::FieldValueTuple e("foo", "bar");
-
-    values.push_back(e);
-
-    std::cout << "sending ntf" << std::endl;
-
+    cout << "Starting sending notification producer" << endl;
     np.send("a", "b", values);
 }
 
 TEST(DBConnector, notifications)
 {
+    DBConnector db(TEST_VIEW, "localhost", 6379, 0);
+    NotificationConsumer nc(&db, "UT_REDIS_CHANNEL");
+    Select s;
+    s.addSelectable(&nc);
+    Selectable *sel;
+    int fd, value = 1;
+
     clearDB();
 
-    DBConnector db(TEST_VIEW, "localhost", 6379, 0);
-
-    swss::NotificationConsumer nc(&db, "fooChannel");
-
-    std::thread np(notificationProducer);
-
-    swss::Select s;
-
-    s.addSelectable(&nc);
-
-    swss::Selectable *sel;
-
-    int fd;
-
-    int value = 1;
+    thread np(notificationProducer);
 
     int result = s.select(&sel, &fd, 2000);
-
-    if (result == swss::Select::OBJECT)
+    if (result == Select::OBJECT)
     {
-        std::cout << "Got notification " << std::endl;
+        cout << "Got notification from producer" << endl;
 
         value = 2;
 
-        std::string op, data;
-        std::vector<swss::FieldValueTuple> values;
+        string op, data;
+        vector<FieldValueTuple> values;
 
         nc.pop(op, data, values);
 
@@ -287,29 +278,24 @@ TEST(DBConnector, notifications)
     }
 
     np.join();
-
     EXPECT_EQ(value, 2);
 }
 
-void selectableEventThread(swss::Selectable *ev, int *value)
+void selectableEventThread(Selectable *ev, int *value)
 {
-    swss::Select s;
-
+    Select s;
     s.addSelectable(ev);
-
-    swss::Selectable *sel;
-
+    Selectable *sel;
     int fd;
 
-    std::cout << "listening ... " << std::endl;
+    cout << "Starting listening ... " << endl;
 
     int result = s.select(&sel, &fd, 2000);
-
-    if (result == swss::Select::OBJECT)
+    if (result == Select::OBJECT)
     {
         if (sel == ev)
         {
-            std::cout << "Got notification: "<<std::endl;
+            cout << "Got notification" << endl;
             *value = 2;
         }
     }
@@ -318,19 +304,94 @@ void selectableEventThread(swss::Selectable *ev, int *value)
 TEST(DBConnector, selectableevent)
 {
     int value = 1;
-
-    swss::SelectableEvent ev;
-
-    std::thread t(selectableEventThread, &ev, &value);
+    SelectableEvent ev;
+    thread t(selectableEventThread, &ev, &value);
 
     sleep(1);
 
     EXPECT_EQ(value, 1);
 
     ev.notify();
-
     t.join();
 
     EXPECT_EQ(value, 2);
 }
 
+TEST(Table, test)
+{
+    string tableName = "TABLE_UT_TEST";
+    DBConnector db(TEST_VIEW, "localhost", 6379, 0);
+    Table t(&db, tableName);
+
+    clearDB();
+    cout << "Starting table manipulations" << endl;
+
+    string key_1 = "a";
+    string key_2 = "b";
+    vector<FieldValueTuple> values;
+
+    for (int i = 1; i < 4; i++)
+    {
+        string field = "field_" + to_string(i);
+        string value = to_string(i);
+        values.push_back(make_pair(field, value));
+    }
+
+    cout << "- Step 1. SET" << endl;
+    cout << "Set key [a] field_1:1 field_2:2 field_3:3" << endl;
+    cout << "Set key [b] field_1:1 field_2:2 field_3:3" << endl;
+
+    t.set(key_1, values);
+    t.set(key_2, values);
+
+    cout << "- Step 2. GET_TABLE_CONTENT" << endl;
+    vector<KeyOpFieldsValuesTuple> tuples;
+    t.getTableContent(tuples);
+
+    unsigned int size_t = 2;
+    cout << "Get total " << tuples.size() << " number of entries" << endl;
+    EXPECT_EQ(tuples.size(), size_t);
+
+    for (auto tuple: tuples)
+    {
+        cout << "Get key [" << kfvKey(tuple) << "]" << flush;
+        unsigned int size_v = 3;
+        EXPECT_EQ(kfvFieldsValues(tuple).size(), size_v);
+        for (auto fv: kfvFieldsValues(tuple))
+        {
+            string value_1 = "1", value_2 = "2";
+            cout << " " << fvField(fv) << ":" << fvValue(fv) << flush;
+            if (fvField(fv) == "field_1") EXPECT_EQ(fvValue(fv), value_1);
+            if (fvField(fv) == "field_2") EXPECT_EQ(fvValue(fv), value_2);
+        }
+        cout << endl;
+    }
+
+    cout << "- Step 3. DEL" << endl;
+    cout << "Delete key [a]" << endl;
+    t.del(key_1);
+
+    cout << "- Step 4. GET" << endl;
+    cout << "Get key [a] and key [b]" << endl;
+    EXPECT_EQ(t.get(key_1, values), false);
+    t.get(key_2, values);
+
+    cout << "Get key [b]" << flush;
+    for (auto fv: values)
+    {
+        string value_1 = "1", value_2 = "2";
+        cout << " " << fvField(fv) << ":" << fvValue(fv) << flush;
+        if (fvField(fv) == "field_1") EXPECT_EQ(fvValue(fv), value_1);
+        if (fvField(fv) == "field_2") EXPECT_EQ(fvValue(fv), value_2);
+    }
+    cout << endl;
+
+    cout << "- Step 5. DEL and GET_TABLE_CONTENT" << endl;
+    cout << "Delete key [b]" << endl;
+    t.del(key_2);
+    t.getTableContent(tuples);
+
+    EXPECT_EQ(tuples.size(), unsigned(0));
+
+    cout << "Done." << endl;
+}
