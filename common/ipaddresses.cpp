@@ -28,6 +28,28 @@ void IpAddresses::add(const IpAddress &ip)
     m_ips.insert(ip);
 }
 
+bool IpAddresses::contains(const std::string &ipStr)
+{
+    IpAddress ip(ipStr);
+    return m_ips.find(ip) != m_ips.end();
+}
+
+bool IpAddresses::contains(const IpAddress &ip)
+{
+    return m_ips.find(ip) != m_ips.end();
+}
+
+void IpAddresses::remove(const string &ipStr)
+{
+    IpAddress ip(ipStr);
+    m_ips.erase(ip);
+}
+
+void IpAddresses::remove(const IpAddress &ip)
+{
+    m_ips.erase(ip);
+}
+
 const string IpAddresses::to_string() const
 {
     string ips_str;

@@ -44,6 +44,14 @@ public:
 
     void add(const IpAddress &ip);
 
+    bool contains(const std::string &ip);
+
+    bool contains(const IpAddress &ip);
+
+    void remove(const std::string &ip);
+
+    void remove(const IpAddress &ip);
+
     const std::string to_string() const;
 
 
