@@ -32,6 +32,9 @@ NetLink::NetLink() :
         throw system_error(make_error_code(errc::address_not_available),
                            "Unable to connect netlink socket");
     }
+
+    /* Set socket buffer size to 256KB */
+    nl_socket_set_buffer_size(m_socket, 262144, 0);
 }
 
 NetLink::~NetLink()
