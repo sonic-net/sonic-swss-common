@@ -13,7 +13,6 @@ namespace swss {
 #define APP_INTF_TABLE_NAME             "INTF_TABLE"
 #define APP_NEIGH_TABLE_NAME            "NEIGH_TABLE"
 #define APP_ROUTE_TABLE_NAME            "ROUTE_TABLE"
-#define APP_LAG_TABLE_NAME              "LAG_TABLE"
 
 #define APP_TC_TO_QUEUE_MAP_TABLE_NAME  "TC_TO_QUEUE_MAP_TABLE"
 #define APP_SCHEDULER_TABLE_NAME        "SCHEDULER_TABLE"
