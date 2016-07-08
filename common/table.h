@@ -7,7 +7,7 @@
 #include "hiredis/hiredis.h"
 #include "dbconnector.h"
 #include "redisreply.h"
-#include "scheme.h"
+#include "schema.h"
 
 namespace swss {
 
