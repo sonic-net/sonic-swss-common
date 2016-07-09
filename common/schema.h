@@ -1,5 +1,5 @@
-#ifndef __SCHEME__
-#define __SCHEME__
+#ifndef __SCHEMA__
+#define __SCHEMA__
 
 namespace swss {
 

@@ -10,7 +10,6 @@
 #include "json.h"
 #include "logger.h"
 #include "redisreply.h"
-#include "scheme.h"
 #include "selectable.h"
 #include "table.h"
 

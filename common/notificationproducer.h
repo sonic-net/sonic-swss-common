@@ -6,7 +6,6 @@
 
 #include <hiredis/hiredis.h>
 #include "dbconnector.h"
-#include "scheme.h"
 #include "logger.h"
 #include "table.h"
 #include "redisreply.h"

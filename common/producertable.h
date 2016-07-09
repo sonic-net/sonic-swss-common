@@ -7,7 +7,6 @@
 #include <hiredis/hiredis.h>
 #include "dbconnector.h"
 #include "table.h"
-#include "scheme.h"
 
 namespace swss {
 
