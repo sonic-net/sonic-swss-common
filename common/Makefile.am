@@ -26,7 +26,8 @@ libswsscommon_la_SOURCES = \
     netlink.cpp               \
     notificationconsumer.cpp  \
     notificationproducer.cpp  \
-    linkcache.cpp
+    linkcache.cpp             \
+    portmap.cpp
 
 libswsscommon_la_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON)
 libswsscommon_la_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON)
