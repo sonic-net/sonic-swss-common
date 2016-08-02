@@ -1,20 +1,18 @@
 #include "ipaddresses.h"
+#include "tokenize.h"
 
 #include <sstream>
 
 using namespace std;
 using namespace swss;
 
+#define IP_DELIMITER ','
+
 IpAddresses::IpAddresses(const string &ipsStr)
 {
-    string ip_str;
-    istringstream iss(ipsStr);
-
-    while (getline(iss, ip_str, ','))
-    {
-        IpAddress ip(ip_str);
+    auto ips = tokenize(ipsStr, IP_DELIMITER);
+    for (auto ip : ips)
         m_ips.insert(ip);
-    }
 }
 
 void IpAddresses::add(const string &ipStr)
