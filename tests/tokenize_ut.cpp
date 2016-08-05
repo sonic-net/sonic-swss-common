@@ -13,12 +13,18 @@ TEST(TOKENIZE, basic)
     string str2 = "str2";
 
     vector<string> origin;
+    vector<string> result;
+
     origin.push_back(str1);
+    result = tokenize("str1", ':');
+
+    // Test1: check tokenize works on single token
+    EXPECT_EQ(origin, result);
+
     origin.push_back(str2);
+    result = tokenize("str1:str2", ':');
 
-    string str_colon = "str1:str2";
-    vector<string> result = tokenize(str_colon, ':');
-
+    // Test2: check tokenize works on multiple tokens
     EXPECT_EQ(origin, result);
 }
 
