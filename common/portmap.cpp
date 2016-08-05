@@ -2,6 +2,8 @@
 
 using namespace std;
 
+namespace swss {
+
 map<set<int>, string> handlePortMap(string file)
 {
     map<set<int>, string> port_map;
@@ -32,4 +34,6 @@ map<set<int>, string> handlePortMap(string file)
     infile.close();
 
     return port_map;
+}
+
 }
