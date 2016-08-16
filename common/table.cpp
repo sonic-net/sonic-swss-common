@@ -22,7 +22,8 @@ std::string Table::getTableName()const
 
 string Table::getKeyName(string key)
 {
-    return m_tableName + ':' + key;
+    if (key == "") return m_tableName;
+    else return m_tableName + ':' + key;
 }
 
 string Table::getKeyQueueTableName()
