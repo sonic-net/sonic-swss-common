@@ -13,7 +13,8 @@ LDADD_GTEST = $(top_srcdir)/googletest/build/googlemock/gtest/libgtest_main.a \
         $(top_srcdir)/googletest/build/googlemock/gtest/libgtest.a
 
 tests_SOURCES = redis_ut.cpp    \
-                tokenize_ut.cpp
+                tokenize_ut.cpp \
+                json_ut.cpp
 
 tests_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_GTEST)
 tests_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_GTEST)

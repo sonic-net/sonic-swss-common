@@ -8,10 +8,10 @@
 
 namespace swss {
 
-class JSon {
+class JSon
+{
 public:
    static std::string buildJson(const std::vector<FieldValueTuple> &fv);
-
    static void readJson(const std::string &json, std::vector<FieldValueTuple> &fv);
 };
 
