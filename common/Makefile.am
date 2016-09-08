@@ -1,6 +1,5 @@
 INCLUDES = -I $(top_srcdir)
 
-bin_PROGRAMS = unittest
 lib_LTLIBRARIES = libswsscommon.la
 
 if DEBUG
@@ -34,9 +33,3 @@ libswsscommon_la_SOURCES = \
 libswsscommon_la_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON)
 libswsscommon_la_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON)
 libswsscommon_la_LIBADD = -lnl-3 -lnl-route-3 -lhiredis
-
-unittest_SOURCES = ut_ipprefix.cpp
-unittest_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON)
-unittest_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_SAI)
-unittest_LDADD =  -lswsscommon -lgtest -lgtest_main
-unittest_LDFLAGS = -pthread

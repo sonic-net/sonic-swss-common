@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <string>
 #include <iostream>
-#include "ipprefix.h"
+#include "common/ipprefix.h"
 
 using namespace std;
 using namespace swss;
