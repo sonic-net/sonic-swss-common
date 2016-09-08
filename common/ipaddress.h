@@ -20,7 +20,7 @@ class IpAddress
 {
 public:
     IpAddress() {}
-    IpAddress(ip_addr_t ip) { m_ip = ip; }
+    IpAddress(const ip_addr_t &ip) { m_ip = ip; }
     IpAddress(uint32_t ip);
     IpAddress(const std::string &ipStr);
 
@@ -29,7 +29,7 @@ public:
         return m_ip.family == AF_INET;
     }
 
-    inline const ip_addr_t getIp() const
+    inline const ip_addr_t& getIp() const
     {
         return m_ip;
     }
@@ -57,11 +57,6 @@ public:
                ((m_ip.family == AF_INET && m_ip.ip_addr.ipv4_addr == o.m_ip.ip_addr.ipv4_addr) ||
                 (m_ip.family == AF_INET6 && memcmp(&m_ip.ip_addr.ipv6_addr, o.m_ip.ip_addr.ipv6_addr, 16) == 0)
                );
-    }
-
-    inline bool operator!=(const IpAddress &o) const
-    {
-        return !(*this == o);
     }
 
     const std::string to_string() const;
