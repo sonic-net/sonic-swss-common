@@ -6,7 +6,7 @@
 using namespace std;
 using namespace swss;
 
-TEST(sample_test_case, sample_test)
+TEST(IpPrefix, ipv6)
 {
     IpAddress ip("2001:4898:f0:f153:357c:77b2:49c9:627c");
     EXPECT_EQ(ip.to_string(), "2001:4898:f0:f153:357c:77b2:49c9:627c");
