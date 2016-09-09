@@ -5,7 +5,7 @@ bin_PROGRAMS = tests
 if DEBUG
 DBGFLAGS = -ggdb -DDEBUG
 else
-DBGFLAGS = -g
+DBGFLAGS = -g -DNDEBUG
 endif
 
 CFLAGS_GTEST = -I $(top_srcdir)/googletest/googletest/include
