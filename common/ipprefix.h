@@ -2,6 +2,7 @@
 #define __IPPREFIX__
 
 #include <assert.h>
+#include <stdexcept>
 #include "ipaddress.h"
 
 namespace swss {
@@ -54,7 +55,7 @@ public:
             }
             default:
             {
-                throw new std::logic_error("Invalid family");
+                throw std::logic_error("Invalid family");
             }
         }
     }

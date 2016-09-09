@@ -5,7 +5,7 @@ lib_LTLIBRARIES = libswsscommon.la
 if DEBUG
 DBGFLAGS = -ggdb -DDEBUG
 else
-DBGFLAGS = -g
+DBGFLAGS = -g -DNDEBUG
 endif
 
 libswsscommon_la_SOURCES = \
