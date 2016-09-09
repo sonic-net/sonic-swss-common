@@ -18,7 +18,7 @@ public:
         return m_ip.isV4();
     }
 
-    inline const IpAddress getIp() const
+    inline const IpAddress& getIp() const
     {
         return m_ip;
     }
@@ -50,11 +50,11 @@ public:
                 ipa.ip_addr.ipv6_addr[mid] = 0xFF << left;
                 memset(ipa.ip_addr.ipv6_addr, 0xFF, mid);
                 memset(ipa.ip_addr.ipv6_addr + mid + 1, 0, 16 - mid - 1);
-                return ipa;
+                return IpAddress(ipa);
             }
             default:
             {
-                assert(false);
+                throw new std::logic_error("Invalid family");
             }
         }
     }
