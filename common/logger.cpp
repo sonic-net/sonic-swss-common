@@ -55,8 +55,22 @@ void Logger::write(Priority prio, const char *fmt, ...)
     // + add thread id using std::thread::id this_id = std::this_thread::get_id();
     // + add timestmap with millisecond resolution
 
-    va_list ap;
+    char buffer[256];
+    va_list ap, aq;
     va_start(ap, fmt);
+    va_copy(aq, ap);
+
+    vsprintf(buffer, fmt, aq);
+    va_end(aq);
+
+    std::string cache(buffer);
+    if (cache == m_cache)
+    {
+        va_end(ap);
+        return;
+    }
+
+    m_cache = cache;
     vsyslog(prio, fmt, ap);
     va_end(ap);
 }

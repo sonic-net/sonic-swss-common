@@ -75,6 +75,7 @@ private:
     Logger &operator=(const Logger&);
 
     std::string m_self;
+    std::string m_cache;
 
     static Priority m_minPrio;
 };
