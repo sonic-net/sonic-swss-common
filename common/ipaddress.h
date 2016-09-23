@@ -29,12 +29,12 @@ public:
         return m_ip.family == AF_INET;
     }
 
-    inline const ip_addr_t& getIp() const
+    inline ip_addr_t getIp() const
     {
         return m_ip;
     }
 
-    inline const uint32_t getV4Addr() const
+    inline uint32_t getV4Addr() const
     {
         return m_ip.ip_addr.ipv4_addr;
     }
@@ -59,7 +59,7 @@ public:
                );
     }
 
-    const std::string to_string() const;
+    std::string to_string() const;
 
 private:
     struct ip_addr_t m_ip;

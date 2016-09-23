@@ -38,7 +38,7 @@ IpPrefix::IpPrefix(uint32_t ipPrefix, int mask)
     m_mask = mask;
 }
 
-const std::string IpPrefix::to_string() const
+std::string IpPrefix::to_string() const
 {
     return (m_ip.to_string() + "/" + std::to_string(m_mask));
 }

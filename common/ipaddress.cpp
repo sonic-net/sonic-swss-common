@@ -29,7 +29,7 @@ IpAddress::IpAddress(const std::string &ipStr)
     }
 }
 
-const std::string IpAddress::to_string() const
+std::string IpAddress::to_string() const
 {
     char buf[INET6_ADDRSTRLEN];
 
