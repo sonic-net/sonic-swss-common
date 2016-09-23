@@ -19,12 +19,12 @@ public:
         return m_ip.isV4();
     }
 
-    inline const IpAddress& getIp() const
+    inline IpAddress getIp() const
     {
         return m_ip;
     }
 
-    inline const IpAddress getMask() const
+    inline IpAddress getMask() const
     {
         switch (m_ip.getIp().family)
         {
@@ -60,7 +60,7 @@ public:
         }
     }
 
-    inline const int getMaskLength() const
+    inline int getMaskLength() const
     {
         return m_mask;
     }
@@ -78,7 +78,7 @@ public:
         return m_ip == o.m_ip && m_mask == o.m_mask;
     }
 
-    const std::string to_string() const;
+    std::string to_string() const;
 
 private:
     IpAddress m_ip;
