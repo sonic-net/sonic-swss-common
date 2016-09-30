@@ -96,6 +96,14 @@ void ConsumerTable::pop(KeyOpFieldsValuesTuple &kco)
     // is fine since we are the only consumer
     // of this data
 
+    if (op == "get" || op == "getresponse")
+    {
+        // HACK, this needs to be done in different way
+        // when get operation is performed we don't
+        // want to put anything to db
+        return;
+    }
+
     multi();
 
     if (dbop == DEL_COMMAND)
