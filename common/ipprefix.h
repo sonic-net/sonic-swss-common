@@ -26,10 +26,14 @@ public:
 
     inline IpAddress getMask() const
     {
+        int mask = m_mask < 0 ? 0 : m_mask;
+        
         switch (m_ip.getIp().family)
         {
             case AF_INET:
             {
+                if (mask > 32)
+                    mask = 32;
                 return IpAddress(htonl((0xFFFFFFFFLL << (32 - m_mask)) & 0xFFFFFFFF));
             }
             case AF_INET6:
@@ -38,18 +42,23 @@ public:
                 ipa.family = AF_INET6;
                 
                 // i : left_shift bits
-                // 15: 128 - m_mask
-                // 14: 120 - m_mask
-                // 1 : 16  - m_mask
-                // 0 : 8   - m_mask
-                // n : n * 8 + 8 - m_mask
+                // 15: 128 - mask
+                // 14: 120 - mask
+                // 1 : 16  - mask
+                // 0 : 8   - mask
+                // n : n * 8 + 8 - mask
                 // 
-                // 0 <= n * 8 + 8 - m_mask < 8
-                // m_mask / 8 - 1 <= n < m_mask / 8
-                size_t mid = (m_mask + 7) / 8 - 1;
-                size_t left = (m_mask + 7) / 8 * 8 - m_mask;
-                ipa.ip_addr.ipv6_addr[mid] = 0xFF << left;
-                memset(ipa.ip_addr.ipv6_addr, 0xFF, mid);
+                // 0 <= n * 8 + 8 - mask < 8
+                // mask / 8 - 1 <= n < mask / 8
+                if (mask > 128)
+                    mask = 128;
+                int mid = (mask + 7) / 8 - 1;
+                if (mid >= 0)
+                {
+                    int leftbit = (mask + 7) / 8 * 8 - mask;
+                    ipa.ip_addr.ipv6_addr[mid] = 0xFF << leftbit;
+                    memset(ipa.ip_addr.ipv6_addr, 0xFF, mid);
+                }
                 memset(ipa.ip_addr.ipv6_addr + mid + 1, 0, 16 - mid - 1);
                 return IpAddress(ipa);
             }
