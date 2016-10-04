@@ -37,20 +37,16 @@ public:
                 ip_addr_t ipa;
                 ipa.family = AF_INET6;
                 
-                // i : left_shift bits
-                // 15: 128 - m_mask
-                // 14: 120 - m_mask
-                // 1 : 16  - m_mask
-                // 0 : 8   - m_mask
-                // n : n * 8 + 8 - m_mask
-                // 
-                // 0 <= n * 8 + 8 - m_mask < 8
-                // m_mask / 8 - 1 <= n < m_mask / 8
-                size_t mid = (m_mask + 7) / 8 - 1;
-                size_t left = (m_mask + 7) / 8 * 8 - m_mask;
-                ipa.ip_addr.ipv6_addr[mid] = 0xFF << left;
+                assert(m_mask >= 0 && m_mask <= 128);
+                int mid = m_mask >> 3;
+                int bits = m_mask & 0x7;
                 memset(ipa.ip_addr.ipv6_addr, 0xFF, mid);
-                memset(ipa.ip_addr.ipv6_addr + mid + 1, 0, 16 - mid - 1);
+                if (mid < 16)
+                {
+                    assert(mid >= 0 && mid < 16);
+                    ipa.ip_addr.ipv6_addr[mid] = 0xFF << (8 - bits);
+                    memset(ipa.ip_addr.ipv6_addr + mid + 1, 0, 16 - mid - 1);
+                }
                 return IpAddress(ipa);
             }
             default:
@@ -81,6 +77,8 @@ public:
     std::string to_string() const;
 
 private:
+    bool isValid();
+
     IpAddress m_ip;
     int m_mask;
 };
