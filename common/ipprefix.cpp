@@ -1,5 +1,6 @@
 #include <arpa/inet.h>
 #include <string>
+#include <stdexcept>
 
 #include "ipprefix.h"
 
@@ -28,7 +29,19 @@ IpPrefix::IpPrefix(
     }
     else
     {
-        m_mask = std::stoi(ipPrefixStr.substr(pos + 1));
+        try
+        {
+            m_mask = std::stoi(ipPrefixStr.substr(pos + 1));
+        }
+        catch(const std::logic_error& ex)
+        {
+            throw std::invalid_argument(std::string("Failed to covert mask: ") + ex.what());
+        }
+        
+        if (!isValid())
+        {
+            throw std::invalid_argument("Invalid IpPrefix from string");
+        }
     }
 }
 
@@ -36,6 +49,34 @@ IpPrefix::IpPrefix(uint32_t ipPrefix, int mask)
 {
     m_ip = IpAddress(ipPrefix);
     m_mask = mask;
+    if (!isValid())
+    {
+        throw std::invalid_argument("Invalid IpPrefix from prefix and mask");
+    }
+}
+
+bool IpPrefix::isValid()
+{
+    if (m_mask < 0) return false;
+    
+    switch (m_ip.getIp().family)
+    {
+        case AF_INET:
+        {
+            if (m_mask > 32) return false;
+            break;
+        }
+        case AF_INET6:
+        {
+            if (m_mask > 128) return false;
+            break;
+        }
+        default:
+        {
+            return false;
+        }
+    }
+    return true;
 }
 
 std::string IpPrefix::to_string() const

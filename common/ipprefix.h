@@ -26,14 +26,10 @@ public:
 
     inline IpAddress getMask() const
     {
-        int mask = m_mask < 0 ? 0 : m_mask;
-        
         switch (m_ip.getIp().family)
         {
             case AF_INET:
             {
-                if (mask > 32)
-                    mask = 32;
                 return IpAddress(htonl((0xFFFFFFFFLL << (32 - m_mask)) & 0xFFFFFFFF));
             }
             case AF_INET6:
@@ -41,25 +37,16 @@ public:
                 ip_addr_t ipa;
                 ipa.family = AF_INET6;
                 
-                // i : left_shift bits
-                // 15: 128 - mask
-                // 14: 120 - mask
-                // 1 : 16  - mask
-                // 0 : 8   - mask
-                // n : n * 8 + 8 - mask
-                // 
-                // 0 <= n * 8 + 8 - mask < 8
-                // mask / 8 - 1 <= n < mask / 8
-                if (mask > 128)
-                    mask = 128;
-                int mid = (mask + 7) / 8 - 1;
-                if (mid >= 0)
+                assert(m_mask >= 0 && m_mask <= 128);
+                int mid = m_mask >> 3;
+                int bits = m_mask & 0x7;
+                memset(ipa.ip_addr.ipv6_addr, 0xFF, mid);
+                if (mid < 16)
                 {
-                    int leftbit = (mask + 7) / 8 * 8 - mask;
-                    ipa.ip_addr.ipv6_addr[mid] = 0xFF << leftbit;
-                    memset(ipa.ip_addr.ipv6_addr, 0xFF, mid);
+                    assert(mid >= 0 && mid < 16);
+                    ipa.ip_addr.ipv6_addr[mid] = 0xFF << (8 - bits);
+                    memset(ipa.ip_addr.ipv6_addr + mid + 1, 0, 16 - mid - 1);
                 }
-                memset(ipa.ip_addr.ipv6_addr + mid + 1, 0, 16 - mid - 1);
                 return IpAddress(ipa);
             }
             default:
@@ -90,6 +77,8 @@ public:
     std::string to_string() const;
 
 private:
+    bool isValid();
+
     IpAddress m_ip;
     int m_mask;
 };
