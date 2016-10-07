@@ -29,6 +29,14 @@ public:
         return m_ip.family == AF_INET;
     }
 
+    inline bool isZero() const
+    {
+        unsigned char zerobuf[16] = { 0 };
+
+        return ((m_ip.family == AF_INET && m_ip.ip_addr.ipv4_addr == 0) ||
+                (m_ip.family == AF_INET6 && memcmp(&m_ip.ip_addr.ipv6_addr, zerobuf, 16) == 0));
+    }
+
     inline ip_addr_t getIp() const
     {
         return m_ip;

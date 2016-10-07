@@ -61,6 +61,11 @@ public:
         return m_mask;
     }
 
+    inline bool isDefaultRoute() const
+    {
+        return (m_mask == 0);
+    }
+
     inline bool operator<(const IpPrefix &o) const
     {
         if (m_mask != o.m_mask)
