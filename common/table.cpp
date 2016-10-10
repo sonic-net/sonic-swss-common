@@ -206,7 +206,7 @@ void Table::exec()
             m_expectedResults.pop();
             if (expectedType != reply->element[i]->type)
             {
-                SWSS_LOG_INFO("Except to get redis type %d got type %d\n",
+                SWSS_LOG_ERROR("Expected to get redis type %d got type %d",
                               expectedType, reply->element[i]->type);
                 throw system_error(make_error_code(errc::io_error),
                                    "Got unexpected result");
