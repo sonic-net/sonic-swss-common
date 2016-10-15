@@ -76,7 +76,7 @@ void Table::set(std::string key, std::vector<FieldValueTuple> &values,
         return;
 
     const std::string &cmd = formatHMSET(getKeyName(key), values);
-    
+
     RedisReply r(m_db, cmd, REDIS_REPLY_STATUS, true);
 
     r.checkStatusOK();
@@ -290,6 +290,23 @@ string Table::formatHDEL(const string& key, const string& field)
         string hdel(temp, len);
         free(temp);
         return hdel;
+}
+
+std::string Table::scriptLoad(const std::string& script)
+{
+    SWSS_LOG_ENTER();
+
+    char *tmp;
+
+    int len = redisFormatCommand(&tmp, "SCRIPT LOAD %s", script.c_str());
+
+    std::string loadcmd = string(tmp, len);
+
+    free(tmp);
+
+    RedisReply r(m_db, loadcmd, REDIS_REPLY_STRING, true);
+
+    return r.getContext()->str;
 }
 
 }
