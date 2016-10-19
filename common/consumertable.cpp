@@ -1,6 +1,7 @@
 #include "common/redisreply.h"
 #include "common/consumertable.h"
 #include "common/json.h"
+#include "common/logger.h"
 #include <stdio.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -133,6 +134,12 @@ void ConsumerTable::pop(KeyOpFieldsValuesTuple &kco)
             getValueQueueTableName().c_str(),
             getTableName().c_str());
 
+    if (len < 0)
+    {
+        SWSS_LOG_ERROR("redisFormatCommand failed");
+        throw std::runtime_error("fedisFormatCommand failed");
+    }
+
     string command = string(temp, len);
     free(temp);
 
@@ -147,6 +154,12 @@ void ConsumerTable::pop(KeyOpFieldsValuesTuple &kco)
 
     for (size_t i = 2; i < ctx->elements; i += 2)
     {
+        if (i+1 >= ctx->elements)
+        {
+            SWSS_LOG_ERROR("invalid number of elements in returned table: %lu >= %lu", i+1, ctx->elements);
+            throw std::runtime_error("invalid number of elements in returned table");
+        }
+
         FieldValueTuple e;
 
         fvField(e) = ctx->element[i+0]->str;

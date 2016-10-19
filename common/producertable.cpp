@@ -56,6 +56,12 @@ void ProducerTable::enqueueDbChange(string key, string value, string op)
             op.c_str(),
             "G");
 
+    if (len < 0)
+    {
+        SWSS_LOG_ERROR("redisFormatCommand failed");
+        throw std::runtime_error("fedisFormatCommand failed");
+    }
+
     string command = string(temp, len);
     free(temp);
 
