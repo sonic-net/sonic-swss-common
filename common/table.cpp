@@ -9,44 +9,37 @@ using namespace std;
 
 namespace swss {
 
-Table::Table(DBConnector *db, string tableName) :
-    m_db(db),
-    m_tableName(tableName)
+Table::Table(DBConnector *db, string tableName) : RedisTransactioner(db), NamedTable(tableName)
 {
 }
 
-std::string Table::getTableName()const
-{
-    return m_tableName;
-}
-
-string Table::getKeyName(string key)
+string NamedTable::getKeyName(string key)
 {
     if (key == "") return m_tableName;
     else return m_tableName + ':' + key;
 }
 
-string Table::getKeyQueueTableName()
+string RedisTripleList::getKeyQueueTableName()
 {
     return m_tableName + "_KEY_QUEUE";
 }
 
-string Table::getValueQueueTableName()
+string RedisTripleList::getValueQueueTableName()
 {
     return m_tableName + "_VALUE_QUEUE";
 }
 
-string Table::getOpQueueTableName()
+string RedisTripleList::getOpQueueTableName()
 {
     return m_tableName + "_OP_QUEUE";
 }
 
-string Table::getChannelTableName()
+string RedisTripleList::getChannelTableName()
 {
     return m_tableName + "_CHANNEL";
 }
 
-bool Table::get(std::string key, vector<FieldValueTuple> &values)
+bool Table::get(std::string key, std::vector<FieldValueTuple> &values)
 {
     string hgetall_key("HGETALL ");
     hgetall_key += getKeyName(key);
@@ -90,44 +83,7 @@ void Table::del(std::string key, std::string /* op */)
                            "DEL operation failed");
 }
 
-bool Table::getField(std::string key, std::string field, std::string &value)
-{
-    std::string hget = formatHGET(getKeyName(key).c_str(),
-                                  field.c_str());
-
-    RedisReply r(m_db, hget, REDIS_REPLY_INTEGER);
-
-    if (r.getContext()->type != REDIS_REPLY_STRING)
-    {
-        return false;
-    }
-
-    value = std::string(r.getContext()->str);
-
-    return true;
-}
-
-void Table::setField(std::string key, std::string field, std::string value)
-{
-    FieldValueTuple entry(field, value);
-
-    std::vector<FieldValueTuple> values { entry };
-
-    set(key, values);
-}
-
-void Table::delField(std::string key, std::string field)
-{
-    std::string hdel = formatHDEL(getKeyName(key), field);
-
-    RedisReply r(m_db, hdel, REDIS_REPLY_INTEGER);
-
-    if (r.getContext()->type != REDIS_REPLY_INTEGER)
-        throw system_error(make_error_code(errc::io_error),
-                           "DEL operation failed");
-}
-
-void Table::getTableContent(std::vector<KeyOpFieldsValuesTuple> &tuples)
+void TableEntryEnumerable::getTableContent(std::vector<KeyOpFieldsValuesTuple> &tuples)
 {
     std::vector<std::string> keys;
     getTableKeys(keys);
@@ -163,7 +119,7 @@ Table::~Table()
 {
 }
 
-void Table::multi()
+void RedisTransactioner::multi()
 {
     while (!m_expectedResults.empty())
         m_expectedResults.pop();
@@ -171,18 +127,21 @@ void Table::multi()
     r.checkStatusOK();
 }
 
-redisReply *Table::queueResultsFront()
+redisReply *RedisTransactioner::queueResultsFront()
 {
     return m_results.front()->getContext();
 }
 
-void Table::queueResultsPop()
+string RedisTransactioner::queueResultsPop()
 {
+    char *s = m_results.front()->getContext()->str;
+    string ret(s ? s : "");
     delete m_results.front();
     m_results.pop();
+    return ret;
 }
 
-void Table::exec()
+void RedisTransactioner::exec()
 {
     redisReply *reply = (redisReply *)redisCommand(m_db->getContext(), "EXEC");
     size_t size = reply->elements;
@@ -219,6 +178,7 @@ void Table::exec()
     }
 
     for (size_t i = 0; i < size; i++)
+        /* FIXME: not enough memory */
         m_results.push(new RedisReply(reply->element[i]));
 
     /* Free only the array memory */
@@ -226,14 +186,14 @@ void Table::exec()
     free(reply);
 }
 
-void Table::enqueue(std::string command, int exepectedResult, bool isFormatted)
+void RedisTransactioner::enqueue(std::string command, int exepectedResult, bool isFormatted)
 {
     RedisReply r(m_db, command, REDIS_REPLY_STATUS, isFormatted);
     r.checkStatusQueued();
     m_expectedResults.push(exepectedResult);
 }
 
-string Table::formatHMSET(const std::string &key,
+string RedisFormatter::formatHMSET(const std::string &key,
                           const std::vector<FieldValueTuple> &values)
 {
     if (values.size() == 0)
@@ -257,20 +217,20 @@ string Table::formatHMSET(const std::string &key,
     return hmset;
 }
 
-string Table::formatHSET(const string& key, const string& field,
+string RedisFormatter::formatHSET(const string& key, const string& field,
                          const string& value)
 {
-        char *temp;
-        int len = redisFormatCommand(&temp, "HSET %s %s %s",
-                                     key.c_str(),
-                                     field.c_str(),
-                                     value.c_str());
-        string hset(temp, len);
-        free(temp);
-        return hset;
+    char *temp;
+    int len = redisFormatCommand(&temp, "HSET %s %s %s",
+                                 key.c_str(),
+                                 field.c_str(),
+                                 value.c_str());
+    string hset(temp, len);
+    free(temp);
+    return hset;
 }
 
-string Table::formatHGET(const string& key, const string& field)
+string RedisFormatter::formatHGET(const string& key, const string& field)
 {
         char *temp;
         int len = redisFormatCommand(&temp, "HGET %s %s",
@@ -281,7 +241,7 @@ string Table::formatHGET(const string& key, const string& field)
         return hget;
 }
 
-string Table::formatHDEL(const string& key, const string& field)
+string RedisFormatter::formatHDEL(const string& key, const string& field)
 {
         char *temp;
         int len = redisFormatCommand(&temp, "HDEL %s %s",
@@ -292,7 +252,7 @@ string Table::formatHDEL(const string& key, const string& field)
         return hdel;
 }
 
-std::string Table::scriptLoad(const std::string& script)
+std::string RedisTransactioner::scriptLoad(const std::string& script)
 {
     SWSS_LOG_ENTER();
 

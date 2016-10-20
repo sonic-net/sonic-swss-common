@@ -12,7 +12,7 @@
 
 namespace swss {
 
-class ProducerTable : public Table
+class ProducerTable : public RedisTripleList, public TableEntryWritable, public RedisTransactioner
 {
 public:
     ProducerTable(DBConnector *db, std::string tableName);

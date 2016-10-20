@@ -16,10 +16,11 @@ using namespace std;
 
 namespace swss {
 
-ConsumerTable::ConsumerTable(DBConnector *db, string tableName) :
-    Table(db, tableName),
-    m_subscribe(NULL),
-    m_queueLength(0)
+ConsumerTable::ConsumerTable(DBConnector *db, string tableName)
+    : RedisTripleList(tableName)
+    , RedisTransactioner(db)
+    , m_subscribe(NULL)
+    , m_queueLength(0)
 {
     bool again = true;
 

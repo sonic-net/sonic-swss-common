@@ -19,52 +19,44 @@ typedef std::tuple<std::string, std::string, std::vector<FieldValueTuple> > KeyO
 #define kfvOp     std::get<1>
 #define kfvFieldsValues std::get<2>
 
-class Table {
+class NamedTable {
 public:
-    Table(DBConnector *db, std::string tableName);
+    NamedTable(std::string tableName) : m_tableName(tableName) { }
+    std::string getTableName() const { return m_tableName; }
+    
+    /* Return the actual key name as a comibation of tableName:key */
+    std::string getKeyName(std::string key);
+    
+protected:
+    // TODO: private
+    std::string m_tableName;
+};
 
-    /* Read a value from the DB directly */
-    /* Returns false if the key doesn't exists */
-    bool get(std::string key, std::vector<FieldValueTuple> &values);
-
+class TableEntryWritable {
+public:
     /* Set an entry in the DB directly (op not in used) */
     virtual void set(std::string key, std::vector<FieldValueTuple> &values,
-                     std::string op = "");
+                     std::string op = "") = 0;
     /* Delete an entry in the DB directly (op not in used) */
-    virtual void del(std::string key, std::string op = "");
+    virtual void del(std::string key, std::string op = "") = 0;
+};
 
-    bool getField(std::string key, std::string field, std::string &value);
-    void setField(std::string key, std::string field, std::string value);
-    void delField(std::string key, std::string field);
+class TableEntryReadable {
+public:
+    virtual bool get(std::string key, std::vector<FieldValueTuple> &values) = 0;
+};
 
-    virtual ~Table();
-    std::string getTableName() const;
-
+class TableEntryEnumerable : public TableEntryReadable {
+public:
+    virtual void getTableKeys(std::vector<std::string> &keys) = 0;
+    
     /* Read the whole table content from the DB directly */
     /* NOTE: Not an atomic function */
     void getTableContent(std::vector<KeyOpFieldsValuesTuple> &tuples);
+};
 
-protected:
-    /* Return the actual key name as a comibation of tableName:key */
-    std::string getKeyName(std::string key);
-    std::string getKeyQueueTableName();
-    std::string getValueQueueTableName();
-    std::string getOpQueueTableName();
-    std::string getChannelTableName();
-    void getTableKeys(std::vector<std::string> &keys);
-
-    /* Start a transaction */
-    void multi();
-    /* Execute a transaction and get results */
-    void exec();
-
-    /* Send a command within a transaction */
-    void enqueue(std::string command, int exepectedResult, bool isFormatted = false);
-    redisReply* queueResultsFront();
-    void queueResultsPop();
-
-    std::string scriptLoad(const std::string& script);
-
+class RedisFormatter {
+public:
     /* Format HMSET key multiple field value command */
     static std::string formatHMSET(const std::string &key,
                                    const std::vector<FieldValueTuple> &values);
@@ -81,15 +73,68 @@ protected:
     /* Format HDEL key field command */
     static std::string formatHDEL(const std::string& key,
                                   const std::string& field);
+};
 
+class RedisTransactioner {
+public:
+    RedisTransactioner(DBConnector *db)
+        : m_db(db)
+    {
+    }
+    
+protected:
     DBConnector *m_db;
-    std::string m_tableName;
+    
+    /* Start a transaction */
+    void multi();
+    /* Execute a transaction and get results */
+    void exec();
+    /* Send a command within a transaction */
+    void enqueue(std::string command, int exepectedResult, bool isFormatted = false);
+    
+    redisReply* queueResultsFront();
+    std::string queueResultsPop();
 
+    std::string scriptLoad(const std::string& script);
+
+private:    
     /* Remember the expected results for the transaction */
     std::queue<int> m_expectedResults;
-    std::queue<RedisReply * > m_results;
+    std::queue<RedisReply *> m_results;
+};
+
+class Table : public NamedTable, public RedisTransactioner, public RedisFormatter, public TableEntryEnumerable {
+public:
+    Table(DBConnector *db, std::string tableName);
+
+    /* Set an entry in the DB directly (op not in used) */
+    virtual void set(std::string key, std::vector<FieldValueTuple> &values,
+                     std::string op = "");
+    /* Delete an entry in the DB directly (op not in used) */
+    virtual void del(std::string key, std::string op = "");
+    
+    /* Read a value from the DB directly */
+    /* Returns false if the key doesn't exists */
+    virtual bool get(std::string key, std::vector<FieldValueTuple> &values);
+    
+    void getTableKeys(std::vector<std::string> &keys);
+    
+    virtual ~Table();
+};
+
+// TODO: think loud
+class RedisTripleList : public NamedTable {
+public:
+    RedisTripleList(std::string tableName)
+        : NamedTable(tableName)
+    {
+    }
+protected:
+    std::string getKeyQueueTableName();
+    std::string getValueQueueTableName();
+    std::string getOpQueueTableName();
+    std::string getChannelTableName();
 };
 
 }
-
 #endif

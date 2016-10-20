@@ -1,23 +1,25 @@
+#include <stdlib.h>
+#include <tuple>
 #include "common/redisreply.h"
 #include "common/producertable.h"
 #include "common/json.h"
 #include "common/json.hpp"
 #include "common/logger.h"
-#include <stdlib.h>
-#include <tuple>
 
 using namespace std;
 using json = nlohmann::json;
 
 namespace swss {
 
-ProducerTable::ProducerTable(DBConnector *db, string tableName) :
-    Table(db, tableName)
+ProducerTable::ProducerTable(DBConnector *db, string tableName)
+    : RedisTripleList(tableName)
+    , RedisTransactioner(db)
 {
 }
 
-ProducerTable::ProducerTable(DBConnector *db, string tableName, string dumpFile) :
-    Table(db, tableName)
+ProducerTable::ProducerTable(DBConnector *db, string tableName, string dumpFile)
+    : RedisTripleList(tableName)
+    , RedisTransactioner(db)
 {
     m_dumpFile.open(dumpFile, fstream::out | fstream::trunc);
     m_dumpFile << "[" << endl;

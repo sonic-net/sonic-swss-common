@@ -11,7 +11,7 @@
 
 namespace swss {
 
-class ConsumerTable : public Table, public Selectable
+class ConsumerTable : public RedisTripleList, public Selectable, public RedisTransactioner, public RedisFormatter
 {
 public:
     ConsumerTable(DBConnector *db, std::string tableName);
