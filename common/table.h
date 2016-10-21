@@ -34,20 +34,22 @@ protected:
 
 class TableEntryWritable {
 public:
-    /* Set an entry in the DB directly (op not in used) */
+    /* Set an entry in the table */
     virtual void set(std::string key, std::vector<FieldValueTuple> &values,
                      std::string op = "") = 0;
-    /* Delete an entry in the DB directly (op not in used) */
+    /* Delete an entry in the table */
     virtual void del(std::string key, std::string op = "") = 0;
 };
 
 class TableEntryReadable {
 public:
+    /* Get all the field-value tuple of the table entry with the key */
     virtual bool get(std::string key, std::vector<FieldValueTuple> &values) = 0;
 };
 
 class TableEntryEnumerable : public TableEntryReadable {
 public:
+    /* get all the keys in the table */
     virtual void getTableKeys(std::vector<std::string> &keys) = 0;
     
     /* Read the whole table content from the DB directly */
@@ -77,13 +79,7 @@ public:
 
 class RedisTransactioner {
 public:
-    RedisTransactioner(DBConnector *db)
-        : m_db(db)
-    {
-    }
-    
-protected:
-    DBConnector *m_db;
+    RedisTransactioner(DBConnector *db) : m_db(db) { }
     
     /* Start a transaction */
     void multi();
@@ -97,6 +93,9 @@ protected:
 
     std::string scriptLoad(const std::string& script);
 
+protected:
+    DBConnector *m_db;
+    
 private:    
     /* Remember the expected results for the transaction */
     std::queue<int> m_expectedResults;
@@ -118,18 +117,12 @@ public:
     virtual bool get(std::string key, std::vector<FieldValueTuple> &values);
     
     void getTableKeys(std::vector<std::string> &keys);
-    
-    virtual ~Table();
 };
 
-// TODO: think loud
 class RedisTripleList : public NamedTable {
 public:
-    RedisTripleList(std::string tableName)
-        : NamedTable(tableName)
-    {
-    }
-protected:
+    RedisTripleList(std::string tableName) : NamedTable(tableName) { }
+
     std::string getKeyQueueTableName();
     std::string getValueQueueTableName();
     std::string getOpQueueTableName();

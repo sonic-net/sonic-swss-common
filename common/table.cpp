@@ -115,10 +115,6 @@ void Table::getTableKeys(std::vector<std::string> &keys)
     }
 }
 
-Table::~Table()
-{
-}
-
 void RedisTransactioner::multi()
 {
     while (!m_expectedResults.empty())
