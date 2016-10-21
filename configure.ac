@@ -11,7 +11,9 @@ AC_PROG_LIBTOOL
 AC_HEADER_STDC
 
 AC_CHECK_LIB([hiredis], [redisConnect])
+AC_CHECK_LIB([nl-3], [nl_connect])
 AC_CHECK_LIB([nl-genl-3], [genl_connect])
+AC_CHECK_LIB([nl-route-3], [rtnl_route_alloc])
 
 AC_ARG_ENABLE(debug,
 [  --enable-debug       Compile with debugging flags],
