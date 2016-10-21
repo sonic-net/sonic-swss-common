@@ -9,22 +9,15 @@
 #include <iostream>
 #include <system_error>
 
-/* The database is already alive and kicking, no need for more than a second */
-#define SUBSCRIBE_TIMEOUT (1000)
-
 using namespace std;
 
 namespace swss {
 
 ConsumerTable::ConsumerTable(DBConnector *db, string tableName)
     : RedisTripleList(tableName)
-    , RedisTransactioner(db)
-    , m_subscribe(NULL)
-    , m_queueLength(0)
+    , RedisSelect(db, getChannelTableName())
 {
-    bool again = true;
-
-    while (again)
+    for (;;)
     {
         try
         {
@@ -32,25 +25,22 @@ ConsumerTable::ConsumerTable(DBConnector *db, string tableName)
             watch.checkStatusOK();
             multi();
             enqueue(string("LLEN ") + getKeyQueueTableName(), REDIS_REPLY_INTEGER);
-            subsribe();
+            
+            subscribe();
+
             enqueue(string("LLEN ") + getKeyQueueTableName(), REDIS_REPLY_INTEGER);
             exec();
-            again = false;
+            break;
         }
         catch (...)
         {
-            delete m_subscribe;
-            m_subscribe = NULL;
+            // TODO: log
+            continue;
         }
     }
 
-    m_queueLength = (unsigned int)queueResultsFront()->integer;
+    setQueueLength((unsigned int)queueResultsFront()->integer);
     /* No need for that since we have WATCH gurantee on the transaction */
-}
-
-ConsumerTable::~ConsumerTable()
-{
-    delete m_subscribe;
 }
 
 void ConsumerTable::pop(KeyOpFieldsValuesTuple &kco)
@@ -142,67 +132,6 @@ void ConsumerTable::pop(KeyOpFieldsValuesTuple &kco)
     }
 
     kco = std::make_tuple(key, op, fieldsValues);
-}
-
-void ConsumerTable::addFd(fd_set *fd)
-{
-    FD_SET(m_subscribe->getContext()->fd, fd);
-}
-
-int ConsumerTable::readCache()
-{
-    redisReply *reply = NULL;
-
-    /* Read the messages in queue before subsribe command execute */
-    if (m_queueLength) {
-        m_queueLength--;
-        return ConsumerTable::DATA;
-    }
-
-    if (redisGetReplyFromReader(m_subscribe->getContext(),
-                                (void**)&reply) != REDIS_OK)
-    {
-        return Selectable::ERROR;
-    } else if (reply != NULL)
-    {
-        freeReplyObject(reply);
-        return Selectable::DATA;
-    }
-
-    return Selectable::NODATA;
-}
-
-void ConsumerTable::readMe()
-{
-    redisReply *reply = NULL;
-
-    if (redisGetReply(m_subscribe->getContext(), (void**)&reply) != REDIS_OK)
-        throw "Unable to read redis reply";
-
-    freeReplyObject(reply);
-}
-
-bool ConsumerTable::isMe(fd_set *fd)
-{
-    return FD_ISSET(m_subscribe->getContext()->fd, fd);
-}
-
-void ConsumerTable::subsribe()
-{
-    /* Create new new context to DB */
-    if (m_db->getContext()->connection_type == REDIS_CONN_TCP)
-        m_subscribe = new DBConnector(m_db->getDB(),
-                                      m_db->getContext()->tcp.host,
-                                      m_db->getContext()->tcp.port,
-                                      SUBSCRIBE_TIMEOUT);
-    else
-        m_subscribe = new DBConnector(m_db->getDB(),
-                                      m_db->getContext()->unix_sock.path,
-                                      SUBSCRIBE_TIMEOUT);
-    /* Send SUBSCRIBE #channel command */
-    string s("SUBSCRIBE ");
-    s+= getChannelTableName();
-    RedisReply r(m_subscribe, s, REDIS_REPLY_ARRAY);
 }
 
 }
