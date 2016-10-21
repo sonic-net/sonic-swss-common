@@ -32,4 +32,4 @@ libswsscommon_la_SOURCES = \
 
 libswsscommon_la_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON)
 libswsscommon_la_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON)
-libswsscommon_la_LIBADD = -lnl-3 -lnl-route-3 -lhiredis
+libswsscommon_la_LIBADD =
