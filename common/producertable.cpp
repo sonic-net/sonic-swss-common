@@ -2,6 +2,7 @@
 #include "common/producertable.h"
 #include "common/json.h"
 #include "common/json.hpp"
+#include "common/logger.h"
 #include <stdlib.h>
 #include <tuple>
 
@@ -32,31 +33,39 @@ ProducerTable::~ProducerTable() {
 
 void ProducerTable::enqueueDbChange(string key, string value, string op)
 {
-    string lpush_value;
-    string lpush_key("LPUSH ");
-    string lpush_op = lpush_key;
+    static std::string luaScript =
+        "redis.call('LPUSH', KEYS[1], ARGV[1]);"
+        "redis.call('LPUSH', KEYS[2], ARGV[2]);"
+        "redis.call('LPUSH', KEYS[3], ARGV[3]);"
+        "redis.call('PUBLISH', KEYS[4], ARGV[4]);";
+
+    static std::string sha = scriptLoad(luaScript);
+
     char *temp;
-    int len;
 
-    lpush_key += getKeyQueueTableName();
-    lpush_key += " ";
-    lpush_key += key;
-    enqueue(lpush_key, REDIS_REPLY_INTEGER);
+    int len = redisFormatCommand(
+            &temp,
+            "EVALSHA %s 4 %s %s %s %s %s %s %s %s",
+            sha.c_str(),
+            getKeyQueueTableName().c_str(),
+            getValueQueueTableName().c_str(),
+            getOpQueueTableName().c_str(),
+            getChannelTableName().c_str(),
+            key.c_str(),
+            value.c_str(),
+            op.c_str(),
+            "G");
 
-    len = redisFormatCommand(&temp, "LPUSH %s %s", getValueQueueTableName().c_str(), value.c_str());
-    lpush_value = string(temp, len);
+    if (len < 0)
+    {
+        SWSS_LOG_ERROR("redisFormatCommand failed");
+        throw std::runtime_error("fedisFormatCommand failed");
+    }
+
+    string command = string(temp, len);
     free(temp);
-    enqueue(lpush_value, REDIS_REPLY_INTEGER, true);
 
-    lpush_op += getOpQueueTableName();
-    lpush_op += " ";
-    lpush_op += op;
-    enqueue(lpush_op, REDIS_REPLY_INTEGER);
-
-    string publish("PUBLISH ");
-    publish += getChannelTableName();
-    publish += " G";
-    enqueue(publish, REDIS_REPLY_INTEGER);
+    RedisReply r(m_db, command, REDIS_REPLY_NIL, true);
 }
 
 void ProducerTable::set(string key, vector<FieldValueTuple> &values, string op)
@@ -77,9 +86,7 @@ void ProducerTable::set(string key, vector<FieldValueTuple> &values, string op)
         m_dumpFile << j.dump(4);
     }
 
-    multi();
     enqueueDbChange(key, JSon::buildJson(values), "S" + op);
-    exec();
 }
 
 void ProducerTable::del(string key, string op)
@@ -98,9 +105,7 @@ void ProducerTable::del(string key, string op)
         m_dumpFile << j.dump(4);
     }
 
-    multi();
     enqueueDbChange(key, "{}", "D" + op);
-    exec();
 }
 
 }

@@ -38,6 +38,8 @@ Licensed under the MIT License <http://opensource.org/licenses/MIT>.
 #if defined(__clang__) || defined(__GNUC__) || defined(__GNUG__)
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Wfloat-equal"
+    #pragma GCC diagnostic ignored "-Wconversion"
+    #pragma GCC diagnostic ignored "-Wswitch-default"
 #endif
 
 /*!

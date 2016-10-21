@@ -50,10 +50,10 @@ bool MacAddress::parseMacString(const string& macStr, uint8_t* mac)
     for (i = 0; i < 5; i++)
     {
         iss >> value >> ignore;
-        mac[i] = value;
+        mac[i] = (uint8_t)value;
     }
     iss >> value;
-    mac[5] = value;
+    mac[5] = (uint8_t)value;
 
     return true;
 }

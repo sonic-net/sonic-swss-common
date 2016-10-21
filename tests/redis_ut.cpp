@@ -62,7 +62,20 @@ void validateFields(const string& key, const vector<FieldValueTuple>& f)
     int i = 0;
     EXPECT_EQ(maxNumOfFields, f.size());
 
-    for (auto fv : f)
+    // since we are using cjson in lua script
+    // retrived fields order is different than producer
+    // since value is passed as json, order does not matter
+    // but we need to compensate it here
+
+    auto copy = f;
+
+    std::sort(copy.begin(), copy.end(),
+            [](const FieldValueTuple & a, const FieldValueTuple & b) -> bool
+            {
+            return readNumberAtEOL(fvField(a)) < readNumberAtEOL(fvField(b));
+            });
+
+    for (auto fv : copy)
     {
         EXPECT_EQ(i, readNumberAtEOL(fvField(fv)));
         EXPECT_EQ(i, readNumberAtEOL(fvValue(fv)));
@@ -85,6 +98,7 @@ void producerWorker(int index)
             FieldValueTuple t(field(j), value(j));
             fields.push_back(t);
         }
+
         if ((i % 100) == 0)
             cout << "+" << flush;
 
@@ -194,13 +208,13 @@ TEST(DBConnector, multitable)
 
     while (1)
     {
-        Selectable *i;
+        Selectable *is;
         int fd;
 
-        ret = cs.select(&i, &fd);
+        ret = cs.select(&is, &fd);
         EXPECT_EQ(ret, Select::OBJECT);
 
-        ((ConsumerTable *)i)->pop(kco);
+        ((ConsumerTable *)is)->pop(kco);
         if (kfvOp(kco) == "SET")
         {
             numberOfKeysSet++;
@@ -348,9 +362,8 @@ TEST(Table, test)
     vector<KeyOpFieldsValuesTuple> tuples;
     t.getTableContent(tuples);
 
-    unsigned int size_t = 2;
     cout << "Get total " << tuples.size() << " number of entries" << endl;
-    EXPECT_EQ(tuples.size(), size_t);
+    EXPECT_EQ(tuples.size(), 2);
 
     for (auto tuple: tuples)
     {

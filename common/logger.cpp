@@ -115,11 +115,12 @@ std::string Logger::priorityToString(Logger::Priority prio)
 
     case swss::Logger::SWSS_DEBUG:
         return "DEBUG";
+
+    default:
+        SWSS_LOG_WARN("unable to parse prioriy %d as log priority, returning notice", prio);
+
+        return "NOTICE";
     }
-
-    SWSS_LOG_WARN("unable to parse prioriy %d as log priority, returning notice", prio);
-
-    return "NOTICE";
 }
 
 Logger::Priority Logger::stringToPriority(const std::string level)
