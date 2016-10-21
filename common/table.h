@@ -1,6 +1,7 @@
 #ifndef __TABLE__
 #define __TABLE__
 
+#include <assert.h>
 #include <string>
 #include <queue>
 #include <tuple>
@@ -19,16 +20,16 @@ typedef std::tuple<std::string, std::string, std::vector<FieldValueTuple> > KeyO
 #define kfvOp     std::get<1>
 #define kfvFieldsValues std::get<2>
 
-class NamedTable {
+class TableName {
 public:
-    NamedTable(std::string tableName) : m_tableName(tableName) { }
+    TableName(std::string tableName) : m_tableName(tableName) { }
+
     std::string getTableName() const { return m_tableName; }
     
     /* Return the actual key name as a comibation of tableName:key */
-    std::string getKeyName(std::string key);
+    std::string getKeyName(std::string key) { assert(!key.empty()); return m_tableName + ':' + key; }
     
-protected:
-    // TODO: private
+private:
     std::string m_tableName;
 };
 
@@ -102,7 +103,7 @@ private:
     std::queue<RedisReply *> m_results;
 };
 
-class Table : public NamedTable, public RedisTransactioner, public RedisFormatter, public TableEntryEnumerable {
+class Table : public TableName, public RedisTransactioner, public RedisFormatter, public TableEntryEnumerable {
 public:
     Table(DBConnector *db, std::string tableName);
 
@@ -119,14 +120,13 @@ public:
     void getTableKeys(std::vector<std::string> &keys);
 };
 
-class RedisTripleList : public NamedTable {
+class RedisTripleList : public TableName {
 public:
-    RedisTripleList(std::string tableName) : NamedTable(tableName) { }
-
-    std::string getKeyQueueTableName();
-    std::string getValueQueueTableName();
-    std::string getOpQueueTableName();
-    std::string getChannelTableName();
+    RedisTripleList(std::string tableName) : TableName(tableName) { }
+    std::string getKeyQueueTableName() { return getTableName() + "_KEY_QUEUE"; }
+    std::string getValueQueueTableName() { return getTableName() + "_VALUE_QUEUE"; }
+    std::string getOpQueueTableName() { return getTableName() + "_OP_QUEUE"; }
+    std::string getChannelTableName() { return getTableName() + "_CHANNEL"; }
 };
 
 }

@@ -9,34 +9,8 @@ using namespace std;
 
 namespace swss {
 
-Table::Table(DBConnector *db, string tableName) : RedisTransactioner(db), NamedTable(tableName)
+Table::Table(DBConnector *db, string tableName) : RedisTransactioner(db), TableName(tableName)
 {
-}
-
-string NamedTable::getKeyName(string key)
-{
-    if (key == "") return m_tableName;
-    else return m_tableName + ':' + key;
-}
-
-string RedisTripleList::getKeyQueueTableName()
-{
-    return m_tableName + "_KEY_QUEUE";
-}
-
-string RedisTripleList::getValueQueueTableName()
-{
-    return m_tableName + "_VALUE_QUEUE";
-}
-
-string RedisTripleList::getOpQueueTableName()
-{
-    return m_tableName + "_OP_QUEUE";
-}
-
-string RedisTripleList::getChannelTableName()
-{
-    return m_tableName + "_CHANNEL";
 }
 
 bool Table::get(std::string key, std::vector<FieldValueTuple> &values)
