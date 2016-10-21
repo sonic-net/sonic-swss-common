@@ -12,13 +12,13 @@ using json = nlohmann::json;
 namespace swss {
 
 ProducerTable::ProducerTable(DBConnector *db, string tableName)
-    : RedisTripleList(tableName)
+    : TableName_KeyValueOpQueues(tableName)
     , RedisTransactioner(db)
 {
 }
 
 ProducerTable::ProducerTable(DBConnector *db, string tableName, string dumpFile)
-    : RedisTripleList(tableName)
+    : TableName_KeyValueOpQueues(tableName)
     , RedisTransactioner(db)
 {
     m_dumpFile.open(dumpFile, fstream::out | fstream::trunc);

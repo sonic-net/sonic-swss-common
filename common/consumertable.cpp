@@ -14,7 +14,7 @@ using namespace std;
 namespace swss {
 
 ConsumerTable::ConsumerTable(DBConnector *db, string tableName)
-    : RedisTripleList(tableName)
+    : TableName_KeyValueOpQueues(tableName)
     , RedisSelect(db, getChannelTableName())
 {
     for (;;)

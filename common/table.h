@@ -120,9 +120,9 @@ public:
     void getTableKeys(std::vector<std::string> &keys);
 };
 
-class RedisTripleList : public TableName {
+class TableName_KeyValueOpQueues : public TableName {
 public:
-    RedisTripleList(std::string tableName) : TableName(tableName) { }
+    TableName_KeyValueOpQueues(std::string tableName) : TableName(tableName) { }
     std::string getKeyQueueTableName() { return getTableName() + "_KEY_QUEUE"; }
     std::string getValueQueueTableName() { return getTableName() + "_VALUE_QUEUE"; }
     std::string getOpQueueTableName() { return getTableName() + "_OP_QUEUE"; }
