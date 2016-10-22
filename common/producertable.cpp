@@ -52,7 +52,7 @@ void ProducerTable::enqueueDbChange(string key, string value, string op)
             getKeyQueueTableName().c_str(),
             getValueQueueTableName().c_str(),
             getOpQueueTableName().c_str(),
-            getChannelTableName().c_str(),
+            getChannelName().c_str(),
             key.c_str(),
             value.c_str(),
             op.c_str(),

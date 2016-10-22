@@ -42,7 +42,7 @@ void Table::set(std::string key, std::vector<FieldValueTuple> &values,
     if (values.size() == 0)
         return;
 
-    const std::string &cmd = formatHMSET(getKeyName(key), values);
+    const std::string &cmd = RedisFormatter::formatHMSET(getKeyName(key), values);
 
     RedisReply r(m_db, cmd, REDIS_REPLY_STATUS, true);
 

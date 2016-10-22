@@ -103,7 +103,7 @@ private:
     std::queue<RedisReply *> m_results;
 };
 
-class Table : public TableName, public RedisTransactioner, public RedisFormatter, public TableEntryEnumerable {
+class Table : public TableName, public RedisTransactioner, public TableEntryEnumerable {
 public:
     Table(DBConnector *db, std::string tableName);
 
@@ -126,6 +126,12 @@ public:
     std::string getKeyQueueTableName() { return getTableName() + "_KEY_QUEUE"; }
     std::string getValueQueueTableName() { return getTableName() + "_VALUE_QUEUE"; }
     std::string getOpQueueTableName() { return getTableName() + "_OP_QUEUE"; }
+};
+
+class TableName_KeySet : public TableName {
+public:
+    TableName_KeySet(std::string tableName) : TableName(tableName) { }
+    std::string getKeySetName() { return getTableName() + "_KEY_SET"; }
 };
 
 }
