@@ -126,7 +126,6 @@ public:
     std::string getKeyQueueTableName() { return getTableName() + "_KEY_QUEUE"; }
     std::string getValueQueueTableName() { return getTableName() + "_VALUE_QUEUE"; }
     std::string getOpQueueTableName() { return getTableName() + "_OP_QUEUE"; }
-    std::string getChannelTableName() { return getTableName() + "_CHANNEL"; }
 };
 
 }

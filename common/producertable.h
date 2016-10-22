@@ -9,10 +9,11 @@
 #include <hiredis/hiredis.h>
 #include "dbconnector.h"
 #include "table.h"
+#include "redisselect.h"
 
 namespace swss {
 
-class ProducerTable : public TableName_KeyValueOpQueues, public TableEntryWritable, public RedisTransactioner
+class ProducerTable : public RedisChannel, public TableName_KeyValueOpQueues, public TableEntryWritable
 {
 public:
     ProducerTable(DBConnector *db, std::string tableName);

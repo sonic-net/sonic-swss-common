@@ -1,18 +1,45 @@
+#pragma once
+
 #include <string>
 #include "selectable.h"
 
 namespace swss {
 
-class RedisSelect : public Selectable, public RedisTransactioner
+class RedisChannel : public RedisTransactioner
+{
+public:
+    RedisChannel(DBConnector *db, std::string tableName) 
+        : RedisTransactioner(db)
+        , m_channelName(tableName + "_CHANNEL")
+    {
+    }
+
+    std::string getChannelName()
+    {
+        return m_channelName;
+    }
+
+    void publish()
+    {
+        std::string publish("PUBLISH ");
+        publish += getChannelName();
+        publish += " G";
+        enqueue(publish, REDIS_REPLY_INTEGER);
+    }
+    
+private:
+    std::string m_channelName;
+};
+
+class RedisSelect : public RedisChannel, public Selectable
 {
 public:
     /* The database is already alive and kicking, no need for more than a second */
     const static unsigned int SUBSCRIBE_TIMEOUT = 1000;
     
-    RedisSelect(DBConnector *db, std::string channelName)
+    RedisSelect(RedisChannel chan)
         : m_subscribe(NULL)
-        , RedisTransactioner(db)
-        , m_channelName(channelName)
+        , RedisChannel(chan)
     {
     }
 
@@ -84,7 +111,7 @@ public:
                                           SUBSCRIBE_TIMEOUT);
         /* Send SUBSCRIBE #channel command */
         std::string s("SUBSCRIBE ");
-        s += m_channelName;
+        s += getChannelName();
         RedisReply r(m_subscribe, s, REDIS_REPLY_ARRAY);
     }
     
@@ -96,7 +123,6 @@ public:
 private:
     DBConnector *m_subscribe;
     unsigned int m_queueLength;
-    std::string m_channelName;
 };
 
 }

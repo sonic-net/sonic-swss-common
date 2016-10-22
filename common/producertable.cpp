@@ -13,13 +13,13 @@ namespace swss {
 
 ProducerTable::ProducerTable(DBConnector *db, string tableName)
     : TableName_KeyValueOpQueues(tableName)
-    , RedisTransactioner(db)
+    , RedisChannel(db, tableName)
 {
 }
 
 ProducerTable::ProducerTable(DBConnector *db, string tableName, string dumpFile)
     : TableName_KeyValueOpQueues(tableName)
-    , RedisTransactioner(db)
+    , RedisChannel(db, tableName)
 {
     m_dumpFile.open(dumpFile, fstream::out | fstream::trunc);
     m_dumpFile << "[" << endl;
