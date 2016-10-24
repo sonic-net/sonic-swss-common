@@ -152,11 +152,11 @@ void RedisTransactioner::exec()
     free(reply);
 }
 
-void RedisTransactioner::enqueue(std::string command, int exepectedResult, bool isFormatted)
+void RedisTransactioner::enqueue(std::string command, int expectedType, bool isFormatted)
 {
     RedisReply r(m_db, command, REDIS_REPLY_STATUS, isFormatted);
     r.checkStatusQueued();
-    m_expectedResults.push(exepectedResult);
+    m_expectedResults.push(expectedType);
 }
 
 string RedisFormatter::formatHMSET(const std::string &key,

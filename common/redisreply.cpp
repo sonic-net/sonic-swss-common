@@ -11,7 +11,7 @@ using namespace std;
 
 namespace swss {
 
-RedisReply::RedisReply(DBConnector *db, string command, int exepectedType, bool isFormatted)
+RedisReply::RedisReply(DBConnector *db, string command, int expectedType, bool isFormatted)
 {
     SWSS_LOG_ENTER();
 
@@ -35,13 +35,14 @@ RedisReply::RedisReply(DBConnector *db, string command, int exepectedType, bool 
                            "Memory exception, reply is null");
     }
 
-    if (m_reply->type != exepectedType)
+    if (m_reply->type != expectedType)
     {
+        printf("command=%s, type=%d, etype=%d\n", command.c_str(), m_reply->type, expectedType);
         const char *err = (m_reply->type == REDIS_REPLY_STRING || m_reply->type == REDIS_REPLY_ERROR) ?
             m_reply->str : "NON-STRING-REPLY";
 
         SWSS_LOG_ERROR("Expected to get redis type %d got type %d, command: %s, err: %s",
-                      exepectedType, m_reply->type, command.c_str(), err);
+                      expectedType, m_reply->type, command.c_str(), err);
         freeReplyObject(m_reply);
 
         throw system_error(make_error_code(errc::io_error),

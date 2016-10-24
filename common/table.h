@@ -42,14 +42,16 @@ public:
     virtual void del(std::string key, std::string op = "") = 0;
 };
 
-class TableEntryReadable {
+class TableEntryPopable {
+public:
+    virtual void pop(KeyOpFieldsValuesTuple &kco) = 0;
+};
+
+class TableEntryEnumerable {
 public:
     /* Get all the field-value tuple of the table entry with the key */
     virtual bool get(std::string key, std::vector<FieldValueTuple> &values) = 0;
-};
-
-class TableEntryEnumerable : public TableEntryReadable {
-public:
+    
     /* get all the keys in the table */
     virtual void getTableKeys(std::vector<std::string> &keys) = 0;
     
