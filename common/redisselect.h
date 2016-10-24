@@ -59,6 +59,7 @@ public:
 
         /* Read the messages in queue before subsribe command execute */
         if (m_queueLength) {
+            m_queueLength--;
             return Selectable::DATA;
         }
 
