@@ -46,21 +46,30 @@ public:
     /* Get a singlesubsribe channel rpop */
     void pop(KeyOpFieldsValuesTuple &kco)
     {
-        // if pop one key from the set
-        // return the key-op-fields
-        // else op<-DEL
-        RedisReply rk(m_db, "SPOP " + getKeySetName(), REDIS_REPLY_STRING);
+        auto& values = kfvFieldsValues(kco);
+        values.clear();
+        
+        // try pop one key from the set
+        RedisReply rk(m_db, "SPOP " + getKeySetName());
+        
+        // if the set is empty, return an empty kco object
+        if (rk.getContext()->type == REDIS_REPLY_NIL)
+        {
+            kfvKey(kco).clear();
+            kfvOp(kco).clear();
+            return;
+        }
+
         std::string key = rk.getReply<std::string>();
+        kfvKey(kco) = key;
         
         RedisReply r(m_db, "HGETALL " + getKeyName(key), REDIS_REPLY_ARRAY);
         redisReply *reply = r.getContext();
-        auto& values = kfvFieldsValues(kco);
-        values.clear();
 
+        // if there is no field-value pair, the key is already deleted
         if (reply->elements == 0)
         {
             kfvOp(kco) = DEL_COMMAND;
-            values.clear();
         }
         else
         {

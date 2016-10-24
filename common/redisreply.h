@@ -20,6 +20,14 @@ public:
     RedisReply(DBConnector *db, std::string command, int exepectedType,
                bool isFormatted = false);
 
+    /*
+     * Send a new command to redis and wait for reply
+     * No reply type specified.
+     * isFormatted - Set to true if the command is already formatted in redis
+     *               protocol
+     */
+    RedisReply(DBConnector *db, std::string command, bool isFormatted = false);
+
     /* auto_ptr for native structue (Free the memory on destructor) */
     RedisReply(redisReply *reply);
 

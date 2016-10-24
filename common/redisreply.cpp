@@ -12,6 +12,24 @@ using namespace std;
 namespace swss {
 
 RedisReply::RedisReply(DBConnector *db, string command, int expectedType, bool isFormatted)
+    : RedisReply(db, command, isFormatted)
+{
+    if (m_reply->type != expectedType)
+    {
+        printf("command=%s, type=%d, etype=%d\n", command.c_str(), m_reply->type, expectedType);
+        const char *err = (m_reply->type == REDIS_REPLY_STRING || m_reply->type == REDIS_REPLY_ERROR) ?
+            m_reply->str : "NON-STRING-REPLY";
+
+        SWSS_LOG_ERROR("Expected to get redis type %d got type %d, command: %s, err: %s",
+                      expectedType, m_reply->type, command.c_str(), err);
+        freeReplyObject(m_reply);
+
+        throw system_error(make_error_code(errc::io_error),
+                           "Wrong expected type of result");
+    }
+}
+
+RedisReply::RedisReply(DBConnector *db, std::string command, bool isFormatted)
 {
     SWSS_LOG_ENTER();
 
@@ -33,20 +51,6 @@ RedisReply::RedisReply(DBConnector *db, string command, int expectedType, bool i
 
         throw system_error(make_error_code(errc::not_enough_memory),
                            "Memory exception, reply is null");
-    }
-
-    if (m_reply->type != expectedType)
-    {
-        printf("command=%s, type=%d, etype=%d\n", command.c_str(), m_reply->type, expectedType);
-        const char *err = (m_reply->type == REDIS_REPLY_STRING || m_reply->type == REDIS_REPLY_ERROR) ?
-            m_reply->str : "NON-STRING-REPLY";
-
-        SWSS_LOG_ERROR("Expected to get redis type %d got type %d, command: %s, err: %s",
-                      expectedType, m_reply->type, command.c_str(), err);
-        freeReplyObject(m_reply);
-
-        throw system_error(make_error_code(errc::io_error),
-                           "Wrong expected type of result");
     }
 }
 
