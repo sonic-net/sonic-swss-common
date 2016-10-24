@@ -52,9 +52,6 @@ void Table::set(std::string key, std::vector<FieldValueTuple> &values,
 void Table::del(std::string key, std::string /* op */)
 {
     RedisReply r(m_db, string("DEL ") + getKeyName(key), REDIS_REPLY_INTEGER);
-    if (r.getContext()->type != REDIS_REPLY_INTEGER)
-        throw system_error(make_error_code(errc::io_error),
-                           "DEL operation failed");
 }
 
 void TableEntryEnumerable::getTableContent(std::vector<KeyOpFieldsValuesTuple> &tuples)
@@ -104,8 +101,7 @@ redisReply *RedisTransactioner::queueResultsFront()
 
 string RedisTransactioner::queueResultsPop()
 {
-    char *s = m_results.front()->getContext()->str;
-    string ret(s ? s : "");
+    string ret(m_results.front()->getReply<string>());
     delete m_results.front();
     m_results.pop();
     return ret;

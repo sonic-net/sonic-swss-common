@@ -2,6 +2,7 @@
 #define __REDISREPLY__
 
 #include <hiredis/hiredis.h>
+#include <stdexcept>
 #include "dbconnector.h"
 
 namespace swss {
@@ -27,7 +28,12 @@ public:
 
     /* Return the actual reply object */
     redisReply *getContext();
-
+    
+    redisReply *getChild(size_t index);
+    
+    template<typename TYPE>
+    TYPE getReply();
+    
     /* Check that the staus is OK, throw exception otherwise */
     void checkStatusOK();
 

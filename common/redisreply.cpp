@@ -43,7 +43,6 @@ RedisReply::RedisReply(DBConnector *db, string command, int exepectedType, bool 
         SWSS_LOG_ERROR("Expected to get redis type %d got type %d, command: %s, err: %s",
                       exepectedType, m_reply->type, command.c_str(), err);
         freeReplyObject(m_reply);
-        m_reply = NULL; /* Some compilers call destructor in this case */
 
         throw system_error(make_error_code(errc::io_error),
                            "Wrong expected type of result");
@@ -57,13 +56,21 @@ RedisReply::RedisReply(redisReply *reply) :
 
 RedisReply::~RedisReply()
 {
-    if (m_reply)
-        freeReplyObject(m_reply);
+    freeReplyObject(m_reply);
 }
 
 redisReply *RedisReply::getContext()
 {
     return m_reply;
+}
+
+redisReply *RedisReply::getChild(size_t index)
+{
+    if (index >= m_reply->elements)
+    {
+        throw std::out_of_range("Out of the range of redisReply elements");
+    }
+    return m_reply->element[index];
 }
 
 void RedisReply::checkStatus(char *status)
@@ -85,6 +92,18 @@ void RedisReply::checkStatusOK()
 void RedisReply::checkStatusQueued()
 {
     checkStatus("QUEUED");
+}
+
+template<> int RedisReply::getReply<int>()
+{
+    return getContext()->integer;
+}
+
+template<> std::string RedisReply::getReply<std::string>()
+{
+    char *s = getContext()->str;
+    if (s == NULL) return std::string();
+    return std::string(s);
 }
 
 }
