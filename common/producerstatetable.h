@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <tuple>
 #include "redisreply.h"
+#include "redisselect.h"
 #include "json.h"
 #include "json.hpp"
 #include "table.h"
