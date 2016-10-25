@@ -13,6 +13,7 @@ LDADD_GTEST = $(top_srcdir)/googletest/build/googlemock/gtest/libgtest_main.a \
         $(top_srcdir)/googletest/build/googlemock/gtest/libgtest.a
 
 tests_SOURCES = redis_ut.cpp    \
+                redis_state_ut.cpp  \
                 tokenize_ut.cpp \
                 json_ut.cpp     \
                 ipprefix_ut.cpp
