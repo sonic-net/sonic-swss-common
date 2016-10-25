@@ -17,8 +17,8 @@ class ProducerStateTable : public RedisChannel, public TableName_KeySet, public 
 {
 public:
     ProducerStateTable(DBConnector *db, std::string tableName)
-        : TableName_KeySet(tableName)
-        , RedisChannel(db, tableName)
+        : RedisChannel(db, tableName)
+        , TableName_KeySet(tableName)
     {
     }
 
@@ -43,10 +43,7 @@ public:
         
         enqueKeySet(key);
         
-        std::string del("DEL ");
-        del += getKeyName(key);
-
-        enqueue(del, REDIS_REPLY_INTEGER);
+        enqueue("DEL " + getKeyName(key), REDIS_REPLY_INTEGER);
         
         exec();
     }

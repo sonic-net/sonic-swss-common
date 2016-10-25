@@ -196,13 +196,13 @@ TEST(ConsumerStateTable, multitable)
 
     while (1)
     {
-        Selectable *i;
+        Selectable *is;
         int fd;
 
-        ret = cs.select(&i, &fd);
+        ret = cs.select(&is, &fd);
         EXPECT_EQ(ret, Select::OBJECT);
 
-        ((ConsumerStateTable *)i)->pop(kco);
+        ((ConsumerStateTable *)is)->pop(kco);
         if (kfvOp(kco) == "SET")
         {
             numberOfKeysSet++;

@@ -14,8 +14,8 @@ using namespace std;
 namespace swss {
 
 ConsumerTable::ConsumerTable(DBConnector *db, string tableName)
-    : TableName_KeyValueOpQueues(tableName)
-    , RedisSelect(RedisChannel(db, tableName))
+    : RedisSelect(RedisChannel(db, tableName))
+    , TableName_KeyValueOpQueues(tableName)
 {
     for (;;)
     {
@@ -39,7 +39,7 @@ ConsumerTable::ConsumerTable(DBConnector *db, string tableName)
         }
     }
 
-    setQueueLength((unsigned int)queueResultsFront()->integer);
+    setQueueLength(queueResultsFront()->integer);
     /* No need for that since we have WATCH gurantee on the transaction */
 }
 

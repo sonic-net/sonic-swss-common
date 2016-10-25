@@ -35,20 +35,28 @@ private:
 
 class TableEntryWritable {
 public:
+    virtual ~TableEntryWritable() { }
+    
     /* Set an entry in the table */
     virtual void set(std::string key, std::vector<FieldValueTuple> &values,
                      std::string op = "") = 0;
     /* Delete an entry in the table */
     virtual void del(std::string key, std::string op = "") = 0;
+    
 };
 
 class TableEntryPopable {
 public:
+    virtual ~TableEntryPopable() { }
+    
+    /* Pop an written action (set or del) on the table */
     virtual void pop(KeyOpFieldsValuesTuple &kco) = 0;
 };
 
 class TableEntryEnumerable {
 public:
+    virtual ~TableEntryEnumerable() { }
+    
     /* Get all the field-value tuple of the table entry with the key */
     virtual bool get(std::string key, std::vector<FieldValueTuple> &values) = 0;
     
@@ -105,9 +113,10 @@ private:
     std::queue<RedisReply *> m_results;
 };
 
-class Table : public TableName, public RedisTransactioner, public TableEntryEnumerable {
+class Table : public RedisTransactioner, public TableName, public TableEntryEnumerable {
 public:
     Table(DBConnector *db, std::string tableName);
+    virtual ~Table() { }
 
     /* Set an entry in the DB directly (op not in used) */
     virtual void set(std::string key, std::vector<FieldValueTuple> &values,

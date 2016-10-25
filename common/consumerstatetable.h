@@ -15,14 +15,14 @@ class ConsumerStateTable : public RedisSelect, public TableName_KeySet, public T
 {
 public:
     ConsumerStateTable(DBConnector *db, std::string tableName)
-        : TableName_KeySet(tableName)
-        , RedisSelect(RedisChannel(db, tableName))
+        : RedisSelect(RedisChannel(db, tableName))
+        , TableName_KeySet(tableName)
     {
         for (;;)
         {
             try
             {
-                RedisReply watch(m_db, string("WATCH ") + getKeySetName(), REDIS_REPLY_STATUS);
+                RedisReply watch(m_db, "WATCH " + getKeySetName(), REDIS_REPLY_STATUS);
                 watch.checkStatusOK();
                 multi();
                 enqueue(string("SCARD ") + getKeySetName(), REDIS_REPLY_INTEGER);
@@ -39,7 +39,8 @@ public:
             }
         }
 
-        setQueueLength(queueResultsFront()->integer);
+        long long int len = queueResultsFront()->integer;
+        setQueueLength(len);
         /* No need for that since we have WATCH gurantee on the transaction */
     }
 

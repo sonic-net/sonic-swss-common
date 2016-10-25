@@ -21,10 +21,7 @@ public:
 
     void publish()
     {
-        std::string publish("PUBLISH ");
-        publish += getChannelName();
-        publish += " G";
-        enqueue(publish, REDIS_REPLY_INTEGER);
+        enqueue("PUBLISH " + getChannelName() + " G", REDIS_REPLY_INTEGER);
     }
     
 private:
@@ -38,8 +35,8 @@ public:
     const static unsigned int SUBSCRIBE_TIMEOUT = 1000;
     
     RedisSelect(RedisChannel chan)
-        : m_subscribe(NULL)
-        , RedisChannel(chan)
+        : RedisChannel(chan)
+        , m_subscribe(NULL)
     {
     }
 
@@ -116,14 +113,14 @@ public:
         RedisReply r(m_subscribe, s, REDIS_REPLY_ARRAY);
     }
     
-    void setQueueLength(unsigned int queueLength)
+    void setQueueLength(long long int queueLength)
     {
         m_queueLength = queueLength;
     }
 
 private:
     DBConnector *m_subscribe;
-    unsigned int m_queueLength;
+    long long int m_queueLength;
 };
 
 }
