@@ -363,7 +363,7 @@ TEST(Table, test)
     t.getTableContent(tuples);
 
     cout << "Get total " << tuples.size() << " number of entries" << endl;
-    EXPECT_EQ(tuples.size(), 2);
+    EXPECT_EQ(tuples.size(), (size_t)2);
 
     for (auto tuple: tuples)
     {
