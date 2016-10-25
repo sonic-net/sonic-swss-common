@@ -49,8 +49,8 @@ public:
 
     inline bool operator<(const IpAddress &o) const
     {
-        if (m_ip.family < o.m_ip.family)
-            return true;
+        if (m_ip.family != o.m_ip.family)
+           return m_ip.family < o.m_ip.family;
 
         if (m_ip.family == AF_INET)
             return m_ip.ip_addr.ipv4_addr <

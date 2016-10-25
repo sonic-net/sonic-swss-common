@@ -1,7 +1,4 @@
 #include <gtest/gtest.h>
-#include <string>
-#include <iostream>
-#include <stdexcept>
 #include "common/ipprefix.h"
 
 using namespace std;
@@ -44,4 +41,14 @@ TEST(IpPrefix, ipv6)
     EXPECT_THROW(IpPrefix("2001:4898:f0:f153:357c:77b2:49c9:627c/-1"), invalid_argument);
     EXPECT_THROW(IpPrefix("2001:4898:f0:f153:357c:77b2:49c9:627c/-2"), invalid_argument);
     EXPECT_THROW(IpPrefix("2001:4898:f0:f153:357c:77b2:49c9:627c/129"), invalid_argument);
+}
+
+TEST(IpPrefix, compare)
+{
+    IpPrefix ip1("0.0.0.0/0");
+    IpPrefix ip2("::/0");
+
+    EXPECT_TRUE(ip1 < ip2);
+    EXPECT_TRUE(!(ip2 < ip1));
+    EXPECT_TRUE(!(ip1 == ip2));
 }
