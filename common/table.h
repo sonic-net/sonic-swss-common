@@ -63,6 +63,8 @@ protected:
     redisReply* queueResultsFront();
     void queueResultsPop();
 
+    std::string scriptLoad(const std::string& script);
+
     /* Format HMSET key multiple field value command */
     static std::string formatHMSET(const std::string &key,
                                    const std::vector<FieldValueTuple> &values);

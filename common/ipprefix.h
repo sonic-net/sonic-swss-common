@@ -30,7 +30,7 @@ public:
         {
             case AF_INET:
             {
-                return IpAddress(htonl((0xFFFFFFFFLL << (32 - m_mask)) & 0xFFFFFFFF));
+                return IpAddress(htonl((0xFFFFFFFFU << (32 - m_mask)) & 0xFFFFFFFFU));
             }
             case AF_INET6:
             {
@@ -44,7 +44,7 @@ public:
                 if (mid < 16)
                 {
                     assert(mid >= 0 && mid < 16);
-                    ipa.ip_addr.ipv6_addr[mid] = 0xFF << (8 - bits);
+                    ipa.ip_addr.ipv6_addr[mid] = (uint8_t)(0xFF << (8 - bits));
                     memset(ipa.ip_addr.ipv6_addr + mid + 1, 0, 16 - mid - 1);
                 }
                 return IpAddress(ipa);

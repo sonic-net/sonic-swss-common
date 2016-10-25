@@ -66,9 +66,9 @@ int Select::select(Selectable **c, int *fd, unsigned int timeout)
         i->addFd(&fs);
     }
 
-    for (int fd : m_fds)
+    for (int fdn : m_fds)
     {
-        FD_SET(fd, &fs);
+        FD_SET(fdn, &fs);
     }
 
     err = ::select(FD_SETSIZE, &fs, NULL, NULL, pTimeout);
