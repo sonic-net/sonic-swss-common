@@ -50,36 +50,68 @@ public:
         auto& values = kfvFieldsValues(kco);
         values.clear();
         
-        // try pop one key from the set
-        RedisReply rk(m_db, "SPOP " + getKeySetName());
-        
+        static std::string luaScript =
+            "local key = redis.call('SPOP', KEYS[1])\n"
+            "if not key then return end\n"
+            "local values = redis.call('HGETALL', KEYS[2] .. key)\n"
+            "local ret = {key, values}\n"
+            "return ret\n";
+
+        static std::string sha = scriptLoad(luaScript);
+
+        char *temp;
+
+        int len = redisFormatCommand(
+                &temp,
+                "EVALSHA %s 2 %s %s '' '' ''",
+                sha.c_str(),
+                getKeySetName().c_str(),
+                getTableName().c_str());
+
+        if (len < 0)
+        {
+            SWSS_LOG_ERROR("redisFormatCommand failed");
+            throw std::runtime_error("fedisFormatCommand failed");
+        }
+
+        string command = string(temp, len);
+        free(temp);
+
+        RedisReply r(m_db, command, true);
+        auto ctx = r.getContext();
+
         // if the set is empty, return an empty kco object
-        if (rk.getContext()->type == REDIS_REPLY_NIL)
+        if (r.getContext()->type == REDIS_REPLY_NIL)
         {
             kfvKey(kco).clear();
             kfvOp(kco).clear();
             return;
         }
 
-        std::string key = rk.getReply<std::string>();
+        assert(ctx->type == REDIS_REPLY_ARRAY);
+        assert(ctx->elements == 2);
+        assert(ctx->element[0]->type == REDIS_REPLY_STRING);
+        std::string key = ctx->element[0]->str;
         kfvKey(kco) = key;
-        
-        RedisReply r(m_db, "HGETALL " + getKeyName(key), REDIS_REPLY_ARRAY);
-        redisReply *reply = r.getContext();
+
+        assert(ctx->element[1]->type == REDIS_REPLY_ARRAY);
+        auto ctx1 = ctx->element[1];
+        for (size_t i = 0; i < ctx1->elements / 2; i++)
+        {
+            FieldValueTuple e;
+            fvField(e) = ctx1->element[i * 2]->str;
+            fvValue(e) = ctx1->element[i * 2 + 1]->str;
+            values.push_back(e);
+        }
 
         // if there is no field-value pair, the key is already deleted
-        if (reply->elements == 0)
+        if (values.empty())
         {
             kfvOp(kco) = DEL_COMMAND;
         }
         else
         {
             kfvOp(kco) = SET_COMMAND;
-            for (unsigned int i = 0; i < reply->elements - 1; i += 2)
-            {
-                values.push_back(make_tuple(reply->element[i]->str,
-                                            reply->element[i + 1]->str));
-            }
         }
     }
 };
