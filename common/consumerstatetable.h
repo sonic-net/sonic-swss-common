@@ -25,7 +25,7 @@ public:
                 RedisReply watch(m_db, "WATCH " + getKeySetName(), REDIS_REPLY_STATUS);
                 watch.checkStatusOK();
                 multi();
-                enqueue(string("SCARD ") + getKeySetName(), REDIS_REPLY_INTEGER);
+                enqueue(std::string("SCARD ") + getKeySetName(), REDIS_REPLY_INTEGER);
                 
                 subscribe();
 
@@ -74,7 +74,7 @@ public:
             throw std::runtime_error("fedisFormatCommand failed");
         }
 
-        string command = string(temp, len);
+        std::string command = std::string(temp, len);
         free(temp);
 
         RedisReply r(m_db, command, true);
