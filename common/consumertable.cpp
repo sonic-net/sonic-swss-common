@@ -1,13 +1,14 @@
-#include "common/redisreply.h"
-#include "common/consumertable.h"
-#include "common/json.h"
-#include "common/logger.h"
 #include <stdio.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <iostream>
 #include <system_error>
+#include "common/redisreply.h"
+#include "common/consumertable.h"
+#include "common/json.h"
+#include "common/logger.h"
+#include "common/redisapi.h"
 
 using namespace std;
 
@@ -86,28 +87,16 @@ void ConsumerTable::pop(KeyOpFieldsValuesTuple &kco)
         "return ret";
 
     static std::string sha = loadRedisScript(m_db, luaScript);
+    RedisCommand command;
+    command.format(
+        "EVALSHA %s 4 %s %s %s %s '' '' '' ''",
+        sha.c_str(),
+        getKeyQueueTableName().c_str(),
+        getOpQueueTableName().c_str(),
+        getValueQueueTableName().c_str(),
+        getTableName().c_str());
 
-    char *temp;
-
-    int len = redisFormatCommand(
-            &temp,
-            "EVALSHA %s 4 %s %s %s %s '' '' '' ''",
-            sha.c_str(),
-            getKeyQueueTableName().c_str(),
-            getOpQueueTableName().c_str(),
-            getValueQueueTableName().c_str(),
-            getTableName().c_str());
-
-    if (len < 0)
-    {
-        SWSS_LOG_ERROR("redisFormatCommand failed");
-        throw std::runtime_error("fedisFormatCommand failed");
-    }
-
-    string command = string(temp, len);
-    free(temp);
-
-    RedisReply r(m_db, command, REDIS_REPLY_ARRAY, true);
+    RedisReply r(m_db, command, REDIS_REPLY_ARRAY);
 
     auto ctx = r.getContext();
 

@@ -4,6 +4,7 @@
 #include "common/table.h"
 #include "common/logger.h"
 #include "common/redisreply.h"
+#include "common/rediscommand.h"
 
 using namespace std;
 
@@ -42,9 +43,10 @@ void Table::set(std::string key, std::vector<FieldValueTuple> &values,
     if (values.size() == 0)
         return;
 
-    const std::string &cmd = RedisFormatter::formatHMSET(getKeyName(key), values);
+    RedisCommand cmd;
+    cmd.formatHMSET(getKeyName(key), values);
 
-    RedisReply r(m_db, cmd, REDIS_REPLY_STATUS, true);
+    RedisReply r(m_db, cmd, REDIS_REPLY_STATUS);
 
     r.checkStatusOK();
 }
@@ -152,70 +154,11 @@ void RedisTransactioner::exec()
     free(reply);
 }
 
-void RedisTransactioner::enqueue(std::string command, int expectedType, bool isFormatted)
+void RedisTransactioner::enqueue(std::string command, int expectedType)
 {
-    RedisReply r(m_db, command, REDIS_REPLY_STATUS, isFormatted);
+    RedisReply r(m_db, command, REDIS_REPLY_STATUS);
     r.checkStatusQueued();
     m_expectedResults.push(expectedType);
-}
-
-string RedisFormatter::formatHMSET(const std::string &key,
-                          const std::vector<FieldValueTuple> &values)
-{
-    if (values.size() == 0)
-        throw system_error(make_error_code(errc::io_error),
-                           "HMSET must have some arguments");
-
-    const char* cmd = "HMSET";
-
-    std::vector<const char*> args = { cmd, key.c_str() };
-
-    for (const auto &fvt: values)
-    {
-        args.push_back(fvField(fvt).c_str());
-        args.push_back(fvValue(fvt).c_str());
-    }
-
-    char *temp;
-    int len = redisFormatCommandArgv(&temp, (int)args.size(), args.data(), NULL);
-    string hmset(temp, len);
-    free(temp);
-    return hmset;
-}
-
-string RedisFormatter::formatHSET(const string& key, const string& field,
-                         const string& value)
-{
-    char *temp;
-    int len = redisFormatCommand(&temp, "HSET %s %s %s",
-                                 key.c_str(),
-                                 field.c_str(),
-                                 value.c_str());
-    string hset(temp, len);
-    free(temp);
-    return hset;
-}
-
-string RedisFormatter::formatHGET(const string& key, const string& field)
-{
-        char *temp;
-        int len = redisFormatCommand(&temp, "HGET %s %s",
-                                     key.c_str(),
-                                     field.c_str());
-        string hget(temp, len);
-        free(temp);
-        return hget;
-}
-
-string RedisFormatter::formatHDEL(const string& key, const string& field)
-{
-    char *temp;
-    int len = redisFormatCommand(&temp, "HDEL %s %s",
-                                 key.c_str(),
-                                 field.c_str());
-    string hdel(temp, len);
-    free(temp);
-    return hdel;
 }
 
 }

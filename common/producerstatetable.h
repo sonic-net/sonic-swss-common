@@ -3,11 +3,12 @@
 #include <stdlib.h>
 #include <tuple>
 #include <sstream>
-#include "redisreply.h"
-#include "redisselect.h"
-#include "json.h"
-#include "json.hpp"
-#include "table.h"
+#include "common/redisreply.h"
+#include "common/redisselect.h"
+#include "common/json.h"
+#include "common/json.hpp"
+#include "common/table.h"
+#include "common/redisapi.h"
 
 using json = nlohmann::json;
 
@@ -54,7 +55,7 @@ public:
 
         std::string command = osk.str() + osv.str();
 
-        RedisReply r(m_db, command, REDIS_REPLY_NIL, false);
+        RedisReply r(m_db, command, REDIS_REPLY_NIL);
     }
 
     virtual void del(std::string key, std::string op = DEL_COMMAND)
@@ -80,7 +81,7 @@ public:
 
         std::string command = osk.str() + osv.str();
 
-        RedisReply r(m_db, command, REDIS_REPLY_NIL, false);
+        RedisReply r(m_db, command, REDIS_REPLY_NIL);
     }
     
 private:

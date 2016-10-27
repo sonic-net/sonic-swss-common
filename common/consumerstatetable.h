@@ -59,25 +59,14 @@ public:
 
         static std::string sha = loadRedisScript(m_db, luaScript);
 
-        char *temp;
+        RedisCommand command;
+        command.format(
+            "EVALSHA %s 2 %s %s '' '' ''",
+            sha.c_str(),
+            getKeySetName().c_str(),
+            getTableName().c_str());
 
-        int len = redisFormatCommand(
-                &temp,
-                "EVALSHA %s 2 %s %s '' '' ''",
-                sha.c_str(),
-                getKeySetName().c_str(),
-                getTableName().c_str());
-
-        if (len < 0)
-        {
-            SWSS_LOG_ERROR("redisFormatCommand failed");
-            throw std::runtime_error("fedisFormatCommand failed");
-        }
-
-        std::string command = std::string(temp, len);
-        free(temp);
-
-        RedisReply r(m_db, command, true);
+        RedisReply r(m_db, command);
         auto ctx = r.getContext();
 
         // if the set is empty, return an empty kco object

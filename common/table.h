@@ -4,14 +4,10 @@
 #include <assert.h>
 #include <string>
 #include <queue>
-#include <tuple>
 #include "hiredis/hiredis.h"
 #include "dbconnector.h"
 #include "redisreply.h"
 #include "schema.h"
-
-#include <stdexcept>
-#include "common/logger.h"
 
 namespace swss {
 
@@ -22,21 +18,6 @@ typedef std::tuple<std::string, std::string, std::vector<FieldValueTuple> > KeyO
 #define kfvKey    std::get<0>
 #define kfvOp     std::get<1>
 #define kfvFieldsValues std::get<2>
-
-static inline std::string loadRedisScript(DBConnector* db, const std::string& script)
-{
-    SWSS_LOG_ENTER();
-
-    char *tmp;
-    int len = redisFormatCommand(&tmp, "SCRIPT LOAD %s", script.c_str());
-    if (len < 0) throw std::bad_alloc();
-    
-    std::string loadcmd = std::string(tmp, len);
-    free(tmp);
-
-    RedisReply r(db, loadcmd, REDIS_REPLY_STRING, true);
-    return r.getContext()->str;
-}
 
 class TableBase {
 public:
@@ -87,26 +68,6 @@ public:
     void getTableContent(std::vector<KeyOpFieldsValuesTuple> &tuples);
 };
 
-class RedisFormatter {
-public:
-    /* Format HMSET key multiple field value command */
-    static std::string formatHMSET(const std::string &key,
-                                   const std::vector<FieldValueTuple> &values);
-
-    /* Format HSET key field value command */
-    static std::string formatHSET(const std::string &key,
-                                  const std::string &field,
-                                  const std::string &value);
-
-    /* Format HGET key field command */
-    static std::string formatHGET(const std::string& key,
-                                  const std::string& field);
-
-    /* Format HDEL key field command */
-    static std::string formatHDEL(const std::string& key,
-                                  const std::string& field);
-};
-
 class RedisTransactioner {
 public:
     RedisTransactioner(DBConnector *db) : m_db(db) { }
@@ -116,7 +77,7 @@ public:
     /* Execute a transaction and get results */
     void exec();
     /* Send a command within a transaction */
-    void enqueue(std::string command, int exepectedResult, bool isFormatted = false);
+    void enqueue(std::string command, int exepectedResult);
     
     redisReply* queueResultsFront();
     std::string queueResultsPop();

@@ -5,6 +5,7 @@
 #include "common/json.h"
 #include "common/json.hpp"
 #include "common/logger.h"
+#include "common/redisapi.h"
 
 using namespace std;
 using json = nlohmann::json;
@@ -42,32 +43,20 @@ void ProducerTable::enqueueDbChange(string key, string value, string op)
         "redis.call('PUBLISH', KEYS[4], ARGV[4]);";
 
     static std::string sha = loadRedisScript(m_db, luaScript);
+    RedisCommand command;
+    command.format(
+        "EVALSHA %s 4 %s %s %s %s %s %s %s %s",
+        sha.c_str(),
+        getKeyQueueTableName().c_str(),
+        getValueQueueTableName().c_str(),
+        getOpQueueTableName().c_str(),
+        getChannelName().c_str(),
+        key.c_str(),
+        value.c_str(),
+        op.c_str(),
+        "G");
 
-    char *temp;
-
-    int len = redisFormatCommand(
-            &temp,
-            "EVALSHA %s 4 %s %s %s %s %s %s %s %s",
-            sha.c_str(),
-            getKeyQueueTableName().c_str(),
-            getValueQueueTableName().c_str(),
-            getOpQueueTableName().c_str(),
-            getChannelName().c_str(),
-            key.c_str(),
-            value.c_str(),
-            op.c_str(),
-            "G");
-
-    if (len < 0)
-    {
-        SWSS_LOG_ERROR("redisFormatCommand failed");
-        throw std::runtime_error("fedisFormatCommand failed");
-    }
-
-    string command = string(temp, len);
-    free(temp);
-
-    RedisReply r(m_db, command, REDIS_REPLY_NIL, true);
+    RedisReply r(m_db, command, REDIS_REPLY_NIL);
 }
 
 void ProducerTable::set(string key, vector<FieldValueTuple> &values, string op)
