@@ -142,7 +142,6 @@ void clearDB()
     r.checkStatusOK();
 }
 
-
 TEST(DBConnector, test)
 {
     thread *producerThreads[NUMBER_OF_THREADS];

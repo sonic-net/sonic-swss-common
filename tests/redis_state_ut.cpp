@@ -140,7 +140,6 @@ static inline void clearDB()
     r.checkStatusOK();
 }
 
-
 TEST(ConsumerStateTable, test)
 {
     thread *producerThreads[NUMBER_OF_THREADS];
