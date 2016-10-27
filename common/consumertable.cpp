@@ -20,28 +20,17 @@ ConsumerTable::ConsumerTable(DBConnector *db, string tableName)
 {
     for (;;)
     {
-        try
-        {
-            RedisReply watch(m_db, string("WATCH ") + getKeyQueueTableName(), REDIS_REPLY_STATUS);
-            watch.checkStatusOK();
-            multi();
-            enqueue(string("LLEN ") + getKeyQueueTableName(), REDIS_REPLY_INTEGER);
-            
-            subscribe(m_db, getChannelName());
-
-            enqueue(string("LLEN ") + getKeyQueueTableName(), REDIS_REPLY_INTEGER);
-            exec();
-            break;
-        }
-        catch (...)
-        {
-            // TODO: log
-            continue;
-        }
+        RedisReply watch(m_db, string("WATCH ") + getKeyQueueTableName(), REDIS_REPLY_STATUS);
+        watch.checkStatusOK();
+        multi();
+        enqueue(string("LLEN ") + getKeyQueueTableName(), REDIS_REPLY_INTEGER);
+        subscribe(m_db, getChannelName());
+        enqueue(string("LLEN ") + getKeyQueueTableName(), REDIS_REPLY_INTEGER);
+        bool succ = exec();
+        if (succ) break;
     }
 
     setQueueLength(queueResultsFront()->integer);
-    /* No need for that since we have WATCH gurantee on the transaction */
 }
 
 void ConsumerTable::pop(KeyOpFieldsValuesTuple &kco)

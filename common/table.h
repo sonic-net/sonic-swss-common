@@ -75,7 +75,7 @@ public:
     /* Start a transaction */
     void multi();
     /* Execute a transaction and get results */
-    void exec();
+    bool exec();
     /* Send a command within a transaction */
     void enqueue(std::string command, int exepectedResult);
     

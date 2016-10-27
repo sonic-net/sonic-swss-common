@@ -109,16 +109,19 @@ string RedisTransactioner::queueResultsPop()
     return ret;
 }
 
-void RedisTransactioner::exec()
+bool RedisTransactioner::exec()
 {
     redisReply *reply = (redisReply *)redisCommand(m_db->getContext(), "EXEC");
     size_t size = reply->elements;
 
     try
     {
+        // if meet error in transaction
         if (reply->type != REDIS_REPLY_ARRAY)
-            throw system_error(make_error_code(errc::io_error),
-                               "Error in transaction");
+        {
+            freeReplyObject(reply);
+            return false;
+        }
 
         if (size != m_expectedResults.size())
             throw system_error(make_error_code(errc::io_error),
@@ -140,7 +143,8 @@ void RedisTransactioner::exec()
             }
         }
     }
-    catch (...)  {
+    catch (...)
+    {
         freeReplyObject(reply);
         throw;
     }
@@ -152,6 +156,7 @@ void RedisTransactioner::exec()
     /* Free only the array memory */
     free(reply->element);
     free(reply);
+    return true;
 }
 
 void RedisTransactioner::enqueue(std::string command, int expectedType)

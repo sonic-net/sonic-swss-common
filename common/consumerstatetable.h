@@ -20,28 +20,17 @@ public:
     {
         for (;;)
         {
-            try
-            {
-                RedisReply watch(m_db, "WATCH " + getKeySetName(), REDIS_REPLY_STATUS);
-                watch.checkStatusOK();
-                multi();
-                enqueue(std::string("SCARD ") + getKeySetName(), REDIS_REPLY_INTEGER);
-                
-                subscribe(m_db, getChannelName());
-
-                exec();
-                break;
-            }
-            catch (...)
-            {
-                // TODO: log
-                continue;
-            }
+            RedisReply watch(m_db, "WATCH " + getKeySetName(), REDIS_REPLY_STATUS);
+            watch.checkStatusOK();
+            multi();
+            enqueue(std::string("SCARD ") + getKeySetName(), REDIS_REPLY_INTEGER);
+            subscribe(m_db, getChannelName());
+            bool succ = exec();
+            if (succ) break;
         }
 
         long long int len = queueResultsFront()->integer;
         setQueueLength(len);
-        /* No need for that since we have WATCH gurantee on the transaction */
     }
 
     /* Get a singlesubsribe channel rpop */
