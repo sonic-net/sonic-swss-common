@@ -30,7 +30,7 @@ public:
         {
             case AF_INET:
             {
-                return IpAddress(htonl((0xFFFFFFFFU << (32 - m_mask)) & 0xFFFFFFFFU));
+                return IpAddress(htonl((uint32_t)((0xFFFFFFFFLL << (32 - m_mask)) & 0xFFFFFFFFLL)));
             }
             case AF_INET6:
             {
