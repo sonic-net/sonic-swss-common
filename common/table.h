@@ -8,6 +8,7 @@
 #include "dbconnector.h"
 #include "redisreply.h"
 #include "schema.h"
+#include "redistran.h"
 
 namespace swss {
 
@@ -66,28 +67,6 @@ public:
     /* Read the whole table content from the DB directly */
     /* NOTE: Not an atomic function */
     void getTableContent(std::vector<KeyOpFieldsValuesTuple> &tuples);
-};
-
-class RedisTransactioner {
-public:
-    RedisTransactioner(DBConnector *db) : m_db(db) { }
-    
-    /* Start a transaction */
-    void multi();
-    /* Execute a transaction and get results */
-    bool exec();
-    /* Send a command within a transaction */
-    void enqueue(std::string command, int exepectedResult);
-    
-    redisReply* queueResultsFront();
-    std::string queueResultsPop();
-    
-protected:
-    DBConnector *m_db;
-private:    
-    /* Remember the expected results for the transaction */
-    std::queue<int> m_expectedResults;
-    std::queue<RedisReply *> m_results;
 };
 
 class Table : public RedisTransactioner, public TableBase, public TableEntryEnumerable {

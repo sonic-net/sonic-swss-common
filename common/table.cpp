@@ -7,8 +7,7 @@
 #include "common/rediscommand.h"
 
 using namespace std;
-
-namespace swss {
+using namespace swss;
 
 Table::Table(DBConnector *db, string tableName) : RedisTransactioner(db), TableBase(tableName)
 {
@@ -86,84 +85,4 @@ void Table::getTableKeys(std::vector<std::string> &keys)
         auto pos = key.find(':');
         keys.push_back(key.substr(pos+1));
     }
-}
-
-void RedisTransactioner::multi()
-{
-    while (!m_expectedResults.empty())
-        m_expectedResults.pop();
-    RedisReply r(m_db, "MULTI", REDIS_REPLY_STATUS);
-    r.checkStatusOK();
-}
-
-redisReply *RedisTransactioner::queueResultsFront()
-{
-    return m_results.front()->getContext();
-}
-
-string RedisTransactioner::queueResultsPop()
-{
-    string ret(m_results.front()->getReply<string>());
-    delete m_results.front();
-    m_results.pop();
-    return ret;
-}
-
-bool RedisTransactioner::exec()
-{
-    redisReply *reply = (redisReply *)redisCommand(m_db->getContext(), "EXEC");
-    size_t size = reply->elements;
-
-    try
-    {
-        // if meet error in transaction
-        if (reply->type != REDIS_REPLY_ARRAY)
-        {
-            freeReplyObject(reply);
-            return false;
-        }
-
-        if (size != m_expectedResults.size())
-            throw system_error(make_error_code(errc::io_error),
-                               "Got to different nuber of answers!");
-
-        while (!m_results.empty())
-            queueResultsPop();
-
-        for (unsigned int i = 0; i < size; i++)
-        {
-            int expectedType = m_expectedResults.front();
-            m_expectedResults.pop();
-            if (expectedType != reply->element[i]->type)
-            {
-                SWSS_LOG_ERROR("Expected to get redis type %d got type %d",
-                              expectedType, reply->element[i]->type);
-                throw system_error(make_error_code(errc::io_error),
-                                   "Got unexpected result");
-            }
-        }
-    }
-    catch (...)
-    {
-        freeReplyObject(reply);
-        throw;
-    }
-
-    for (size_t i = 0; i < size; i++)
-        /* FIXME: not enough memory */
-        m_results.push(new RedisReply(reply->element[i]));
-
-    /* Free only the array memory */
-    free(reply->element);
-    free(reply);
-    return true;
-}
-
-void RedisTransactioner::enqueue(std::string command, int expectedType)
-{
-    RedisReply r(m_db, command, REDIS_REPLY_STATUS);
-    r.checkStatusQueued();
-    m_expectedResults.push(expectedType);
-}
-
 }
