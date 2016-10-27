@@ -65,10 +65,11 @@ void ConsumerTable::pop(KeyOpFieldsValuesTuple &kco)
         "local ret = {key, op}\n"
 
         "local jj = cjson.decode(value)\n"
+        "local size = #jj\n"
 
-        "for k,v in pairs(jj) do\n"
-        "    table.insert(ret, k)\n"
-        "    table.insert(ret, v)\n"
+        "for idx=1,size,2 do\n"
+        "    table.insert(ret, jj[idx])\n"
+        "    table.insert(ret, jj[idx+1])\n"
         "end\n"
 
         "if op == 'get' or op == 'getresponse' then\n"
