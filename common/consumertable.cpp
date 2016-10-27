@@ -14,7 +14,7 @@ using namespace std;
 namespace swss {
 
 ConsumerTable::ConsumerTable(DBConnector *db, string tableName)
-    : RedisSelect(RedisChannel(db, tableName))
+    : RedisTransactioner(db)
     , TableName_KeyValueOpQueues(tableName)
 {
     for (;;)
@@ -26,7 +26,7 @@ ConsumerTable::ConsumerTable(DBConnector *db, string tableName)
             multi();
             enqueue(string("LLEN ") + getKeyQueueTableName(), REDIS_REPLY_INTEGER);
             
-            subscribe();
+            subscribe(m_db, getChannelName());
 
             enqueue(string("LLEN ") + getKeyQueueTableName(), REDIS_REPLY_INTEGER);
             exec();
@@ -85,7 +85,7 @@ void ConsumerTable::pop(KeyOpFieldsValuesTuple &kco)
 
         "return ret";
 
-    static std::string sha = scriptLoad(luaScript);
+    static std::string sha = loadRedisScript(m_db, luaScript);
 
     char *temp;
 

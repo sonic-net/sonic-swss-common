@@ -11,11 +11,11 @@
 
 namespace swss {
 
-class ConsumerStateTable : public RedisSelect, public TableName_KeySet, public TableEntryPopable
+class ConsumerStateTable : public RedisTransactioner, public RedisSelect, public TableName_KeySet, public TableEntryPopable
 {
 public:
     ConsumerStateTable(DBConnector *db, std::string tableName)
-        : RedisSelect(RedisChannel(db, tableName))
+        : RedisTransactioner(db)
         , TableName_KeySet(tableName)
     {
         for (;;)
@@ -27,7 +27,7 @@ public:
                 multi();
                 enqueue(std::string("SCARD ") + getKeySetName(), REDIS_REPLY_INTEGER);
                 
-                subscribe();
+                subscribe(m_db, getChannelName());
 
                 exec();
                 break;
@@ -57,7 +57,7 @@ public:
             "local ret = {key, values}\n"
             "return ret\n";
 
-        static std::string sha = scriptLoad(luaScript);
+        static std::string sha = loadRedisScript(m_db, luaScript);
 
         char *temp;
 

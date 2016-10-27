@@ -10,6 +10,9 @@
 #include "redisreply.h"
 #include "schema.h"
 
+#include <stdexcept>
+#include "common/logger.h"
+
 namespace swss {
 
 typedef std::tuple<std::string, std::string> FieldValueTuple;
@@ -20,15 +23,31 @@ typedef std::tuple<std::string, std::string, std::vector<FieldValueTuple> > KeyO
 #define kfvOp     std::get<1>
 #define kfvFieldsValues std::get<2>
 
-class TableName {
+static inline std::string loadRedisScript(DBConnector* db, const std::string& script)
+{
+    SWSS_LOG_ENTER();
+
+    char *tmp;
+    int len = redisFormatCommand(&tmp, "SCRIPT LOAD %s", script.c_str());
+    if (len < 0) throw std::bad_alloc();
+    
+    std::string loadcmd = std::string(tmp, len);
+    free(tmp);
+
+    RedisReply r(db, loadcmd, REDIS_REPLY_STRING, true);
+    return r.getContext()->str;
+}
+
+class TableBase {
 public:
-    TableName(std::string tableName) : m_tableName(tableName) { }
+    TableBase(std::string tableName) : m_tableName(tableName) { }
 
     std::string getTableName() const { return m_tableName; }
     
     /* Return the actual key name as a comibation of tableName:key */
     std::string getKeyName(std::string key) { assert(!key.empty()); return m_tableName + ':' + key; }
     
+    std::string getChannelName() { return m_tableName + "_CHANNEL"; }
 private:
     std::string m_tableName;
 };
@@ -101,19 +120,16 @@ public:
     
     redisReply* queueResultsFront();
     std::string queueResultsPop();
-
-    std::string scriptLoad(const std::string& script);
-
+    
 protected:
     DBConnector *m_db;
-    
 private:    
     /* Remember the expected results for the transaction */
     std::queue<int> m_expectedResults;
     std::queue<RedisReply *> m_results;
 };
 
-class Table : public RedisTransactioner, public TableName, public TableEntryEnumerable {
+class Table : public RedisTransactioner, public TableBase, public TableEntryEnumerable {
 public:
     Table(DBConnector *db, std::string tableName);
     virtual ~Table() { }
@@ -131,17 +147,17 @@ public:
     void getTableKeys(std::vector<std::string> &keys);
 };
 
-class TableName_KeyValueOpQueues : public TableName {
+class TableName_KeyValueOpQueues : public TableBase {
 public:
-    TableName_KeyValueOpQueues(std::string tableName) : TableName(tableName) { }
+    TableName_KeyValueOpQueues(std::string tableName) : TableBase(tableName) { }
     std::string getKeyQueueTableName() { return getTableName() + "_KEY_QUEUE"; }
     std::string getValueQueueTableName() { return getTableName() + "_VALUE_QUEUE"; }
     std::string getOpQueueTableName() { return getTableName() + "_OP_QUEUE"; }
 };
 
-class TableName_KeySet : public TableName {
+class TableName_KeySet : public TableBase {
 public:
-    TableName_KeySet(std::string tableName) : TableName(tableName) { }
+    TableName_KeySet(std::string tableName) : TableBase(tableName) { }
     std::string getKeySetName() { return getTableName() + "_KEY_SET"; }
 };
 

@@ -13,7 +13,7 @@
 
 namespace swss {
 
-class ProducerTable : public RedisChannel, public TableName_KeyValueOpQueues, public TableEntryWritable
+class ProducerTable : public TableName_KeyValueOpQueues, public TableEntryWritable
 {
 public:
     ProducerTable(DBConnector *db, std::string tableName);
@@ -32,6 +32,7 @@ private:
 
     std::ofstream m_dumpFile;
     bool m_firstItem = true;
+    DBConnector* m_db;
 
     void enqueueDbChange(std::string key, std::string value, std::string op);
 };

@@ -9,7 +9,7 @@ using namespace std;
 
 namespace swss {
 
-Table::Table(DBConnector *db, string tableName) : RedisTransactioner(db), TableName(tableName)
+Table::Table(DBConnector *db, string tableName) : RedisTransactioner(db), TableBase(tableName)
 {
 }
 
@@ -209,30 +209,13 @@ string RedisFormatter::formatHGET(const string& key, const string& field)
 
 string RedisFormatter::formatHDEL(const string& key, const string& field)
 {
-        char *temp;
-        int len = redisFormatCommand(&temp, "HDEL %s %s",
-                                     key.c_str(),
-                                     field.c_str());
-        string hdel(temp, len);
-        free(temp);
-        return hdel;
-}
-
-std::string RedisTransactioner::scriptLoad(const std::string& script)
-{
-    SWSS_LOG_ENTER();
-
-    char *tmp;
-
-    int len = redisFormatCommand(&tmp, "SCRIPT LOAD %s", script.c_str());
-
-    std::string loadcmd = string(tmp, len);
-
-    free(tmp);
-
-    RedisReply r(m_db, loadcmd, REDIS_REPLY_STRING, true);
-
-    return r.getContext()->str;
+    char *temp;
+    int len = redisFormatCommand(&temp, "HDEL %s %s",
+                                 key.c_str(),
+                                 field.c_str());
+    string hdel(temp, len);
+    free(temp);
+    return hdel;
 }
 
 }

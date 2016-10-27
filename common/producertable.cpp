@@ -12,14 +12,14 @@ using json = nlohmann::json;
 namespace swss {
 
 ProducerTable::ProducerTable(DBConnector *db, string tableName)
-    : RedisChannel(db, tableName)
-    , TableName_KeyValueOpQueues(tableName)
+    : TableName_KeyValueOpQueues(tableName)
+    , m_db(db)
 {
+    
 }
 
 ProducerTable::ProducerTable(DBConnector *db, string tableName, string dumpFile)
-    : RedisChannel(db, tableName)
-    , TableName_KeyValueOpQueues(tableName)
+    : ProducerTable(db, tableName)
 {
     m_dumpFile.open(dumpFile, fstream::out | fstream::trunc);
     m_dumpFile << "[" << endl;
@@ -41,7 +41,7 @@ void ProducerTable::enqueueDbChange(string key, string value, string op)
         "redis.call('LPUSH', KEYS[3], ARGV[3]);"
         "redis.call('PUBLISH', KEYS[4], ARGV[4]);";
 
-    static std::string sha = scriptLoad(luaScript);
+    static std::string sha = loadRedisScript(m_db, luaScript);
 
     char *temp;
 

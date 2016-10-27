@@ -13,12 +13,12 @@ using json = nlohmann::json;
 
 namespace swss {
 
-class ProducerStateTable : public RedisChannel, public TableName_KeySet, public TableEntryWritable
+class ProducerStateTable : public TableName_KeySet, public TableEntryWritable
 {
 public:
     ProducerStateTable(DBConnector *db, std::string tableName)
-        : RedisChannel(db, tableName)
-        , TableName_KeySet(tableName)
+        : TableName_KeySet(tableName)
+        , m_db(db)
     {
     }
 
@@ -33,7 +33,7 @@ public:
             "    redis.call('HSET', KEYS[3 + i], ARGV[3 + i * 2], ARGV[4 + i * 2])\n"
             "end\n";
 
-        static std::string sha = scriptLoad(luaScript);
+        static std::string sha = loadRedisScript(m_db, luaScript);
 
         std::ostringstream osk, osv;
         osk << "EVALSHA "
@@ -64,7 +64,7 @@ public:
             "redis.call('SADD', KEYS[2], ARGV[2])\n"
             "redis.call('DEL', KEYS[3])\n";
 
-        static std::string sha = scriptLoad(luaScript);
+        static std::string sha = loadRedisScript(m_db, luaScript);
 
         std::ostringstream osk, osv;
         osk << "EVALSHA "
@@ -82,6 +82,9 @@ public:
 
         RedisReply r(m_db, command, REDIS_REPLY_NIL, false);
     }
+    
+private:
+    DBConnector* m_db;
 };
 
 }
