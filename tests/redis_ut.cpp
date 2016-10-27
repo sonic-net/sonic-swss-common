@@ -1,3 +1,8 @@
+#include <iostream>
+#include <memory>
+#include <thread>
+#include <algorithm>
+#include "gtest/gtest.h"
 #include "common/dbconnector.h"
 #include "common/producertable.h"
 #include "common/consumertable.h"
@@ -6,11 +11,6 @@
 #include "common/select.h"
 #include "common/selectableevent.h"
 #include "common/table.h"
-#include <iostream>
-#include <memory>
-#include <thread>
-#include <algorithm>
-#include <gtest/gtest.h>
 
 using namespace std;
 using namespace swss;

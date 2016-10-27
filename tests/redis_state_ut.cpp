@@ -1,3 +1,8 @@
+#include <iostream>
+#include <memory>
+#include <thread>
+#include <algorithm>
+#include "gtest/gtest.h"
 #include "common/dbconnector.h"
 #include "common/notificationconsumer.h"
 #include "common/notificationproducer.h"
@@ -6,11 +11,6 @@
 #include "common/table.h"
 #include "common/producerstatetable.h"
 #include "common/consumerstatetable.h"
-#include <iostream>
-#include <memory>
-#include <thread>
-#include <algorithm>
-#include <gtest/gtest.h>
 
 using namespace std;
 using namespace swss;
