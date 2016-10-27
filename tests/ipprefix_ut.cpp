@@ -4,6 +4,17 @@
 using namespace std;
 using namespace swss;
 
+TEST(IpPrefix, ipv4)
+{
+    IpPrefix ip1("1.1.1.1/0");
+    IpAddress mask1("0.0.0.0");
+    EXPECT_EQ(ip1.getMask(), mask1);
+
+    IpPrefix ip2("1.1.1.1/32");
+    IpAddress mask2("255.255.255.255");
+    EXPECT_EQ(ip2.getMask(), mask2);
+}
+
 TEST(IpPrefix, ipv6)
 {
     IpAddress ip("2001:4898:f0:f153:357c:77b2:49c9:627c");
