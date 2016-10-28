@@ -35,7 +35,7 @@ ConsumerTable::ConsumerTable(DBConnector *db, string tableName)
 
 void ConsumerTable::pop(KeyOpFieldsValuesTuple &kco)
 {
-    static std::string luaScript =
+    static string luaScript =
 
         "local key   = redis.call('RPOP', KEYS[1])\n"
         "local op    = redis.call('RPOP', KEYS[2])\n"
@@ -75,7 +75,7 @@ void ConsumerTable::pop(KeyOpFieldsValuesTuple &kco)
 
         "return ret";
 
-    static std::string sha = loadRedisScript(m_db, luaScript);
+    static string sha = loadRedisScript(m_db, luaScript);
     RedisCommand command;
     command.format(
         "EVALSHA %s 4 %s %s %s %s '' '' '' ''",
@@ -89,8 +89,8 @@ void ConsumerTable::pop(KeyOpFieldsValuesTuple &kco)
 
     auto ctx = r.getContext();
 
-    std::string key = ctx->element[0]->str;
-    std::string op  = ctx->element[1]->str;
+    string key = ctx->element[0]->str;
+    string op  = ctx->element[1]->str;
 
     vector<FieldValueTuple> fieldsValues;
 
@@ -99,7 +99,7 @@ void ConsumerTable::pop(KeyOpFieldsValuesTuple &kco)
         if (i+1 >= ctx->elements)
         {
             SWSS_LOG_ERROR("invalid number of elements in returned table: %lu >= %lu", i+1, ctx->elements);
-            throw std::runtime_error("invalid number of elements in returned table");
+            throw runtime_error("invalid number of elements in returned table");
         }
 
         FieldValueTuple e;
@@ -109,7 +109,7 @@ void ConsumerTable::pop(KeyOpFieldsValuesTuple &kco)
         fieldsValues.push_back(e);
     }
 
-    kco = std::make_tuple(key, op, fieldsValues);
+    kco = make_tuple(key, op, fieldsValues);
 }
 
 }

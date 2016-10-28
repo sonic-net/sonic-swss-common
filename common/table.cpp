@@ -13,7 +13,7 @@ Table::Table(DBConnector *db, string tableName) : RedisTransactioner(db), TableB
 {
 }
 
-bool Table::get(std::string key, std::vector<FieldValueTuple> &values)
+bool Table::get(string key, vector<FieldValueTuple> &values)
 {
     string hgetall_key("HGETALL ");
     hgetall_key += getKeyName(key);
@@ -36,8 +36,8 @@ bool Table::get(std::string key, std::vector<FieldValueTuple> &values)
     return true;
 }
 
-void Table::set(std::string key, std::vector<FieldValueTuple> &values,
-                std::string /*op*/)
+void Table::set(string key, vector<FieldValueTuple> &values,
+                string /*op*/)
 {
     if (values.size() == 0)
         return;
@@ -50,29 +50,29 @@ void Table::set(std::string key, std::vector<FieldValueTuple> &values,
     r.checkStatusOK();
 }
 
-void Table::del(std::string key, std::string /* op */)
+void Table::del(string key, string /* op */)
 {
     RedisReply r(m_db, string("DEL ") + getKeyName(key), REDIS_REPLY_INTEGER);
 }
 
-void TableEntryEnumerable::getTableContent(std::vector<KeyOpFieldsValuesTuple> &tuples)
+void TableEntryEnumerable::getTableContent(vector<KeyOpFieldsValuesTuple> &tuples)
 {
-    std::vector<std::string> keys;
+    vector<string> keys;
     getTableKeys(keys);
 
     tuples.clear();
 
     for (auto key: keys)
     {
-        std::vector<FieldValueTuple> values;
-        std::string op = "";
+        vector<FieldValueTuple> values;
+        string op = "";
 
         get(key, values);
         tuples.push_back(make_tuple(key, op, values));
     }
 }
 
-void Table::getTableKeys(std::vector<std::string> &keys)
+void Table::getTableKeys(vector<string> &keys)
 {
     string keys_cmd("KEYS " + getTableName() + ":*");
     RedisReply r(m_db, keys_cmd, REDIS_REPLY_ARRAY);

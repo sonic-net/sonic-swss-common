@@ -36,13 +36,13 @@ ProducerTable::~ProducerTable() {
 
 void ProducerTable::enqueueDbChange(string key, string value, string op)
 {
-    static std::string luaScript =
+    static string luaScript =
         "redis.call('LPUSH', KEYS[1], ARGV[1]);"
         "redis.call('LPUSH', KEYS[2], ARGV[2]);"
         "redis.call('LPUSH', KEYS[3], ARGV[3]);"
         "redis.call('PUBLISH', KEYS[4], ARGV[4]);";
 
-    static std::string sha = loadRedisScript(m_db, luaScript);
+    static string sha = loadRedisScript(m_db, luaScript);
     RedisCommand command;
     command.format(
         "EVALSHA %s 4 %s %s %s %s %s %s %s %s",

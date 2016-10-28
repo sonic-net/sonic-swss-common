@@ -2,6 +2,8 @@
 #include "logger.h"
 #include "rediscommand.h"
 
+using namespace std;
+
 namespace swss
 {
 
@@ -10,7 +12,7 @@ RedisClient::RedisClient(swss::DBConnector *db):
 {
 }
 
-int64_t RedisClient::del(std::string key)
+int64_t RedisClient::del(string key)
 {
     RedisCommand sdel;
     sdel.format("DEL %s", key.c_str());
@@ -18,7 +20,7 @@ int64_t RedisClient::del(std::string key)
     return r.getContext()->integer;
 }
 
-int64_t RedisClient::hdel(std::string key, std::string field)
+int64_t RedisClient::hdel(string key, string field)
 {
     RedisCommand shdel;
     shdel.format("HDEL %s %s", key.c_str(), field.c_str());
@@ -26,21 +28,21 @@ int64_t RedisClient::hdel(std::string key, std::string field)
     return r.getContext()->integer;
 }
 
-void RedisClient::hset(std::string key, std::string field, std::string value)
+void RedisClient::hset(string key, string field, string value)
 {
     RedisCommand shset;
     shset.format("HSET %s %s %s", key.c_str(), field.c_str(), value.c_str());
     RedisReply r(m_db, shset, REDIS_REPLY_INTEGER);
 }
 
-void RedisClient::set(std::string key, std::string value)
+void RedisClient::set(string key, string value)
 {
     RedisCommand sset;
     sset.format("SET %s %s", key.c_str(), value.c_str());
     RedisReply r(m_db, sset, REDIS_REPLY_STATUS);
 }
 
-std::unordered_map<std::string, std::string> RedisClient::hgetall(std::string key)
+unordered_map<string, string> RedisClient::hgetall(string key)
 {
     RedisCommand sincr;
     sincr.format("HGETALL %s", key.c_str());
@@ -48,14 +50,14 @@ std::unordered_map<std::string, std::string> RedisClient::hgetall(std::string ke
 
     auto ctx = r.getContext();
 
-    std::unordered_map<std::string, std::string> map;
+    unordered_map<string, string> map;
     for (unsigned int i = 0; i < ctx->elements; i += 2)
-        map[std::string(ctx->element[i]->str)] = std::string(ctx->element[i+1]->str);
+        map[string(ctx->element[i]->str)] = string(ctx->element[i+1]->str);
 
     return map;
 }
 
-std::vector<std::string> RedisClient::keys(std::string key)
+vector<string> RedisClient::keys(string key)
 {
     RedisCommand skeys;
     skeys.format("KEYS %s", key.c_str());
@@ -63,14 +65,14 @@ std::vector<std::string> RedisClient::keys(std::string key)
 
     auto ctx = r.getContext();
 
-    std::vector<std::string> list;
+    vector<string> list;
     for (unsigned int i = 0; i < ctx->elements; i++)
         list.push_back(ctx->element[i]->str);
 
     return list;
 }
 
-int64_t RedisClient::incr(std::string key)
+int64_t RedisClient::incr(string key)
 {
     RedisCommand sincr;
     sincr.format("INCR %s", key.c_str());
@@ -78,7 +80,7 @@ int64_t RedisClient::incr(std::string key)
     return r.getContext()->integer;
 }
 
-int64_t RedisClient::decr(std::string key)
+int64_t RedisClient::decr(string key)
 {
     RedisCommand sdecr;
     sdecr.format("DECR %s", key.c_str());
@@ -86,7 +88,7 @@ int64_t RedisClient::decr(std::string key)
     return r.getContext()->integer;
 }
 
-std::shared_ptr<std::string> RedisClient::get(std::string key)
+shared_ptr<string> RedisClient::get(string key)
 {
     RedisCommand sget;
     sget.format("GET %s", key.c_str());
@@ -95,19 +97,19 @@ std::shared_ptr<std::string> RedisClient::get(std::string key)
     
     if (reply->type == REDIS_REPLY_NIL)
     {
-        return std::shared_ptr<std::string>(NULL);
+        return shared_ptr<string>(NULL);
     }
 
     if (reply->type == REDIS_REPLY_STRING)
     {
-        std::shared_ptr<std::string> ptr(new std::string(reply->str));
+        shared_ptr<string> ptr(new string(reply->str));
         return ptr;
     }
 
-    throw std::runtime_error("GET failed, memory exception");
+    throw runtime_error("GET failed, memory exception");
 }
 
-std::shared_ptr<std::string> RedisClient::hget(std::string key, std::string field)
+shared_ptr<string> RedisClient::hget(string key, string field)
 {
     RedisCommand shget;
     shget.format("HGET %s %s", key.c_str(), field.c_str());
@@ -116,20 +118,20 @@ std::shared_ptr<std::string> RedisClient::hget(std::string key, std::string fiel
 
     if (reply->type == REDIS_REPLY_NIL)
     {
-        return std::shared_ptr<std::string>(NULL);
+        return shared_ptr<string>(NULL);
     }
 
     if (reply->type == REDIS_REPLY_STRING)
     {
-        std::shared_ptr<std::string> ptr(new std::string(reply->str));
+        shared_ptr<string> ptr(new string(reply->str));
         return ptr;
     }
 
     SWSS_LOG_ERROR("HGET failed, reply-type: %d, %s: %s", reply->type, key.c_str(), field.c_str());
-    throw std::runtime_error("HGET failed, unexpected reply type, memory exception");
+    throw runtime_error("HGET failed, unexpected reply type, memory exception");
 }
 
-int64_t RedisClient::rpush(std::string list, std::string item)
+int64_t RedisClient::rpush(string list, string item)
 {
     RedisCommand srpush;
     srpush.format("RPUSH %s %s", list.c_str(), item.c_str());
@@ -137,7 +139,7 @@ int64_t RedisClient::rpush(std::string list, std::string item)
     return r.getContext()->integer;
 }
 
-std::shared_ptr<std::string> RedisClient::blpop(std::string list, int timeout)
+shared_ptr<string> RedisClient::blpop(string list, int timeout)
 {
     RedisCommand sblpop;
     sblpop.format("BLPOP %s %d", list.c_str(), timeout);
@@ -146,16 +148,16 @@ std::shared_ptr<std::string> RedisClient::blpop(std::string list, int timeout)
 
     if (reply->type == REDIS_REPLY_NIL)
     {
-        return std::shared_ptr<std::string>(NULL);
+        return shared_ptr<string>(NULL);
     }
 
     if (reply->type == REDIS_REPLY_STRING)
     {
-        std::shared_ptr<std::string> ptr(new std::string(reply->str));
+        shared_ptr<string> ptr(new string(reply->str));
         return ptr;
     }
 
-    throw std::runtime_error("GET failed, memory exception");
+    throw runtime_error("GET failed, memory exception");
 }
 
 }

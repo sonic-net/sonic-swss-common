@@ -31,7 +31,7 @@ RedisReply::RedisReply(DBConnector *db, const RedisCommand& command, int expecte
     checkReplyType(expectedType);
 }
 
-RedisReply::RedisReply(DBConnector *db, std::string command, int expectedType)
+RedisReply::RedisReply(DBConnector *db, string command, int expectedType)
     : RedisReply(db, command)
 {
     checkReplyType(expectedType);
@@ -56,7 +56,7 @@ redisReply *RedisReply::getChild(size_t index)
 {
     if (index >= m_reply->elements)
     {
-        throw std::out_of_range("Out of the range of redisReply elements");
+        throw out_of_range("Out of the range of redisReply elements");
     }
     return m_reply->element[index];
 }
@@ -114,11 +114,11 @@ template<> long long int RedisReply::getReply<long long int>()
     return getContext()->integer;
 }
 
-template<> std::string RedisReply::getReply<std::string>()
+template<> string RedisReply::getReply<string>()
 {
     char *s = getContext()->str;
-    if (s == NULL) return std::string();
-    return std::string(s);
+    if (s == NULL) return string();
+    return string(s);
 }
 
 }
