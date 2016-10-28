@@ -130,6 +130,7 @@ static void consumerWorker(int index)
             break;
     }
 
+    EXPECT_TRUE(numberOfKeysSet <= numberOfKeyDeleted);
     EXPECT_EQ(ret, Selectable::DATA);
 }
 
@@ -217,6 +218,8 @@ TEST(ConsumerStateTable, multitable)
             break;
     }
 
+    EXPECT_TRUE(numberOfKeysSet <= numberOfKeyDeleted);
+    
     /* Making sure threads stops execution */
     for (i = 0; i < NUMBER_OF_THREADS; i++)
     {
