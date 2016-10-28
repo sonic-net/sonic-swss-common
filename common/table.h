@@ -50,7 +50,7 @@ class TableEntryPoppable {
 public:
     virtual ~TableEntryPoppable() { }
     
-    /* Pop an written action (set or del) on the table */
+    /* Pop an action (set or del) on the table */
     virtual void pop(KeyOpFieldsValuesTuple &kco) = 0;
 };
 
@@ -74,10 +74,10 @@ public:
     Table(DBConnector *db, std::string tableName);
     virtual ~Table() { }
 
-    /* Set an entry in the DB directly (op not in used) */
+    /* Set an entry in the DB directly (op not in use) */
     virtual void set(std::string key, std::vector<FieldValueTuple> &values,
                      std::string op = "");
-    /* Delete an entry in the DB directly (op not in used) */
+    /* Delete an entry in the DB directly (op not in use) */
     virtual void del(std::string key, std::string op = "");
     
     /* Read a value from the DB directly */
