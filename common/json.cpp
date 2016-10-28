@@ -10,11 +10,13 @@ namespace swss {
 
 string JSon::buildJson(const vector<FieldValueTuple> &fv)
 {
-    nlohmann::json j;
+    nlohmann::json j = nlohmann::json::array();
 
+    // we use array to save order
     for (auto &i : fv)
     {
-        j[fvField(i)] = fvValue(i);
+        j.push_back(fvField(i));
+        j.push_back(fvValue(i));
     }
 
     return j.dump();
@@ -26,12 +28,10 @@ void JSon::readJson(const string &jsonstr, vector<FieldValueTuple> &fv)
 
     FieldValueTuple e;
 
-    std::map<std::string, nlohmann::json> m = j;
-
-    for (auto&& kv : m)
+    for (size_t i = 0; i < j.size(); i+=2)
     {
-        fvField(e) = kv.first;
-        fvValue(e) = kv.second;
+        fvField(e) = j[i];
+        fvValue(e) = j[i+1];
         fv.push_back(e);
     }
 }

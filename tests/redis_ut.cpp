@@ -62,20 +62,7 @@ void validateFields(const string& key, const vector<FieldValueTuple>& f)
     int i = 0;
     EXPECT_EQ(maxNumOfFields, f.size());
 
-    // since we are using cjson in lua script
-    // retrived fields order is different than producer
-    // since value is passed as json, order does not matter
-    // but we need to compensate it here
-
-    auto copy = f;
-
-    std::sort(copy.begin(), copy.end(),
-            [](const FieldValueTuple & a, const FieldValueTuple & b) -> bool
-            {
-            return readNumberAtEOL(fvField(a)) < readNumberAtEOL(fvField(b));
-            });
-
-    for (auto fv : copy)
+    for (auto fv : f)
     {
         EXPECT_EQ(i, readNumberAtEOL(fvField(fv)));
         EXPECT_EQ(i, readNumberAtEOL(fvValue(fv)));
