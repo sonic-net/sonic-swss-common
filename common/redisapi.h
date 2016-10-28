@@ -1,7 +1,7 @@
 #pragma once
 #include <stdexcept>
-#include "common/logger.h"
-#include "common/rediscommand.h"
+#include "logger.h"
+#include "rediscommand.h"
 
 namespace swss {
 

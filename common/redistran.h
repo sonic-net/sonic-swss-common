@@ -1,9 +1,9 @@
 #pragma once
 
 #include <system_error>
-#include "common/redisreply.h"
-#include "common/rediscommand.h"
-#include "common/logger.h"
+#include "redisreply.h"
+#include "rediscommand.h"
+#include "logger.h"
 
 namespace swss {
 

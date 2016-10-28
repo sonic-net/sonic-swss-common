@@ -3,12 +3,12 @@
 #include <stdlib.h>
 #include <tuple>
 #include <sstream>
-#include "common/redisreply.h"
-#include "common/redisselect.h"
-#include "common/json.h"
-#include "common/json.hpp"
-#include "common/table.h"
-#include "common/redisapi.h"
+#include "redisreply.h"
+#include "redisselect.h"
+#include "json.h"
+#include "json.hpp"
+#include "table.h"
+#include "redisapi.h"
 
 using json = nlohmann::json;
 
