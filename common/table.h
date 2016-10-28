@@ -46,9 +46,9 @@ public:
     
 };
 
-class TableEntryPopable {
+class TableEntryPoppable {
 public:
-    virtual ~TableEntryPopable() { }
+    virtual ~TableEntryPoppable() { }
     
     /* Pop an written action (set or del) on the table */
     virtual void pop(KeyOpFieldsValuesTuple &kco) = 0;

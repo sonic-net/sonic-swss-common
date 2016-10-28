@@ -16,7 +16,7 @@ ProducerTable::ProducerTable(DBConnector *db, string tableName)
     : TableName_KeyValueOpQueues(tableName)
     , m_db(db)
 {
-    
+
 }
 
 ProducerTable::ProducerTable(DBConnector *db, string tableName, string dumpFile)

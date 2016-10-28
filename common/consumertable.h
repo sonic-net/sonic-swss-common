@@ -12,7 +12,7 @@
 
 namespace swss {
 
-class ConsumerTable : public RedisTransactioner, public RedisSelect, public TableName_KeyValueOpQueues, public TableEntryPopable
+class ConsumerTable : public RedisTransactioner, public RedisSelect, public TableName_KeyValueOpQueues, public TableEntryPoppable
 {
 public:
     ConsumerTable(DBConnector *db, std::string tableName);

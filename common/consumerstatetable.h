@@ -11,7 +11,7 @@
 
 namespace swss {
 
-class ConsumerStateTable : public RedisTransactioner, public RedisSelect, public TableName_KeySet, public TableEntryPopable
+class ConsumerStateTable : public RedisTransactioner, public RedisSelect, public TableName_KeySet, public TableEntryPoppable
 {
 public:
     ConsumerStateTable(DBConnector *db, std::string tableName)

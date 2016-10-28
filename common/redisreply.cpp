@@ -79,7 +79,7 @@ void RedisReply::checkReply()
         throw system_error(make_error_code(errc::not_enough_memory),
                            "Memory exception, reply is null");
     }
-    
+
     if (m_reply->type == REDIS_REPLY_ERROR)
     {
         system_error ex(make_error_code(errc::io_error),
