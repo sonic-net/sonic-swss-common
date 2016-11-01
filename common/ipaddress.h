@@ -47,7 +47,7 @@ public:
         return m_ip.ip_addr.ipv4_addr;
     }
 
-    inline unsigned char* getV6Addr()
+    inline const unsigned char* getV6Addr() const
     {
         return m_ip.ip_addr.ipv6_addr;
     }
