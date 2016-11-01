@@ -47,6 +47,11 @@ public:
         return m_ip.ip_addr.ipv4_addr;
     }
 
+    inline unsigned char* getV6Addr()
+    {
+        return m_ip.ip_addr.ipv6_addr;
+    }
+
     inline bool operator<(const IpAddress &o) const
     {
         if (m_ip.family != o.m_ip.family)
