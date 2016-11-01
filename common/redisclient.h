@@ -12,8 +12,8 @@
 #include <system_error>
 #include <memory>
 
-#include "swss/dbconnector.h"
-#include "swss/redisreply.h"
+#include "dbconnector.h"
+#include "redisreply.h"
 
 namespace swss
 {

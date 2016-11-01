@@ -8,6 +8,7 @@
 #include "table.h"
 #include "selectable.h"
 #include "redisselect.h"
+#include "redisapi.h"
 
 namespace swss {
 
