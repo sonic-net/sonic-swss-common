@@ -15,6 +15,9 @@ AC_CHECK_LIB([nl-3], [nl_connect])
 AC_CHECK_LIB([nl-genl-3], [genl_connect])
 AC_CHECK_LIB([nl-route-3], [rtnl_route_alloc])
 
+LDFLAGS="-Wl,--no-undefined $LDFLAGS"
+AC_SUBST([LDFLAGS])
+
 AC_ARG_ENABLE(debug,
 [  --enable-debug       Compile with debugging flags],
 [case "${enableval}" in
