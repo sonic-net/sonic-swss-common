@@ -27,7 +27,11 @@ public:
     std::string getTableName() const { return m_tableName; }
     
     /* Return the actual key name as a comibation of tableName:key */
-    std::string getKeyName(std::string key) { assert(!key.empty()); return m_tableName + ':' + key; }
+    std::string getKeyName(std::string key)
+    {
+        if (key == "") return m_tableName;
+        else return m_tableName + ':' + key;
+    }
     
     std::string getChannelName() { return m_tableName + "_CHANNEL"; }
 private:
