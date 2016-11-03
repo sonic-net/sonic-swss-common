@@ -35,6 +35,7 @@ public:
     }
 
     /* Get a singlesubsribe channel rpop */
+    /* If there is nothing to pop, the output paramter will have empty key and op */
     void pop(KeyOpFieldsValuesTuple &kco)
     {
         auto& values = kfvFieldsValues(kco);
