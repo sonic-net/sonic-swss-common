@@ -141,6 +141,82 @@ static inline void clearDB()
     r.checkStatusOK();
 }
 
+TEST(ConsumerStateTable, singlethread)
+{
+    clearDB();
+    
+    int index = 0;
+    string tableName = "UT_REDIS_THREAD_" + to_string(index);
+    DBConnector db(TEST_VIEW, "localhost", 6379, 0);
+    ProducerStateTable p(&db, tableName);
+
+    for (int i = 0; i < NUMBER_OF_OPS; i++)
+    {
+        vector<FieldValueTuple> fields;
+        int maxNumOfFields = getMaxFields(i);
+        for (int j = 0; j < maxNumOfFields; j++)
+        {
+            FieldValueTuple t(field(j), value(j));
+            fields.push_back(t);
+        }
+        if ((i % 100) == 0)
+            cout << "+" << flush;
+
+        p.set(key(i), fields);
+    }
+
+    ConsumerStateTable c(&db, tableName);
+    Select cs;
+    Selectable *selectcs;
+    int tmpfd;
+    int ret, i = 0;
+    KeyOpFieldsValuesTuple kco;
+
+    cs.addSelectable(&c);
+    int numberOfKeysSet = 0;
+    while ((ret = cs.select(&selectcs, &tmpfd)) == Select::OBJECT)
+    {
+        c.pop(kco);
+        EXPECT_TRUE(kfvOp(kco) == "SET");
+        numberOfKeysSet++;
+        validateFields(kfvKey(kco), kfvFieldsValues(kco));
+
+        if ((i++ % 100) == 0)
+            cout << "-" << flush;
+
+        if (numberOfKeysSet == NUMBER_OF_OPS)
+            break;
+    }
+    
+    for (i = 0; i < NUMBER_OF_OPS; i++)
+    {
+        p.del(key(i));
+        if ((i % 100) == 0)
+            cout << "+" << flush;
+    }
+    
+    int numberOfKeyDeleted = 0;
+    while ((ret = cs.select(&selectcs, &tmpfd)) == Select::OBJECT)
+    {
+        c.pop(kco);
+        EXPECT_TRUE(kfvOp(kco) == "DEL");
+        numberOfKeyDeleted++;
+
+        if ((i++ % 100) == 0)
+            cout << "-" << flush;
+
+        if (numberOfKeyDeleted == NUMBER_OF_OPS)
+            break;
+    }
+ 
+    EXPECT_TRUE(numberOfKeysSet <= numberOfKeyDeleted);
+    EXPECT_EQ(ret, Selectable::DATA);  
+    
+    cout << "Done. Waiting for all job to finish " << NUMBER_OF_OPS << " jobs." << endl;
+
+    cout << endl << "Done." << endl;
+}
+
 TEST(ConsumerStateTable, test)
 {
     thread *producerThreads[NUMBER_OF_THREADS];

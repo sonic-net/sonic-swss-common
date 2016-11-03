@@ -51,7 +51,7 @@ public:
 
         RedisCommand command;
         command.format(
-            "EVALSHA %s 2 %s %s '' '' ''",
+            "EVALSHA %s 2 %s %s: '' '' ''",
             sha.c_str(),
             getKeySetName().c_str(),
             getTableName().c_str());
