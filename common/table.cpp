@@ -4,8 +4,10 @@
 #include "common/table.h"
 #include "common/logger.h"
 #include "common/redisreply.h"
+#include "common/json.hpp"
 
 using namespace std;
+using json = nlohmann::json;
 
 namespace swss {
 
@@ -307,6 +309,87 @@ std::string Table::scriptLoad(const std::string& script)
     RedisReply r(m_db, loadcmd, REDIS_REPLY_STRING, true);
 
     return r.getContext()->str;
+}
+
+void Table::dump(TableDump& tableDump)
+{
+    SWSS_LOG_ENTER();
+
+    // note that this function is not efficient
+    // it can take ~100ms for entire asic dump
+    // but it's not intended to be efficient
+    // since it will not be used many times
+
+    static std::string luaScript =
+
+        "local keys = redis.call(\"keys\", KEYS[1] .. \":*\")\n"
+        "local res = {}\n"
+
+        "for i,k in pairs(keys) do\n"
+        "   local skeys = redis.call(\"HKEYS\", k)\n"
+        "   local sres={}\n"
+
+        "   for j,sk in pairs(skeys) do\n"
+        "       sres[sk] = redis.call(\"HGET\", k, sk)\n"
+        "   end\n"
+
+        "   res[k] = sres\n"
+
+        "end\n"
+
+        "return cjson.encode(res)\n";
+
+    static std::string sha = scriptLoad(luaScript);
+
+    SWSS_LOG_TIMER("getting");
+
+    char *temp;
+
+    int len = redisFormatCommand(
+            &temp,
+            "EVALSHA %s 1 %s ''",
+            sha.c_str(),
+            getTableName().c_str());
+
+    if (len < 0)
+    {
+        SWSS_LOG_ERROR("redisFormatCommand failed");
+        throw std::runtime_error("fedisFormatCommand failed");
+    }
+
+    string command = string(temp, len);
+    free(temp);
+
+    RedisReply r(m_db, command, REDIS_REPLY_STRING, true);
+
+    auto ctx = r.getContext();
+
+    std::string data = ctx->str;
+
+    json j = json::parse(data);
+
+    size_t tableNameLen = getTableName().length() + 1; // + ":"
+
+    for (json::iterator it = j.begin(); it != j.end(); ++it)
+    {
+        TableMap map;
+
+        json jj = it.value();
+
+        for (json::iterator itt = jj.begin(); itt != jj.end(); ++itt)
+        {
+            if (itt.key() == "NULL")
+            {
+                continue;
+            }
+
+            map[itt.key()] = itt.value();
+        }
+
+        std::string key = it.key().substr(tableNameLen);
+
+        tableDump[key] = map;
+    }
 }
 
 }

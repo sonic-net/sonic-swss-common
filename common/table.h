@@ -4,6 +4,7 @@
 #include <string>
 #include <queue>
 #include <tuple>
+#include <map>
 #include "hiredis/hiredis.h"
 #include "dbconnector.h"
 #include "redisreply.h"
@@ -18,6 +19,9 @@ typedef std::tuple<std::string, std::string, std::vector<FieldValueTuple> > KeyO
 #define kfvKey    std::get<0>
 #define kfvOp     std::get<1>
 #define kfvFieldsValues std::get<2>
+
+typedef std::map<std::string,std::string> TableMap;
+typedef std::map<std::string,TableMap> TableDump;
 
 class Table {
 public:
@@ -43,6 +47,8 @@ public:
     /* Read the whole table content from the DB directly */
     /* NOTE: Not an atomic function */
     void getTableContent(std::vector<KeyOpFieldsValuesTuple> &tuples);
+
+    void dump(TableDump &tableDump);
 
 protected:
     /* Return the actual key name as a comibation of tableName:key */
