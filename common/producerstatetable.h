@@ -31,7 +31,7 @@ public:
             "redis.call('PUBLISH', KEYS[1], ARGV[1])\n"
             "redis.call('SADD', KEYS[2], ARGV[2])\n"
             "for i = 0, #KEYS - 3 do\n"
-            "    redis.call('HSET', KEYS[3 + i], ARGV[3 + i * 2], ARGV[4 + i * 2])\n"
+            "    redis.call('HSET', KEYS[3 + i], ARGV[3 + i * 2], string.sub(ARGV[4 + i * 2], 2, -1))\n"
             "end\n";
 
         static std::string sha = loadRedisScript(m_db, luaScript);
@@ -50,7 +50,7 @@ public:
         {
             osk << getKeyName(key) << ' ';
             osv << fvField(iv) << ' '
-                << fvValue(iv) << ' ';
+                << encodeLuaArgument(fvValue(iv)) << ' ';
         }
 
         std::string command = osk.str() + osv.str();

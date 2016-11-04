@@ -15,4 +15,12 @@ static inline std::string loadRedisScript(DBConnector* db, const std::string& sc
     return r.getReply<std::string>();
 }
 
+// Hit Redis bug: Lua redis() command arguments must be strings or integers,
+//   however, an empty string is not accepted
+// Bypass by prefix a dummy char and remove it in the lua script
+static inline std::string encodeLuaArgument(const std::string& arg)
+{
+    return '`' + arg;
+}
+
 }

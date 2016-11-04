@@ -38,6 +38,7 @@ static inline string field(int i)
 
 static inline string value(int i)
 {
+    if (i == 0) return string(); // emtpy
     return string("value") + to_string(i);
 }
 
@@ -48,11 +49,12 @@ static inline bool IsDigit(char ch)
 
 static inline int readNumberAtEOL(const string& str)
 {
+    if (str.empty()) return 0;
     auto pos = find_if(str.begin(), str.end(), IsDigit);
     istringstream is(str.substr(pos - str.begin()));
     int ret;
-
     is >> ret;
+    EXPECT_TRUE(is);
     return ret;
 }
 
