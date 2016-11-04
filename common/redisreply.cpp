@@ -3,6 +3,7 @@
 #include <vector>
 #include <iostream>
 #include <system_error>
+#include <functional>
 
 #include "common/logger.h"
 #include "common/redisreply.h"
@@ -12,29 +13,43 @@ using namespace std;
 
 namespace swss {
 
+template <typename FUNC>
+inline void guard(FUNC func, const char* command)
+{
+    try
+    {
+        func();
+    }
+    catch (const system_error& ex)
+    {
+        SWSS_LOG_ERROR("RedisReply catches system_error: command: %s, reason: %s", command, ex.what());
+        throw;
+    }
+}
+
 RedisReply::RedisReply(DBConnector *db, const RedisCommand& command)
 {
     redisAppendFormattedCommand(db->getContext(), command.c_str(), command.length());
     redisGetReply(db->getContext(), (void**)&m_reply);
-    checkReply();
+    guard([&]{checkReply();}, command.c_str());
 }
 
 RedisReply::RedisReply(DBConnector *db, string command)
 {
     m_reply = (redisReply *)redisCommand(db->getContext(), command.c_str());
-    checkReply();
+    guard([&]{checkReply();}, command.c_str());
 }
 
 RedisReply::RedisReply(DBConnector *db, const RedisCommand& command, int expectedType)
     : RedisReply(db, command)
 {
-    checkReplyType(expectedType);
+    guard([&]{checkReplyType(expectedType);}, command.c_str());
 }
 
 RedisReply::RedisReply(DBConnector *db, string command, int expectedType)
     : RedisReply(db, command)
 {
-    checkReplyType(expectedType);
+    guard([&]{checkReplyType(expectedType);}, command.c_str());
 }
 
 RedisReply::RedisReply(redisReply *reply) :
