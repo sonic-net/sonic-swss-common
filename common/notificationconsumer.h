@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <queue>
 
 #include <hiredis/hiredis.h>
 
@@ -34,12 +35,13 @@ private:
     NotificationConsumer(const NotificationConsumer &other);
     NotificationConsumer& operator = (const NotificationConsumer &other);
 
+    void processReply(redisReply *reply);
     void subscribe();
 
     swss::DBConnector *m_db;
     swss::DBConnector *m_subscribe;
     std::string m_channel;
-    std::string m_msg;
+    std::queue<std::string> m_queue;
 };
 
 }
