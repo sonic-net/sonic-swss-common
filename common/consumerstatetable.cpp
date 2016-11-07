@@ -46,7 +46,7 @@ void ConsumerStateTable::pop(KeyOpFieldsValuesTuple &kco)
 
     RedisCommand command;
     command.format(
-        "EVALSHA %s 2 %s %s: '' '' ''",
+        "EVALSHA %s 2 %s %s: '' ''",
         sha.c_str(),
         getKeySetName().c_str(),
         getTableName().c_str());
@@ -87,6 +87,13 @@ void ConsumerStateTable::pop(KeyOpFieldsValuesTuple &kco)
     {
         kfvOp(kco) = SET_COMMAND;
     }
+
+    // There is one limitation of lua script in redis
+    // Write commands not allowed after non deterministic commands
+    // So we cannot conditionally increase counter in the same lua script
+    RedisCommand inc;
+    inc.format("HINCRBY %s pop 1", getCounterName().c_str());
+    RedisReply rinc(m_db, inc, REDIS_REPLY_INTEGER);
 }
 
 }
