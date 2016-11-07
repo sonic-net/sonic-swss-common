@@ -16,6 +16,7 @@ tests_SOURCES = redis_ut.cpp    \
                 redis_state_ut.cpp  \
                 tokenize_ut.cpp \
                 json_ut.cpp     \
+                ntf_ut.cpp      \
                 ipprefix_ut.cpp
 
 tests_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_GTEST)

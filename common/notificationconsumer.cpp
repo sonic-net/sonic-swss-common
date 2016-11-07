@@ -7,8 +7,8 @@
 #define REDIS_PUBLISH_MESSAGE_ELEMNTS (3)
 
 swss::NotificationConsumer::NotificationConsumer(swss::DBConnector *db, std::string channel):
-    m_db(db), 
-    m_subscribe(NULL), 
+    m_db(db),
+    m_subscribe(NULL),
     m_channel(channel)
 {
     SWSS_LOG_ENTER();
@@ -63,9 +63,42 @@ void swss::NotificationConsumer::addFd(fd_set *fd)
     FD_SET(m_subscribe->getContext()->fd, fd);
 }
 
+void swss::NotificationConsumer::processReply(redisReply *reply)
+{
+    SWSS_LOG_ENTER();
+
+    if (reply->type != REDIS_REPLY_ARRAY)
+    {
+        SWSS_LOG_ERROR("expected ARRAY redis reply on channel %s, got: %d", m_channel.c_str(), reply->type);
+
+        throw std::runtime_error("getRedisReply operation failed");
+    }
+
+    if (reply->elements != REDIS_PUBLISH_MESSAGE_ELEMNTS)
+    {
+        SWSS_LOG_ERROR("expected %d elements in redis reply on channel %s, got: %u",
+                       REDIS_PUBLISH_MESSAGE_ELEMNTS,
+                       m_channel.c_str(),
+                       reply->elements);
+
+        throw std::runtime_error("getRedisReply operation failed");
+    }
+
+    std::string msg = std::string(reply->element[REDIS_PUBLISH_MESSAGE_INDEX]->str);
+
+    SWSS_LOG_DEBUG("got message: %s", msg.c_str());
+
+    m_queue.push(msg);
+}
+
 int swss::NotificationConsumer::readCache()
 {
     SWSS_LOG_ENTER();
+
+    if (m_queue.size() > 0)
+    {
+        return Selectable::DATA;
+    }
 
     redisReply *reply = NULL;
 
@@ -77,6 +110,8 @@ int swss::NotificationConsumer::readCache()
     }
     else if (reply != NULL)
     {
+        processReply(reply);
+
         freeReplyObject(reply);
 
         return Selectable::DATA;
@@ -98,26 +133,7 @@ void swss::NotificationConsumer::readMe()
         throw std::runtime_error("Unable to read redis reply");
     }
 
-    if (reply->type != REDIS_REPLY_ARRAY)
-    {
-        SWSS_LOG_ERROR("expected ARRAY redis reply on channel %s, got: %d", m_channel.c_str(), reply->type);
-
-        throw std::runtime_error("getRedisReply operation failed");
-    }
-
-    if (reply->elements != REDIS_PUBLISH_MESSAGE_ELEMNTS)
-    {
-        SWSS_LOG_ERROR("expected %d elements in redis reply on channel %s, got: %u",
-                       REDIS_PUBLISH_MESSAGE_ELEMNTS,
-                       m_channel.c_str(),
-                       reply->elements);
-
-        throw std::runtime_error("getRedisReply operation failed");
-    }
-
-    m_msg = std::string(reply->element[REDIS_PUBLISH_MESSAGE_INDEX]->str);
-
-    SWSS_LOG_DEBUG("got message: %s", m_msg.c_str());
+    processReply(reply);
 
     freeReplyObject(reply);
 }
@@ -129,7 +145,18 @@ bool swss::NotificationConsumer::isMe(fd_set *fd)
 
 void swss::NotificationConsumer::pop(std::string &op, std::string &data, std::vector<FieldValueTuple> &values)
 {
-    JSon::readJson(m_msg, values);
+    SWSS_LOG_ENTER();
+
+    if (m_queue.size() == 0)
+    {
+        SWSS_LOG_ERROR("notification queue is empty, can't pop");
+        throw std::runtime_error("notification queue is empty, can't pop");
+    }
+
+    std::string msg = m_queue.front();
+    m_queue.pop();
+
+    JSon::readJson(msg, values);
 
     FieldValueTuple fvt = values.at(0);
 

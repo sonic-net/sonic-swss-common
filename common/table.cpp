@@ -5,9 +5,12 @@
 #include "common/logger.h"
 #include "common/redisreply.h"
 #include "common/rediscommand.h"
+#include "common/redisapi.h"
+#include "common/json.hpp"
 
 using namespace std;
 using namespace swss;
+using json = nlohmann::json;
 
 Table::Table(DBConnector *db, string tableName) : RedisTransactioner(db), TableBase(tableName)
 {
@@ -84,5 +87,74 @@ void Table::getTableKeys(vector<string> &keys)
         string key = reply->element[i]->str;
         auto pos = key.find(':');
         keys.push_back(key.substr(pos+1));
+    }
+}
+
+void Table::dump(TableDump& tableDump)
+{
+    SWSS_LOG_ENTER();
+
+    // note that this function is not efficient
+    // it can take ~100ms for entire asic dump
+    // but it's not intended to be efficient
+    // since it will not be used many times
+
+    static std::string luaScript =
+
+        "local keys = redis.call(\"keys\", KEYS[1] .. \":*\")\n"
+        "local res = {}\n"
+
+        "for i,k in pairs(keys) do\n"
+        "   local skeys = redis.call(\"HKEYS\", k)\n"
+        "   local sres={}\n"
+
+        "   for j,sk in pairs(skeys) do\n"
+        "       sres[sk] = redis.call(\"HGET\", k, sk)\n"
+        "   end\n"
+
+        "   res[k] = sres\n"
+
+        "end\n"
+
+        "return cjson.encode(res)\n";
+
+    static std::string sha = loadRedisScript(m_db, luaScript);
+    
+    SWSS_LOG_TIMER("getting");
+    
+    RedisCommand command;
+    command.format("EVALSHA %s 1 %s ''",
+            sha.c_str(),
+            getTableName().c_str());
+
+    RedisReply r(m_db, command, REDIS_REPLY_STRING);
+
+    auto ctx = r.getContext();
+
+    std::string data = ctx->str;
+
+    json j = json::parse(data);
+
+    size_t tableNameLen = getTableName().length() + 1; // + ":"
+
+    for (json::iterator it = j.begin(); it != j.end(); ++it)
+    {
+        TableMap map;
+
+        json jj = it.value();
+
+        for (json::iterator itt = jj.begin(); itt != jj.end(); ++itt)
+        {
+            if (itt.key() == "NULL")
+            {
+                continue;
+            }
+
+            map[itt.key()] = itt.value();
+        }
+
+        std::string key = it.key().substr(tableNameLen);
+
+        tableDump[key] = map;
     }
 }

@@ -4,6 +4,8 @@
 #include <assert.h>
 #include <string>
 #include <queue>
+#include <tuple>
+#include <map>
 #include "hiredis/hiredis.h"
 #include "dbconnector.h"
 #include "redisreply.h"
@@ -19,6 +21,9 @@ typedef std::tuple<std::string, std::string, std::vector<FieldValueTuple> > KeyO
 #define kfvKey    std::get<0>
 #define kfvOp     std::get<1>
 #define kfvFieldsValues std::get<2>
+
+typedef std::map<std::string,std::string> TableMap;
+typedef std::map<std::string,TableMap> TableDump;
 
 class TableBase {
 public:
@@ -89,6 +94,8 @@ public:
     virtual bool get(std::string key, std::vector<FieldValueTuple> &values);
     
     void getTableKeys(std::vector<std::string> &keys);
+    
+    void dump(TableDump &tableDump);
 };
 
 class TableName_KeyValueOpQueues : public TableBase {
