@@ -39,6 +39,7 @@ public:
     }
     
     std::string getChannelName() { return m_tableName + "_CHANNEL"; }
+    std::string getCounterName() { return m_tableName + "_COUNTER"; }
 private:
     std::string m_tableName;
 };
