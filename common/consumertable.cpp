@@ -53,7 +53,7 @@ void ConsumerTable::pop(KeyOpFieldsValuesTuple &kco)
         "    table.insert(ret, jj[idx+1])\n"
         "end\n"
 
-        "if op == 'get' or op == 'getresponse' then\n"
+        "if op == 'get' or op == 'getresponse' or op == 'notify' then\n"
         "return ret\n"
         "end\n"
 
