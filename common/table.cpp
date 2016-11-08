@@ -119,9 +119,9 @@ void Table::dump(TableDump& tableDump)
         "return cjson.encode(res)\n";
 
     static std::string sha = loadRedisScript(m_db, luaScript);
-    
+
     SWSS_LOG_TIMER("getting");
-    
+
     RedisCommand command;
     command.format("EVALSHA %s 1 %s ''",
             sha.c_str(),
