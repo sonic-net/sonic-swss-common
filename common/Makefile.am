@@ -15,9 +15,12 @@ libswsscommon_la_SOURCES = \
     table.cpp                 \
     json.cpp                  \
     producertable.cpp         \
+    producerstatetable.cpp    \
+    redisclient.cpp           \
     select.cpp                \
     selectableevent.cpp       \
     consumertable.cpp         \
+    consumerstatetable.cpp    \
     ipaddress.cpp             \
     ipprefix.cpp              \
     ipaddresses.cpp           \

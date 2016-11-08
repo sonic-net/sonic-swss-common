@@ -1,23 +1,25 @@
+#include <stdlib.h>
+#include <tuple>
 #include "common/redisreply.h"
 #include "common/producertable.h"
 #include "common/json.h"
 #include "common/json.hpp"
 #include "common/logger.h"
-#include <stdlib.h>
-#include <tuple>
+#include "common/redisapi.h"
 
 using namespace std;
 using json = nlohmann::json;
 
 namespace swss {
 
-ProducerTable::ProducerTable(DBConnector *db, string tableName) :
-    Table(db, tableName)
+ProducerTable::ProducerTable(DBConnector *db, string tableName)
+    : TableName_KeyValueOpQueues(tableName)
+    , m_db(db)
 {
 }
 
-ProducerTable::ProducerTable(DBConnector *db, string tableName, string dumpFile) :
-    Table(db, tableName)
+ProducerTable::ProducerTable(DBConnector *db, string tableName, string dumpFile)
+    : ProducerTable(db, tableName)
 {
     m_dumpFile.open(dumpFile, fstream::out | fstream::trunc);
     m_dumpFile << "[" << endl;
@@ -33,39 +35,27 @@ ProducerTable::~ProducerTable() {
 
 void ProducerTable::enqueueDbChange(string key, string value, string op)
 {
-    static std::string luaScript =
+    static string luaScript =
         "redis.call('LPUSH', KEYS[1], ARGV[1]);"
         "redis.call('LPUSH', KEYS[2], ARGV[2]);"
         "redis.call('LPUSH', KEYS[3], ARGV[3]);"
         "redis.call('PUBLISH', KEYS[4], ARGV[4]);";
 
-    static std::string sha = scriptLoad(luaScript);
+    static string sha = loadRedisScript(m_db, luaScript);
+    RedisCommand command;
+    command.format(
+        "EVALSHA %s 4 %s %s %s %s %s %s %s %s",
+        sha.c_str(),
+        getKeyQueueTableName().c_str(),
+        getValueQueueTableName().c_str(),
+        getOpQueueTableName().c_str(),
+        getChannelName().c_str(),
+        key.c_str(),
+        value.c_str(),
+        op.c_str(),
+        "G");
 
-    char *temp;
-
-    int len = redisFormatCommand(
-            &temp,
-            "EVALSHA %s 4 %s %s %s %s %s %s %s %s",
-            sha.c_str(),
-            getKeyQueueTableName().c_str(),
-            getValueQueueTableName().c_str(),
-            getOpQueueTableName().c_str(),
-            getChannelTableName().c_str(),
-            key.c_str(),
-            value.c_str(),
-            op.c_str(),
-            "G");
-
-    if (len < 0)
-    {
-        SWSS_LOG_ERROR("redisFormatCommand failed");
-        throw std::runtime_error("fedisFormatCommand failed");
-    }
-
-    string command = string(temp, len);
-    free(temp);
-
-    RedisReply r(m_db, command, REDIS_REPLY_NIL, true);
+    RedisReply r(m_db, command, REDIS_REPLY_NIL);
 }
 
 void ProducerTable::set(string key, vector<FieldValueTuple> &values, string op)

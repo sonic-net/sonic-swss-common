@@ -1,3 +1,8 @@
+#include <iostream>
+#include <memory>
+#include <thread>
+#include <algorithm>
+#include "gtest/gtest.h"
 #include "common/dbconnector.h"
 #include "common/producertable.h"
 #include "common/consumertable.h"
@@ -6,11 +11,6 @@
 #include "common/select.h"
 #include "common/selectableevent.h"
 #include "common/table.h"
-#include <iostream>
-#include <memory>
-#include <thread>
-#include <algorithm>
-#include "gtest/gtest.h"
 
 using namespace std;
 using namespace swss;
@@ -144,9 +144,8 @@ void clearDB()
 
 TEST(DBConnector, test)
 {
-    thread *producerThreads, *consumerThreads;
-    producerThreads = new thread[NUMBER_OF_THREADS];
-    consumerThreads = new thread[NUMBER_OF_THREADS];
+    thread *producerThreads[NUMBER_OF_THREADS];
+    thread *consumerThreads[NUMBER_OF_THREADS];
 
     clearDB();
 
@@ -154,24 +153,27 @@ TEST(DBConnector, test)
     /* Starting the consumer before the producer */
     for (int i = 0; i < NUMBER_OF_THREADS; i++)
     {
-        consumerThreads[i] = thread(consumerWorker, i);
-        producerThreads[i] = thread(producerWorker, i);
+        consumerThreads[i] = new thread(consumerWorker, i);
+        producerThreads[i] = new thread(producerWorker, i);
     }
 
     cout << "Done. Waiting for all job to finish " << NUMBER_OF_OPS << " jobs." << endl;
 
     for (int i = 0; i < NUMBER_OF_THREADS; i++)
     {
-        producerThreads[i].join();
-        consumerThreads[i].join();
+        producerThreads[i]->join();
+        delete producerThreads[i];
+        consumerThreads[i]->join();
+        delete consumerThreads[i];
     }
+    cout << endl << "Done." << endl;
 }
 
 TEST(DBConnector, multitable)
 {
     DBConnector db(TEST_VIEW, "localhost", 6379, 0);
     ConsumerTable *consumers[NUMBER_OF_THREADS];
-    thread producerThreads[NUMBER_OF_THREADS];
+    thread *producerThreads[NUMBER_OF_THREADS];
     KeyOpFieldsValuesTuple kco;
     Select cs;
     int numberOfKeysSet = 0;
@@ -187,7 +189,7 @@ TEST(DBConnector, multitable)
     {
         consumers[i] = new ConsumerTable(&db, string("UT_REDIS_THREAD_") +
                                          to_string(i));
-        producerThreads[i] = thread(producerWorker, i);
+        producerThreads[i] = new thread(producerWorker, i);
     }
 
     for (i = 0; i < NUMBER_OF_THREADS; i++)
@@ -221,8 +223,9 @@ TEST(DBConnector, multitable)
     /* Making sure threads stops execution */
     for (i = 0; i < NUMBER_OF_THREADS; i++)
     {
-        producerThreads[i].join();
+        producerThreads[i]->join();
         delete consumers[i];
+        delete producerThreads[i];
     }
 
     cout << endl << "Done." << endl;

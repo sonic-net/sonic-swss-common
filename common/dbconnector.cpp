@@ -71,4 +71,17 @@ int DBConnector::getDB()
     return m_db;
 }
 
+DBConnector *DBConnector::newConnector(unsigned int timeout)
+{
+    if (getContext()->connection_type == REDIS_CONN_TCP)
+        return new DBConnector(getDB(),
+                               getContext()->tcp.host,
+                               getContext()->tcp.port,
+                               timeout);
+    else
+        return new DBConnector(getDB(),
+                               getContext()->unix_sock.path,
+                               timeout);
+}
+
 }

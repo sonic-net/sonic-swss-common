@@ -1,60 +1,41 @@
-#include "common/redisreply.h"
-#include "common/consumertable.h"
-#include "common/json.h"
-#include "common/logger.h"
 #include <stdio.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <iostream>
 #include <system_error>
-
-/* The database is already alive and kicking, no need for more than a second */
-#define SUBSCRIBE_TIMEOUT (1000)
+#include "common/redisreply.h"
+#include "common/consumertable.h"
+#include "common/json.h"
+#include "common/logger.h"
+#include "common/redisapi.h"
 
 using namespace std;
 
 namespace swss {
 
-ConsumerTable::ConsumerTable(DBConnector *db, string tableName) :
-    Table(db, tableName),
-    m_subscribe(NULL),
-    m_queueLength(0)
+ConsumerTable::ConsumerTable(DBConnector *db, string tableName)
+    : RedisTransactioner(db)
+    , TableName_KeyValueOpQueues(tableName)
 {
-    bool again = true;
-
-    while (again)
+    for (;;)
     {
-        try
-        {
-            RedisReply watch(m_db, string("WATCH ") + getKeyQueueTableName(), REDIS_REPLY_STATUS);
-            watch.checkStatusOK();
-            multi();
-            enqueue(string("LLEN ") + getKeyQueueTableName(), REDIS_REPLY_INTEGER);
-            subsribe();
-            enqueue(string("LLEN ") + getKeyQueueTableName(), REDIS_REPLY_INTEGER);
-            exec();
-            again = false;
-        }
-        catch (...)
-        {
-            delete m_subscribe;
-            m_subscribe = NULL;
-        }
+        RedisReply watch(m_db, string("WATCH ") + getKeyQueueTableName(), REDIS_REPLY_STATUS);
+        watch.checkStatusOK();
+        multi();
+        enqueue(string("LLEN ") + getKeyQueueTableName(), REDIS_REPLY_INTEGER);
+        subscribe(m_db, getChannelName());
+        enqueue(string("LLEN ") + getKeyQueueTableName(), REDIS_REPLY_INTEGER);
+        bool succ = exec();
+        if (succ) break;
     }
 
-    m_queueLength = (unsigned int)queueResultsFront()->integer;
-    /* No need for that since we have WATCH gurantee on the transaction */
-}
-
-ConsumerTable::~ConsumerTable()
-{
-    delete m_subscribe;
+    setQueueLength(queueResultsFront()->integer);
 }
 
 void ConsumerTable::pop(KeyOpFieldsValuesTuple &kco)
 {
-    static std::string luaScript =
+    static string luaScript =
 
         "local key   = redis.call('RPOP', KEYS[1])\n"
         "local op    = redis.call('RPOP', KEYS[2])\n"
@@ -94,34 +75,22 @@ void ConsumerTable::pop(KeyOpFieldsValuesTuple &kco)
 
         "return ret";
 
-    static std::string sha = scriptLoad(luaScript);
+    static string sha = loadRedisScript(m_db, luaScript);
+    RedisCommand command;
+    command.format(
+        "EVALSHA %s 4 %s %s %s %s '' '' '' ''",
+        sha.c_str(),
+        getKeyQueueTableName().c_str(),
+        getOpQueueTableName().c_str(),
+        getValueQueueTableName().c_str(),
+        getTableName().c_str());
 
-    char *temp;
-
-    int len = redisFormatCommand(
-            &temp,
-            "EVALSHA %s 4 %s %s %s %s '' '' '' ''",
-            sha.c_str(),
-            getKeyQueueTableName().c_str(),
-            getOpQueueTableName().c_str(),
-            getValueQueueTableName().c_str(),
-            getTableName().c_str());
-
-    if (len < 0)
-    {
-        SWSS_LOG_ERROR("redisFormatCommand failed");
-        throw std::runtime_error("fedisFormatCommand failed");
-    }
-
-    string command = string(temp, len);
-    free(temp);
-
-    RedisReply r(m_db, command, REDIS_REPLY_ARRAY, true);
+    RedisReply r(m_db, command, REDIS_REPLY_ARRAY);
 
     auto ctx = r.getContext();
 
-    std::string key = ctx->element[0]->str;
-    std::string op  = ctx->element[1]->str;
+    string key = ctx->element[0]->str;
+    string op  = ctx->element[1]->str;
 
     vector<FieldValueTuple> fieldsValues;
 
@@ -130,7 +99,7 @@ void ConsumerTable::pop(KeyOpFieldsValuesTuple &kco)
         if (i+1 >= ctx->elements)
         {
             SWSS_LOG_ERROR("invalid number of elements in returned table: %lu >= %lu", i+1, ctx->elements);
-            throw std::runtime_error("invalid number of elements in returned table");
+            throw runtime_error("invalid number of elements in returned table");
         }
 
         FieldValueTuple e;
@@ -140,68 +109,7 @@ void ConsumerTable::pop(KeyOpFieldsValuesTuple &kco)
         fieldsValues.push_back(e);
     }
 
-    kco = std::make_tuple(key, op, fieldsValues);
-}
-
-void ConsumerTable::addFd(fd_set *fd)
-{
-    FD_SET(m_subscribe->getContext()->fd, fd);
-}
-
-int ConsumerTable::readCache()
-{
-    redisReply *reply = NULL;
-
-    /* Read the messages in queue before subsribe command execute */
-    if (m_queueLength) {
-        m_queueLength--;
-        return ConsumerTable::DATA;
-    }
-
-    if (redisGetReplyFromReader(m_subscribe->getContext(),
-                                (void**)&reply) != REDIS_OK)
-    {
-        return Selectable::ERROR;
-    } else if (reply != NULL)
-    {
-        freeReplyObject(reply);
-        return Selectable::DATA;
-    }
-
-    return Selectable::NODATA;
-}
-
-void ConsumerTable::readMe()
-{
-    redisReply *reply = NULL;
-
-    if (redisGetReply(m_subscribe->getContext(), (void**)&reply) != REDIS_OK)
-        throw "Unable to read redis reply";
-
-    freeReplyObject(reply);
-}
-
-bool ConsumerTable::isMe(fd_set *fd)
-{
-    return FD_ISSET(m_subscribe->getContext()->fd, fd);
-}
-
-void ConsumerTable::subsribe()
-{
-    /* Create new new context to DB */
-    if (m_db->getContext()->connection_type == REDIS_CONN_TCP)
-        m_subscribe = new DBConnector(m_db->getDB(),
-                                      m_db->getContext()->tcp.host,
-                                      m_db->getContext()->tcp.port,
-                                      SUBSCRIBE_TIMEOUT);
-    else
-        m_subscribe = new DBConnector(m_db->getDB(),
-                                      m_db->getContext()->unix_sock.path,
-                                      SUBSCRIBE_TIMEOUT);
-    /* Send SUBSCRIBE #channel command */
-    string s("SUBSCRIBE ");
-    s+= getChannelTableName();
-    RedisReply r(m_subscribe, s, REDIS_REPLY_ARRAY);
+    kco = make_tuple(key, op, fieldsValues);
 }
 
 }

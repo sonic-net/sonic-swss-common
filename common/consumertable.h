@@ -8,29 +8,17 @@
 #include "dbconnector.h"
 #include "table.h"
 #include "selectable.h"
+#include "redisselect.h"
 
 namespace swss {
 
-class ConsumerTable : public Table, public Selectable
+class ConsumerTable : public RedisTransactioner, public RedisSelect, public TableName_KeyValueOpQueues, public TableEntryPoppable
 {
 public:
     ConsumerTable(DBConnector *db, std::string tableName);
-    virtual ~ConsumerTable();
 
     /* Get a singlesubsribe channel rpop */
     void pop(KeyOpFieldsValuesTuple &kco);
-
-    virtual void addFd(fd_set *fd);
-    virtual bool isMe(fd_set *fd);
-    virtual int readCache();
-    virtual void readMe();
-
-private:
-    /* Create a new redisContext, SELECT DB and SUBSRIBE */
-    void subsribe();
-
-    DBConnector *m_subscribe;
-    unsigned int m_queueLength;
 };
 
 }

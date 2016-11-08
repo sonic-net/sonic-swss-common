@@ -29,6 +29,9 @@ public:
 
     static void select(DBConnector *db);
 
+    /* Create new context to DB */
+    DBConnector *newConnector(unsigned int timeout);
+
 private:
     redisContext *m_conn;
     int m_db;
