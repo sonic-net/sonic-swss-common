@@ -15,7 +15,7 @@ static inline std::string loadRedisScript(DBConnector* db, const std::string& sc
 
     std::string sha = r.getReply<std::string>();
 
-    SWSS_LOG_NOTICE("lua script loaded, sha: %s", sha.c_str(), script.c_str());
+    SWSS_LOG_NOTICE("lua script loaded, sha: %s", sha.c_str());
     SWSS_LOG_INFO("lua script: %s", script.c_str());
 
     return sha;
