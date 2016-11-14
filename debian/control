@@ -7,7 +7,7 @@ Standards-Version: 1.0.0
 
 Package: libswsscommon
 Architecture: any
-Depends: ${shlibs:Depends}
+Depends: ${shlibs:Depends}, ${misc:Pre-Depends}
 Section: libs
 Description: Tihs package contains Switch State Service common library.
 
