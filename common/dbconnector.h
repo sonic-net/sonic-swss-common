@@ -6,12 +6,13 @@
 
 #include <hiredis/hiredis.h>
 
-
 namespace swss {
 
 class DBConnector
 {
 public:
+    static constexpr const char *DEFAULT_UNIXSOCKET = "/var/run/redis/redis.sock";
+
     /*
      * Connect to Redis DB wither with a hostname:port or unix socket
      * Select the database index provided by "db"
