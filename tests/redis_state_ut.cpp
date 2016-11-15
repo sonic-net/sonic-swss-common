@@ -176,6 +176,7 @@ TEST(ConsumerStateTable, double_set)
         }
         p.set(key, fields);
     }
+    p.flush();
 
     /* Prepare consumer */
     ConsumerStateTable c(&db, tableName);
@@ -244,6 +245,7 @@ TEST(ConsumerStateTable, set_del)
 
     /* Del operation */
     p.del(key);
+    p.flush();
 
     /* Prepare consumer */
     ConsumerStateTable c(&db, tableName);
@@ -308,6 +310,7 @@ TEST(ConsumerStateTable, set_del_set)
         }
         p.set(key, fields);
     }
+    p.flush();
 
     /* Prepare consumer */
     ConsumerStateTable c(&db, tableName);
@@ -370,6 +373,7 @@ TEST(ConsumerStateTable, singlethread)
 
         p.set(key(i), fields);
     }
+    p.flush();
 
     ConsumerStateTable c(&db, tableName);
     Select cs;
@@ -400,6 +404,7 @@ TEST(ConsumerStateTable, singlethread)
         if ((i % 100) == 0)
             cout << "+" << flush;
     }
+    p.flush();
 
     int numberOfKeyDeleted = 0;
     while ((ret = cs.select(&selectcs, &tmpfd)) == Select::OBJECT)

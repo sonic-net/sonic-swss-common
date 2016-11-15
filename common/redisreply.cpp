@@ -36,7 +36,8 @@ RedisReply::RedisReply(DBConnector *db, const RedisCommand& command)
 
 RedisReply::RedisReply(DBConnector *db, string command)
 {
-    m_reply = (redisReply *)redisCommand(db->getContext(), command.c_str());
+    redisAppendCommand(db->getContext(), command.c_str());
+    redisGetReply(db->getContext(), (void**)&m_reply);
     guard([&]{checkReply();}, command.c_str());
 }
 
