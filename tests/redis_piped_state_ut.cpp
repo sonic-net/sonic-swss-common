@@ -90,12 +90,12 @@ static void producerWorker(int index)
         if ((i % 100) == 0)
             cout << "+" << flush;
 
-        p.set(key(i), fields);
+        p.setAsync(key(i), fields);
     }
 
     for (int i = 0; i < NUMBER_OF_OPS; i++)
     {
-        p.del(key(i));
+        p.delAsync(key(i));
     }
 }
 
@@ -143,7 +143,7 @@ static inline void clearDB()
     r.checkStatusOK();
 }
 
-TEST(ConsumerStateTable, double_set)
+TEST(ConsumerStateTable, async_double_set)
 {
     clearDB();
 
@@ -163,7 +163,7 @@ TEST(ConsumerStateTable, double_set)
             FieldValueTuple t(field(j), value(j));
             fields.push_back(t);
         }
-        p.set(key, fields);
+        p.setAsync(key, fields);
     }
 
     /* Second set operation */
@@ -174,8 +174,9 @@ TEST(ConsumerStateTable, double_set)
             FieldValueTuple t(field(j), value(j));
             fields.push_back(t);
         }
-        p.set(key, fields);
+        p.setAsync(key, fields);
     }
+    p.flush();
 
     /* Prepare consumer */
     ConsumerStateTable c(&db, tableName);
@@ -219,7 +220,7 @@ TEST(ConsumerStateTable, double_set)
     }
 }
 
-TEST(ConsumerStateTable, set_del)
+TEST(ConsumerStateTable, async_set_del)
 {
     clearDB();
 
@@ -239,11 +240,12 @@ TEST(ConsumerStateTable, set_del)
             FieldValueTuple t(field(j), value(j));
             fields.push_back(t);
         }
-        p.set(key, fields);
+        p.setAsync(key, fields);
     }
 
     /* Del operation */
-    p.del(key);
+    p.delAsync(key);
+    p.flush();
 
     /* Prepare consumer */
     ConsumerStateTable c(&db, tableName);
@@ -272,7 +274,7 @@ TEST(ConsumerStateTable, set_del)
     }
 }
 
-TEST(ConsumerStateTable, set_del_set)
+TEST(ConsumerStateTable, async_set_del_set)
 {
     clearDB();
 
@@ -292,11 +294,11 @@ TEST(ConsumerStateTable, set_del_set)
             FieldValueTuple t(field(j), value(j));
             fields.push_back(t);
         }
-        p.set(key, fields);
+        p.setAsync(key, fields);
     }
 
     /* Del operation */
-    p.del(key);
+    p.delAsync(key);
 
     /* Second set operation */
     {
@@ -306,8 +308,9 @@ TEST(ConsumerStateTable, set_del_set)
             FieldValueTuple t(field(j), value(j));
             fields.push_back(t);
         }
-        p.set(key, fields);
+        p.setAsync(key, fields);
     }
+    p.flush();
 
     /* Prepare consumer */
     ConsumerStateTable c(&db, tableName);
@@ -347,7 +350,7 @@ TEST(ConsumerStateTable, set_del_set)
     }
 }
 
-TEST(ConsumerStateTable, singlethread)
+TEST(ConsumerStateTable, async_singlethread)
 {
     clearDB();
 
@@ -368,8 +371,9 @@ TEST(ConsumerStateTable, singlethread)
         if ((i % 100) == 0)
             cout << "+" << flush;
 
-        p.set(key(i), fields);
+        p.setAsync(key(i), fields);
     }
+    p.flush();
 
     ConsumerStateTable c(&db, tableName);
     Select cs;
@@ -396,10 +400,11 @@ TEST(ConsumerStateTable, singlethread)
 
     for (i = 0; i < NUMBER_OF_OPS; i++)
     {
-        p.del(key(i));
+        p.delAsync(key(i));
         if ((i % 100) == 0)
             cout << "+" << flush;
     }
+    p.flush();
 
     int numberOfKeyDeleted = 0;
     while ((ret = cs.select(&selectcs, &tmpfd)) == Select::OBJECT)
@@ -423,7 +428,7 @@ TEST(ConsumerStateTable, singlethread)
     cout << endl << "Done." << endl;
 }
 
-TEST(ConsumerStateTable, test)
+TEST(ConsumerStateTable, async_test)
 {
     thread *producerThreads[NUMBER_OF_THREADS];
     thread *consumerThreads[NUMBER_OF_THREADS];
@@ -450,7 +455,7 @@ TEST(ConsumerStateTable, test)
     cout << endl << "Done." << endl;
 }
 
-TEST(ConsumerStateTable, multitable)
+TEST(ConsumerStateTable, async_multitable)
 {
     DBConnector db(TEST_VIEW, "localhost", 6379, 0);
     ConsumerStateTable *consumers[NUMBER_OF_THREADS];

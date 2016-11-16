@@ -37,7 +37,7 @@ ProducerStateTable::~ProducerStateTable()
     delete m_pipe;
 }
 
-void ProducerStateTable::set(std::string key, std::vector<FieldValueTuple> &values,
+task ProducerStateTable::setAsync(std::string key, std::vector<FieldValueTuple> &values,
                  std::string op /*= SET_COMMAND*/)
 {
     std::ostringstream osk, osv;
@@ -59,9 +59,16 @@ void ProducerStateTable::set(std::string key, std::vector<FieldValueTuple> &valu
 
     std::string command = osk.str() + osv.str();
     m_pipe->push(command);
+    return [&]{ return m_pipe->pop().checkReplyType(REDIS_REPLY_NIL); };
 }
 
-void ProducerStateTable::del(std::string key, std::string op /*= DEL_COMMAND*/)
+void ProducerStateTable::set(std::string key, std::vector<FieldValueTuple> &values,
+                 std::string op /*= SET_COMMAND*/)
+{
+    setAsync(key, values, op)();
+}
+
+task ProducerStateTable::delAsync(std::string key, std::string op /*= DEL_COMMAND*/)
 {
     std::ostringstream osk, osv;
     osk << "EVALSHA "
@@ -77,6 +84,12 @@ void ProducerStateTable::del(std::string key, std::string op /*= DEL_COMMAND*/)
 
     std::string command = osk.str() + osv.str();
     m_pipe->push(command);
+    return [&]{ return m_pipe->pop().checkReplyType(REDIS_REPLY_NIL); };
+}
+
+void ProducerStateTable::del(std::string key, std::string op /*= DEL_COMMAND*/)
+{
+    delAsync(key)();
 }
 
 void ProducerStateTable::flush()
