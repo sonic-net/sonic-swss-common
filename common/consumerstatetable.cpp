@@ -30,7 +30,7 @@ ConsumerStateTable::ConsumerStateTable(DBConnector *db, std::string tableName)
     setQueueLength(len);
 }
 
-void ConsumerStateTable::pop(KeyOpFieldsValuesTuple &kco)
+void ConsumerStateTable::pop(KeyOpFieldsValuesTuple &kco, std::string prefix)
 {
     auto& values = kfvFieldsValues(kco);
     values.clear();

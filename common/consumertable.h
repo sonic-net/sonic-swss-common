@@ -18,7 +18,7 @@ public:
     ConsumerTable(DBConnector *db, std::string tableName);
 
     /* Get a singlesubsribe channel rpop */
-    void pop(KeyOpFieldsValuesTuple &kco);
+    void pop(KeyOpFieldsValuesTuple &kco, std::string prefix = EMPTY_PREFIX);
 };
 
 }

@@ -15,7 +15,7 @@ ProducerStateTable::ProducerStateTable(DBConnector *db, std::string tableName)
 }
 
 void ProducerStateTable::set(std::string key, std::vector<FieldValueTuple> &values,
-                 std::string op /*= SET_COMMAND*/)
+                 std::string op /*= SET_COMMAND*/, std::string prefix)
 {
     static std::string luaScript =
         "redis.call('SADD', KEYS[2], ARGV[2])\n"
@@ -48,7 +48,7 @@ void ProducerStateTable::set(std::string key, std::vector<FieldValueTuple> &valu
     RedisReply r(m_db, command, REDIS_REPLY_NIL);
 }
 
-void ProducerStateTable::del(std::string key, std::string op /*= DEL_COMMAND*/)
+void ProducerStateTable::del(std::string key, std::string op /*= DEL_COMMAND*/, std::string prefix)
 {
     static std::string luaScript =
         "redis.call('SADD', KEYS[2], ARGV[2])\n"
