@@ -33,7 +33,7 @@ ProducerTable::~ProducerTable() {
     }
 }
 
-void ProducerTable::enqueueDbChange(string key, string value, string op)
+void ProducerTable::enqueueDbChange(string key, string value, string op, string prefix)
 {
     static string luaScript =
         "redis.call('LPUSH', KEYS[1], ARGV[1]);"
@@ -42,13 +42,14 @@ void ProducerTable::enqueueDbChange(string key, string value, string op)
         "redis.call('PUBLISH', KEYS[4], ARGV[4]);";
 
     static string sha = loadRedisScript(m_db, luaScript);
+
     RedisCommand command;
     command.format(
         "EVALSHA %s 4 %s %s %s %s %s %s %s %s",
         sha.c_str(),
-        getKeyQueueTableName().c_str(),
-        getValueQueueTableName().c_str(),
-        getOpQueueTableName().c_str(),
+        (prefix+getKeyQueueTableName()).c_str(),
+        (prefix+getValueQueueTableName()).c_str(),
+        (prefix+getOpQueueTableName()).c_str(),
         getChannelName().c_str(),
         key.c_str(),
         value.c_str(),
@@ -58,7 +59,7 @@ void ProducerTable::enqueueDbChange(string key, string value, string op)
     RedisReply r(m_db, command, REDIS_REPLY_NIL);
 }
 
-void ProducerTable::set(string key, vector<FieldValueTuple> &values, string op)
+void ProducerTable::set(string key, vector<FieldValueTuple> &values, string op, string prefix)
 {
     if (m_dumpFile.is_open())
     {
@@ -76,10 +77,10 @@ void ProducerTable::set(string key, vector<FieldValueTuple> &values, string op)
         m_dumpFile << j.dump(4);
     }
 
-    enqueueDbChange(key, JSon::buildJson(values), "S" + op);
+    enqueueDbChange(key, JSon::buildJson(values), "S" + op, prefix);
 }
 
-void ProducerTable::del(string key, string op)
+void ProducerTable::del(string key, string op, string prefix)
 {
     if (m_dumpFile.is_open())
     {
@@ -95,7 +96,7 @@ void ProducerTable::del(string key, string op)
         m_dumpFile << j.dump(4);
     }
 
-    enqueueDbChange(key, "{}", "D" + op);
+    enqueueDbChange(key, "{}", "D" + op, prefix);
 }
 
 }

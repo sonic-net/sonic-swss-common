@@ -30,14 +30,14 @@ public:
     TableBase(std::string tableName) : m_tableName(tableName) { }
 
     std::string getTableName() const { return m_tableName; }
-    
+
     /* Return the actual key name as a comibation of tableName:key */
     std::string getKeyName(std::string key)
     {
         if (key == "") return m_tableName;
         else return m_tableName + ':' + key;
     }
-    
+
     std::string getChannelName() { return m_tableName + "_CHANNEL"; }
 private:
     std::string m_tableName;
@@ -46,33 +46,37 @@ private:
 class TableEntryWritable {
 public:
     virtual ~TableEntryWritable() { }
-    
+
     /* Set an entry in the table */
-    virtual void set(std::string key, std::vector<FieldValueTuple> &values,
-                     std::string op = "") = 0;
+    virtual void set(std::string key,
+                     std::vector<FieldValueTuple> &values,
+                     std::string op = "",
+                     std::string prefix = EMPTY_PREFIX) = 0;
     /* Delete an entry in the table */
-    virtual void del(std::string key, std::string op = "") = 0;
-    
+    virtual void del(std::string key,
+                     std::string op = "",
+                     std::string prefix = EMPTY_PREFIX) = 0;
+
 };
 
 class TableEntryPoppable {
 public:
     virtual ~TableEntryPoppable() { }
-    
+
     /* Pop an action (set or del) on the table */
-    virtual void pop(KeyOpFieldsValuesTuple &kco) = 0;
+    virtual void pop(KeyOpFieldsValuesTuple &kco, std::string prefix = EMPTY_PREFIX) = 0;
 };
 
 class TableEntryEnumerable {
 public:
     virtual ~TableEntryEnumerable() { }
-    
+
     /* Get all the field-value tuple of the table entry with the key */
     virtual bool get(std::string key, std::vector<FieldValueTuple> &values) = 0;
-    
+
     /* get all the keys in the table */
     virtual void getTableKeys(std::vector<std::string> &keys) = 0;
-    
+
     /* Read the whole table content from the DB directly */
     /* NOTE: Not an atomic function */
     void getTableContent(std::vector<KeyOpFieldsValuesTuple> &tuples);
@@ -84,17 +88,21 @@ public:
     virtual ~Table() { }
 
     /* Set an entry in the DB directly (op not in use) */
-    virtual void set(std::string key, std::vector<FieldValueTuple> &values,
-                     std::string op = "");
-    /* Delete an entry in the DB directly (op not in use) */
-    virtual void del(std::string key, std::string op = "");
-    
+    virtual void set(std::string key,
+                     std::vector<FieldValueTuple> &values,
+                     std::string op = "",
+                     std::string prefix = EMPTY_PREFIX);
+    /* Delete an entry in the table */
+    virtual void del(std::string key,
+                     std::string op = "",
+                     std::string prefix = EMPTY_PREFIX);
+
     /* Read a value from the DB directly */
     /* Returns false if the key doesn't exists */
     virtual bool get(std::string key, std::vector<FieldValueTuple> &values);
-    
+
     void getTableKeys(std::vector<std::string> &keys);
-    
+
     void dump(TableDump &tableDump);
 };
 

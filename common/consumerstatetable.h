@@ -14,7 +14,7 @@ public:
 
     /* Get a singlesubsribe channel rpop */
     /* If there is nothing to pop, the output paramter will have empty key and op */
-    void pop(KeyOpFieldsValuesTuple &kco);
+    void pop(KeyOpFieldsValuesTuple &kco, std::string prefix = EMPTY_PREFIX);
 };
 
 }
