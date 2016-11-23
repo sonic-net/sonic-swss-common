@@ -66,6 +66,43 @@ public:
         return (m_mask == 0);
     }
 
+    inline bool isAddressInSubnet(const IpAddress& addr) const
+    {
+        if (m_ip.getIp().family != addr.getIp().family)
+        {
+            return false;
+        }
+
+        switch (m_ip.getIp().family)
+        {
+            case AF_INET:
+            {
+                uint32_t mask = getMask().getV4Addr();
+                return (m_ip.getV4Addr() & mask) == (addr.getV4Addr() & mask);
+            }
+            case AF_INET6:
+            {
+                const uint8_t *prefix = m_ip.getV6Addr();
+                const uint8_t *mask = getMask().getV6Addr();
+                const uint8_t *ip = addr.getV6Addr();
+
+                for (int i = 0; i < 16; ++i)
+                {
+                    if ((prefix[i] & mask[i]) != (ip[i] & mask[i]))
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+            default:
+            {
+                throw std::logic_error("Invalid family");
+            }
+        }
+    }
+
     inline bool operator<(const IpPrefix &o) const
     {
         if (m_mask != o.m_mask)
