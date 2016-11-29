@@ -39,6 +39,7 @@ namespace swss {
 
 #define SET_COMMAND "SET"
 #define DEL_COMMAND "DEL"
+#define EMPTY_PREFIX ""
 
 }
 

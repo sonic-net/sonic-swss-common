@@ -21,9 +21,15 @@ public:
     ~ProducerTable();
 
     /* Implements set() and del() commands using notification messages */
-    virtual void set(std::string key, std::vector<FieldValueTuple> &values,
-                     std::string op = SET_COMMAND);
-    virtual void del(std::string key, std::string op = DEL_COMMAND);
+
+    virtual void set(std::string key,
+                     std::vector<FieldValueTuple> &values,
+                     std::string op = SET_COMMAND,
+                     std::string prefix = EMPTY_PREFIX);
+
+    virtual void del(std::string key,
+                     std::string op = DEL_COMMAND,
+                     std::string prefix = EMPTY_PREFIX);
 
 private:
     /* Disable copy-constructor and operator = */
@@ -34,7 +40,7 @@ private:
     bool m_firstItem = true;
     DBConnector* m_db;
 
-    void enqueueDbChange(std::string key, std::string value, std::string op);
+    void enqueueDbChange(std::string key, std::string value, std::string op, std::string prefix);
 };
 
 }

@@ -26,10 +26,14 @@ public:
     ~ProducerStateTable();
 
     /* Implements set() and del() commands using notification messages */
-    virtual void set(std::string key, std::vector<FieldValueTuple> &values,
-                     std::string op = SET_COMMAND);
+    virtual void set(std::string key,
+                     std::vector<FieldValueTuple> &values,
+                     std::string op = SET_COMMAND,
+                     std::string prefix = EMPTY_PREFIX);
 
-    virtual void del(std::string key, std::string op = DEL_COMMAND);
+    virtual void del(std::string key,
+                     std::string op = DEL_COMMAND,
+                     std::string prefix = EMPTY_PREFIX);
 
     virtual task setAsync(std::string key, std::vector<FieldValueTuple> &values,
                      std::string op = SET_COMMAND);

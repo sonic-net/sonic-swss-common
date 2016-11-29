@@ -398,3 +398,32 @@ TEST(Table, test)
 
     cout << "Done." << endl;
 }
+
+TEST(ProducerConsumer, Prefix)
+{
+    std::string tableName = "tableName";
+
+    DBConnector db(TEST_VIEW, "localhost", 6379, 0);
+    ProducerTable p(&db, tableName);
+
+    std::vector<FieldValueTuple> values;
+
+    FieldValueTuple t("f", "v");
+    values.push_back(t);
+
+    p.set("key", values, "op", "prefix_");
+
+    ConsumerTable c(&db, tableName);
+
+    KeyOpFieldsValuesTuple kco;
+    c.pop(kco, "prefix_");
+
+    std::string key = kfvKey(kco);
+    std::string op = kfvOp(kco);
+    auto vs = kfvFieldsValues(kco);
+
+    EXPECT_EQ(key, "key");
+    EXPECT_EQ(op, "op");
+    EXPECT_EQ(fvField(vs[0]), "f");
+    EXPECT_EQ(fvValue(vs[0]), "v");
+}

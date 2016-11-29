@@ -40,7 +40,7 @@ bool Table::get(string key, vector<FieldValueTuple> &values)
 }
 
 void Table::set(string key, vector<FieldValueTuple> &values,
-                string /*op*/)
+                string /*op*/, string /*prefix*/)
 {
     if (values.size() == 0)
         return;
@@ -53,7 +53,7 @@ void Table::set(string key, vector<FieldValueTuple> &values,
     r.checkStatusOK();
 }
 
-void Table::del(string key, string /* op */)
+void Table::del(string key, string /* op */, string /*prefix*/)
 {
     RedisReply r(m_db, string("DEL ") + getKeyName(key), REDIS_REPLY_INTEGER);
 }
