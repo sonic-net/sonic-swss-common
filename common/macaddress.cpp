@@ -34,12 +34,6 @@ std::string MacAddress::to_string(const uint8_t* mac)
     return std::string((char*)tmp_mac);
 }
 
-inline uint64_t MacAddress::to_uint64() const
-{
-    return uint64_t(m_mac[0]) << 40 | uint64_t(m_mac[1]) << 32 | uint64_t(m_mac[2]) << 24 |
-            uint64_t(m_mac[3]) << 16 | uint64_t(m_mac[4]) << 8 | uint64_t(m_mac[5]);
-}
-
 bool MacAddress::parseMacString(const string& macStr, uint8_t* mac)
 {
     int i, value;

@@ -63,3 +63,34 @@ TEST(IpPrefix, compare)
     EXPECT_TRUE(!(ip2 < ip1));
     EXPECT_TRUE(!(ip1 == ip2));
 }
+
+TEST(IpPrefix, subnet)
+{
+    IpPrefix prefix1("0.0.0.0/0");
+    IpPrefix prefix2("2.2.2.0/24");
+    IpPrefix prefix3("::/0");
+    IpPrefix prefix4("2001:4898:f0:f153:357c:77b2:49c9:627c/64");
+
+    IpAddress ip1("1.1.1.1");
+    IpAddress ip2("2.2.2.2");
+    IpAddress ip3("4002:4898:f0:f153:357c:77b2:0:627c");
+    IpAddress ip4("2001:4898:f0:f153:357c:77b2:0:627c");
+
+    // IPv4 address in IPv4 subnet
+    EXPECT_TRUE(prefix1.isAddressInSubnet(ip1));
+    EXPECT_FALSE(prefix2.isAddressInSubnet(ip1));
+    EXPECT_TRUE(prefix2.isAddressInSubnet(ip2));
+
+    // IPv6 address in IPv6 subnet
+    EXPECT_TRUE(prefix3.isAddressInSubnet(ip3));
+    EXPECT_FALSE(prefix4.isAddressInSubnet(ip3));
+    EXPECT_TRUE(prefix4.isAddressInSubnet(ip4));
+
+    // IPv4 address in IPv6 subnet
+    EXPECT_FALSE(prefix3.isAddressInSubnet(ip2));
+    EXPECT_FALSE(prefix4.isAddressInSubnet(ip2));
+
+    // IPv6 address in IPv4 subnet
+    EXPECT_FALSE(prefix1.isAddressInSubnet(ip3));
+    EXPECT_FALSE(prefix2.isAddressInSubnet(ip3));
+}

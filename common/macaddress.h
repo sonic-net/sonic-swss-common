@@ -39,7 +39,7 @@ public:
 
     inline bool operator<(const MacAddress &o)
     {
-        return to_uint64() < o.to_uint64();
+        return memcmp(m_mac, o.m_mac, sizeof(m_mac)) < 0;
     }
 
     inline bool operator!() const
@@ -56,8 +56,6 @@ public:
     const std::string to_string() const;
 
     static std::string to_string(const uint8_t* mac);
-
-    uint64_t to_uint64() const;
 
     static bool parseMacString(const std::string& strmac, uint8_t* mac);
 
