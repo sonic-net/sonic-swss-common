@@ -35,30 +35,6 @@ public:
         templen = (size_t)len;
     }
 
-    void append(const char *fmt, ...) {
-        va_list ap;
-        va_start(ap, fmt);
-        char *tail;
-        int len = redisvFormatCommand(&tail, fmt, ap);
-        if (len == -1) {
-            throw std::bad_alloc();
-        } else if (len == -2) {
-            throw std::invalid_argument("fmt");
-        } else if (len < 0) {
-            throw std::logic_error("redisvFormatCommand returns unexpected value");
-        }
-        assert((size_t)len == strlen(tail));
-
-        void *temp1 = realloc(temp, templen + len + 1);
-        if (temp1 == NULL) {
-            redisFreeCommand(tail);
-            throw std::bad_alloc();
-        }
-        temp = (char *)temp1;
-        strcpy(temp + templen, tail);
-        templen += len;
-    }
-
     void formatArgv(int argc, const char **argv, const size_t *argvlen) {
         int len = redisFormatCommandArgv(&temp, argc, argv, argvlen);
         if (len == -1) {

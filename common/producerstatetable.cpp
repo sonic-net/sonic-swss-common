@@ -1,10 +1,13 @@
 #include <stdlib.h>
 #include <tuple>
 #include <sstream>
+#include <algorithm>
 #include "redisreply.h"
 #include "table.h"
 #include "redisapi.h"
 #include "producerstatetable.h"
+
+using namespace std;
 
 namespace swss {
 
@@ -20,31 +23,38 @@ void ProducerStateTable::set(std::string key, std::vector<FieldValueTuple> &valu
     static std::string luaScript =
         "redis.call('SADD', KEYS[2], ARGV[2])\n"
         "for i = 0, #KEYS - 3 do\n"
-        "    redis.call('HSET', KEYS[3 + i], ARGV[3 + i * 2], string.sub(ARGV[4 + i * 2], 2, -1))\n"
+        "    redis.call('HSET', KEYS[3 + i], ARGV[3 + i * 2], ARGV[4 + i * 2])\n"
         "end\n"
         "redis.call('PUBLISH', KEYS[1], ARGV[1])\n";
 
     static std::string sha = loadRedisScript(m_db, luaScript);
 
-    std::ostringstream osk, osv;
-    osk << "EVALSHA "
-        << sha << ' '
-        << values.size() + 2 << ' '
-        << getChannelName() << ' '
-        << getKeySetName() << ' ';
-
-    osv << "G "
-        << key << ' ';
-
+    // Assembly redis command args into a string vector
+    vector<string> args;
+    args.push_back("EVALSHA");
+    args.push_back(sha);
+    args.push_back(to_string(values.size() + 2));
+    args.push_back(getChannelName());
+    args.push_back(getKeySetName());
     for (auto& iv: values)
     {
-        osk << getKeyName(key) << ' ';
-        osv << fvField(iv) << ' '
-            << encodeLuaArgument(fvValue(iv)) << ' ';
+        args.push_back(getKeyName(key));
+    }
+    args.push_back("G");
+    args.push_back(key);
+    for (auto& iv: values)
+    {
+        args.push_back(fvField(iv));
+        args.push_back(fvValue(iv));
     }
 
-    std::string command = osk.str() + osv.str();
-
+    // Transform data structure
+    vector<const char *> args1;
+    transform(args.begin(), args.end(), std::back_inserter(args1), [](const string s) { return s.c_str(); } ); 
+    
+    // Invoke redis command
+    RedisCommand command;
+    command.formatArgv((int)args1.size(), &args1[0], NULL);
     RedisReply r(m_db, command, REDIS_REPLY_NIL);
 }
 
@@ -56,21 +66,26 @@ void ProducerStateTable::del(std::string key, std::string op /*= DEL_COMMAND*/, 
         "redis.call('PUBLISH', KEYS[1], ARGV[1])\n";
 
     static std::string sha = loadRedisScript(m_db, luaScript);
+    
+    // Assembly redis command args into a string vector
+    vector<string> args;
+    args.push_back("EVALSHA");
+    args.push_back(sha);
+    args.push_back("3");
+    args.push_back(getChannelName());
+    args.push_back(getKeySetName());
+    args.push_back(getKeyName(key));
+    args.push_back("G");
+    args.push_back(key);
+    args.push_back("''");
 
-    std::ostringstream osk, osv;
-    osk << "EVALSHA "
-        << sha << ' '
-        << 3 << ' '
-        << getChannelName() << ' '
-        << getKeySetName() << ' '
-        << getKeyName(key) << ' ';
-
-    osv << "G "
-        << key << ' '
-        << "''";
-
-    std::string command = osk.str() + osv.str();
-
+    // Transform data structure
+    vector<const char *> args1;
+    transform(args.begin(), args.end(), std::back_inserter(args1), [](const string s) { return s.c_str(); } ); 
+    
+    // Invoke redis command
+    RedisCommand command;
+    command.formatArgv((int)args1.size(), &args1[0], NULL);
     RedisReply r(m_db, command, REDIS_REPLY_NIL);
 }
 
