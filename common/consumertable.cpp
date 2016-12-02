@@ -80,9 +80,9 @@ void ConsumerTable::pop(KeyOpFieldsValuesTuple &kco, string prefix)
     command.format(
         "EVALSHA %s 4 %s %s %s %s '' '' '' ''",
         sha.c_str(),
-        (prefix+getKeyQueueTableName()).c_str(),
-        (prefix+getOpQueueTableName()).c_str(),
-        (prefix+getValueQueueTableName()).c_str(),
+        getKeyQueueTableName().c_str(),
+        getOpQueueTableName().c_str(),
+        getValueQueueTableName().c_str(),
         (prefix+getTableName()).c_str());
 
     RedisReply r(m_db, command, REDIS_REPLY_ARRAY);

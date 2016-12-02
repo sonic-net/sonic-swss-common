@@ -33,7 +33,7 @@ ProducerTable::~ProducerTable() {
     }
 }
 
-void ProducerTable::enqueueDbChange(string key, string value, string op, string prefix)
+void ProducerTable::enqueueDbChange(string key, string value, string op, string /* prefix */)
 {
     static string luaScript =
         "redis.call('LPUSH', KEYS[1], ARGV[1]);"
@@ -47,9 +47,9 @@ void ProducerTable::enqueueDbChange(string key, string value, string op, string 
     command.format(
         "EVALSHA %s 4 %s %s %s %s %s %s %s %s",
         sha.c_str(),
-        (prefix+getKeyQueueTableName()).c_str(),
-        (prefix+getValueQueueTableName()).c_str(),
-        (prefix+getOpQueueTableName()).c_str(),
+        getKeyQueueTableName().c_str(),
+        getValueQueueTableName().c_str(),
+        getOpQueueTableName().c_str(),
         getChannelName().c_str(),
         key.c_str(),
         value.c_str(),
