@@ -1,6 +1,5 @@
 #pragma once
 #include <string.h>
-#include <assert.h>
 #include <tuple>
 
 namespace swss {
@@ -16,10 +15,10 @@ typedef std::tuple<std::string, std::string, std::vector<FieldValueTuple> > KeyO
 class RedisCommand {
 public:
     RedisCommand() : temp(NULL) { }
-    ~RedisCommand() { redisFreeCommand(temp); templen = 0; }
+    ~RedisCommand() { redisFreeCommand(temp); }
     RedisCommand(RedisCommand& that);
     RedisCommand& operator=(RedisCommand& that);
-
+    
     void format(const char *fmt, ...) {
         va_list ap;
         va_start(ap, fmt);
@@ -28,24 +27,16 @@ public:
             throw std::bad_alloc();
         } else if (len == -2) {
             throw std::invalid_argument("fmt");
-        } else if (len < 0) {
-            throw std::logic_error("redisvFormatCommand returns unexpected value");
         }
-        assert((size_t)len == strlen(temp));
-        templen = (size_t)len;
     }
-
+    
     void formatArgv(int argc, const char **argv, const size_t *argvlen) {
         int len = redisFormatCommandArgv(&temp, argc, argv, argvlen);
         if (len == -1) {
             throw std::bad_alloc();
-        } else if (len < 0) {
-            throw std::logic_error("redisFormatCommandArgv returns unexpected value");
         }
-        assert((size_t)len == strlen(temp));
-        templen = (size_t)len;
     }
-
+    
     /* Format HMSET key multiple field value command */
     void formatHMSET(const std::string &key,
                      const std::vector<FieldValueTuple> &values)
@@ -61,7 +52,7 @@ public:
             args.push_back(fvField(fvt).c_str());
             args.push_back(fvValue(fvt).c_str());
         }
-
+        
         formatArgv((int)args.size(), args.data(), NULL);
     }
 
@@ -83,20 +74,19 @@ public:
     {
         return format("HDEL %s %s", key.c_str(), field.c_str());
     }
-
+    
     const char *c_str() const
     {
         return temp;
     }
-
+    
     size_t length() const
     {
-        return templen;
+        return strlen(temp);
     }
-
+    
 private:
     char *temp;
-    size_t templen;
 };
 
 }
