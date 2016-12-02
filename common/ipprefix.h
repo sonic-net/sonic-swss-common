@@ -83,7 +83,8 @@ public:
             case AF_INET6:
             {
                 const uint8_t *prefix = m_ip.getV6Addr();
-                const uint8_t *mask = getMask().getV6Addr();
+                IpAddress ip6mask = getMask();
+                const uint8_t *mask = ip6mask.getV6Addr();
                 const uint8_t *ip = addr.getV6Addr();
 
                 for (int i = 0; i < 16; ++i)

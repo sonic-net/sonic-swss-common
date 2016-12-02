@@ -70,21 +70,31 @@ TEST(IpPrefix, subnet)
     IpPrefix prefix2("2.2.2.0/24");
     IpPrefix prefix3("::/0");
     IpPrefix prefix4("2001:4898:f0:f153:357c:77b2:49c9:627c/64");
+    IpPrefix prefix5("3.3.3.3/32");
+    IpPrefix prefix6("2001:4898:f0:f153:357c:77b2:49c9:627c/128");
 
     IpAddress ip1("1.1.1.1");
     IpAddress ip2("2.2.2.2");
     IpAddress ip3("4002:4898:f0:f153:357c:77b2:0:627c");
     IpAddress ip4("2001:4898:f0:f153:357c:77b2:0:627c");
+    IpAddress ip5("3.3.3.3");
+    IpAddress ip6("3.3.3.4");
+    IpAddress ip7("2001:4898:f0:f153:357c:77b2:49c9:627c");
+    IpAddress ip8("2001:4898:f0:f153:357c:77b2:49c9:627d");
 
     // IPv4 address in IPv4 subnet
     EXPECT_TRUE(prefix1.isAddressInSubnet(ip1));
     EXPECT_FALSE(prefix2.isAddressInSubnet(ip1));
     EXPECT_TRUE(prefix2.isAddressInSubnet(ip2));
+    EXPECT_TRUE(prefix5.isAddressInSubnet(ip5));
+    EXPECT_FALSE(prefix5.isAddressInSubnet(ip6));
 
     // IPv6 address in IPv6 subnet
     EXPECT_TRUE(prefix3.isAddressInSubnet(ip3));
     EXPECT_FALSE(prefix4.isAddressInSubnet(ip3));
     EXPECT_TRUE(prefix4.isAddressInSubnet(ip4));
+    EXPECT_TRUE(prefix6.isAddressInSubnet(ip7));
+    EXPECT_FALSE(prefix6.isAddressInSubnet(ip8));
 
     // IPv4 address in IPv6 subnet
     EXPECT_FALSE(prefix3.isAddressInSubnet(ip2));
