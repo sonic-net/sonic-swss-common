@@ -110,26 +110,24 @@ static void consumerWorker(int index)
     int numberOfKeysSet = 0;
     int numberOfKeyDeleted = 0;
     int ret, i = 0;
-    vector<KeyOpFieldsValuesTuple> vkco;
+    KeyOpFieldsValuesTuple kco;
 
     cs.addSelectable(&c);
     while ((ret = cs.select(&selectcs, &tmpfd)) == Select::OBJECT)
     {
-        c.pops(vkco);
-        for (auto& kco: vkco)
+        c.pop(kco);
+        if (kfvOp(kco) == "SET")
         {
-            if (kfvOp(kco) == "SET")
-            {
-                numberOfKeysSet++;
-                validateFields(kfvKey(kco), kfvFieldsValues(kco));
-            } else if (kfvOp(kco) == "DEL")
-            {
-                numberOfKeyDeleted++;
-            }
-
-            if ((i++ % 100) == 0)
-                cout << "-" << flush;
+            numberOfKeysSet++;
+            validateFields(kfvKey(kco), kfvFieldsValues(kco));
+        } else if (kfvOp(kco) == "DEL")
+        {
+            numberOfKeyDeleted++;
         }
+
+        if ((i++ % 100) == 0)
+            cout << "-" << flush;
+
         if (numberOfKeyDeleted == NUMBER_OF_OPS)
             break;
     }
@@ -514,4 +512,3 @@ TEST(ConsumerStateTable, multitable)
 
     cout << endl << "Done." << endl;
 }
-

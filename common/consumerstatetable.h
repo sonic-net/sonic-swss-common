@@ -19,8 +19,11 @@ public:
     /* If there is nothing to pop, the output paramter will have empty key and op */
     void pop(KeyOpFieldsValuesTuple &kco, std::string prefix = EMPTY_PREFIX);
 
+private:
+    std::deque<KeyOpFieldsValuesTuple> m_buffer;
+    
     /* Get multiple pop elements */
-    void pops(std::vector<KeyOpFieldsValuesTuple> &vkco, std::string prefix = EMPTY_PREFIX);
+    void pops(std::deque<KeyOpFieldsValuesTuple> &vkco, std::string prefix = EMPTY_PREFIX);
 };
 
 }
