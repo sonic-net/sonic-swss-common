@@ -33,7 +33,11 @@ public:
     static Logger &getInstance();
     static void setMinPrio(Priority prio);
     static Priority getMinPrio();
-    void write(Priority prio, const char *fmt, ...);
+    void write(Priority prio, const char *fmt, ...)
+#ifdef __GNUC__
+        __attribute__ ((format (printf, 3, 4)))
+#endif
+    ;
 
     static std::string priorityToString(Priority prio);
     static Priority stringToPriority(const std::string);
