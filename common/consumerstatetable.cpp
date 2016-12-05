@@ -14,6 +14,7 @@ namespace swss {
 ConsumerStateTable::ConsumerStateTable(DBConnector *db, std::string tableName)
     : RedisTransactioner(db)
     , TableName_KeySet(tableName)
+    , POP_BATCH_SIZE(128)
 {
     for (;;)
     {
@@ -93,7 +94,7 @@ void ConsumerStateTable::pops(std::vector<KeyOpFieldsValuesTuple> &vkco, std::st
 {
     static std::string luaScript =
         "local ret = {}\n"
-        "local keys = redis.call('SPOP', KEYS[1], '128')\n"
+        "local keys = redis.call('SPOP', KEYS[1], ARGV[1])\n"
         "local n = table.getn(keys)\n"
         "for i = 1, n do\n"
             "local key = keys[i]\n"
@@ -106,10 +107,11 @@ void ConsumerStateTable::pops(std::vector<KeyOpFieldsValuesTuple> &vkco, std::st
 
     RedisCommand command;
     command.format(
-        "EVALSHA %s 2 %s %s: '' '' ''",
+        "EVALSHA %s 2 %s %s: %d ''",
         sha.c_str(),
         getKeySetName().c_str(),
-        getTableName().c_str());
+        getTableName().c_str(),
+        POP_BATCH_SIZE);
 
     RedisReply r(m_db, command);
     auto ctx0 = r.getContext();

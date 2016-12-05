@@ -11,6 +11,8 @@ namespace swss {
 class ConsumerStateTable : public RedisTransactioner, public RedisSelect, public TableName_KeySet, public TableEntryPoppable
 {
 public:
+    const int POP_BATCH_SIZE;
+
     ConsumerStateTable(DBConnector *db, std::string tableName);
 
     /* Get a singlesubsribe channel rpop */
