@@ -76,11 +76,10 @@ void ConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, std::str
 
     RedisReply r(m_db, command);
     auto ctx0 = r.getContext();
-
     vkco.clear();
 
     // if the set is empty, return an empty kco object
-    if (r.getContext()->type == REDIS_REPLY_NIL)
+    if (ctx0->type == REDIS_REPLY_NIL)
     {
         return;
     }

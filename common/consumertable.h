@@ -2,7 +2,7 @@
 #define __CONSUMERTABLE__
 
 #include <string>
-#include <vector>
+#include <deque>
 #include <limits>
 #include <hiredis/hiredis.h>
 #include "dbconnector.h"
@@ -15,10 +15,18 @@ namespace swss {
 class ConsumerTable : public RedisTransactioner, public RedisSelect, public TableName_KeyValueOpQueues, public TableEntryPoppable
 {
 public:
+    const int POP_BATCH_SIZE;
+
     ConsumerTable(DBConnector *db, std::string tableName);
 
     /* Get a singlesubsribe channel rpop */
     void pop(KeyOpFieldsValuesTuple &kco, std::string prefix = EMPTY_PREFIX);
+
+private:
+    std::deque<KeyOpFieldsValuesTuple> m_buffer;
+
+    /* Get multiple pop elements */
+    void pops(std::deque<KeyOpFieldsValuesTuple> &vkco, std::string prefix = EMPTY_PREFIX);
 };
 
 }
