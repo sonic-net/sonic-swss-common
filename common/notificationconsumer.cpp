@@ -76,7 +76,7 @@ void swss::NotificationConsumer::processReply(redisReply *reply)
 
     if (reply->elements != REDIS_PUBLISH_MESSAGE_ELEMNTS)
     {
-        SWSS_LOG_ERROR("expected %d elements in redis reply on channel %s, got: %u",
+        SWSS_LOG_ERROR("expected %d elements in redis reply on channel %s, got: %zu",
                        REDIS_PUBLISH_MESSAGE_ELEMNTS,
                        m_channel.c_str(),
                        reply->elements);
