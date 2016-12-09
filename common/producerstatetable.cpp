@@ -67,7 +67,7 @@ task ProducerStateTable::setAsync(std::string key, std::vector<FieldValueTuple> 
     RedisCommand command;
     command.formatArgv((int)args1.size(), &args1[0], NULL);
     m_pipe->push(command);
-    return [&]{ return m_pipe->pop().checkReplyType(REDIS_REPLY_NIL); };
+    return [&]{ return RedisReply(m_pipe->pop()).checkReplyType(REDIS_REPLY_NIL); };
 }
 
 void ProducerStateTable::set(std::string key, std::vector<FieldValueTuple> &values,
@@ -98,7 +98,7 @@ task ProducerStateTable::delAsync(std::string key, std::string op /*= DEL_COMMAN
     RedisCommand command;
     command.formatArgv((int)args1.size(), &args1[0], NULL);
     m_pipe->push(command);
-    return [&]{ return m_pipe->pop().checkReplyType(REDIS_REPLY_NIL); };
+    return [&]{ return RedisReply(m_pipe->pop()).checkReplyType(REDIS_REPLY_NIL); };
 }
 
 void ProducerStateTable::del(std::string key, std::string op /*= DEL_COMMAND*/, std::string prefix)
@@ -110,7 +110,7 @@ void ProducerStateTable::flush()
 {
     while(m_pipe->size())
     {
-        auto r = m_pipe->pop();
+        RedisReply r(m_pipe->pop());
         r.checkReplyType(REDIS_REPLY_NIL);
     }
 }
