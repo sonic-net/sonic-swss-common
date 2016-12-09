@@ -48,10 +48,9 @@ task ProducerStateTable::setAsync(std::string key, std::vector<FieldValueTuple> 
     args.push_back(to_string(values.size() + 2));
     args.push_back(getChannelName());
     args.push_back(getKeySetName());
-    for (auto& iv: values)
-    {
-        args.push_back(getKeyName(key));
-    }
+
+    args.insert(args.end(), values.size(), getKeyName(key));
+
     args.push_back("G");
     args.push_back(key);
     for (auto& iv: values)

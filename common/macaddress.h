@@ -37,6 +37,11 @@ public:
         return !(*this == o);
     }
 
+    inline bool operator<(const MacAddress &o)
+    {
+        return memcmp(m_mac, o.m_mac, sizeof(m_mac)) < 0;
+    }
+
     inline bool operator!() const
     {
         return (!m_mac[0] && !m_mac[1] && !m_mac[2] &&
