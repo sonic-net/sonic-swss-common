@@ -5,24 +5,11 @@
 
 namespace swss {
 
-typedef std::function<void ()> task;
 
-/* Flushing adaptor is to flush the adaptee immediately */
-class TableEntryAsyncWritable : public TableEntryWritable
-{
-    
-    virtual task setAsync(std::string key, std::vector<FieldValueTuple> &values,
-                     std::string op = SET_COMMAND) = 0;
-
-    virtual task delAsync(std::string key, std::string op = DEL_COMMAND) = 0;
-
-    virtual void flush() = 0;
-};
-
-class ProducerStateTable : public TableName_KeySet, public TableEntryAsyncWritable
+class ProducerStateTable : public TableName_KeySet
 {
 public:
-    ProducerStateTable(DBConnector *db, std::string tableName);
+    ProducerStateTable(DBConnector *db, std::string tableName, bool buffered = false);
     ~ProducerStateTable();
 
     /* Implements set() and del() commands using notification messages */
@@ -35,15 +22,11 @@ public:
                      std::string op = DEL_COMMAND,
                      std::string prefix = EMPTY_PREFIX);
 
-    virtual task setAsync(std::string key, std::vector<FieldValueTuple> &values,
-                     std::string op = SET_COMMAND);
-
-    virtual task delAsync(std::string key, std::string op = DEL_COMMAND);
-
-    virtual void flush();
+    void flush();
 
 private:
     DBConnector* m_db;
+    bool m_buffered;
     RedisPipeline* m_pipe;
     std::string shaSet;
     std::string shaDel;

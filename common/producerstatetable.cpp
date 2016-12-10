@@ -12,9 +12,10 @@ using namespace std;
 
 namespace swss {
 
-ProducerStateTable::ProducerStateTable(DBConnector *db, string tableName)
+ProducerStateTable::ProducerStateTable(DBConnector *db, string tableName, bool buffered)
     : TableName_KeySet(tableName)
     , m_db(db)
+    , m_buffered(buffered)
     , m_pipe(new RedisPipeline(db))
 {
     std::string luaSet =
@@ -34,12 +35,11 @@ ProducerStateTable::ProducerStateTable(DBConnector *db, string tableName)
 
 ProducerStateTable::~ProducerStateTable()
 {
-    flush();
     delete m_pipe;
 }
 
-task ProducerStateTable::setAsync(std::string key, std::vector<FieldValueTuple> &values,
-                 std::string op /*= SET_COMMAND*/)
+void ProducerStateTable::set(std::string key, std::vector<FieldValueTuple> &values,
+                 std::string op /*= SET_COMMAND*/, std::string prefix)
 {
     // Assembly redis command args into a string vector
     vector<string> args;
@@ -66,17 +66,17 @@ task ProducerStateTable::setAsync(std::string key, std::vector<FieldValueTuple> 
     // Invoke redis command
     RedisCommand command;
     command.formatArgv((int)args1.size(), &args1[0], NULL);
-    m_pipe->push(command);
-    return [&]{ return RedisReply(m_pipe->pop()).checkReplyType(REDIS_REPLY_NIL); };
+    if (m_buffered)
+    {
+        m_pipe->push(command);
+    }
+    else
+    {
+        RedisReply r(m_db, command, REDIS_REPLY_NIL);
+    }
 }
 
-void ProducerStateTable::set(std::string key, std::vector<FieldValueTuple> &values,
-                 std::string op /*= SET_COMMAND*/, std::string prefix)
-{
-    setAsync(key, values, op)();
-}
-
-task ProducerStateTable::delAsync(std::string key, std::string op /*= DEL_COMMAND*/)
+void ProducerStateTable::del(std::string key, std::string op /*= DEL_COMMAND*/, std::string prefix)
 {
     // Assembly redis command args into a string vector
     vector<string> args;
@@ -97,21 +97,21 @@ task ProducerStateTable::delAsync(std::string key, std::string op /*= DEL_COMMAN
     // Invoke redis command
     RedisCommand command;
     command.formatArgv((int)args1.size(), &args1[0], NULL);
-    m_pipe->push(command);
-    return [&]{ return RedisReply(m_pipe->pop()).checkReplyType(REDIS_REPLY_NIL); };
-}
-
-void ProducerStateTable::del(std::string key, std::string op /*= DEL_COMMAND*/, std::string prefix)
-{
-    delAsync(key)();
+    if (m_buffered)
+    {
+        m_pipe->push(command);
+    }
+    else
+    {
+        RedisReply r(m_db, command, REDIS_REPLY_NIL);
+    }
 }
 
 void ProducerStateTable::flush()
 {
-    while(m_pipe->size())
+    if (m_buffered)
     {
-        RedisReply r(m_pipe->pop());
-        r.checkReplyType(REDIS_REPLY_NIL);
+        m_pipe->flush();
     }
 }
 

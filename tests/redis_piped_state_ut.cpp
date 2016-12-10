@@ -76,7 +76,7 @@ static void producerWorker(int index)
 {
     string tableName = "UT_REDIS_THREAD_" + to_string(index);
     DBConnector db(TEST_VIEW, "localhost", 6379, 0);
-    ProducerStateTable p(&db, tableName);
+    ProducerStateTable p(&db, tableName, true);
 
     for (int i = 0; i < NUMBER_OF_OPS; i++)
     {
@@ -90,12 +90,12 @@ static void producerWorker(int index)
         if ((i % 100) == 0)
             cout << "+" << flush;
 
-        p.setAsync(key(i), fields);
+        p.set(key(i), fields);
     }
 
     for (int i = 0; i < NUMBER_OF_OPS; i++)
     {
-        p.delAsync(key(i));
+        p.del(key(i));
     }
 }
 
@@ -151,7 +151,7 @@ TEST(ConsumerStateTable, async_double_set)
     int index = 0;
     string tableName = "UT_REDIS_THREAD_" + to_string(index);
     DBConnector db(TEST_VIEW, "localhost", 6379, 0);
-    ProducerStateTable p(&db, tableName);
+    ProducerStateTable p(&db, tableName, true);
     string key = "TheKey";
     int maxNumOfFields = 2;
 
@@ -163,7 +163,7 @@ TEST(ConsumerStateTable, async_double_set)
             FieldValueTuple t(field(j), value(j));
             fields.push_back(t);
         }
-        p.setAsync(key, fields);
+        p.set(key, fields);
     }
 
     /* Second set operation */
@@ -174,7 +174,7 @@ TEST(ConsumerStateTable, async_double_set)
             FieldValueTuple t(field(j), value(j));
             fields.push_back(t);
         }
-        p.setAsync(key, fields);
+        p.set(key, fields);
     }
     p.flush();
 
@@ -228,7 +228,7 @@ TEST(ConsumerStateTable, async_set_del)
     int index = 0;
     string tableName = "UT_REDIS_THREAD_" + to_string(index);
     DBConnector db(TEST_VIEW, "localhost", 6379, 0);
-    ProducerStateTable p(&db, tableName);
+    ProducerStateTable p(&db, tableName, true);
     string key = "TheKey";
     int maxNumOfFields = 2;
 
@@ -240,11 +240,11 @@ TEST(ConsumerStateTable, async_set_del)
             FieldValueTuple t(field(j), value(j));
             fields.push_back(t);
         }
-        p.setAsync(key, fields);
+        p.set(key, fields);
     }
 
     /* Del operation */
-    p.delAsync(key);
+    p.del(key);
     p.flush();
 
     /* Prepare consumer */
@@ -282,7 +282,7 @@ TEST(ConsumerStateTable, async_set_del_set)
     int index = 0;
     string tableName = "UT_REDIS_THREAD_" + to_string(index);
     DBConnector db(TEST_VIEW, "localhost", 6379, 0);
-    ProducerStateTable p(&db, tableName);
+    ProducerStateTable p(&db, tableName, true);
     string key = "TheKey";
     int maxNumOfFields = 2;
 
@@ -294,11 +294,11 @@ TEST(ConsumerStateTable, async_set_del_set)
             FieldValueTuple t(field(j), value(j));
             fields.push_back(t);
         }
-        p.setAsync(key, fields);
+        p.set(key, fields);
     }
 
     /* Del operation */
-    p.delAsync(key);
+    p.del(key);
 
     /* Second set operation */
     {
@@ -308,7 +308,7 @@ TEST(ConsumerStateTable, async_set_del_set)
             FieldValueTuple t(field(j), value(j));
             fields.push_back(t);
         }
-        p.setAsync(key, fields);
+        p.set(key, fields);
     }
     p.flush();
 
@@ -357,7 +357,7 @@ TEST(ConsumerStateTable, async_singlethread)
     int index = 0;
     string tableName = "UT_REDIS_THREAD_" + to_string(index);
     DBConnector db(TEST_VIEW, "localhost", 6379, 0);
-    ProducerStateTable p(&db, tableName);
+    ProducerStateTable p(&db, tableName, true);
 
     for (int i = 0; i < NUMBER_OF_OPS; i++)
     {
@@ -371,7 +371,7 @@ TEST(ConsumerStateTable, async_singlethread)
         if ((i % 100) == 0)
             cout << "+" << flush;
 
-        p.setAsync(key(i), fields);
+        p.set(key(i), fields);
     }
     p.flush();
 
@@ -400,7 +400,7 @@ TEST(ConsumerStateTable, async_singlethread)
 
     for (i = 0; i < NUMBER_OF_OPS; i++)
     {
-        p.delAsync(key(i));
+        p.del(key(i));
         if ((i % 100) == 0)
             cout << "+" << flush;
     }
