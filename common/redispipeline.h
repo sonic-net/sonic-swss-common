@@ -10,19 +10,31 @@ namespace swss {
 
 class RedisPipeline {
 public:
-    RedisPipeline(DBConnector *db) : m_db(db), m_remaining(0) { }
-    ~RedisPipeline() { flush(); }
+    const size_t COMMAND_MAX;
+
+    RedisPipeline(DBConnector *db)
+        : COMMAND_MAX(128)
+        , m_db(db)
+        , m_remaining(0)
+    {
+    }
+
+    ~RedisPipeline() {
+        flush();
+    }
 
     void push(const RedisCommand& command)
     {
         redisAppendFormattedCommand(m_db->getContext(), command.c_str(), command.length());
         m_remaining++;
+        mayflush();
     }
 
     void push(std::string command)
     {
         redisAppendCommand(m_db->getContext(), command.c_str());
         m_remaining++;
+        mayflush();
     }
 
     // The caller is reponsible to release the reply object
@@ -53,6 +65,12 @@ public:
 private:
     DBConnector *m_db;
     size_t m_remaining;
+
+    void mayflush()
+    {
+        if (m_remaining >= COMMAND_MAX)
+            flush();
+    }
 };
 
 }
