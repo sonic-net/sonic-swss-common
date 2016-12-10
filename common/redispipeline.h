@@ -52,8 +52,8 @@ public:
     {
         while(m_remaining)
         {
-            m_remaining--;
-            RedisReply(pop());
+            // Construct an object to use its dtor, so that resource is released
+            RedisReply r(pop());
         }
     }
 
