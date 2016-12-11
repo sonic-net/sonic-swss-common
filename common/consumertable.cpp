@@ -31,7 +31,8 @@ ConsumerTable::ConsumerTable(DBConnector *db, string tableName)
         if (succ) break;
     }
 
-    setQueueLength(queueResultsFront()->integer);
+    RedisReply r(dequeueReply());
+    setQueueLength(r.getReply<long long int>());
 }
 
 void ConsumerTable::pop(KeyOpFieldsValuesTuple &kco, string prefix)

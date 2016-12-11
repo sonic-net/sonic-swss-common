@@ -63,6 +63,14 @@ RedisReply::~RedisReply()
     freeReplyObject(m_reply);
 }
 
+redisReply *RedisReply::release()
+{
+    redisReply *ret = m_reply;
+    m_reply = NULL;
+    return ret;
+}
+
+
 redisReply *RedisReply::getContext()
 {
     return m_reply;
