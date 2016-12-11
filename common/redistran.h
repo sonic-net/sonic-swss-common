@@ -25,42 +25,34 @@ public:
     {
         using namespace std;
         
-        redisReply *reply = (redisReply *)redisCommand(m_db->getContext(), "EXEC");
+        RedisReply r(m_db, "EXEC");
+        redisReply *reply = r.getContext();
         size_t size = reply->elements;
 
-        try
+        // if meet error in transaction
+        if (reply->type != REDIS_REPLY_ARRAY)
         {
-            // if meet error in transaction
-            if (reply->type != REDIS_REPLY_ARRAY)
-            {
-                freeReplyObject(reply);
-                return false;
-            }
-
-            if (size != m_expectedResults.size())
-                throw system_error(make_error_code(errc::io_error),
-                                   "Got to different nuber of answers!");
-
-            while (!m_results.empty())
-                queueResultsPop();
-
-            for (unsigned int i = 0; i < size; i++)
-            {
-                int expectedType = m_expectedResults.front();
-                m_expectedResults.pop();
-                if (expectedType != reply->element[i]->type)
-                {
-                    SWSS_LOG_ERROR("Expected to get redis type %d got type %d",
-                                  expectedType, reply->element[i]->type);
-                    throw system_error(make_error_code(errc::io_error),
-                                       "Got unexpected result");
-                }
-            }
+            return false;
         }
-        catch (...)
+
+        if (size != m_expectedResults.size())
+            throw system_error(make_error_code(errc::io_error),
+                               "Got to different nuber of answers!");
+
+        while (!m_results.empty())
+            queueResultsPop();
+
+        for (unsigned int i = 0; i < size; i++)
         {
-            freeReplyObject(reply);
-            throw;
+            int expectedType = m_expectedResults.front();
+            m_expectedResults.pop();
+            if (expectedType != reply->element[i]->type)
+            {
+                SWSS_LOG_ERROR("Expected to get redis type %d got type %d",
+                              expectedType, reply->element[i]->type);
+                throw system_error(make_error_code(errc::io_error),
+                                   "Got unexpected result");
+            }
         }
 
         for (size_t i = 0; i < size; i++)
@@ -68,6 +60,7 @@ public:
             m_results.push(new RedisReply(reply->element[i]));
 
         /* Free only the array memory */
+        r.release();
         free(reply->element);
         free(reply);
         return true;

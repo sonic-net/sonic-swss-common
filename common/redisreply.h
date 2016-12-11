@@ -26,23 +26,26 @@ public:
      */
     RedisReply(DBConnector *db, const RedisCommand& command, int expectedType);
     RedisReply(DBConnector *db, std::string command, int expectedType);
-    
+
     /* auto_ptr for native structue (Free the memory on destructor) */
     RedisReply(redisReply *reply);
 
     /* Free the resources */
     ~RedisReply();
 
+    /* Return the actual reply object and release the ownership */
+    redisReply *release();
+
     /* Return the actual reply object */
     redisReply *getContext();
-    
+
     redisReply *getChild(size_t index);
-    
+
     void checkReplyType(int expectedType);
-    
+
     template<typename TYPE>
     TYPE getReply();
-    
+
     /* Check that the staus is OK, throw exception otherwise */
     void checkStatusOK();
 
