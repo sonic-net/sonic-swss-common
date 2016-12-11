@@ -110,10 +110,8 @@ int swss::NotificationConsumer::readCache()
     }
     else if (reply != NULL)
     {
+        RedisReply r(reply);
         processReply(reply);
-
-        freeReplyObject(reply);
-
         return Selectable::DATA;
     }
 
@@ -133,9 +131,8 @@ void swss::NotificationConsumer::readMe()
         throw std::runtime_error("Unable to read redis reply");
     }
 
+    RedisReply r(reply);
     processReply(reply);
-
-    freeReplyObject(reply);
 }
 
 bool swss::NotificationConsumer::isMe(fd_set *fd)
