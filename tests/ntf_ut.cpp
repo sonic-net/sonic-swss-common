@@ -20,12 +20,12 @@ void ntf_thread()
 {
     SWSS_LOG_ENTER();
 
-    auto g_dbNtf = new swss::DBConnector(ASIC_DB, "localhost", 6379, 0);
-    auto g_redisNotifications = new swss::NotificationConsumer(g_dbNtf, "NOTIFICATIONS");
+    swss::DBConnector g_dbNtf(ASIC_DB, "localhost", 6379, 0);
+    swss::NotificationConsumer g_redisNotifications(&g_dbNtf, "NOTIFICATIONS");
 
     swss::Select s;
 
-    s.addSelectable(g_redisNotifications);
+    s.addSelectable(&g_redisNotifications);
 
     int collected = 0;
 
@@ -45,7 +45,7 @@ void ntf_thread()
             std::string data;
             std::vector<swss::FieldValueTuple> values;
 
-            g_redisNotifications->pop(op, data, values);
+            g_redisNotifications.pop(op, data, values);
 
             SWSS_LOG_INFO("notification: op = %s, data = %s", op.c_str(), data.c_str());
 
@@ -62,8 +62,8 @@ TEST(Notifications, test)
 
     sleep(1); // give time to subscribe to not miss notification
 
-    auto dbNtf = new swss::DBConnector(ASIC_DB, "localhost", 6379, 0);
-    auto notifications = new swss::NotificationProducer(dbNtf, "NOTIFICATIONS");
+    swss::DBConnector dbNtf(ASIC_DB, "localhost", 6379, 0);
+    swss::NotificationProducer notifications(&dbNtf, "NOTIFICATIONS");
 
     std::vector<swss::FieldValueTuple> entry;
 
@@ -71,7 +71,7 @@ TEST(Notifications, test)
     {
         std::string s = std::to_string(i+1);
 
-        notifications->send("ntf", s, entry);
+        notifications.send("ntf", s, entry);
     }
 
     notification_thread->join();
