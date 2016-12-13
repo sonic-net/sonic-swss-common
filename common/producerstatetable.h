@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include "table.h"
 #include "redispipeline.h"
 
@@ -9,7 +10,8 @@ namespace swss {
 class ProducerStateTable : public TableName_KeySet
 {
 public:
-    ProducerStateTable(RedisPipeline *pipeline, std::string tableName, bool buffered = false);
+    ProducerStateTable(DBConnector *db, std::string tableName);
+    ProducerStateTable(std::shared_ptr<RedisPipeline> pipeline, std::string tableName, bool buffered = false);
     ~ProducerStateTable();
 
     /* Implements set() and del() commands using notification messages */
@@ -26,7 +28,7 @@ public:
 
 private:
     bool m_buffered;
-    RedisPipeline* m_pipe;
+    std::shared_ptr<RedisPipeline> m_pipe;
     std::string shaSet;
     std::string shaDel;
 };

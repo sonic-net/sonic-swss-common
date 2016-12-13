@@ -76,8 +76,7 @@ static void producerWorker(int index)
 {
     string tableName = "UT_REDIS_THREAD_" + to_string(index);
     DBConnector db(TEST_VIEW, "localhost", 6379, 0);
-    RedisPipeline pipeline(&db);
-    ProducerStateTable p(&pipeline, tableName);
+    ProducerStateTable p(&db, tableName);
 
     for (int i = 0; i < NUMBER_OF_OPS; i++)
     {
@@ -152,8 +151,7 @@ TEST(ConsumerStateTable, double_set)
     int index = 0;
     string tableName = "UT_REDIS_THREAD_" + to_string(index);
     DBConnector db(TEST_VIEW, "localhost", 6379, 0);
-    RedisPipeline pipeline(&db);
-    ProducerStateTable p(&pipeline, tableName);
+    ProducerStateTable p(&db, tableName);
     string key = "TheKey";
     int maxNumOfFields = 2;
 
@@ -229,8 +227,7 @@ TEST(ConsumerStateTable, set_del)
     int index = 0;
     string tableName = "UT_REDIS_THREAD_" + to_string(index);
     DBConnector db(TEST_VIEW, "localhost", 6379, 0);
-    RedisPipeline pipeline(&db);
-    ProducerStateTable p(&pipeline, tableName);
+    ProducerStateTable p(&db, tableName);
     string key = "TheKey";
     int maxNumOfFields = 2;
 
@@ -283,8 +280,7 @@ TEST(ConsumerStateTable, set_del_set)
     int index = 0;
     string tableName = "UT_REDIS_THREAD_" + to_string(index);
     DBConnector db(TEST_VIEW, "localhost", 6379, 0);
-    RedisPipeline pipeline(&db);
-    ProducerStateTable p(&pipeline, tableName);
+    ProducerStateTable p(&db, tableName);
     string key = "TheKey";
     int maxNumOfFields = 2;
 
@@ -358,8 +354,7 @@ TEST(ConsumerStateTable, singlethread)
     int index = 0;
     string tableName = "UT_REDIS_THREAD_" + to_string(index);
     DBConnector db(TEST_VIEW, "localhost", 6379, 0);
-    RedisPipeline pipeline(&db);
-    ProducerStateTable p(&pipeline, tableName);
+    ProducerStateTable p(&db, tableName);
 
     for (int i = 0; i < NUMBER_OF_OPS; i++)
     {

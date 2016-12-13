@@ -12,7 +12,12 @@ using namespace std;
 
 namespace swss {
 
-ProducerStateTable::ProducerStateTable(RedisPipeline *pipeline, string tableName, bool buffered)
+ProducerStateTable::ProducerStateTable(DBConnector *db, std::string tableName)
+    : ProducerStateTable(make_shared<RedisPipeline>(db), tableName, false)
+{
+}
+
+ProducerStateTable::ProducerStateTable(shared_ptr<RedisPipeline> pipeline, string tableName, bool buffered)
     : TableName_KeySet(tableName)
     , m_buffered(buffered)
     , m_pipe(pipeline)
