@@ -23,18 +23,31 @@ public:
         flush();
     }
 
-    void push(const RedisCommand& command)
+    redisReply *push(const RedisCommand& command, int expectedType)
     {
-        redisAppendFormattedCommand(m_db->getContext(), command.c_str(), command.length());
-        m_remaining++;
-        mayflush();
+        if (expectedType == REDIS_REPLY_NIL)
+        {
+            redisAppendFormattedCommand(m_db->getContext(), command.c_str(), command.length());
+            m_remaining++;
+            mayflush();
+            return NULL;
+        }
+        else
+        {
+            flush();
+            RedisReply r(m_db, command, expectedType);
+            return r.release();
+        }
     }
 
-    void push(std::string command)
+    std::string loadRedisScript(const std::string& script)
     {
-        redisAppendCommand(m_db->getContext(), command.c_str());
-        m_remaining++;
-        mayflush();
+        RedisCommand loadcmd;
+        loadcmd.format("SCRIPT LOAD %s", script.c_str());
+        RedisReply r = push(loadcmd, REDIS_REPLY_STRING);
+
+        std::string sha = r.getReply<std::string>();
+        return sha;
     }
 
     // The caller is reponsible to release the reply object
@@ -68,7 +81,7 @@ private:
 
     void mayflush()
     {
-        if (m_remaining >= COMMAND_MAX)
+        if (m_remaining > COMMAND_MAX)
             flush();
     }
 };

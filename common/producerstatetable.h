@@ -9,7 +9,7 @@ namespace swss {
 class ProducerStateTable : public TableName_KeySet
 {
 public:
-    ProducerStateTable(DBConnector *db, std::string tableName, bool buffered = false);
+    ProducerStateTable(RedisPipeline *pipeline, std::string tableName, bool buffered = false);
     ~ProducerStateTable();
 
     /* Implements set() and del() commands using notification messages */
@@ -25,7 +25,6 @@ public:
     void flush();
 
 private:
-    DBConnector* m_db;
     bool m_buffered;
     RedisPipeline* m_pipe;
     std::string shaSet;

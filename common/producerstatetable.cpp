@@ -12,11 +12,10 @@ using namespace std;
 
 namespace swss {
 
-ProducerStateTable::ProducerStateTable(DBConnector *db, string tableName, bool buffered)
+ProducerStateTable::ProducerStateTable(RedisPipeline *pipeline, string tableName, bool buffered)
     : TableName_KeySet(tableName)
-    , m_db(db)
     , m_buffered(buffered)
-    , m_pipe(new RedisPipeline(db))
+    , m_pipe(pipeline)
 {
     std::string luaSet =
         "redis.call('SADD', KEYS[2], ARGV[2])\n"
@@ -24,18 +23,17 @@ ProducerStateTable::ProducerStateTable(DBConnector *db, string tableName, bool b
         "    redis.call('HSET', KEYS[3 + i], ARGV[3 + i * 2], ARGV[4 + i * 2])\n"
         "end\n"
         "redis.call('PUBLISH', KEYS[1], ARGV[1])\n";
-    shaSet = loadRedisScript(m_db, luaSet);
+    shaSet = m_pipe->loadRedisScript(luaSet);
 
     std::string luaDel =
         "redis.call('SADD', KEYS[2], ARGV[2])\n"
         "redis.call('DEL', KEYS[3])\n"
         "redis.call('PUBLISH', KEYS[1], ARGV[1])\n";
-    shaDel = loadRedisScript(m_db, luaDel);
+    shaDel = m_pipe->loadRedisScript(luaDel);
 }
 
 ProducerStateTable::~ProducerStateTable()
 {
-    delete m_pipe;
 }
 
 void ProducerStateTable::set(std::string key, std::vector<FieldValueTuple> &values,
@@ -66,13 +64,10 @@ void ProducerStateTable::set(std::string key, std::vector<FieldValueTuple> &valu
     // Invoke redis command
     RedisCommand command;
     command.formatArgv((int)args1.size(), &args1[0], NULL);
-    if (m_buffered)
+    m_pipe->push(command, REDIS_REPLY_NIL);
+    if (!m_buffered)
     {
-        m_pipe->push(command);
-    }
-    else
-    {
-        RedisReply r(m_db, command, REDIS_REPLY_NIL);
+        m_pipe->flush();
     }
 }
 
@@ -97,22 +92,16 @@ void ProducerStateTable::del(std::string key, std::string op /*= DEL_COMMAND*/, 
     // Invoke redis command
     RedisCommand command;
     command.formatArgv((int)args1.size(), &args1[0], NULL);
-    if (m_buffered)
+    m_pipe->push(command, REDIS_REPLY_NIL);
+    if (!m_buffered)
     {
-        m_pipe->push(command);
-    }
-    else
-    {
-        RedisReply r(m_db, command, REDIS_REPLY_NIL);
+        m_pipe->flush();
     }
 }
 
 void ProducerStateTable::flush()
 {
-    if (m_buffered)
-    {
-        m_pipe->flush();
-    }
+    m_pipe->flush();
 }
 
 }
