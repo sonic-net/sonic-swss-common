@@ -10,15 +10,19 @@
 #include "dbconnector.h"
 #include "table.h"
 #include "redisselect.h"
+#include "redispipeline.h"
 
 namespace swss {
 
-class ProducerTable : public TableName_KeyValueOpQueues, public TableEntryWritable
+class ProducerTable : public TableName_KeyValueOpQueues
 {
 public:
     ProducerTable(DBConnector *db, std::string tableName);
+    ProducerTable(std::shared_ptr<RedisPipeline> pipeline, std::string tableName, bool buffered = false);
     ProducerTable(DBConnector *db, std::string tableName, std::string dumpFile);
-    ~ProducerTable();
+    virtual ~ProducerTable();
+
+    void setBuffered(bool buffered);
 
     /* Implements set() and del() commands using notification messages */
 
@@ -31,6 +35,8 @@ public:
                      std::string op = DEL_COMMAND,
                      std::string prefix = EMPTY_PREFIX);
 
+    void flush();
+
 private:
     /* Disable copy-constructor and operator = */
     ProducerTable(const ProducerTable &other);
@@ -38,7 +44,9 @@ private:
 
     std::ofstream m_dumpFile;
     bool m_firstItem = true;
-    DBConnector* m_db;
+    bool m_buffered;
+    std::shared_ptr<RedisPipeline> m_pipe;
+    std::string shaEnque;
 
     void enqueueDbChange(std::string key, std::string value, std::string op, std::string prefix);
 };
