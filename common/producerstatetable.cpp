@@ -37,8 +37,9 @@ ProducerStateTable::ProducerStateTable(shared_ptr<RedisPipeline> pipeline, strin
     shaDel = m_pipe->loadRedisScript(luaDel);
 }
 
-ProducerStateTable::~ProducerStateTable()
+void ProducerStateTable::setBuffered(bool buffered)
 {
+    m_buffered = buffered;
 }
 
 void ProducerStateTable::set(std::string key, std::vector<FieldValueTuple> &values,

@@ -12,8 +12,8 @@ class ProducerStateTable : public TableName_KeySet
 public:
     ProducerStateTable(DBConnector *db, std::string tableName);
     ProducerStateTable(std::shared_ptr<RedisPipeline> pipeline, std::string tableName, bool buffered = false);
-    ~ProducerStateTable();
 
+    void setBuffered(bool buffered);
     /* Implements set() and del() commands using notification messages */
     virtual void set(std::string key,
                      std::vector<FieldValueTuple> &values,
