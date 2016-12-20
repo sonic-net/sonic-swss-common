@@ -18,7 +18,7 @@ class ProducerTable : public TableName_KeyValueOpQueues
 {
 public:
     ProducerTable(DBConnector *db, std::string tableName);
-    ProducerTable(std::shared_ptr<RedisPipeline> pipeline, std::string tableName, bool buffered = false);
+    ProducerTable(RedisPipeline *pipeline, std::string tableName, bool buffered = false);
     ProducerTable(DBConnector *db, std::string tableName, std::string dumpFile);
     virtual ~ProducerTable();
 
@@ -45,7 +45,8 @@ private:
     std::ofstream m_dumpFile;
     bool m_firstItem = true;
     bool m_buffered;
-    std::shared_ptr<RedisPipeline> m_pipe;
+    bool m_pipeowned;
+    RedisPipeline *m_pipe;
     std::string shaEnque;
 
     void enqueueDbChange(std::string key, std::string value, std::string op, std::string prefix);

@@ -77,8 +77,8 @@ static void producerWorker(int index)
 {
     string tableName = "UT_REDIS_THREAD_" + to_string(index);
     DBConnector db(TEST_VIEW, "localhost", 6379, 0);
-    auto pipeline = make_shared<RedisPipeline>(&db);
-    ProducerStateTable p(pipeline, tableName, true);
+    RedisPipeline pipeline(&db);
+    ProducerStateTable p(&pipeline, tableName, true);
 
     for (int i = 0; i < NUMBER_OF_OPS; i++)
     {
@@ -153,8 +153,8 @@ TEST(ConsumerStateTable, async_double_set)
     int index = 0;
     string tableName = "UT_REDIS_THREAD_" + to_string(index);
     DBConnector db(TEST_VIEW, "localhost", 6379, 0);
-    auto pipeline = make_shared<RedisPipeline>(&db);
-    ProducerStateTable p(pipeline, tableName, true);
+    RedisPipeline pipeline(&db);
+    ProducerStateTable p(&pipeline, tableName, true);
     string key = "TheKey";
     int maxNumOfFields = 2;
 
@@ -231,8 +231,8 @@ TEST(ConsumerStateTable, async_set_del)
     int index = 0;
     string tableName = "UT_REDIS_THREAD_" + to_string(index);
     DBConnector db(TEST_VIEW, "localhost", 6379, 0);
-    auto pipeline = make_shared<RedisPipeline>(&db);
-    ProducerStateTable p(pipeline, tableName, true);
+    RedisPipeline pipeline(&db);
+    ProducerStateTable p(&pipeline, tableName, true);
     string key = "TheKey";
     int maxNumOfFields = 2;
 
@@ -286,8 +286,8 @@ TEST(ConsumerStateTable, async_set_del_set)
     int index = 0;
     string tableName = "UT_REDIS_THREAD_" + to_string(index);
     DBConnector db(TEST_VIEW, "localhost", 6379, 0);
-    auto pipeline = make_shared<RedisPipeline>(&db);
-    ProducerStateTable p(pipeline, tableName, true);
+    RedisPipeline pipeline(&db);
+    ProducerStateTable p(&pipeline, tableName, true);
     string key = "TheKey";
     int maxNumOfFields = 2;
 
@@ -362,8 +362,8 @@ TEST(ConsumerStateTable, async_singlethread)
     int index = 0;
     string tableName = "UT_REDIS_THREAD_" + to_string(index);
     DBConnector db(TEST_VIEW, "localhost", 6379, 0);
-    auto pipeline = make_shared<RedisPipeline>(&db);
-    ProducerStateTable p(pipeline, tableName, true);
+    RedisPipeline pipeline(&db);
+    ProducerStateTable p(&pipeline, tableName, true);
 
     for (int i = 0; i < NUMBER_OF_OPS; i++)
     {

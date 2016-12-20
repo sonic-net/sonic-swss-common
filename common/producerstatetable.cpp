@@ -13,13 +13,15 @@ using namespace std;
 namespace swss {
 
 ProducerStateTable::ProducerStateTable(DBConnector *db, std::string tableName)
-    : ProducerStateTable(make_shared<RedisPipeline>(db), tableName, false)
+    : ProducerStateTable(new RedisPipeline(db, 1), tableName, false)
 {
+    m_pipeowned = true;
 }
 
-ProducerStateTable::ProducerStateTable(shared_ptr<RedisPipeline> pipeline, string tableName, bool buffered)
+ProducerStateTable::ProducerStateTable(RedisPipeline *pipeline, string tableName, bool buffered)
     : TableName_KeySet(tableName)
     , m_buffered(buffered)
+    , m_pipeowned(false)
     , m_pipe(pipeline)
 {
     std::string luaSet =
@@ -35,6 +37,14 @@ ProducerStateTable::ProducerStateTable(shared_ptr<RedisPipeline> pipeline, strin
         "redis.call('DEL', KEYS[3])\n"
         "redis.call('PUBLISH', KEYS[1], ARGV[1])\n";
     shaDel = m_pipe->loadRedisScript(luaDel);
+}
+
+ProducerStateTable::~ProducerStateTable()
+{
+    if (m_pipeowned)
+    {
+        delete m_pipe;
+    }
 }
 
 void ProducerStateTable::setBuffered(bool buffered)

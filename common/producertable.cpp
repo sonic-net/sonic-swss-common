@@ -13,13 +13,15 @@ using json = nlohmann::json;
 namespace swss {
 
 ProducerTable::ProducerTable(DBConnector *db, std::string tableName)
-    : ProducerTable(make_shared<RedisPipeline>(db), tableName, false)
+    : ProducerTable(new RedisPipeline(db, 1), tableName, false)
 {
+    m_pipeowned = true;
 }
 
-ProducerTable::ProducerTable(shared_ptr<RedisPipeline> pipeline, string tableName, bool buffered)
+ProducerTable::ProducerTable(RedisPipeline *pipeline, std::string tableName, bool buffered)
     : TableName_KeyValueOpQueues(tableName)
     , m_buffered(buffered)
+    , m_pipeowned(false)
     , m_pipe(pipeline)
 {
     string luaEnque =
@@ -44,6 +46,11 @@ ProducerTable::~ProducerTable() {
         m_dumpFile << endl << "]" << endl;
         m_dumpFile.close();
     }
+
+    if (m_pipeowned)
+    {
+        delete m_pipe;
+    }
 }
 
 void ProducerTable::setBuffered(bool buffered)
@@ -67,10 +74,6 @@ void ProducerTable::enqueueDbChange(string key, string value, string op, string 
         "G");
 
     m_pipe->push(command, REDIS_REPLY_NIL);
-    if (!m_buffered)
-    {
-        m_pipe->flush();
-    }
 }
 
 void ProducerTable::set(string key, vector<FieldValueTuple> &values, string op, string prefix)
@@ -92,6 +95,10 @@ void ProducerTable::set(string key, vector<FieldValueTuple> &values, string op, 
     }
 
     enqueueDbChange(key, JSon::buildJson(values), "S" + op, prefix);
+    if (!m_buffered || op == "get" || op == "notify")
+    {
+        m_pipe->flush();
+    }
 }
 
 void ProducerTable::del(string key, string op, string prefix)
@@ -111,6 +118,10 @@ void ProducerTable::del(string key, string op, string prefix)
     }
 
     enqueueDbChange(key, "{}", "D" + op, prefix);
+    if (!m_buffered)
+    {
+        m_pipe->flush();
+    }
 }
 
 void ProducerTable::flush()
