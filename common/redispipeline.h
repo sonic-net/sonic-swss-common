@@ -82,7 +82,7 @@ private:
 
     void mayflush()
     {
-        if (m_remaining > COMMAND_MAX)
+        if (m_remaining >= COMMAND_MAX)
             flush();
     }
 };
