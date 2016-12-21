@@ -11,12 +11,13 @@ namespace swss {
 class RedisPipeline {
 public:
     const size_t COMMAND_MAX;
+    const static int NEWCONNECTOR_TIMEOUT = 0;
 
     RedisPipeline(DBConnector *db, size_t sz = 128)
         : COMMAND_MAX(sz)
-        , m_db(db)
         , m_remaining(0)
     {
+        m_db = db->newConnector(NEWCONNECTOR_TIMEOUT); 
     }
 
     ~RedisPipeline() {
