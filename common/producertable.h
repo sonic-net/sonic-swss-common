@@ -47,7 +47,7 @@ private:
     bool m_buffered;
     bool m_pipeowned;
     RedisPipeline *m_pipe;
-    std::string shaEnque;
+    std::string m_shaEnque;
 
     void enqueueDbChange(std::string key, std::string value, std::string op, std::string prefix);
 };

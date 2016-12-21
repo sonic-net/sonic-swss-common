@@ -30,13 +30,13 @@ ProducerStateTable::ProducerStateTable(RedisPipeline *pipeline, string tableName
         "    redis.call('HSET', KEYS[3 + i], ARGV[3 + i * 2], ARGV[4 + i * 2])\n"
         "end\n"
         "redis.call('PUBLISH', KEYS[1], ARGV[1])\n";
-    shaSet = m_pipe->loadRedisScript(luaSet);
+    m_shaSet = m_pipe->loadRedisScript(luaSet);
 
     std::string luaDel =
         "redis.call('SADD', KEYS[2], ARGV[2])\n"
         "redis.call('DEL', KEYS[3])\n"
         "redis.call('PUBLISH', KEYS[1], ARGV[1])\n";
-    shaDel = m_pipe->loadRedisScript(luaDel);
+    m_shaDel = m_pipe->loadRedisScript(luaDel);
 }
 
 ProducerStateTable::~ProducerStateTable()
@@ -58,7 +58,7 @@ void ProducerStateTable::set(std::string key, std::vector<FieldValueTuple> &valu
     // Assembly redis command args into a string vector
     vector<string> args;
     args.push_back("EVALSHA");
-    args.push_back(shaSet);
+    args.push_back(m_shaSet);
     args.push_back(to_string(values.size() + 2));
     args.push_back(getChannelName());
     args.push_back(getKeySetName());
@@ -92,7 +92,7 @@ void ProducerStateTable::del(std::string key, std::string op /*= DEL_COMMAND*/, 
     // Assembly redis command args into a string vector
     vector<string> args;
     args.push_back("EVALSHA");
-    args.push_back(shaDel);
+    args.push_back(m_shaDel);
     args.push_back("3");
     args.push_back(getChannelName());
     args.push_back(getKeySetName());

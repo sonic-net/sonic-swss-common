@@ -30,8 +30,8 @@ private:
     bool m_buffered;
     bool m_pipeowned;
     RedisPipeline *m_pipe;
-    std::string shaSet;
-    std::string shaDel;
+    std::string m_shaSet;
+    std::string m_shaDel;
 };
 
 }

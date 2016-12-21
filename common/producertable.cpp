@@ -30,7 +30,7 @@ ProducerTable::ProducerTable(RedisPipeline *pipeline, std::string tableName, boo
         "redis.call('LPUSH', KEYS[3], ARGV[3]);"
         "redis.call('PUBLISH', KEYS[4], ARGV[4]);";
 
-    shaEnque = m_pipe->loadRedisScript(luaEnque);
+    m_shaEnque = m_pipe->loadRedisScript(luaEnque);
 }
 
 ProducerTable::ProducerTable(DBConnector *db, string tableName, string dumpFile)
@@ -63,7 +63,7 @@ void ProducerTable::enqueueDbChange(string key, string value, string op, string 
     RedisCommand command;
     command.format(
         "EVALSHA %s 4 %s %s %s %s %s %s %s %s",
-        shaEnque.c_str(),
+        m_shaEnque.c_str(),
         getKeyQueueTableName().c_str(),
         getValueQueueTableName().c_str(),
         getOpQueueTableName().c_str(),
