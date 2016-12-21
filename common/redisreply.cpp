@@ -118,6 +118,12 @@ void RedisReply::checkReplyType(int expectedType)
 {
     if (m_reply->type != expectedType)
     {
+        const char *err = (m_reply->type == REDIS_REPLY_STRING || m_reply->type == REDIS_REPLY_ERROR) ?
+            m_reply->str : "NON-STRING-REPLY";
+
+        SWSS_LOG_ERROR("Expected to get redis type %d got type %d, err: %s",
+                      expectedType, m_reply->type, err);
+
         throw system_error(make_error_code(errc::io_error),
                            "Wrong expected type of result");
     }
