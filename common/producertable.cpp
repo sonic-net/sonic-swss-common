@@ -95,7 +95,8 @@ void ProducerTable::set(string key, vector<FieldValueTuple> &values, string op, 
     }
 
     enqueueDbChange(key, JSon::buildJson(values), "S" + op, prefix);
-    if (!m_buffered || op == "get" || op == "notify")
+    // Only buffer continuous "set" operations
+    if (!m_buffered || op != "set")
     {
         m_pipe->flush();
     }
