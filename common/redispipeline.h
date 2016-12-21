@@ -22,6 +22,7 @@ public:
 
     ~RedisPipeline() {
         flush();
+        delete m_db;
     }
 
     redisReply *push(const RedisCommand& command, int expectedType)
