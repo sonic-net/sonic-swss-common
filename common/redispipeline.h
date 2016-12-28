@@ -17,7 +17,7 @@ public:
         : COMMAND_MAX(sz)
         , m_remaining(0)
     {
-        m_db = db->newConnector(NEWCONNECTOR_TIMEOUT); 
+        m_db = db->newConnector(NEWCONNECTOR_TIMEOUT);
     }
 
     ~RedisPipeline() {
@@ -52,7 +52,7 @@ public:
         return sha;
     }
 
-    // The caller is reponsible to release the reply object
+    // The caller is responsible to release the reply object
     redisReply *pop()
     {
         if (m_remaining == 0) return NULL;
