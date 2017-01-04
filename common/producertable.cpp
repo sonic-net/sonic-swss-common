@@ -12,13 +12,13 @@ using json = nlohmann::json;
 
 namespace swss {
 
-ProducerTable::ProducerTable(DBConnector *db, std::string tableName)
+ProducerTable::ProducerTable(DBConnector *db, string tableName)
     : ProducerTable(new RedisPipeline(db, 1), tableName, false)
 {
     m_pipeowned = true;
 }
 
-ProducerTable::ProducerTable(RedisPipeline *pipeline, std::string tableName, bool buffered)
+ProducerTable::ProducerTable(RedisPipeline *pipeline, string tableName, bool buffered)
     : TableName_KeyValueOpQueues(tableName)
     , m_buffered(buffered)
     , m_pipeowned(false)

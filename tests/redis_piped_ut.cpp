@@ -402,13 +402,13 @@ TEST(Table, piped_test)
 
 TEST(ProducerConsumer, piped_Prefix)
 {
-    std::string tableName = "tableName";
+    string tableName = "tableName";
 
     DBConnector db(TEST_VIEW, "localhost", 6379, 0);
     RedisPipeline pipeline(&db);
     ProducerTable p(&pipeline, tableName, true);
 
-    std::vector<FieldValueTuple> values;
+    vector<FieldValueTuple> values;
 
     FieldValueTuple t("f", "v");
     values.push_back(t);
@@ -421,8 +421,8 @@ TEST(ProducerConsumer, piped_Prefix)
     KeyOpFieldsValuesTuple kco;
     c.pop(kco, "prefix_");
 
-    std::string key = kfvKey(kco);
-    std::string op = kfvOp(kco);
+    string key = kfvKey(kco);
+    string op = kfvOp(kco);
     auto vs = kfvFieldsValues(kco);
 
     EXPECT_EQ(key, "key");
