@@ -1,6 +1,7 @@
 #pragma once
 
 #include <system_error>
+#include <deque>
 #include "redisreply.h"
 #include "rediscommand.h"
 #include "logger.h"
