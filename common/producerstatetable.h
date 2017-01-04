@@ -1,14 +1,19 @@
 #pragma once
 
+#include <memory>
 #include "table.h"
+#include "redispipeline.h"
 
 namespace swss {
 
-class ProducerStateTable : public TableName_KeySet, public TableEntryWritable
+class ProducerStateTable : public TableName_KeySet
 {
 public:
     ProducerStateTable(DBConnector *db, std::string tableName);
+    ProducerStateTable(RedisPipeline *pipeline, std::string tableName, bool buffered = false);
+    ~ProducerStateTable();
 
+    void setBuffered(bool buffered);
     /* Implements set() and del() commands using notification messages */
     virtual void set(std::string key,
                      std::vector<FieldValueTuple> &values,
@@ -19,9 +24,14 @@ public:
                      std::string op = DEL_COMMAND,
                      std::string prefix = EMPTY_PREFIX);
 
+    void flush();
+
 private:
-    DBConnector* m_db;
+    bool m_buffered;
+    bool m_pipeowned;
+    RedisPipeline *m_pipe;
+    std::string m_shaSet;
+    std::string m_shaDel;
 };
 
 }
-

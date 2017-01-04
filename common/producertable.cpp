@@ -13,9 +13,24 @@ using json = nlohmann::json;
 namespace swss {
 
 ProducerTable::ProducerTable(DBConnector *db, string tableName)
-    : TableName_KeyValueOpQueues(tableName)
-    , m_db(db)
+    : ProducerTable(new RedisPipeline(db, 1), tableName, false)
 {
+    m_pipeowned = true;
+}
+
+ProducerTable::ProducerTable(RedisPipeline *pipeline, string tableName, bool buffered)
+    : TableName_KeyValueOpQueues(tableName)
+    , m_buffered(buffered)
+    , m_pipeowned(false)
+    , m_pipe(pipeline)
+{
+    string luaEnque =
+        "redis.call('LPUSH', KEYS[1], ARGV[1]);"
+        "redis.call('LPUSH', KEYS[2], ARGV[2]);"
+        "redis.call('LPUSH', KEYS[3], ARGV[3]);"
+        "redis.call('PUBLISH', KEYS[4], ARGV[4]);";
+
+    m_shaEnque = m_pipe->loadRedisScript(luaEnque);
 }
 
 ProducerTable::ProducerTable(DBConnector *db, string tableName, string dumpFile)
@@ -31,22 +46,24 @@ ProducerTable::~ProducerTable() {
         m_dumpFile << endl << "]" << endl;
         m_dumpFile.close();
     }
+
+    if (m_pipeowned)
+    {
+        delete m_pipe;
+    }
+}
+
+void ProducerTable::setBuffered(bool buffered)
+{
+    m_buffered = buffered;
 }
 
 void ProducerTable::enqueueDbChange(string key, string value, string op, string /* prefix */)
 {
-    static string luaScript =
-        "redis.call('LPUSH', KEYS[1], ARGV[1]);"
-        "redis.call('LPUSH', KEYS[2], ARGV[2]);"
-        "redis.call('LPUSH', KEYS[3], ARGV[3]);"
-        "redis.call('PUBLISH', KEYS[4], ARGV[4]);";
-
-    static string sha = loadRedisScript(m_db, luaScript);
-
     RedisCommand command;
     command.format(
         "EVALSHA %s 4 %s %s %s %s %s %s %s %s",
-        sha.c_str(),
+        m_shaEnque.c_str(),
         getKeyQueueTableName().c_str(),
         getValueQueueTableName().c_str(),
         getOpQueueTableName().c_str(),
@@ -56,7 +73,7 @@ void ProducerTable::enqueueDbChange(string key, string value, string op, string 
         op.c_str(),
         "G");
 
-    RedisReply r(m_db, command, REDIS_REPLY_NIL);
+    m_pipe->push(command, REDIS_REPLY_NIL);
 }
 
 void ProducerTable::set(string key, vector<FieldValueTuple> &values, string op, string prefix)
@@ -78,6 +95,11 @@ void ProducerTable::set(string key, vector<FieldValueTuple> &values, string op, 
     }
 
     enqueueDbChange(key, JSon::buildJson(values), "S" + op, prefix);
+    // Only buffer continuous "set/set" or "del" operations
+    if (!m_buffered || op != "set")
+    {
+        m_pipe->flush();
+    }
 }
 
 void ProducerTable::del(string key, string op, string prefix)
@@ -97,6 +119,15 @@ void ProducerTable::del(string key, string op, string prefix)
     }
 
     enqueueDbChange(key, "{}", "D" + op, prefix);
+    if (!m_buffered)
+    {
+        m_pipe->flush();
+    }
+}
+
+void ProducerTable::flush()
+{
+    m_pipe->flush();
 }
 
 }

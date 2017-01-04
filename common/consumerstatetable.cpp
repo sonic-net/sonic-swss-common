@@ -27,8 +27,8 @@ ConsumerStateTable::ConsumerStateTable(DBConnector *db, std::string tableName)
         if (succ) break;
     }
 
-    long long int len = queueResultsFront()->integer;
-    setQueueLength(len);
+    RedisReply r(dequeueReply());
+    setQueueLength(r.getReply<long long int>());
 }
 
 void ConsumerStateTable::pop(KeyOpFieldsValuesTuple &kco, std::string prefix)
@@ -37,7 +37,7 @@ void ConsumerStateTable::pop(KeyOpFieldsValuesTuple &kco, std::string prefix)
     {
         pops(m_buffer, prefix);
     }
-    
+
     if (m_buffer.empty())
     {
         auto& values = kfvFieldsValues(kco);
@@ -46,7 +46,7 @@ void ConsumerStateTable::pop(KeyOpFieldsValuesTuple &kco, std::string prefix)
         kfvOp(kco).clear();
         return;
     }
-    
+
     kco = m_buffer.front();
     m_buffer.pop_front();
 }
