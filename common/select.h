@@ -33,9 +33,6 @@ public:
     int select(Selectable **c, int *fd, unsigned int timeout = std::numeric_limits<unsigned int>::max());
 
 private:
-    /* Create a new redisContext, SELECT DB and SUBSRIBE */
-    void subsribe();
-
     std::vector<Selectable * > m_objects;
     std::vector<int> m_fds;
 };
