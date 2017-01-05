@@ -59,7 +59,7 @@ public:
         return FD_ISSET(m_subscribe->getContext()->fd, fd);
     }
 
-    /* Create a new redisContext, SELECT DB and SUBSRIBE */
+    /* Create a new redisContext, SELECT DB and SUBSCRIBE */
     void subscribe(DBConnector* db, std::string channelName)
     {
         m_subscribe.reset(db->newConnector(SUBSCRIBE_TIMEOUT));
