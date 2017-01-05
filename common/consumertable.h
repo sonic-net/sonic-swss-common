@@ -19,7 +19,7 @@ public:
 
     ConsumerTable(DBConnector *db, std::string tableName);
 
-    /* Get a singlesubsribe channel rpop */
+    /* Get a singlesubscribe channel rpop */
     void pop(KeyOpFieldsValuesTuple &kco, std::string prefix = EMPTY_PREFIX);
 
 private:

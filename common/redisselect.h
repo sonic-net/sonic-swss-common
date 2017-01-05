@@ -11,7 +11,7 @@ class RedisSelect : public Selectable
 public:
     /* The database is already alive and kicking, no need for more than a second */
     const static unsigned int SUBSCRIBE_TIMEOUT = 1000;
-    
+
     RedisSelect()
     {
     }
@@ -25,7 +25,7 @@ public:
     {
         redisReply *reply = NULL;
 
-        /* Read the messages in queue before subsribe command execute */
+        /* Read the messages in queue before subscribe command execute */
         if (m_queueLength) {
             m_queueLength--;
             return Selectable::DATA;
@@ -58,23 +58,23 @@ public:
     {
         return FD_ISSET(m_subscribe->getContext()->fd, fd);
     }
-    
-    /* Create a new redisContext, SELECT DB and SUBSRIBE */
+
+    /* Create a new redisContext, SELECT DB and SUBSCRIBE */
     void subscribe(DBConnector* db, std::string channelName)
     {
         m_subscribe.reset(db->newConnector(SUBSCRIBE_TIMEOUT));
-        
+
         /* Send SUBSCRIBE #channel command */
         std::string s("SUBSCRIBE ");
         s += channelName;
         RedisReply r(m_subscribe.get(), s, REDIS_REPLY_ARRAY);
     }
-    
+
     void setQueueLength(long long int queueLength)
     {
         m_queueLength = queueLength;
     }
-    
+
 private:
     std::unique_ptr<DBConnector> m_subscribe;
     long long int m_queueLength;
