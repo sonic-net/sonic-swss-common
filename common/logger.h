@@ -15,6 +15,8 @@ namespace swss {
 #define SWSS_LOG_ENTER()               swss::Logger::ScopeLogger logger ## __LINE__ (__LINE__, __FUNCTION__)
 #define SWSS_LOG_TIMER(msg)            swss::Logger::ScopeTimer scopetimer ## __LINE__ (__LINE__, __FUNCTION__, msg)
 
+#define SWSS_LOG_THROW(MSG, ...)       swss::Logger::getInstance().wthrow(swss::Logger::SWSS_ERROR,  ":- %s: " MSG, __FUNCTION__, ##__VA_ARGS__)
+
 class Logger
 {
 public:
@@ -36,6 +38,13 @@ public:
     void write(Priority prio, const char *fmt, ...)
 #ifdef __GNUC__
         __attribute__ ((format (printf, 3, 4)))
+#endif
+    ;
+
+    void wthrow(Priority prio, const char *fmt, ...)
+#ifdef __GNUC__
+        __attribute__ ((format (printf, 3, 4)))
+        __attribute__ ((noreturn))
 #endif
     ;
 

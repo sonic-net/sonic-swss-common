@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <syslog.h>
 #include <fstream>
+#include <stdexcept>
 
 namespace swss {
 
@@ -59,6 +60,22 @@ void Logger::write(Priority prio, const char *fmt, ...)
     va_start(ap, fmt);
     vsyslog(prio, fmt, ap);
     va_end(ap);
+}
+
+void Logger::wthrow(Priority prio, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    vsyslog(prio, fmt, ap);
+    va_end(ap);
+
+    char buffer[0x1000];
+
+    va_start(ap, fmt);
+    vsnprintf(buffer, 0x1000, fmt, ap);
+    va_start(ap, fmt);
+
+    throw std::runtime_error(buffer);
 }
 
 Logger::ScopeLogger::ScopeLogger(int line, const char *fun) : m_line(line), m_fun(fun)
