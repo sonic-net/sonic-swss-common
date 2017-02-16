@@ -64,16 +64,13 @@ void Logger::write(Priority prio, const char *fmt, ...)
 
 void Logger::wthrow(Priority prio, const char *fmt, ...)
 {
+    char buffer[0x1000];
+
     va_list ap;
     va_start(ap, fmt);
     vsyslog(prio, fmt, ap);
-    va_end(ap);
-
-    char buffer[0x1000];
-
-    va_start(ap, fmt);
     vsnprintf(buffer, 0x1000, fmt, ap);
-    va_start(ap, fmt);
+    va_end(ap);
 
     throw std::runtime_error(buffer);
 }
