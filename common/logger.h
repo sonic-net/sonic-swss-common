@@ -3,6 +3,10 @@
 
 #include <string>
 #include <chrono>
+#include <atomic>
+#include <map>
+#include <memory>
+#include <thread>
 
 namespace swss {
 
@@ -32,9 +36,17 @@ public:
         SWSS_DEBUG
     };
 
+    typedef std::map<std::string, Priority> PriorityStringMap;
+    typedef std::function<void (std::string component, std::string prioStr)> PriorityChangeNotify;
+    typedef std::map<std::string, PriorityChangeNotify> PriorityChangeObserver;
+    static const PriorityStringMap priorityStringMap;
+
     static Logger &getInstance();
     static void setMinPrio(Priority prio);
     static Priority getMinPrio();
+    static void linkToDb(const std::string dbName, const PriorityChangeNotify& notify, const std::string& defPrio);
+    // Must be called after all linkToDb to start select from DB
+    static void linkToDbNative(const std::string dbName);
     void write(Priority prio, const char *fmt, ...)
 #ifdef __GNUC__
         __attribute__ ((format (printf, 3, 4)))
@@ -49,7 +61,6 @@ public:
     ;
 
     static std::string priorityToString(Priority prio);
-    static Priority stringToPriority(const std::string);
 
     class ScopeLogger
     {
@@ -83,13 +94,17 @@ public:
     };
 
 private:
-    Logger();
+    Logger(){};
     Logger(const Logger&);
     Logger &operator=(const Logger&);
 
-    std::string m_self;
+    static void swssNotify(std::string component, std::string prioStr);
+    void prioThread();
 
-    static Priority m_minPrio;
+    PriorityChangeObserver m_priorityChangeObservers;
+    std::map<std::string, std::string> m_currentPrios;
+    std::atomic<Priority> m_minPrio = { SWSS_NOTICE };
+    std::unique_ptr<std::thread> m_prioThread;
 };
 
 }
