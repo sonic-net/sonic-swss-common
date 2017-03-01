@@ -1,33 +1,81 @@
 #include "logger.h"
 
+#include <algorithm>
 #include <stdarg.h>
 #include <stdio.h>
 #include <syslog.h>
 #include <fstream>
+#include <schema.h>
+#include <select.h>
+#include <dbconnector.h>
+#include <redisclient.h>
+#include <consumerstatetable.h>
+#include <producerstatetable.h>
 
 namespace swss {
 
-Logger::Priority Logger::m_minPrio = Logger::SWSS_NOTICE;
+const Logger::PriorityStringMap Logger::priorityStringMap = {
+    { "EMERG", SWSS_EMERG },
+    { "ALERT", SWSS_ALERT },
+    { "CRIT", SWSS_CRIT },
+    { "ERROR", SWSS_ERROR },
+    { "WARN", SWSS_WARN },
+    { "NOTICE", SWSS_NOTICE },
+    { "INFO", SWSS_INFO },
+    { "DEBUG", SWSS_DEBUG }
+};
 
-Logger::Logger()
+void Logger::swssNotify(std::string component, std::string prioStr)
 {
-    std::ifstream self("/proc/self/cmdline", std::ios::binary);
+    auto& logger = getInstance();
 
-    m_self = "unknown";
-
-    if (self.is_open())
+    if (priorityStringMap.find(prioStr) == priorityStringMap.end())
     {
-        self >> m_self;
-
-        size_t found = m_self.find_last_of("/");
-
-        if (found != std::string::npos)
-        {
-            m_self = m_self.substr(found + 1);
-        }
-
-        self.close();
+        SWSS_LOG_ERROR("Invalid loglevel. Setting to NOTICE.");
+        logger.m_minPrio = SWSS_NOTICE;
     }
+
+    logger.m_minPrio = priorityStringMap.at(prioStr);
+}
+
+void Logger::linkToDb(const std::string dbName, const PriorityChangeNotify& notify, const std::string& defPrio)
+{
+    auto& logger = getInstance();
+
+    // Initialize internal DB with observer
+    logger.m_priorityChangeObservers.insert(std::make_pair(dbName, notify));
+    logger.m_currentPrios[dbName] = defPrio;
+
+    DBConnector db(LOGLEVEL_DB, DBConnector::DEFAULT_UNIXSOCKET, 0);
+    RedisClient redisClient(&db);
+    auto keys = redisClient.keys("*");
+
+    // Sync with external DB
+    std::string key = dbName + ":" + dbName;
+    // If entry not found in external DB - use default
+    if (std::find(std::begin(keys), std::end(keys), key) == keys.end())
+    {
+        ProducerStateTable table(&db, dbName);
+        FieldValueTuple fv(DAEMON_LOGLEVEL, defPrio);
+        logger.m_currentPrios[dbName] = defPrio;
+        std::vector<FieldValueTuple>fieldValues = { fv };
+        table.set(dbName, fieldValues);
+        notify(dbName, defPrio);
+        return;
+    }
+
+    // There is entry in external DB - use it
+    auto newPrio = redisClient.hget(key, DAEMON_LOGLEVEL);
+    logger.m_currentPrios[dbName] = *newPrio;
+    notify(dbName, *newPrio);
+}
+
+void Logger::linkToDbNative(const std::string dbName)
+{
+    auto& logger = getInstance();
+
+    linkToDb(dbName, swssNotify, "NOTICE");
+    logger.m_prioThread.reset(new std::thread(&Logger::prioThread, &logger));
 }
 
 Logger &Logger::getInstance()
@@ -38,12 +86,63 @@ Logger &Logger::getInstance()
 
 void Logger::setMinPrio(Priority prio)
 {
-    m_minPrio = prio;
+    getInstance().m_minPrio = prio;
 }
 
 Logger::Priority Logger::getMinPrio()
 {
-    return m_minPrio;
+    return getInstance().m_minPrio;
+}
+
+[[ noreturn ]] void Logger::prioThread()
+{
+    Select select;
+    DBConnector db(LOGLEVEL_DB, DBConnector::DEFAULT_UNIXSOCKET, 0);
+    std::vector<std::shared_ptr<ConsumerStateTable>> selectables(m_priorityChangeObservers.size());
+
+    for (const auto& i : m_priorityChangeObservers)
+    {
+        std::shared_ptr<ConsumerStateTable> table = std::make_shared<ConsumerStateTable>(&db, i.first);
+        selectables.push_back(table);
+        select.addSelectable(table.get());
+    }
+
+    while(true)
+    {
+        int fd = 0;
+        Selectable *selectable = nullptr;
+
+        int ret = select.select(&selectable, &fd);
+
+        if (ret == Select::ERROR)
+        {
+            SWSS_LOG_NOTICE("%s select error %s", __PRETTY_FUNCTION__, strerror(errno));
+            continue;
+        }
+
+        KeyOpFieldsValuesTuple koValues;
+        dynamic_cast<ConsumerStateTable *>(selectable)->pop(koValues);
+        std::string key = kfvKey(koValues), op = kfvOp(koValues);
+
+        if ((op != SET_COMMAND) || (m_priorityChangeObservers.find(key) == m_priorityChangeObservers.end()))
+        {
+            continue;
+        }
+
+        auto values = kfvFieldsValues(koValues);
+        for (const auto& i : values)
+        {
+            std::string field = fvField(i), value = fvValue(i);
+            if ((field != DAEMON_LOGLEVEL) || (value == m_currentPrios[key]))
+            {
+                continue;
+            }
+
+            m_currentPrios[key] = value;
+            m_priorityChangeObservers[key](key, value);
+            break;
+        }
+    }
 }
 
 void Logger::write(Priority prio, const char *fmt, ...)
@@ -90,68 +189,15 @@ Logger::ScopeTimer::~ScopeTimer()
 
 std::string Logger::priorityToString(Logger::Priority prio)
 {
-    switch(prio)
+    for (const auto& i : priorityStringMap)
     {
-    case swss::Logger::SWSS_EMERG:
-        return "EMERG";
-
-    case swss::Logger::SWSS_ALERT:
-        return "ALERT";
-
-    case swss::Logger::SWSS_CRIT:
-        return "CRIT";
-
-    case swss::Logger::SWSS_ERROR:
-        return "ERROR";
-
-    case swss::Logger::SWSS_WARN:
-        return "WARN";
-
-    case swss::Logger::SWSS_NOTICE:
-        return "NOTICE";
-
-    case swss::Logger::SWSS_INFO:
-        return "INFO";
-
-    case swss::Logger::SWSS_DEBUG:
-        return "DEBUG";
-
-    default:
-        SWSS_LOG_WARN("unable to parse prioriy %d as log priority, returning notice", prio);
-
-        return "NOTICE";
+        if (i.second == prio)
+        {
+            return i.first;
+        }
     }
-}
 
-Logger::Priority Logger::stringToPriority(const std::string level)
-{
-    if (level == "EMERG")
-        return swss::Logger::SWSS_EMERG;
-
-    if (level == "ALERT")
-        return swss::Logger::SWSS_ALERT;
-
-    if (level == "CRIT")
-        return swss::Logger::SWSS_CRIT;
-
-    if (level == "ERROR")
-        return swss::Logger::SWSS_ERROR;
-
-    if (level == "WARN")
-        return swss::Logger::SWSS_WARN;
-
-    if (level == "NOTICE")
-        return swss::Logger::SWSS_NOTICE;
-
-    if (level == "INFO")
-        return swss::Logger::SWSS_INFO;
-
-    if (level == "DEBUG")
-        return swss::Logger::SWSS_DEBUG;
-
-    SWSS_LOG_WARN("unable to parse %s as log priority, returning notice", level.c_str());
-
-    return swss::Logger::SWSS_NOTICE;
+    return "UNKNOWN";
 }
 
 };
