@@ -2,6 +2,8 @@ INCLUDES = -I $(top_srcdir) -I/usr/include/libnl3
 
 lib_LTLIBRARIES = libswsscommon.la
 
+bin_PROGRAMS = swssloglevel
+
 if DEBUG
 DBGFLAGS = -ggdb -DDEBUG
 else
@@ -35,4 +37,10 @@ libswsscommon_la_SOURCES = \
 
 libswsscommon_la_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON)
 libswsscommon_la_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON)
-libswsscommon_la_LIBADD =
+libswsscommon_la_LIBADD = -lpthread
+
+swssloglevel_SOURCES = loglevel.cpp
+
+swssloglevel_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON)
+swssloglevel_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON)
+swssloglevel_LDADD = -lswsscommon
