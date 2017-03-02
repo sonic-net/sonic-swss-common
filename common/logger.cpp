@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <syslog.h>
 #include <fstream>
+#include <stdexcept>
 #include <schema.h>
 #include <select.h>
 #include <dbconnector.h>
@@ -158,6 +159,19 @@ void Logger::write(Priority prio, const char *fmt, ...)
     va_start(ap, fmt);
     vsyslog(prio, fmt, ap);
     va_end(ap);
+}
+
+void Logger::wthrow(Priority prio, const char *fmt, ...)
+{
+    char buffer[0x1000];
+
+    va_list ap;
+    va_start(ap, fmt);
+    vsyslog(prio, fmt, ap);
+    vsnprintf(buffer, 0x1000, fmt, ap);
+    va_end(ap);
+
+    throw std::runtime_error(buffer);
 }
 
 Logger::ScopeLogger::ScopeLogger(int line, const char *fun) : m_line(line), m_fun(fun)
