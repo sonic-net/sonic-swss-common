@@ -19,7 +19,8 @@ tests_SOURCES = redis_ut.cpp    \
                 tokenize_ut.cpp \
                 json_ut.cpp     \
                 ntf_ut.cpp      \
-                ipprefix_ut.cpp
+                ipprefix_ut.cpp \
+                converter_ut.cpp
 
 tests_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_GTEST)
 tests_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_GTEST)
