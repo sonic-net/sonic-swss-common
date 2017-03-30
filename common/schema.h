@@ -10,7 +10,9 @@ namespace swss {
 
 #define APP_PORT_TABLE_NAME             "PORT_TABLE"
 #define APP_VLAN_TABLE_NAME             "VLAN_TABLE"
+#define APP_VLAN_MEMBER_TABLE_NAME      "VLAN_MEMBER_TABLE"
 #define APP_LAG_TABLE_NAME              "LAG_TABLE"
+#define APP_LAG_MEMBER_TABLE_NAME       "LAG_MEMBER_TABLE"
 #define APP_INTF_TABLE_NAME             "INTF_TABLE"
 #define APP_NEIGH_TABLE_NAME            "NEIGH_TABLE"
 #define APP_ROUTE_TABLE_NAME            "ROUTE_TABLE"
