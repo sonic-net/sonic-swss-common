@@ -168,6 +168,9 @@ void Logger::wthrow(Priority prio, const char *fmt, ...)
     va_list ap;
     va_start(ap, fmt);
     vsyslog(prio, fmt, ap);
+    va_end(ap);
+
+    va_start(ap, fmt);
     vsnprintf(buffer, 0x1000, fmt, ap);
     va_end(ap);
 
