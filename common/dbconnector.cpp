@@ -12,6 +12,8 @@ using namespace std;
 
 namespace swss {
 
+constexpr const char *DBConnector::DEFAULT_UNIXSOCKET;
+
 void DBConnector::select(DBConnector *db)
 {
     string select("SELECT ");
