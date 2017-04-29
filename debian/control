@@ -9,7 +9,7 @@ Package: libswsscommon
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Pre-Depends}
 Section: libs
-Description: Tihs package contains Switch State Service common library.
+Description: This package contains Switch State Service common library.
 
 Package: libswsscommon-dbg
 Architecture: any
