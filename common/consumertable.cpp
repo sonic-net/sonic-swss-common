@@ -84,7 +84,30 @@ void ConsumerTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, string prefix)
             "end\n"
             "table.insert(rets, ret)\n"
 
-            "if op ~= 'get' and op ~= 'getresponse' and op ~= 'notify' then\n"
+            "if op == 'bulkset' or op == 'bulkcreate' then\n"
+
+            // key is "OBJECT_TYPE:num", extract object type from key
+            "    key = key:sub(1, string.find(key, ':') - 1)\n"
+
+            "   local len = #ret\n"
+            "   local st = 3\n"         // since 1 and 2 is key/op
+            "   while st <= len do\n"
+            "       local field = ret[st]\n"
+            // keyname is ASIC_STATE : OBJECT_TYPE : OBJECT_ID
+            "       local keyname = KEYS[4] .. ':' .. key .. ':' .. field\n"
+
+            // value can be multiple a=v|a=v|... we need to split using gmatch
+            "       local vars = ret[st+1]\n"
+            "       for value in string.gmatch(vars,'([^|]+)') do\n"
+            "           local attr = value:sub(1, string.find(value, '=') - 1)\n"
+            "           local val = value.sub(value, string.find(value, '=') + 1)\n"
+            "           redis.call('HSET', keyname, attr, val)\n"
+            "       end\n"
+
+            "       st = st + 2\n"
+            "   end\n"
+
+            "elseif op ~= 'get' and op ~= 'getresponse' and op ~= 'notify' then\n"
                 "local keyname = KEYS[4] .. ':' .. key\n"
                 "if key == '' then\n"
                 "   keyname = KEYS[4]\n"
