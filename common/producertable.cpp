@@ -96,7 +96,7 @@ void ProducerTable::set(string key, vector<FieldValueTuple> &values, string op, 
 
     enqueueDbChange(key, JSon::buildJson(values), "S" + op, prefix);
     // Only buffer continuous "set/set" or "del" operations
-    if (!m_buffered || op != "set")
+    if (!m_buffered || (op != "set" && op != "bulkset" ))
     {
         m_pipe->flush();
     }
