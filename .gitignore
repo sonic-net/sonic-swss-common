@@ -13,12 +13,9 @@ debian/libswsscommon.debhelper.log
 debian/libswsscommon.postinst.debhelper
 debian/libswsscommon.postrm.debhelper
 debian/libswsscommon.substvars
-debian/swss.debhelper.log
-debian/swss.substvars
 
 debian/libswsscommon-dev/
 debian/libswsscommon/
-debian/swss/
 debian/tmp/
 
 aclocal.m4
@@ -35,18 +32,9 @@ stamp-h1
 **/.libs/
 **/Makefile
 
-# Dependency Folder #
-#####################
-deps/
-fpmsyncd/fpm/
-
 # Executables #
 ###############
-fpmsyncd/fpmsyncd
-intfsyncd/intfsyncd
-neighsyncd/neighsyncd
-portsyncd/portsyncd
-orchagent/orchagent
-orchagent/routeresync
+common/swssloglevel
+tests/tests
 
 
