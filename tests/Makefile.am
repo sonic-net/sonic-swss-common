@@ -21,6 +21,7 @@ tests_SOURCES = redis_ut.cpp                \
                 ntf_ut.cpp                  \
                 ipaddress_ut.cpp            \
                 ipprefix_ut.cpp             \
+                macaddress_ut.cpp           \
                 converter_ut.cpp
 
 tests_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_GTEST)
