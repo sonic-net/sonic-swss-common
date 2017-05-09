@@ -37,7 +37,7 @@ public:
         return !(*this == o);
     }
 
-    inline bool operator<(const MacAddress &o)
+    inline bool operator<(const MacAddress &o) const
     {
         return memcmp(m_mac, o.m_mac, sizeof(m_mac)) < 0;
     }
