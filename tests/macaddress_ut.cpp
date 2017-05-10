@@ -2,6 +2,7 @@
 #include "common/macaddress.h"
 
 using namespace swss;
+using namespace std;
 
 TEST(MacAddress, to_string)
 {
@@ -34,4 +35,13 @@ TEST(MacAddress, comparison)
     auto c = MacAddress("00:00:00:00:00:00");
 
     EXPECT_EQ(!c, true);
+}
+
+TEST(MacAddress, parse)
+{
+    uint8_t mac[6];
+    bool suc = MacAddress::parseMacString("52:54:00:25::E9", mac);
+    EXPECT_FALSE(suc);
+
+    EXPECT_THROW(MacAddress("52:54:00:25:E9"), invalid_argument);
 }
