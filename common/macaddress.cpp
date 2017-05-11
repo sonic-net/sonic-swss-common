@@ -1,6 +1,7 @@
 #include "macaddress.h"
 
 #include <sstream>
+#include <stdexcept>
 
 using namespace swss;
 using namespace std;
@@ -17,7 +18,8 @@ MacAddress::MacAddress(const uint8_t *mac)
 
 MacAddress::MacAddress(const std::string& macStr)
 {
-    MacAddress::parseMacString(macStr, m_mac);
+    bool suc = MacAddress::parseMacString(macStr, m_mac);
+    if (!suc) throw invalid_argument("macStr");
 }
 
 const std::string MacAddress::to_string() const
@@ -36,7 +38,8 @@ std::string MacAddress::to_string(const uint8_t* mac)
 
 bool MacAddress::parseMacString(const string& macStr, uint8_t* mac)
 {
-    int i, value;
+    int i;
+    unsigned int value;
     char ignore;
     istringstream iss(macStr);
 
@@ -50,6 +53,8 @@ bool MacAddress::parseMacString(const string& macStr, uint8_t* mac)
     for (i = 0; i < 5; i++)
     {
         iss >> value >> ignore;
+        if (!iss) return false;
+        if (value >= 256) return false;
         mac[i] = (uint8_t)value;
     }
     iss >> value;
