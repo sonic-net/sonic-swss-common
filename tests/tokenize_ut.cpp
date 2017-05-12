@@ -53,3 +53,65 @@ TEST(TOKENIZE, IP_2)
 
     EXPECT_EQ(origin, result);
 }
+
+TEST(TOKENIZEFIRST, zero)
+{
+    string key("Hello world!");
+    auto tokens = tokenize(key, ' ', 0);
+    EXPECT_EQ(tokens[0], key);
+}
+
+TEST(TOKENIZEFIRST, out_of_bound)
+{
+    string key("Hello world!");
+    auto tokens = tokenize(key, ' ', 999);
+    EXPECT_EQ(tokens[0], "Hello");
+    EXPECT_EQ(tokens[1], "world!");
+    EXPECT_EQ(tokens.size(), (size_t) 2);
+}
+
+TEST(TOKENIZEFIRST, MAC)
+{
+    string key("neigh:00:00:00:00:00:00");
+    auto tokens = tokenize(key, ':', 1);
+
+    EXPECT_EQ(tokens[0], "neigh");
+    EXPECT_EQ(tokens[1], "00:00:00:00:00:00");
+}
+
+TEST(TOKENIZEFIRST, IPv6)
+{
+    string key("NEIGH_TABLE:lo:fc00::79");
+    auto tokens = tokenize(key, ':', 1);
+
+    EXPECT_EQ(tokens[0], "NEIGH_TABLE");
+
+    tokens = tokenize(tokens[1], ':', 1);
+
+    EXPECT_EQ(tokens[0], "lo");
+    EXPECT_EQ(tokens[1], "fc00::79");
+}
+
+TEST(TOKENIZEFIRST, IPv6_2)
+{
+    string key("NEIGH_TABLE:lo:fc00::79");
+
+    auto tokens = tokenize(key, ':', 2);
+
+    EXPECT_EQ(tokens[0], "NEIGH_TABLE");
+    EXPECT_EQ(tokens[1], "lo");
+    EXPECT_EQ(tokens[2], "fc00::79");
+}
+
+TEST(TOKENIZEFISRT, not_found)
+{
+    string key("neigh:00:00:00:00:00:00");
+    auto tokens = tokenize(key, '|', 1);
+
+    EXPECT_EQ(tokens[0], key);
+
+    string key_2("neigh:");
+    auto tokens_2 = tokenize(key_2, ':', 1);
+
+    EXPECT_EQ(tokens_2[0], key_2);
+}
