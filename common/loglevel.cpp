@@ -29,7 +29,7 @@ using namespace swss;
               << "\t -s\tapply loglevel for SAI api component (equivalent to adding prefix \"SAI_API_\" to component)" << std::endl
               << "\t -p\tprint components registered in DB for which setting can be applied" << std::endl << std::endl
               << "Examples:" << std::endl
-              << "\t" << program << " -l NOTCE -c orchagent # set severity level " << std::endl
+              << "\t" << program << " -l NOTICE -c orchagent # set severity level " << std::endl
               << "\t" << program << " -l SAI_LOG_ERROR -s -c SWITCH # set SAI_API_SWITCH severity " << std::endl;
 
     exit(status);
@@ -140,11 +140,11 @@ int main(int argc, char **argv)
 
     if ((prefix == "SAI_API_") && !validateSaiLoglevel(loglevel))
     {
-        exitWithUsage(EXIT_FAILURE, "Invlid SAI loglevel value");
+        exitWithUsage(EXIT_FAILURE, "Invalid SAI loglevel value");
     }
     else if ((prefix == "") && (Logger::priorityStringMap.find(loglevel) == Logger::priorityStringMap.end()))
     {
-        exitWithUsage(EXIT_FAILURE, "Invlid loglevel value");
+        exitWithUsage(EXIT_FAILURE, "Invalid loglevel value");
     }
 
     if (applyToAll)
