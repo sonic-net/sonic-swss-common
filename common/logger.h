@@ -17,7 +17,7 @@ namespace swss {
 #define SWSS_LOG_DEBUG(MSG, ...)       swss::Logger::getInstance().write(swss::Logger::SWSS_DEBUG,  ":- %s: " MSG, __FUNCTION__, ##__VA_ARGS__)
 
 #define SWSS_LOG_ENTER()               swss::Logger::ScopeLogger logger ## __LINE__ (__LINE__, __FUNCTION__)
-#define SWSS_LOG_TIMER(msg)            swss::Logger::ScopeTimer scopetimer ## __LINE__ (__LINE__, __FUNCTION__, msg)
+#define SWSS_LOG_TIMER(msg, ...)       swss::Logger::ScopeTimer scopetimer ## __LINE__ (__LINE__, __FUNCTION__, msg, ##__VA_ARGS__)
 
 #define SWSS_LOG_THROW(MSG, ...)       swss::Logger::getInstance().wthrow(swss::Logger::SWSS_ERROR,  ":- %s: " MSG, __FUNCTION__, ##__VA_ARGS__)
 
@@ -80,7 +80,7 @@ public:
 
         public:
 
-            ScopeTimer(int line, const char* fun, std::string msg);
+            ScopeTimer(int line, const char* fun, const char *msg, ...);
             ~ScopeTimer();
 
         private:
