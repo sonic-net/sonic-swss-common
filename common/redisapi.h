@@ -6,6 +6,10 @@
 #include "logger.h"
 #include "rediscommand.h"
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 namespace swss {
 
 static inline std::string loadRedisScript(DBConnector* db, const std::string& script)
@@ -54,11 +58,7 @@ static inline std::string loadLuaScript(const std::string& path)
 {
     SWSS_LOG_ENTER();
 
-    std::vector<std::string> paths = {
-        path,
-        "/usr/share/swss/" + path,
-        "/usr/local/share/swss/" + path
-    };
+    std::vector<std::string> paths = { path, CONFIGURE_PREFIX "/" + path };
 
     for (auto p: paths)
     {

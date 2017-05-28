@@ -10,6 +10,12 @@ AC_PROG_CXX
 AC_PROG_LIBTOOL
 AC_HEADER_STDC
 
+AH_TEMPLATE([CONFIGURE_PREFIX])
+
+AS_IF([test "x${prefix}" = "xNONE" ],
+    AC_DEFINE_UNQUOTED([CONFIGURE_PREFIX], ["$ac_default_prefix"]),
+    AC_DEFINE_UNQUOTED([CONFIGURE_PREFIX], ["$prefix"]))
+
 AC_CHECK_LIB([hiredis], [redisConnect])
 AC_CHECK_LIB([nl-3], [nl_connect])
 AC_CHECK_LIB([nl-genl-3], [genl_connect])
