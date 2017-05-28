@@ -6,4 +6,4 @@ for i = 1, n do
    local values = redis.call('HGETALL', KEYS[2] .. key)
    table.insert(ret, {key, values})
 end
-return ret";
+return ret
