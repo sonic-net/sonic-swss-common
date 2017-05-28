@@ -1,5 +1,8 @@
 #pragma once
+#include <unistd.h>
 #include <stdexcept>
+#include <vector>
+#include <fstream>
 #include "logger.h"
 #include "rediscommand.h"
 
@@ -27,6 +30,45 @@ static inline std::string loadRedisScript(DBConnector* db, const std::string& sc
 static inline std::string encodeLuaArgument(const std::string& arg)
 {
     return '`' + arg;
+}
+
+inline bool fileExists(const std::string& name)
+{
+    return access(name.c_str(), F_OK) != -1;
+}
+
+inline std::string readTextFile(const std::string& path)
+{
+    std::ifstream ifs(path);
+
+    if (ifs.good())
+    {
+        return std::string((std::istreambuf_iterator<char>(ifs)),
+                (std::istreambuf_iterator<char>()));
+    }
+
+    SWSS_LOG_THROW("failed to read file: '%s': %s", path.c_str(), strerror(errno));
+}
+
+static inline std::string loadLuaScript(const std::string& path)
+{
+    SWSS_LOG_ENTER();
+
+    std::vector<std::string> paths = {
+        path,
+        "/usr/share/swss/" + path,
+        "/usr/local/share/swss/" + path
+    };
+
+    for (auto p: paths)
+    {
+        if (fileExists(p))
+        {
+            return readTextFile(p);
+        }
+    }
+
+    SWSS_LOG_THROW("failed to locate file: %s", path.c_str());
 }
 
 }

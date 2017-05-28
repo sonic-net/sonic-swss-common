@@ -99,24 +99,7 @@ void Table::dump(TableDump& tableDump)
     // but it's not intended to be efficient
     // since it will not be used many times
 
-    static std::string luaScript =
-
-        "local keys = redis.call(\"keys\", KEYS[1] .. \":*\")\n"
-        "local res = {}\n"
-
-        "for i,k in pairs(keys) do\n"
-        "   local skeys = redis.call(\"HKEYS\", k)\n"
-        "   local sres={}\n"
-
-        "   for j,sk in pairs(skeys) do\n"
-        "       sres[sk] = redis.call(\"HGET\", k, sk)\n"
-        "   end\n"
-
-        "   res[k] = sres\n"
-
-        "end\n"
-
-        "return cjson.encode(res)\n";
+    static std::string luaScript = loadLuaScript("table_dump.lua");
 
     static std::string sha = loadRedisScript(m_db, luaScript);
 

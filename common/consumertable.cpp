@@ -57,75 +57,7 @@ void ConsumerTable::pop(KeyOpFieldsValuesTuple &kco, string prefix)
 
 void ConsumerTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, string prefix)
 {
-    static string luaScript =
-        "local rets = {}\n"
-        "local keys   = redis.call('LRANGE', KEYS[1], -ARGV[1], -1)\n"
-        "local ops    = redis.call('LRANGE', KEYS[2], -ARGV[1], -1)\n"
-        "local values = redis.call('LRANGE', KEYS[3], -ARGV[1], -1)\n"
-        "redis.call('LTRIM', KEYS[1], 0, -ARGV[1]-1)"
-        "redis.call('LTRIM', KEYS[2], 0, -ARGV[1]-1)"
-        "redis.call('LTRIM', KEYS[3], 0, -ARGV[1]-1)"
-
-        "local n = table.getn(keys)\n"
-        "for i = n, 1, -1 do\n"
-        "   local key = keys[i]\n"
-        "   local op = ops[i]\n"
-        "   local value = values[i]\n"
-        "   local dbop = op:sub(1,1)\n"
-        "   op = op:sub(2)\n"
-        "   local ret = {key, op}\n"
-
-        "   local jj = cjson.decode(value)\n"
-        "   local size = #jj\n"
-
-        "   for idx=1,size,2 do\n"
-        "       table.insert(ret, jj[idx])\n"
-        "       table.insert(ret, jj[idx+1])\n"
-        "   end\n"
-        "   table.insert(rets, ret)\n"
-
-        "   if op == 'bulkset' or op == 'bulkcreate' then\n"
-
-        // key is "OBJECT_TYPE:num", extract object type from key
-        "       key = key:sub(1, string.find(key, ':') - 1)\n"
-
-        "       local len = #ret\n"
-        "       local st = 3\n"         // since 1 and 2 is key/op
-        "       while st <= len do\n"
-        "           local field = ret[st]\n"
-        // keyname is ASIC_STATE : OBJECT_TYPE : OBJECT_ID
-        "           local keyname = KEYS[4] .. ':' .. key .. ':' .. field\n"
-
-        // value can be multiple a=v|a=v|... we need to split using gmatch
-        "           local vars = ret[st+1]\n"
-        "           for value in string.gmatch(vars,'([^|]+)') do\n"
-        "               local attr = value:sub(1, string.find(value, '=') - 1)\n"
-        "               local val = value.sub(value, string.find(value, '=') + 1)\n"
-        "               redis.call('HSET', keyname, attr, val)\n"
-        "           end\n"
-
-        "           st = st + 2\n"
-        "       end\n"
-
-        "   elseif op ~= 'get' and op ~= 'getresponse' and op ~= 'notify' then\n"
-        "       local keyname = KEYS[4] .. ':' .. key\n"
-        "       if key == '' then\n"
-        "           keyname = KEYS[4]\n"
-        "       end\n"
-
-        "       if dbop == 'D' then\n"
-        "           redis.call('DEL', keyname)\n"
-        "       else\n"
-        "           local st = 3\n"
-        "           local len = #ret\n"
-        "           while st <= len do\n"
-        "               redis.call('HSET', keyname, ret[st], ret[st+1])\n"
-        "               st = st + 2\n"
-        "           end\n"
-        "       end\n"
-        "   end\n"
-        "end\n"
-        "return rets";
+    static std::string luaScript = loadLuaScript("consumer_table_pops_dump.lua");
 
     static string sha = loadRedisScript(m_db, luaScript);
     RedisCommand command;
