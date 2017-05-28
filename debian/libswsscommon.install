@@ -1,2 +1,3 @@
 usr/lib/*/lib*.so.*
+usr/share/swss/*.lua
 usr/bin/swssloglevel
