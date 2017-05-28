@@ -53,7 +53,7 @@ void ConsumerStateTable::pop(KeyOpFieldsValuesTuple &kco, std::string prefix)
 
 void ConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, std::string /*prefix*/)
 {
-    static std::string luaScript = loadLuaScript("consumer_table_pops_dump.lua");
+    static std::string luaScript = loadLuaScript("consumer_table_pops.lua");
 
     static std::string sha = loadRedisScript(m_db, luaScript);
 
