@@ -110,7 +110,7 @@ TEST(TOKENIZEFISRT, not_found)
 
     EXPECT_EQ(tokens[0], key);
 
-    string key_2("neigh:");
+    string key_2("neigh");
     auto tokens_2 = tokenize(key_2, ':', 1);
 
     EXPECT_EQ(tokens_2[0], key_2);
