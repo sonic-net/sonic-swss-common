@@ -58,7 +58,12 @@ static inline std::string loadLuaScript(const std::string& path)
 {
     SWSS_LOG_ENTER();
 
-    std::vector<std::string> paths = { path, CONFIGURE_PREFIX "/" + path };
+    std::vector<std::string> paths = {
+        path,
+        CONFIGURE_PREFIX "/" + path,
+        "/usr/share/swss/" + path,
+        "/usr/local/share/swss/" + path,
+    };
 
     for (auto p: paths)
     {
