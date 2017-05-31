@@ -58,22 +58,7 @@ static inline std::string loadLuaScript(const std::string& path)
 {
     SWSS_LOG_ENTER();
 
-    std::vector<std::string> paths = {
-        path,
-        CONFIGURE_PREFIX "/" + path,
-        "/usr/share/swss/" + path,
-        "/usr/local/share/swss/" + path,
-    };
-
-    for (auto p: paths)
-    {
-        if (fileExists(p))
-        {
-            return readTextFile(p);
-        }
-    }
-
-    SWSS_LOG_THROW("failed to locate file: %s", path.c_str());
+    return readTextFile("/usr/share/swss/" + path);
 }
 
 }
