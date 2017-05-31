@@ -2,6 +2,12 @@ INCLUDES = -I $(top_srcdir) -I/usr/include/libnl3
 
 lib_LTLIBRARIES = libswsscommon.la
 
+EXTRA_DIST = *.lua
+
+swssdir = $(datadir)/swss
+
+dist_swss_DATA = *.lua
+
 bin_PROGRAMS = swssloglevel
 
 if DEBUG

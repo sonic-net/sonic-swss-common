@@ -1,7 +1,14 @@
 #pragma once
+#include <unistd.h>
 #include <stdexcept>
+#include <vector>
+#include <fstream>
 #include "logger.h"
 #include "rediscommand.h"
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 namespace swss {
 
@@ -27,6 +34,31 @@ static inline std::string loadRedisScript(DBConnector* db, const std::string& sc
 static inline std::string encodeLuaArgument(const std::string& arg)
 {
     return '`' + arg;
+}
+
+inline bool fileExists(const std::string& name)
+{
+    return access(name.c_str(), F_OK) != -1;
+}
+
+inline std::string readTextFile(const std::string& path)
+{
+    std::ifstream ifs(path);
+
+    if (ifs.good())
+    {
+        return std::string((std::istreambuf_iterator<char>(ifs)),
+                (std::istreambuf_iterator<char>()));
+    }
+
+    SWSS_LOG_THROW("failed to read file: '%s': %s", path.c_str(), strerror(errno));
+}
+
+static inline std::string loadLuaScript(const std::string& path)
+{
+    SWSS_LOG_ENTER();
+
+    return readTextFile("/usr/share/swss/" + path);
 }
 
 }

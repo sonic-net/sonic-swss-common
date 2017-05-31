@@ -53,16 +53,7 @@ void ConsumerStateTable::pop(KeyOpFieldsValuesTuple &kco, std::string prefix)
 
 void ConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, std::string /*prefix*/)
 {
-    static std::string luaScript =
-        "local ret = {}\n"
-        "local keys = redis.call('SPOP', KEYS[1], ARGV[1])\n"
-        "local n = table.getn(keys)\n"
-        "for i = 1, n do\n"
-            "local key = keys[i]\n"
-            "local values = redis.call('HGETALL', KEYS[2] .. key)\n"
-            "table.insert(ret, {key, values})\n"
-        "end\n"
-        "return ret\n";
+    static std::string luaScript = loadLuaScript("consumer_state_table_pops.lua");
 
     static std::string sha = loadRedisScript(m_db, luaScript);
 
