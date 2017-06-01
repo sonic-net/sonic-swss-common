@@ -48,6 +48,8 @@ public:
 
     bool contains(const IpAddress &ip);
 
+    bool contains(const IpAddresses &ips);
+
     void remove(const std::string &ip);
 
     void remove(const IpAddress &ip);

@@ -37,6 +37,18 @@ bool IpAddresses::contains(const IpAddress &ip)
     return m_ips.find(ip) != m_ips.end();
 }
 
+bool IpAddresses::contains(const IpAddresses &ips)
+{
+    for (auto ip : ips.getIpAddresses())
+    {
+        if (!contains(ip))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 void IpAddresses::remove(const string &ipStr)
 {
     IpAddress ip(ipStr);
