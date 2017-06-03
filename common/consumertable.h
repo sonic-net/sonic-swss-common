@@ -17,7 +17,7 @@ class ConsumerTable : public RedisTransactioner, public RedisSelect, public Tabl
 public:
     const int POP_BATCH_SIZE;
 
-    ConsumerTable(DBConnector *db, std::string tableName);
+    ConsumerTable(DBConnector *db, std::string tableName, int popBatchSize = DEFAULT_POP_BATCH_SIZE);
 
     /* Get a singlesubscribe channel rpop */
     void pop(KeyOpFieldsValuesTuple &kco, std::string prefix = EMPTY_PREFIX);
