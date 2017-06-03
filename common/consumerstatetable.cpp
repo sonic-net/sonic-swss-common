@@ -11,10 +11,10 @@
 
 namespace swss {
 
-ConsumerStateTable::ConsumerStateTable(DBConnector *db, std::string tableName)
+ConsumerStateTable::ConsumerStateTable(DBConnector *db, std::string tableName, int popBatchSize)
     : RedisTransactioner(db)
     , TableName_KeySet(tableName)
-    , POP_BATCH_SIZE(128)
+    , POP_BATCH_SIZE(popBatchSize)
 {
     for (;;)
     {
