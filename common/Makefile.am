@@ -1,4 +1,4 @@
-INCLUDES = -I $(top_srcdir) -I/usr/include/libnl3
+INCLUDES = -I $(top_srcdir)
 
 lib_LTLIBRARIES = libswsscommon.la
 
@@ -35,12 +35,12 @@ libswsscommon_la_SOURCES = \
     portmap.cpp               \
     tokenize.cpp
 
-libswsscommon_la_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON)
-libswsscommon_la_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON)
-libswsscommon_la_LIBADD = -lpthread
+libswsscommon_la_CXXFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CFLAGS)
+libswsscommon_la_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CPPFLAGS)
+libswsscommon_la_LIBADD = -lpthread $(LIBNL_LIBS)
 
 swssloglevel_SOURCES = loglevel.cpp
 
-swssloglevel_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON)
+swssloglevel_CXXFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON)
 swssloglevel_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON)
-swssloglevel_LDADD = -lswsscommon
+swssloglevel_LDADD = libswsscommon.la

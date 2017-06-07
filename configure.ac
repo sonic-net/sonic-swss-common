@@ -11,9 +11,9 @@ AC_PROG_LIBTOOL
 AC_HEADER_STDC
 
 AC_CHECK_LIB([hiredis], [redisConnect])
-AC_CHECK_LIB([nl-3], [nl_connect])
-AC_CHECK_LIB([nl-genl-3], [genl_connect])
-AC_CHECK_LIB([nl-route-3], [rtnl_route_alloc])
+PKG_CHECK_MODULES([LIBNL], [libnl-3.0 libnl-genl-3.0 libnl-route-3.0])
+        CFLAGS="$CFLAGS $LIBNL_CFLAGS"
+        LIBS="$LIBS $LIBNL_LIBS"
 
 LDFLAGS="-Wl,--no-undefined $LDFLAGS"
 AC_SUBST([LDFLAGS])
