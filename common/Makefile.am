@@ -2,11 +2,17 @@ INCLUDES = -I $(top_srcdir) -I/usr/include/libnl3
 
 lib_LTLIBRARIES = libswsscommon.la
 
-EXTRA_DIST = *.lua
+EXTRA_DIST = \
+    consumer_state_table_pops.lua \
+    consumer_table_pops.lua \
+    table_dump.lua
 
 swssdir = $(datadir)/swss
 
-dist_swss_DATA = *.lua
+dist_swss_DATA = \
+    consumer_state_table_pops.lua \
+    consumer_table_pops.lua \
+    table_dump.lua
 
 bin_PROGRAMS = swssloglevel
 
