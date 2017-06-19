@@ -46,12 +46,12 @@ void setLoglevel(DBConnector& db, const std::string& component, const std::strin
 bool validateSaiLoglevel(std::string prioStr)
 {
     static const std::vector<std::string> saiPrios = {
-        "SAI_LOG_CRITICAL",
-        "SAI_LOG_ERROR",
-        "SAI_LOG_WARN",
-        "SAI_LOG_NOTICE",
-        "SAI_LOG_INFO",
-        "SAI_LOG_DEBUG",
+        "SAI_LOG_LEVEL_CRITICAL",
+        "SAI_LOG_LEVEL_ERROR",
+        "SAI_LOG_LEVEL_WARN",
+        "SAI_LOG_LEVEL_NOTICE",
+        "SAI_LOG_LEVEL_INFO",
+        "SAI_LOG_LEVEL_DEBUG",
     };
 
     return std::find(saiPrios.begin(), saiPrios.end(), prioStr) != saiPrios.end();
