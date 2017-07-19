@@ -7,6 +7,7 @@ namespace swss {
 #define ASIC_DB         1
 #define COUNTERS_DB     2
 #define LOGLEVEL_DB     3
+#define PFC_WD_DB       4
 
 #define APP_PORT_TABLE_NAME             "PORT_TABLE"
 #define APP_VLAN_TABLE_NAME             "VLAN_TABLE"
@@ -43,6 +44,11 @@ namespace swss {
 
 #define DAEMON_TABLE_NAME "DAEMON_TABLE"
 #define DAEMON_LOGLEVEL "LOGLEVEL"
+
+#define APP_PFC_WD_TABLE_NAME "PFC_WD_TABLE"
+#define PFC_WD_STATE_TABLE "PFC_WD_STATE_TABLE"
+#define PFC_WD_PORT_COUNTER_ID_LIST "port_counter_id_list"
+#define PFC_WD_QUEUE_COUNTER_ID_LIST "queue_counter_id_list"
 
 #define IPV4_NAME "IPv4"
 #define IPV6_NAME "IPv6"
