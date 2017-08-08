@@ -49,9 +49,10 @@ void SelectableEvent::readMe()
 {
     uint64_t r;
 
+    ssize_t s;
     do
     {
-        ssize_t s = read(m_efd, &r, sizeof(uint64_t));
+        s = read(m_efd, &r, sizeof(uint64_t));
     }
     while(s == -1 && errno == EINTR);
 
@@ -73,9 +74,10 @@ void SelectableEvent::notify()
     SWSS_LOG_ENTER();
 
     uint64_t value = 1;
+    ssize_t s;
     do
     {
-        ssize_t s = write(m_efd, &value, sizeof(uint64_t));
+        s = write(m_efd, &value, sizeof(uint64_t));
     }
     while(s == -1 && errno == EINTR);
 
