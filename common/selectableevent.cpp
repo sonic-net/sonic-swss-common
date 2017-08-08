@@ -26,7 +26,13 @@ SelectableEvent::SelectableEvent() :
 
 SelectableEvent::~SelectableEvent()
 {
-    close(m_efd);
+    int err;
+
+    do
+    {
+        err = close(m_efd);
+    }
+    while(err == -1 && errno == EINTR);
 }
 
 void SelectableEvent::addFd(fd_set *fd)
@@ -42,7 +48,13 @@ int SelectableEvent::readCache()
 void SelectableEvent::readMe()
 {
     uint64_t r;
-    ssize_t s = read(m_efd, &r, sizeof(uint64_t));
+
+    ssize_t s;
+    do
+    {
+        s = read(m_efd, &r, sizeof(uint64_t));
+    }
+    while(s == -1 && errno == EINTR);
 
     if (s != sizeof(uint64_t))
     {
@@ -62,7 +74,12 @@ void SelectableEvent::notify()
     SWSS_LOG_ENTER();
 
     uint64_t value = 1;
-    ssize_t s = write(m_efd, &value, sizeof(uint64_t));
+    ssize_t s;
+    do
+    {
+        s = write(m_efd, &value, sizeof(uint64_t));
+    }
+    while(s == -1 && errno == EINTR);
 
     if (s != sizeof(uint64_t))
     {
