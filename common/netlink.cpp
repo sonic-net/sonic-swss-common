@@ -34,7 +34,7 @@ NetLink::NetLink() :
     }
 
     /* Set socket buffer size to 256KB */
-    nl_socket_set_buffer_size(m_socket, 262144, 0);
+    nl_socket_set_buffer_size(m_socket, 2097152, 0);
 }
 
 NetLink::~NetLink()
@@ -87,7 +87,14 @@ int NetLink::readCache()
 
 void NetLink::readMe()
 {
-    nl_recvmsgs_default(m_socket);
+    int err = nl_recvmsgs_default(m_socket);
+    if (err < 0)
+    {
+        if (err == -NLE_NOMEM)
+            SWSS_LOG_ERROR("netlink reports out of memory on reading a netlink socket. High possiblity of a lost message");
+        else
+            SWSS_LOG_ERROR("netlink reports an error=%d on reading a netlink socket", err);
+    }
 }
 
 int NetLink::onNetlinkMsg(struct nl_msg *msg, void *arg)

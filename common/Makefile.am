@@ -2,11 +2,14 @@ INCLUDES = -I $(top_srcdir)
 
 lib_LTLIBRARIES = libswsscommon.la
 
-EXTRA_DIST = *.lua
+EXTRA_DIST = \
+    consumer_state_table_pops.lua \
+    consumer_table_pops.lua \
+    table_dump.lua
 
 swssdir = $(datadir)/swss
 
-dist_swss_DATA = *.lua
+dist_swss_DATA = $(EXTRA_DIST)
 
 bin_PROGRAMS = swssloglevel
 
