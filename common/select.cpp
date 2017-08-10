@@ -74,7 +74,12 @@ int Select::select(Selectable **c, int *fd, unsigned int timeout)
         FD_SET(fdn, &fs);
     }
 
-    err = ::select(FD_SETSIZE, &fs, NULL, NULL, pTimeout);
+    do
+    {
+        err = ::select(FD_SETSIZE, &fs, NULL, NULL, pTimeout);
+    }
+    while(err == -1 && errno == EINTR); // Retry the select if the process was interrupted by a signal
+
     if (err < 0)
         return Select::ERROR;
     if (err == 0)
