@@ -6,7 +6,7 @@
 
 namespace swss {
 
-class ProducerStateTable : public TableName_KeySet
+class ProducerStateTable : public TableBase, public TableName_KeySet
 {
 public:
     ProducerStateTable(DBConnector *db, std::string tableName);

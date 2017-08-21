@@ -10,6 +10,7 @@
 #include "hiredis/hiredis.h"
 #include "dbconnector.h"
 #include "redisreply.h"
+#include "redisselect.h"
 #include "schema.h"
 #include "redistran.h"
 
@@ -28,9 +29,6 @@ typedef std::map<std::string,TableMap> TableDump;
 
 class TableBase {
 public:
-    /* The default value of pop batch size is 128 */
-    static constexpr int DEFAULT_POP_BATCH_SIZE = 128;
-
     TableBase(std::string tableName) : m_tableName(tableName) { }
 
     std::string getTableName() const { return m_tableName; }
@@ -74,6 +72,14 @@ public:
     virtual void pops(std::deque<KeyOpFieldsValuesTuple> &vkco, std::string prefix = EMPTY_PREFIX) = 0;
 };
 
+class TableConsumable : public TableBase, public TableEntryPoppable, public RedisSelect {
+public:
+    /* The default value of pop batch size is 128 */
+    static constexpr int DEFAULT_POP_BATCH_SIZE = 128;
+
+    TableConsumable(std::string tableName) : TableBase(tableName) { }
+};
+
 class TableEntryEnumerable {
 public:
     virtual ~TableEntryEnumerable() { }
@@ -113,18 +119,34 @@ public:
     void dump(TableDump &tableDump);
 };
 
-class TableName_KeyValueOpQueues : public TableBase {
+class TableName_KeyValueOpQueues {
+private:
+    std::string m_key;
+    std::string m_value;
+    std::string m_op;
 public:
-    TableName_KeyValueOpQueues(std::string tableName) : TableBase(tableName) { }
-    std::string getKeyQueueTableName() { return getTableName() + "_KEY_QUEUE"; }
-    std::string getValueQueueTableName() { return getTableName() + "_VALUE_QUEUE"; }
-    std::string getOpQueueTableName() { return getTableName() + "_OP_QUEUE"; }
+    TableName_KeyValueOpQueues(std::string tableName)
+        : m_key(tableName + "_KEY_QUEUE")
+        , m_value(tableName + "_VALUE_QUEUE")
+        , m_op(tableName + "_OP_QUEUE")
+    {
+    }
+
+    std::string getKeyQueueTableName() const { return m_key; }
+    std::string getValueQueueTableName() const { return m_value; }
+    std::string getOpQueueTableName() const { return m_op; }
 };
 
-class TableName_KeySet : public TableBase {
+class TableName_KeySet {
+private:
+    std::string m_key;
 public:
-    TableName_KeySet(std::string tableName) : TableBase(tableName) { }
-    std::string getKeySetName() { return getTableName() + "_KEY_SET"; }
+    TableName_KeySet(std::string tableName)
+        : m_key(tableName + "_KEY_SET")
+    {
+    }
+
+    std::string getKeySetName() const { return m_key; }
 };
 
 }

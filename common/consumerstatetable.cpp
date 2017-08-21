@@ -12,7 +12,8 @@
 namespace swss {
 
 ConsumerStateTable::ConsumerStateTable(DBConnector *db, std::string tableName, int popBatchSize)
-    : RedisTransactioner(db)
+    : TableConsumable(tableName)
+    , RedisTransactioner(db)
     , TableName_KeySet(tableName)
     , POP_BATCH_SIZE(popBatchSize)
 {
