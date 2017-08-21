@@ -4,11 +4,10 @@
 #include <deque>
 #include "dbconnector.h"
 #include "table.h"
-#include "redisselect.h"
 
 namespace swss {
 
-class ConsumerStateTable : public RedisTransactioner, public RedisSelect, public TableName_KeySet, public TableEntryPoppable
+class ConsumerStateTable : public TableConsumable, public RedisTransactioner, public TableName_KeySet
 {
 public:
     /* TODO: Inherit ConsumerStateTable from ConsumerTable to merge same functions and variables */

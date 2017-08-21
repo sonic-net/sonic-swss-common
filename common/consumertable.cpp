@@ -15,7 +15,8 @@ using namespace std;
 namespace swss {
 
 ConsumerTable::ConsumerTable(DBConnector *db, string tableName, int popBatchSize)
-    : RedisTransactioner(db)
+    : TableConsumable(tableName)
+    , RedisTransactioner(db)
     , TableName_KeyValueOpQueues(tableName)
     , POP_BATCH_SIZE(popBatchSize)
 {

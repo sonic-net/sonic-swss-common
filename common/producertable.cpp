@@ -19,7 +19,8 @@ ProducerTable::ProducerTable(DBConnector *db, string tableName)
 }
 
 ProducerTable::ProducerTable(RedisPipeline *pipeline, string tableName, bool buffered)
-    : TableName_KeyValueOpQueues(tableName)
+    : TableBase(tableName)
+    , TableName_KeyValueOpQueues(tableName)
     , m_buffered(buffered)
     , m_pipeowned(false)
     , m_pipe(pipeline)

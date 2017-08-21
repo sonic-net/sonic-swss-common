@@ -14,7 +14,7 @@
 
 namespace swss {
 
-class ProducerTable : public TableName_KeyValueOpQueues
+class ProducerTable : public TableBase, public TableName_KeyValueOpQueues
 {
 public:
     ProducerTable(DBConnector *db, std::string tableName);
