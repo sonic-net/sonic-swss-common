@@ -41,15 +41,14 @@ void ConsumerTable::pop(KeyOpFieldsValuesTuple &kco, string prefix)
     if (m_buffer.empty())
     {
         pops(m_buffer, prefix);
-    }
-
-    if (m_buffer.empty())
-    {
-        auto& values = kfvFieldsValues(kco);
-        values.clear();
-        kfvKey(kco).clear();
-        kfvOp(kco).clear();
-        return;
+        if (m_buffer.empty())
+        {
+            auto& values = kfvFieldsValues(kco);
+            values.clear();
+            kfvKey(kco).clear();
+            kfvOp(kco).clear();
+            return;
+        }
     }
 
     kco = m_buffer.front();
