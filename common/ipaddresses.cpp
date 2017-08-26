@@ -26,18 +26,18 @@ void IpAddresses::add(const IpAddress &ip)
     m_ips.insert(ip);
 }
 
-bool IpAddresses::contains(const std::string &ipStr)
+bool IpAddresses::contains(const std::string &ipStr) const
 {
     IpAddress ip(ipStr);
     return m_ips.find(ip) != m_ips.end();
 }
 
-bool IpAddresses::contains(const IpAddress &ip)
+bool IpAddresses::contains(const IpAddress &ip) const
 {
     return m_ips.find(ip) != m_ips.end();
 }
 
-bool IpAddresses::contains(const IpAddresses &ips)
+bool IpAddresses::contains(const IpAddresses &ips) const
 {
     for (auto ip : ips.getIpAddresses())
     {
