@@ -2,7 +2,9 @@
 #include <unistd.h>
 #include <stdexcept>
 #include <vector>
+#include <set>
 #include <fstream>
+#include <algorithm>
 #include "logger.h"
 #include "rediscommand.h"
 
@@ -59,6 +61,71 @@ static inline std::string loadLuaScript(const std::string& path)
     SWSS_LOG_ENTER();
 
     return readTextFile("/usr/share/swss/" + path);
+}
+
+static inline std::set<std::string> runRedisScript(DBConnector &db, const std::string& sha,
+        const std::vector<std::string>& keys, const std::vector<std::string>& argv)
+{
+    SWSS_LOG_ENTER();
+
+    std::vector<std::string> args;
+
+    // Prepare EVALSHA command
+    // Format is following:
+    // EVALSHA <sha> <size of KEYS> <KEYS> <ARGV>
+    args.push_back("EVALSHA");
+    args.push_back(sha);
+    args.push_back(std::to_string(keys.size()));
+    args.insert(args.end(), keys.begin(), keys.end());
+    args.insert(args.end(), argv.begin(), argv.end());
+    args.push_back("''");
+
+    // Convert to vector of char *
+    std::vector<const char *> c_args;
+    transform(
+            args.begin(),
+            args.end(),
+            std::back_inserter(c_args),
+            [](const std::string& s) { return s.c_str(); } );
+
+    RedisCommand command;
+    command.formatArgv(static_cast<int>(c_args.size()), c_args.data(), NULL);
+
+    std::set<std::string> ret;
+    try
+    {
+        RedisReply r(&db, command);
+        auto ctx = r.getContext();
+        SWSS_LOG_DEBUG("Running lua script %s", sha.c_str());
+
+        if (ctx->type == REDIS_REPLY_NIL)
+        {
+            SWSS_LOG_ERROR("Got EMPTY response type from redis %d", ctx->type);
+            return std::move(ret);
+        }
+
+        else if (ctx->type != REDIS_REPLY_ARRAY)
+        {
+            SWSS_LOG_ERROR("Got invalid response type from redis %d", ctx->type);
+            return std::move(ret);
+        }
+
+        for (size_t i = 0; i < ctx->elements; i++)
+        {
+            SWSS_LOG_DEBUG("Got element %lu %s", i, ctx->element[i]->str);
+            ret.insert(ctx->element[i]->str);
+        }
+    }
+    catch (const std::exception& e)
+    {
+        SWSS_LOG_ERROR("Caught exception while running Redis lua script: %s", e.what());
+    }
+    catch(...)
+    {
+        SWSS_LOG_ERROR("Caught exception while running Redis lua script");
+    }
+
+    return std::move(ret);
 }
 
 }
