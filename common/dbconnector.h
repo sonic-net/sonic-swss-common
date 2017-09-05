@@ -22,6 +22,7 @@ public:
      */
     DBConnector(int db, std::string hostname, int port, unsigned int timeout);
     DBConnector(int db, std::string unixPath, unsigned int timeout);
+    DBConnector(int db, std::string unixPath);
 
     ~DBConnector();
 
@@ -33,9 +34,15 @@ public:
     /* Create new context to DB */
     DBConnector *newConnector(unsigned int timeout);
 
+    /*  Create new context to DB with Non-blocking connection */
+    DBConnector *newConnector(void);
+
+    bool isBlocking(void);
+
 private:
     redisContext *m_conn;
     int m_db;
+    bool m_blocking = true;
 };
 
 }

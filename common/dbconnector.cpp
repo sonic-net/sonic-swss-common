@@ -5,6 +5,7 @@
 #include <errno.h>
 #include <system_error>
 
+#include "common/logger.h"
 #include "common/dbconnector.h"
 #include "common/redisreply.h"
 
@@ -63,6 +64,24 @@ DBConnector::DBConnector(int db, string unixPath, unsigned int timeout) :
     select(this);
 }
 
+/* No timeout argument, non-blocking DB connection */
+DBConnector::DBConnector(int db, string unixPath) :
+    m_db(db)
+{
+    m_conn = redisConnectUnixNonBlock(unixPath.c_str());
+
+    if (m_conn->err)
+        throw system_error(make_error_code(errc::address_not_available),
+                           "Unable to connect to redis (non block unix-socket)");
+    SWSS_LOG_DEBUG("DBConnector db %d, m_conn->fd %d", db, m_conn->fd);
+    m_blocking = false;
+}
+
+bool DBConnector::isBlocking()
+{
+    return m_blocking;
+}
+
 redisContext *DBConnector::getContext()
 {
     return m_conn;
@@ -84,6 +103,16 @@ DBConnector *DBConnector::newConnector(unsigned int timeout)
         return new DBConnector(getDB(),
                                getContext()->unix_sock.path,
                                timeout);
+}
+
+/* Create Non-blocking DB connection */
+DBConnector *DBConnector::newConnector(void)
+{
+    if (getContext()->connection_type != REDIS_CONN_TCP)
+        return new DBConnector(getDB(),
+                               getContext()->unix_sock.path);
+    else
+        return NULL;
 }
 
 }

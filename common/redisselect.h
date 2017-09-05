@@ -3,6 +3,7 @@
 #include <string>
 #include <memory>
 #include "selectable.h"
+#include "redisreplyasync.h"
 
 namespace swss {
 
@@ -48,6 +49,12 @@ public:
     {
         redisReply *reply = NULL;
 
+        /*
+         * For non-blocking redis connection, the reply has data
+         * to be processed later.
+         */
+        if(!m_subscribe->isBlocking())
+            return;
         if (redisGetReply(m_subscribe->getContext(), (void**)&reply) != REDIS_OK)
             throw "Unable to read redis reply";
 
@@ -68,6 +75,26 @@ public:
         std::string s("SUBSCRIBE ");
         s += channelName;
         RedisReply r(m_subscribe.get(), s, REDIS_REPLY_ARRAY);
+    }
+
+    /* PSUBSCRIBE */
+    void psubscribe(DBConnector* db, std::string channelName)
+    {
+        m_subscribe.reset(db->newConnector());
+
+        /*
+         * Send PSUBSCRIBE #channel command on the
+         * non-blocking subscriber DBConnector
+         */
+        std::string s("PSUBSCRIBE ");
+        s += channelName;
+        RedisReplyAsync r(m_subscribe.get(), s, REDIS_REPLY_ARRAY);
+    }
+
+    /* return the subscribe DB connector */
+    DBConnector* getSubscribeDBC()
+    {
+        return m_subscribe.get();
     }
 
     void setQueueLength(long long int queueLength)
