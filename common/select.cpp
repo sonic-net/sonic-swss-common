@@ -40,8 +40,6 @@ void Select::addFd(int fd)
 
 int Select::select(Selectable **c, int *fd, unsigned int timeout)
 {
-    SWSS_LOG_ENTER();
-
     struct timeval t = {0, (suseconds_t)(timeout)*1000};
     struct timeval *pTimeout = NULL;
     fd_set fs;
