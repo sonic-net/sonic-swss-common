@@ -48,8 +48,8 @@ namespace swss {
 
 #define APP_PFC_WD_TABLE_NAME "PFC_WD_TABLE"
 #define PFC_WD_STATE_TABLE "PFC_WD_STATE_TABLE"
-#define PFC_WD_PORT_COUNTER_ID_LIST "port_counter_id_list"
-#define PFC_WD_QUEUE_COUNTER_ID_LIST "queue_counter_id_list"
+#define PFC_WD_PORT_COUNTER_ID_LIST "PORT_COUNTER_ID_LIST"
+#define PFC_WD_QUEUE_COUNTER_ID_LIST "QUEUE_COUNTER_ID_LIST"
 
 #define IPV4_NAME "IPv4"
 #define IPV6_NAME "IPv6"
