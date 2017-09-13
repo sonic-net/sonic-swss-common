@@ -44,11 +44,11 @@ public:
 
     void add(const IpAddress &ip);
 
-    bool contains(const std::string &ip);
+    bool contains(const std::string &ip) const;
 
-    bool contains(const IpAddress &ip);
+    bool contains(const IpAddress &ip) const;
 
-    bool contains(const IpAddresses &ips);
+    bool contains(const IpAddresses &ips) const;
 
     void remove(const std::string &ip);
 

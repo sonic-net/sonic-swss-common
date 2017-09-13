@@ -29,8 +29,9 @@ using namespace swss;
               << "\t -s\tapply loglevel for SAI api component (equivalent to adding prefix \"SAI_API_\" to component)" << std::endl
               << "\t -p\tprint components registered in DB for which setting can be applied" << std::endl << std::endl
               << "Examples:" << std::endl
-              << "\t" << program << " -l NOTICE -c orchagent # set severity level " << std::endl
-              << "\t" << program << " -l SAI_LOG_ERROR -s -c SWITCH # set SAI_API_SWITCH severity " << std::endl;
+              << "\t" << program << " -l NOTICE -c orchagent # set orchagent severity level to NOTICE" << std::endl
+              << "\t" << program << " -l SAI_LOG_LEVEL_ERROR -s -c SWITCH # set SAI_API_SWITCH severity to ERROR" << std::endl
+              << "\t" << program << " -l SAI_LOG_LEVEL_DEBUG -s -a # set all SAI_API_* severity to DEBUG" << std::endl;
 
     exit(status);
 }
@@ -46,12 +47,12 @@ void setLoglevel(DBConnector& db, const std::string& component, const std::strin
 bool validateSaiLoglevel(std::string prioStr)
 {
     static const std::vector<std::string> saiPrios = {
-        "SAI_LOG_CRITICAL",
-        "SAI_LOG_ERROR",
-        "SAI_LOG_WARN",
-        "SAI_LOG_NOTICE",
-        "SAI_LOG_INFO",
-        "SAI_LOG_DEBUG",
+        "SAI_LOG_LEVEL_CRITICAL",
+        "SAI_LOG_LEVEL_ERROR",
+        "SAI_LOG_LEVEL_WARN",
+        "SAI_LOG_LEVEL_NOTICE",
+        "SAI_LOG_LEVEL_INFO",
+        "SAI_LOG_LEVEL_DEBUG",
     };
 
     return std::find(saiPrios.begin(), saiPrios.end(), prioStr) != saiPrios.end();
