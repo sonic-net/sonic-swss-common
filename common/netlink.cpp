@@ -33,6 +33,7 @@ NetLink::NetLink() :
                            "Unable to connect netlink socket");
     }
 
+    nl_socket_set_nonblocking(m_socket);
     /* Set socket buffer size to 256KB */
     nl_socket_set_buffer_size(m_socket, 2097152, 0);
 }
