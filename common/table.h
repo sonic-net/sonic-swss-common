@@ -6,6 +6,7 @@
 #include <queue>
 #include <tuple>
 #include <map>
+#include <deque>
 #include "hiredis/hiredis.h"
 #include "dbconnector.h"
 #include "redisreply.h"
@@ -68,6 +69,9 @@ public:
 
     /* Pop an action (set or del) on the table */
     virtual void pop(KeyOpFieldsValuesTuple &kco, std::string prefix = EMPTY_PREFIX) = 0;
+
+    /* Get multiple pop elements */
+    virtual void pops(std::deque<KeyOpFieldsValuesTuple> &vkco, std::string prefix = EMPTY_PREFIX) = 0;
 };
 
 class TableEntryEnumerable {
