@@ -22,11 +22,10 @@ public:
     /* Get a singlesubscribe channel rpop */
     void pop(KeyOpFieldsValuesTuple &kco, std::string prefix = EMPTY_PREFIX);
 
-private:
-    std::deque<KeyOpFieldsValuesTuple> m_buffer;
-
     /* Get multiple pop elements */
     void pops(std::deque<KeyOpFieldsValuesTuple> &vkco, std::string prefix = EMPTY_PREFIX);
+private:
+    std::deque<KeyOpFieldsValuesTuple> m_buffer;
 };
 
 }
