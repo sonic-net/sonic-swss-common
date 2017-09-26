@@ -9,6 +9,7 @@ namespace swss {
 #define LOGLEVEL_DB     3
 #define CONFIG_DB       4
 #define PFC_WD_DB       5
+#define STATE_DB        6
 
 #define APP_PORT_TABLE_NAME             "PORT_TABLE"
 #define APP_VLAN_TABLE_NAME             "VLAN_TABLE"
