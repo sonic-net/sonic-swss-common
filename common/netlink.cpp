@@ -33,6 +33,7 @@ NetLink::NetLink() :
                            "Unable to connect netlink socket");
     }
 
+    nl_socket_set_nonblocking(m_socket);
     /* Set socket buffer size to 256KB */
     nl_socket_set_buffer_size(m_socket, 2097152, 0);
 }
@@ -92,6 +93,8 @@ void NetLink::readMe()
     {
         if (err == -NLE_NOMEM)
             SWSS_LOG_ERROR("netlink reports out of memory on reading a netlink socket. High possiblity of a lost message");
+        else if (err == -NLE_AGAIN)
+            SWSS_LOG_DEBUG("netlink reports NLE_AGAIN on reading a netlink socket");
         else
             SWSS_LOG_ERROR("netlink reports an error=%d on reading a netlink socket", err);
     }
