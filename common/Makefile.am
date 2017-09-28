@@ -42,7 +42,8 @@ libswsscommon_la_SOURCES = \
     notificationproducer.cpp  \
     linkcache.cpp             \
     portmap.cpp               \
-    tokenize.cpp
+    tokenize.cpp              \
+    exec.cpp
 
 libswsscommon_la_CXXFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CFLAGS)
 libswsscommon_la_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CPPFLAGS)
