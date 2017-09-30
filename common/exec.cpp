@@ -1,25 +1,24 @@
-#include <cstdio>
-#include <iostream>
-#include <stdexcept>
 #include <array>
 #include "exec.h"
 #include "common/logger.h"
 
+using namespace std;
+
 namespace swss {
 
-std::string exec(const char* cmd)
+string exec(const char* cmd)
 {
-    std::array<char, 128> buffer;
-    std::string result;
-    std::shared_ptr<FILE> pipe(popen(cmd, "r"), pclose);
+    array<char, 128> buffer;
+    string result;
+    shared_ptr<FILE> pipe(popen(cmd, "r"), pclose);
 
     if (!pipe)
     {
-        std::string errmsg(cmd);
+        string errmsg(cmd);
 
         errmsg = "popen(" + errmsg + ") failed!";
         SWSS_LOG_ERROR("exec: %s", errmsg.c_str());
-        throw std::runtime_error(errmsg);
+        throw runtime_error(errmsg);
     }
 
     while (!feof(pipe.get()))
