@@ -4,6 +4,6 @@
 
 namespace swss {
 
-std::string exec(const char* cmd);
+int exec(const std::string &cmd, std::string &stdout);
 
 }

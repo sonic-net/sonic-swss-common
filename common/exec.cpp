@@ -1,3 +1,5 @@
+#include <cerrno>
+#include <cstring>
 #include <array>
 #include "exec.h"
 #include "common/logger.h"
@@ -6,11 +8,12 @@ using namespace std;
 
 namespace swss {
 
-string exec(const char* cmd)
+const int buffsz = 128;
+
+int exec(const string &cmd, string &stdout)
 {
-    array<char, 128> buffer;
-    string result;
-    shared_ptr<FILE> pipe(popen(cmd, "r"), pclose);
+    array<char, buffsz> buffer;
+    FILE* pipe = popen(cmd.c_str(), "r");
 
     if (!pipe)
     {
@@ -21,14 +24,22 @@ string exec(const char* cmd)
         throw runtime_error(errmsg);
     }
 
-    while (!feof(pipe.get()))
+    while (!feof(pipe))
     {
-        if (fgets(buffer.data(), 128, pipe.get()) != NULL)
-            result += buffer.data();
+        if (fgets(buffer.data(), buffsz, pipe) != NULL)
+        {
+            stdout += buffer.data();
+        }
     }
 
-    SWSS_LOG_DEBUG("%s : %s", cmd, result.c_str());
-    return result;
+    int ret = pclose(pipe);
+    if (ret != 0)
+    {
+        SWSS_LOG_ERROR("%s: %s", cmd.c_str(), strerror(errno));
+    }
+    SWSS_LOG_DEBUG("%s : %s", cmd.c_str(), stdout.c_str());
+
+    return ret;
 }
 
 }
