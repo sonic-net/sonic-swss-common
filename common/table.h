@@ -29,7 +29,8 @@ typedef std::map<std::string,TableMap> TableDump;
 
 class TableBase {
 public:
-    TableBase(std::string tableName) : m_tableName(tableName) { }
+    TableBase(std::string tableName, std::string tableSeparator = ":")
+        : m_tableName(tableName), m_tableSeparator(tableSeparator) { }
 
     std::string getTableName() const { return m_tableName; }
 
@@ -37,12 +38,19 @@ public:
     std::string getKeyName(std::string key)
     {
         if (key == "") return m_tableName;
-        else return m_tableName + ':' + key;
+        else return m_tableName + m_tableSeparator + key;
+    }
+
+    /* Return the table name separator being used */
+    std::string getTableNameSeparator()
+    {
+        return m_tableSeparator;
     }
 
     std::string getChannelName() { return m_tableName + "_CHANNEL"; }
 private:
     std::string m_tableName;
+    std::string m_tableSeparator;
 };
 
 class TableEntryWritable {
@@ -97,7 +105,7 @@ public:
 
 class Table : public RedisTransactioner, public TableBase, public TableEntryEnumerable {
 public:
-    Table(DBConnector *db, std::string tableName);
+    Table(DBConnector *db, std::string tableName, std::string tableSeparator = ":");
     virtual ~Table() { }
 
     /* Set an entry in the DB directly (op not in use) */

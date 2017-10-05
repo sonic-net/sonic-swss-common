@@ -12,7 +12,8 @@ using namespace std;
 using namespace swss;
 using json = nlohmann::json;
 
-Table::Table(DBConnector *db, string tableName) : RedisTransactioner(db), TableBase(tableName)
+Table::Table(DBConnector *db, string tableName, string tableSeparator)
+    : RedisTransactioner(db), TableBase(tableName, tableSeparator)
 {
 }
 
@@ -77,7 +78,7 @@ void TableEntryEnumerable::getTableContent(vector<KeyOpFieldsValuesTuple> &tuple
 
 void Table::getTableKeys(vector<string> &keys)
 {
-    string keys_cmd("KEYS " + getTableName() + ":*");
+    string keys_cmd("KEYS " + getTableName() + getTableNameSeparator() + "*");
     RedisReply r(m_db, keys_cmd, REDIS_REPLY_ARRAY);
     redisReply *reply = r.getContext();
     keys.clear();
@@ -85,7 +86,7 @@ void Table::getTableKeys(vector<string> &keys)
     for (unsigned int i = 0; i < reply->elements; i++)
     {
         string key = reply->element[i]->str;
-        auto pos = key.find(':');
+        auto pos = key.find(getTableNameSeparator());
         keys.push_back(key.substr(pos+1));
     }
 }

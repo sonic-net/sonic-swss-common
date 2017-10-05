@@ -72,6 +72,9 @@ namespace swss {
 
 /***** MISC *****/
 
+#define TABLE_NAME_SEPARATOR    "|"
+#define KEY_SEPARATOR           "|"
+
 #define IPV4_NAME "IPv4"
 #define IPV6_NAME "IPv6"
 
