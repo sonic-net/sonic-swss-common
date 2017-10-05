@@ -24,6 +24,7 @@ int exec(const string &cmd, string &stdout)
         throw runtime_error(errmsg);
     }
 
+    stdout.clear();
     while (!feof(pipe))
     {
         if (fgets(buffer.data(), buffsz, pipe) != NULL)
