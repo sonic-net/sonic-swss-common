@@ -15,6 +15,12 @@
 
 namespace swss {
 
+Logger::~Logger() {
+    if (m_prioThread) {
+        m_prioThread->detach();
+    }
+}
+
 const Logger::PriorityStringMap Logger::priorityStringMap = {
     { "EMERG", SWSS_EMERG },
     { "ALERT", SWSS_ALERT },
@@ -177,6 +183,19 @@ void Logger::wthrow(Priority prio, const char *fmt, ...)
     throw std::runtime_error(buffer);
 }
 
+std::string Logger::priorityToString(Logger::Priority prio)
+{
+    for (const auto& i : priorityStringMap)
+    {
+        if (i.second == prio)
+        {
+            return i.first;
+        }
+    }
+
+    return "UNKNOWN";
+}
+
 Logger::ScopeLogger::ScopeLogger(int line, const char *fun) : m_line(line), m_fun(fun)
 {
     swss::Logger::getInstance().write(swss::Logger::SWSS_DEBUG, ":> %s: enter", m_fun);
@@ -210,19 +229,6 @@ Logger::ScopeTimer::~ScopeTimer()
     double duration = std::chrono::duration_cast<second_t>(end - m_start).count();
 
     Logger::getInstance().write(swss::Logger::SWSS_NOTICE, ":- %s: %s took %lf sec", m_fun, m_msg.c_str(), duration);
-}
-
-std::string Logger::priorityToString(Logger::Priority prio)
-{
-    for (const auto& i : priorityStringMap)
-    {
-        if (i.second == prio)
-        {
-            return i.first;
-        }
-    }
-
-    return "UNKNOWN";
 }
 
 };
