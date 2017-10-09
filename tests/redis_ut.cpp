@@ -403,13 +403,13 @@ TEST(Table, table_separator_test)
 {
     string tableName = "TABLE_UT_TEST";
     DBConnector db(TEST_VIEW, "localhost", 6379, 0);
-    Table t(&db, tableName, TABLE_NAME_SEPARATOR);
+    Table t(&db, tableName, CONFIGDB_TABLE_NAME_SEPARATOR);
 
     string tableNameSeparator = t.getTableNameSeparator();
-    ASSERT_STREQ(tableNameSeparator.c_str(), TABLE_NAME_SEPARATOR);
+    ASSERT_STREQ(tableNameSeparator.c_str(), CONFIGDB_TABLE_NAME_SEPARATOR);
 
     clearDB();
-    cout << "Starting table manipulations, table name separator is " << TABLE_NAME_SEPARATOR << endl;
+    cout << "Starting table manipulations, table name separator is " << CONFIGDB_TABLE_NAME_SEPARATOR << endl;
 
     string key_1 = "a";
     string key_2 = "b";

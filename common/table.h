@@ -16,10 +16,8 @@
 
 namespace swss {
 
-#define DEFAULT_TABLE_NAME_SEPARATOR ":"
-#define DEFAULT_KEY_SEPARATOR        ":"
-#define TABLE_NAME_SEPARATOR         "|"
-#define KEY_SEPARATOR                "|"
+#define DEFAULT_TABLE_NAME_SEPARATOR    ":"
+#define CONFIGDB_TABLE_NAME_SEPARATOR   "|"
 
 typedef std::tuple<std::string, std::string> FieldValueTuple;
 #define fvField std::get<0>
