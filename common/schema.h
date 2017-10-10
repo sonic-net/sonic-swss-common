@@ -11,6 +11,7 @@ namespace swss {
 #define LOGLEVEL_DB     3
 #define CONFIG_DB       4
 #define PFC_WD_DB       5
+#define FLEX_COUNTER_DB 5
 #define STATE_DB        6
 
 /***** APPLICATION DATABASE *****/
