@@ -70,12 +70,26 @@ public:
         RedisReply r(m_subscribe.get(), s, REDIS_REPLY_ARRAY);
     }
 
+    /* PSUBSCRIBE */
+    void psubscribe(DBConnector* db, std::string channelName)
+    {
+        m_subscribe.reset(db->newConnector(SUBSCRIBE_TIMEOUT));
+
+        /*
+         * Send PSUBSCRIBE #channel command on the
+         * non-blocking subscriber DBConnector
+         */
+        std::string s("PSUBSCRIBE ");
+        s += channelName;
+        RedisReply r(m_subscribe.get(), s, REDIS_REPLY_ARRAY);
+    }
+
     void setQueueLength(long long int queueLength)
     {
         m_queueLength = queueLength;
     }
 
-private:
+protected:
     std::unique_ptr<DBConnector> m_subscribe;
     long long int m_queueLength;
 };

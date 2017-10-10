@@ -34,8 +34,10 @@ bool Table::get(string key, vector<FieldValueTuple> &values)
                            "Unable to connect netlink socket");
 
     for (unsigned int i = 0; i < reply->elements; i += 2)
-        values.push_back(make_tuple(reply->element[i]->str,
+    {
+        values.push_back(make_tuple(stripSpecialSym(reply->element[i]->str),
                                     reply->element[i + 1]->str));
+    }
 
     return true;
 }
@@ -141,4 +143,15 @@ void Table::dump(TableDump& tableDump)
 
         tableDump[key] = map;
     }
+}
+
+string Table::stripSpecialSym(string key)
+{
+    size_t pos = key.find('@');
+    if (pos != key.npos)
+    {
+        return key.substr(0, pos);
+    }
+
+    return key;
 }
