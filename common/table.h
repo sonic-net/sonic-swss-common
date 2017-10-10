@@ -16,6 +16,9 @@
 
 namespace swss {
 
+#define DEFAULT_TABLE_NAME_SEPARATOR    ":"
+#define CONFIGDB_TABLE_NAME_SEPARATOR   "|"
+
 typedef std::tuple<std::string, std::string> FieldValueTuple;
 #define fvField std::get<0>
 #define fvValue std::get<1>
@@ -29,7 +32,13 @@ typedef std::map<std::string,TableMap> TableDump;
 
 class TableBase {
 public:
-    TableBase(std::string tableName) : m_tableName(tableName) { }
+    TableBase(std::string tableName, std::string tableSeparator = DEFAULT_TABLE_NAME_SEPARATOR)
+        : m_tableName(tableName), m_tableSeparator(tableSeparator)
+    {
+        const std::string legalSeparators = ":|";
+        if (legalSeparators.find(tableSeparator) == std::string::npos)
+            throw std::invalid_argument("Invalid table name separator");
+    }
 
     std::string getTableName() const { return m_tableName; }
 
@@ -37,12 +46,19 @@ public:
     std::string getKeyName(std::string key)
     {
         if (key == "") return m_tableName;
-        else return m_tableName + ':' + key;
+        else return m_tableName + m_tableSeparator + key;
+    }
+
+    /* Return the table name separator being used */
+    std::string getTableNameSeparator() const
+    {
+        return m_tableSeparator;
     }
 
     std::string getChannelName() { return m_tableName + "_CHANNEL"; }
 private:
     std::string m_tableName;
+    std::string m_tableSeparator;
 };
 
 class TableEntryWritable {
@@ -97,7 +113,7 @@ public:
 
 class Table : public RedisTransactioner, public TableBase, public TableEntryEnumerable {
 public:
-    Table(DBConnector *db, std::string tableName);
+    Table(DBConnector *db, std::string tableName, std::string tableSeparator = DEFAULT_TABLE_NAME_SEPARATOR);
     virtual ~Table() { }
 
     /* Set an entry in the DB directly (op not in use) */

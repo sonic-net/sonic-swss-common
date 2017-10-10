@@ -399,6 +399,87 @@ TEST(Table, test)
     cout << "Done." << endl;
 }
 
+TEST(Table, table_separator_test)
+{
+    string tableName = "TABLE_UT_TEST";
+    DBConnector db(TEST_VIEW, "localhost", 6379, 0);
+    Table t(&db, tableName, CONFIGDB_TABLE_NAME_SEPARATOR);
+
+    string tableNameSeparator = t.getTableNameSeparator();
+    ASSERT_STREQ(tableNameSeparator.c_str(), CONFIGDB_TABLE_NAME_SEPARATOR);
+
+    clearDB();
+    cout << "Starting table manipulations, table name separator is " << CONFIGDB_TABLE_NAME_SEPARATOR << endl;
+
+    string key_1 = "a";
+    string key_2 = "b";
+    vector<FieldValueTuple> values;
+
+    for (int i = 1; i < 4; i++)
+    {
+        string field = "field_" + to_string(i);
+        string value = to_string(i);
+        values.push_back(make_pair(field, value));
+    }
+
+    cout << "- Step 1. SET" << endl;
+    cout << "Set key [a] field_1:1 field_2:2 field_3:3" << endl;
+    cout << "Set key [b] field_1:1 field_2:2 field_3:3" << endl;
+
+    t.set(key_1, values);
+    t.set(key_2, values);
+
+    cout << "- Step 2. GET_TABLE_CONTENT" << endl;
+    vector<KeyOpFieldsValuesTuple> tuples;
+    t.getTableContent(tuples);
+
+    cout << "Get total " << tuples.size() << " number of entries" << endl;
+    EXPECT_EQ(tuples.size(), (size_t)2);
+
+    for (auto tuple: tuples)
+    {
+        cout << "Get key [" << kfvKey(tuple) << "]" << flush;
+        unsigned int size_v = 3;
+        EXPECT_EQ(kfvFieldsValues(tuple).size(), size_v);
+        for (auto fv: kfvFieldsValues(tuple))
+        {
+            string value_1 = "1", value_2 = "2";
+            cout << " " << fvField(fv) << ":" << fvValue(fv) << flush;
+            if (fvField(fv) == "field_1") EXPECT_EQ(fvValue(fv), value_1);
+            if (fvField(fv) == "field_2") EXPECT_EQ(fvValue(fv), value_2);
+        }
+        cout << endl;
+    }
+
+    cout << "- Step 3. DEL" << endl;
+    cout << "Delete key [a]" << endl;
+    t.del(key_1);
+
+    cout << "- Step 4. GET" << endl;
+    cout << "Get key [a] and key [b]" << endl;
+    EXPECT_EQ(t.get(key_1, values), false);
+    t.get(key_2, values);
+
+    cout << "Get key [b]" << flush;
+    for (auto fv: values)
+    {
+        string value_1 = "1", value_2 = "2";
+        cout << " " << fvField(fv) << ":" << fvValue(fv) << flush;
+        if (fvField(fv) == "field_1") EXPECT_EQ(fvValue(fv), value_1);
+        if (fvField(fv) == "field_2") EXPECT_EQ(fvValue(fv), value_2);
+    }
+    cout << endl;
+
+    cout << "- Step 5. DEL and GET_TABLE_CONTENT" << endl;
+    cout << "Delete key [b]" << endl;
+    t.del(key_2);
+    t.getTableContent(tuples);
+
+    EXPECT_EQ(tuples.size(), unsigned(0));
+
+    cout << "Done." << endl;
+}
+
 TEST(ProducerConsumer, Prefix)
 {
     std::string tableName = "tableName";
