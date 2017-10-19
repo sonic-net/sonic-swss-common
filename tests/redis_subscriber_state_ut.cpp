@@ -1,4 +1,3 @@
-#include <common/subscriberstatetable.h>
 #include <iostream>
 #include <memory>
 #include <thread>
@@ -8,6 +7,7 @@
 #include "common/select.h"
 #include "common/selectableevent.h"
 #include "common/table.h"
+#include "common/subscriberstatetable.h"
 
 using namespace std;
 using namespace swss;
