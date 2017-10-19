@@ -44,7 +44,7 @@ libswsscommon_la_SOURCES = \
     portmap.cpp               \
     tokenize.cpp              \
     exec.cpp                  \
-    multiconsumerstatetable.cpp
+    subscriberstatetable.cpp
 
 libswsscommon_la_CXXFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CFLAGS)
 libswsscommon_la_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CPPFLAGS)

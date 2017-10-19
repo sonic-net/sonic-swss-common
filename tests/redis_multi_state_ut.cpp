@@ -1,3 +1,4 @@
+#include <common/subscriberstatetable.h>
 #include <iostream>
 #include <memory>
 #include <thread>
@@ -7,7 +8,6 @@
 #include "common/select.h"
 #include "common/selectableevent.h"
 #include "common/table.h"
-#include "common/multiconsumerstatetable.h"
 
 using namespace std;
 using namespace swss;
@@ -125,7 +125,7 @@ static void producerWorker(int index)
 static void consumerWorker(int index, int *status)
 {
     DBConnector db(TEST_VIEW, dbhost, dbport, 0);
-    MultiConsumerStateTable c(&db, testTableName);
+    SubscriberStateTable c(&db, testTableName);
     Select cs;
     Selectable *selectcs;
     int tmpfd;
@@ -172,7 +172,7 @@ static void consumerWorker(int index, int *status)
     }
 }
 
-TEST(MultiConsumerStateTable, set)
+TEST(SubscriberStateTable, set)
 {
     clearDB();
 
@@ -184,7 +184,7 @@ TEST(MultiConsumerStateTable, set)
     int maxNumOfFields = 2;
 
     /* Prepare consumer */
-    MultiConsumerStateTable c(&db, testTableName);
+    SubscriberStateTable c(&db, testTableName);
     Select cs;
     Selectable *selectcs;
     cs.addSelectable(&c);
@@ -227,7 +227,7 @@ TEST(MultiConsumerStateTable, set)
     }
 }
 
-TEST(MultiConsumerStateTable, del)
+TEST(SubscriberStateTable, del)
 {
     clearDB();
 
@@ -239,7 +239,7 @@ TEST(MultiConsumerStateTable, del)
     int maxNumOfFields = 2;
 
     /* Prepare consumer */
-    MultiConsumerStateTable c(&db, testTableName);
+    SubscriberStateTable c(&db, testTableName);
     Select cs;
     Selectable *selectcs;
     cs.addSelectable(&c);
@@ -280,7 +280,7 @@ TEST(MultiConsumerStateTable, del)
     }
 }
 
-TEST(MultiConsumerStateTable, table_state)
+TEST(SubscriberStateTable, table_state)
 {
     clearDB();
 
@@ -308,7 +308,7 @@ TEST(MultiConsumerStateTable, table_state)
    }
 
     /* Prepare consumer */
-    MultiConsumerStateTable c(&db, testTableName);
+    SubscriberStateTable c(&db, testTableName);
     Select cs;
     Selectable *selectcs;
     int tmpfd;
@@ -341,7 +341,7 @@ TEST(MultiConsumerStateTable, table_state)
     }
 }
 
-TEST(MultiConsumerStateTable, one_producer_multiple_consumer)
+TEST(SubscriberStateTable, one_producer_multiple_consumer)
 {
     thread *consumerThreads[NUMBER_OF_THREADS];
 

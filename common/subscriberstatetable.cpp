@@ -3,18 +3,18 @@
 #include <limits>
 #include <hiredis/hiredis.h>
 #include "dbconnector.h"
-#include "multiconsumerstatetable.h"
 #include "table.h"
 #include "selectable.h"
 #include "redisselect.h"
 #include "redisapi.h"
 #include "tokenize.h"
+#include "subscriberstatetable.h"
 
 using namespace std;
 
 namespace swss {
 
-MultiConsumerStateTable::MultiConsumerStateTable(DBConnector *db, string tableName)
+SubscriberStateTable::SubscriberStateTable(DBConnector *db, string tableName)
     : ConsumerTableBase(db, tableName), m_table(db, tableName, CONFIGDB_TABLE_NAME_SEPARATOR)
 {
     m_keyspace = "__keyspace@";
@@ -42,7 +42,7 @@ MultiConsumerStateTable::MultiConsumerStateTable(DBConnector *db, string tableNa
     }
 }
 
-int MultiConsumerStateTable::readCache()
+int SubscriberStateTable::readCache()
 {
     redisReply *reply = NULL;
 
@@ -64,14 +64,14 @@ int MultiConsumerStateTable::readCache()
     }
     else if (reply != NULL)
     {
-        m_keyspace_event_buffer.push_back(reply);
+        m_keyspace_event_buffer.push_back(shared_ptr<RedisReply>(new RedisReply(reply)));
         return Selectable::DATA;
     }
 
     return Selectable::NODATA;
 }
 
-void MultiConsumerStateTable::readMe()
+void SubscriberStateTable::readMe()
 {
     redisReply *reply = NULL;
 
@@ -84,33 +84,31 @@ void MultiConsumerStateTable::readMe()
         throw runtime_error("Unable to read redis reply");
     }
 
-    m_keyspace_event_buffer.push_back(reply);
+    m_keyspace_event_buffer.push_back(shared_ptr<RedisReply>(new RedisReply(reply)));
 }
 
-void MultiConsumerStateTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, string /*prefix*/)
+void SubscriberStateTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, string /*prefix*/)
 {
     vkco.clear();
 
     if (!m_buffer.empty())
     {
-        vkco = m_buffer;
+        vkco.insert(vkco.end(), m_buffer.begin(), m_buffer.end());
         m_buffer.clear();
         return;
     }
 
     while (auto event = popEventBuffer())
     {
-        /* Use RedisReply as auto_ptr to destroy reply object */
-        RedisReply r(event);
         KeyOpFieldsValuesTuple kco;
         /* if the Key-space notification is empty, try next one. */
-        if (event->type == REDIS_REPLY_NIL)
+        if (event->getContext()->type == REDIS_REPLY_NIL)
         {
             continue;
         }
 
         assert(event->type == REDIS_REPLY_ARRAY);
-        size_t n = event->elements;
+        size_t n = event->getContext()->elements;
 
         /* Expecting 4 elements for each keyspace pmessage notification */
         if (n != 4)
@@ -119,14 +117,14 @@ void MultiConsumerStateTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, string /
             continue;
         }
         /* The second element should be the original pattern matched */
-        auto ctx = event->element[1];
+        auto ctx = event->getContext()->element[1];
         if (m_keyspace.compare(ctx->str))
         {
             SWSS_LOG_ERROR("invalid pattern %s returned for pmessage of %s", ctx->str, m_keyspace.c_str());
             continue;
         }
 
-        ctx = event->element[2];
+        ctx = event->getContext()->element[2];
         string msg(ctx->str);
         size_t pos = msg.find(":");
         if (pos == msg.npos)
@@ -144,7 +142,7 @@ void MultiConsumerStateTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, string /
         }
         string key = table_entry.substr(pos + 1);
 
-        ctx = event->element[3];
+        ctx = event->getContext()->element[3];
         if (strcmp("del", ctx->str) == 0)
         {
             kfvKey(kco) = key;
@@ -169,14 +167,14 @@ void MultiConsumerStateTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, string /
     return;
 }
 
-redisReply *MultiConsumerStateTable::popEventBuffer()
+shared_ptr<RedisReply> SubscriberStateTable::popEventBuffer()
 {
     if (m_keyspace_event_buffer.empty())
     {
         return NULL;
     }
 
-    redisReply *reply = m_keyspace_event_buffer.front();
+    auto reply = m_keyspace_event_buffer.front();
     m_keyspace_event_buffer.pop_front();
 
     return reply;
