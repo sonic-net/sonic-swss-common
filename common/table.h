@@ -133,6 +133,17 @@ public:
     void getTableKeys(std::vector<std::string> &keys);
 
     void dump(TableDump &tableDump);
+
+protected:
+
+    /* Strip special symbols from keys used for type identification
+     * Input example:
+     *     port@
+     * DB entry:
+     * 1) "ports@"
+     * 2) "Ethernet0,Ethernet4,...
+     * */
+    std::string stripSpecialSym(std::string key);
 };
 
 class TableName_KeyValueOpQueues {

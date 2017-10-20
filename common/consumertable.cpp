@@ -15,10 +15,8 @@ using namespace std;
 namespace swss {
 
 ConsumerTable::ConsumerTable(DBConnector *db, string tableName, int popBatchSize)
-    : TableConsumable(tableName)
-    , RedisTransactioner(db)
+    : ConsumerTableBase(db, tableName, popBatchSize)
     , TableName_KeyValueOpQueues(tableName)
-    , POP_BATCH_SIZE(popBatchSize)
 {
     for (;;)
     {
@@ -34,25 +32,6 @@ ConsumerTable::ConsumerTable(DBConnector *db, string tableName, int popBatchSize
 
     RedisReply r(dequeueReply());
     setQueueLength(r.getReply<long long int>());
-}
-
-void ConsumerTable::pop(KeyOpFieldsValuesTuple &kco, string prefix)
-{
-    if (m_buffer.empty())
-    {
-        pops(m_buffer, prefix);
-        if (m_buffer.empty())
-        {
-            auto& values = kfvFieldsValues(kco);
-            values.clear();
-            kfvKey(kco).clear();
-            kfvOp(kco).clear();
-            return;
-        }
-    }
-
-    kco = m_buffer.front();
-    m_buffer.pop_front();
 }
 
 void ConsumerTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, string prefix)

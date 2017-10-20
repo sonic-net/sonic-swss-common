@@ -12,10 +12,8 @@
 namespace swss {
 
 ConsumerStateTable::ConsumerStateTable(DBConnector *db, std::string tableName, int popBatchSize)
-    : TableConsumable(tableName)
-    , RedisTransactioner(db)
+    : ConsumerTableBase(db, tableName, popBatchSize)
     , TableName_KeySet(tableName)
-    , POP_BATCH_SIZE(popBatchSize)
 {
     for (;;)
     {
@@ -30,25 +28,6 @@ ConsumerStateTable::ConsumerStateTable(DBConnector *db, std::string tableName, i
 
     RedisReply r(dequeueReply());
     setQueueLength(r.getReply<long long int>());
-}
-
-void ConsumerStateTable::pop(KeyOpFieldsValuesTuple &kco, std::string prefix)
-{
-    if (m_buffer.empty())
-    {
-        pops(m_buffer, prefix);
-        if (m_buffer.empty())
-        {
-            auto& values = kfvFieldsValues(kco);
-            values.clear();
-            kfvKey(kco).clear();
-            kfvOp(kco).clear();
-            return;
-        }
-    }
-
-    kco = m_buffer.front();
-    m_buffer.pop_front();
 }
 
 void ConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, std::string /*prefix*/)
