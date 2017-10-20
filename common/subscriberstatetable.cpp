@@ -64,7 +64,7 @@ int SubscriberStateTable::readCache()
     }
     else if (reply != NULL)
     {
-        m_keyspace_event_buffer.push_back(shared_ptr<RedisReply>(new RedisReply(reply)));
+        m_keyspace_event_buffer.push_back(shared_ptr<RedisReply>(make_shared<RedisReply>(reply)));
         return Selectable::DATA;
     }
 
@@ -84,7 +84,7 @@ void SubscriberStateTable::readMe()
         throw runtime_error("Unable to read redis reply");
     }
 
-    m_keyspace_event_buffer.push_back(shared_ptr<RedisReply>(new RedisReply(reply)));
+    m_keyspace_event_buffer.push_back(shared_ptr<RedisReply>(make_shared<RedisReply>(reply)));
 }
 
 void SubscriberStateTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, string /*prefix*/)
