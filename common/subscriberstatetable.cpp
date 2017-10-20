@@ -107,7 +107,7 @@ void SubscriberStateTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, string /*pr
             continue;
         }
 
-        assert(event->type == REDIS_REPLY_ARRAY);
+        assert(event->getContext()->type == REDIS_REPLY_ARRAY);
         size_t n = event->getContext()->elements;
 
         /* Expecting 4 elements for each keyspace pmessage notification */
