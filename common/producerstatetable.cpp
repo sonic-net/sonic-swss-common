@@ -76,7 +76,7 @@ void ProducerStateTable::set(string key, vector<FieldValueTuple> &values,
 
     // Transform data structure
     vector<const char *> args1;
-    transform(args.begin(), args.end(), back_inserter(args1), [](const string s) { return s.c_str(); } );
+    transform(args.begin(), args.end(), back_inserter(args1), [](const string &s) { return s.c_str(); } );
 
     // Invoke redis command
     RedisCommand command;
@@ -104,7 +104,7 @@ void ProducerStateTable::del(string key, string op /*= DEL_COMMAND*/, string pre
 
     // Transform data structure
     vector<const char *> args1;
-    transform(args.begin(), args.end(), back_inserter(args1), [](const string s) { return s.c_str(); } );
+    transform(args.begin(), args.end(), back_inserter(args1), [](const string &s) { return s.c_str(); } );
 
     // Invoke redis command
     RedisCommand command;
