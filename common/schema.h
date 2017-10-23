@@ -73,6 +73,16 @@ namespace swss {
 #define PLUGIN_TABLE "PLUGIN_TABLE"
 #define SAI_OBJECT_TYPE "SAI_OBJECT_TYPE"
 
+/***** CONFIGUATION DATABASE *****/
+#define CFG_PORT_TABLE_NAME             "PORT"
+#define CFG_INTF_TABLE_NAME             "INTERFACE"
+#define CFG_LAG_INTF_TABLE_NAME         "PORTCHANNEL_INTERFACE"
+#define CFG_VLAN_INTF_TABLE_NAME        "VLAN_INTERFACE"
+#define CFG_LAG_TABLE_NAME              "PORTCHANNEL"
+#define CFG_VLAN_TABLE_NAME             "VLAN"
+#define CFG_VLAN_MEMBER_TABLE_NAME      "VLAN_MEMBER"
+#define CFG_SWITCH_TABLE_NAME           "SWITCH"
+
 /***** STATE DATABASE *****/
 
 #define STATE_PORT_TABLE_NAME           "PORT_TABLE"
