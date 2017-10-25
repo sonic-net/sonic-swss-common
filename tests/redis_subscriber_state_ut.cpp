@@ -16,7 +16,7 @@ using namespace swss;
 #define NUMBER_OF_THREADS   (64) // Spawning more than 256 threads causes libc++ to except
 #define NUMBER_OF_OPS     (1000)
 #define MAX_FIELDS_DIV      (30) // Testing up to 30 fields objects
-#define PRINT_SKIP          (10) // Print + for Producer and - for Consumer for every 100 ops
+#define PRINT_SKIP          (10) // Print + for Producer and - for Subscriber for every 100 ops
 
 static const string dbhost = "localhost";
 static const int dbport = 6379;
@@ -122,7 +122,7 @@ static void producerWorker(int index)
     }
 }
 
-static void consumerWorker(int index, int *status)
+static void subscriberWorker(int index, int *status)
 {
     DBConnector db(TEST_VIEW, dbhost, dbport, 0);
     SubscriberStateTable c(&db, testTableName);
@@ -183,7 +183,7 @@ TEST(SubscriberStateTable, set)
     string key = "TheKey";
     int maxNumOfFields = 2;
 
-    /* Prepare consumer */
+    /* Prepare subscriber */
     SubscriberStateTable c(&db, testTableName);
     Select cs;
     Selectable *selectcs;
@@ -238,7 +238,7 @@ TEST(SubscriberStateTable, del)
     string key = "TheKey";
     int maxNumOfFields = 2;
 
-    /* Prepare consumer */
+    /* Prepare subscriber */
     SubscriberStateTable c(&db, testTableName);
     Select cs;
     Selectable *selectcs;
@@ -307,7 +307,7 @@ TEST(SubscriberStateTable, table_state)
        p.set(key(index, i), fields);
    }
 
-    /* Prepare consumer */
+    /* Prepare subscriber */
     SubscriberStateTable c(&db, testTableName);
     Select cs;
     Selectable *selectcs;
@@ -341,24 +341,24 @@ TEST(SubscriberStateTable, table_state)
     }
 }
 
-TEST(SubscriberStateTable, one_producer_multiple_consumer)
+TEST(SubscriberStateTable, one_producer_multiple_subscriber)
 {
-    thread *consumerThreads[NUMBER_OF_THREADS];
+    thread *subscriberThreads[NUMBER_OF_THREADS];
 
     clearDB();
 
-    cout << "Starting " << NUMBER_OF_THREADS << " consumers on redis" << endl;
+    cout << "Starting " << NUMBER_OF_THREADS << " subscribers on redis" << endl;
 
     int status[NUMBER_OF_THREADS] = { 0 };
 
-    /* Starting the consumers before the producer */
+    /* Starting the subscribers before the producer */
     for (int i = 0; i < NUMBER_OF_THREADS; i++)
     {
-        consumerThreads[i] = new thread(consumerWorker, i, status);
+        subscriberThreads[i] = new thread(subscriberWorker, i, status);
     }
 
     int i = 0;
-    /* Wait for consumers initialization */
+    /* Wait for subscribers initialization */
     while (i < NUMBER_OF_THREADS)
     {
         if (status[i])
@@ -375,8 +375,8 @@ TEST(SubscriberStateTable, one_producer_multiple_consumer)
 
     for (i = 0; i < NUMBER_OF_THREADS; i++)
     {
-        consumerThreads[i]->join();
-        delete consumerThreads[i];
+        subscriberThreads[i]->join();
+        delete subscriberThreads[i];
     }
     cout << endl << "Done." << endl;
 }
