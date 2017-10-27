@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <tuple>
 #include <sstream>
+#include <utility>
 #include <algorithm>
 #include "redisreply.h"
 #include "table.h"

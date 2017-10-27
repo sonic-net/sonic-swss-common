@@ -1,10 +1,11 @@
 #pragma once
 #include <string.h>
+#include <utility>
 #include <tuple>
 
 namespace swss {
 
-typedef std::tuple<std::string, std::string> FieldValueTuple;
+typedef std::pair<std::string, std::string> FieldValueTuple;
 #define fvField std::get<0>
 #define fvValue std::get<1>
 typedef std::tuple<std::string, std::string, std::vector<FieldValueTuple> > KeyOpFieldsValuesTuple;
