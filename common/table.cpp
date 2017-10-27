@@ -35,7 +35,7 @@ bool Table::get(string key, vector<FieldValueTuple> &values)
 
     for (unsigned int i = 0; i < reply->elements; i += 2)
     {
-        values.push_back(make_tuple(stripSpecialSym(reply->element[i]->str),
+        values.push_back(make_pair(stripSpecialSym(reply->element[i]->str),
                                     reply->element[i + 1]->str));
     }
 

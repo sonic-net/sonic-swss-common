@@ -5,6 +5,7 @@
 #include <string>
 #include <queue>
 #include <tuple>
+#include <utility>
 #include <map>
 #include <deque>
 #include "hiredis/hiredis.h"
@@ -19,7 +20,7 @@ namespace swss {
 #define DEFAULT_TABLE_NAME_SEPARATOR    ":"
 #define CONFIGDB_TABLE_NAME_SEPARATOR   "|"
 
-typedef std::tuple<std::string, std::string> FieldValueTuple;
+typedef std::pair<std::string, std::string> FieldValueTuple;
 #define fvField std::get<0>
 #define fvValue std::get<1>
 typedef std::tuple<std::string, std::string, std::vector<FieldValueTuple> > KeyOpFieldsValuesTuple;
