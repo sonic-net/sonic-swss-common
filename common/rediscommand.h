@@ -17,6 +17,8 @@ class RedisCommand {
 public:
     RedisCommand();
     ~RedisCommand();
+    RedisCommand(RedisCommand& that) = delete;
+    RedisCommand& operator=(RedisCommand& that) = delete;
 
     void format(const char *fmt, ...);
     void formatArgv(int argc, const char **argv, const size_t *argvlen);
