@@ -28,6 +28,7 @@ libswsscommon_la_SOURCES = \
     producertable.cpp         \
     producerstatetable.cpp    \
     redisclient.cpp           \
+    rediscommand.cpp          \
     select.cpp                \
     selectableevent.cpp       \
     consumertable.cpp         \
