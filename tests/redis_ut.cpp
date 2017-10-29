@@ -508,3 +508,50 @@ TEST(ProducerConsumer, Prefix)
     EXPECT_EQ(fvField(vs[0]), "f");
     EXPECT_EQ(fvValue(vs[0]), "v");
 }
+
+TEST(ProducerConsumer, Pop)
+{
+    std::string tableName = "tableName";
+
+    DBConnector db(TEST_VIEW, "localhost", 6379, 0);
+    ProducerTable p(&db, tableName);
+
+    std::vector<FieldValueTuple> values;
+
+    FieldValueTuple t("f", "v");
+    values.push_back(t);
+
+    p.set("key", values, "op", "prefix_");
+
+    ConsumerTable c(&db, tableName);
+
+    std::string key;
+    std::string op;
+    std::vector<FieldValueTuple> fvs;
+
+    c.pop(key, op, fvs, "prefix_");
+
+    EXPECT_EQ(key, "key");
+    EXPECT_EQ(op, "op");
+    EXPECT_EQ(fvField(fvs[0]), "f");
+    EXPECT_EQ(fvValue(fvs[0]), "v");
+}
+
+TEST(ProducerConsumer, PopEmpty)
+{
+    std::string tableName = "tableName";
+
+    DBConnector db(TEST_VIEW, "localhost", 6379, 0);
+
+    ConsumerTable c(&db, tableName);
+
+    std::string key;
+    std::string op;
+    std::vector<FieldValueTuple> fvs;
+
+    c.pop(key, op, fvs, "prefix_");
+
+    EXPECT_EQ(key, "");
+    EXPECT_EQ(op, "");
+    EXPECT_EQ(fvs.size(), 0U);
+}

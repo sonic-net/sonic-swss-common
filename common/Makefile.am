@@ -34,6 +34,7 @@ libswsscommon_la_SOURCES = \
     select.cpp                \
     selectableevent.cpp       \
     consumertable.cpp         \
+    consumertablebase.cpp     \
     consumerstatetable.cpp    \
     ipaddress.cpp             \
     ipprefix.cpp              \
