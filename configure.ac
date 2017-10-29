@@ -1,7 +1,8 @@
-AC_INIT([sonic-swss-common],[1.0])
+AC_INIT([swsscommon],[1.0])
 AC_CONFIG_SRCDIR([])
 AC_CONFIG_AUX_DIR(config)
 AM_CONFIG_HEADER(config.h)
+AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([foreign])
 AC_LANG_C
 AC_LANG([C++])
@@ -9,6 +10,10 @@ AC_PROG_CC
 AC_PROG_CXX
 AC_PROG_LIBTOOL
 AC_HEADER_STDC
+AM_PATH_PYTHON
+AX_PKG_SWIG([3.0.2], [], [ AC_MSG_ERROR([SWIG is required to build..]) ])
+AX_SWIG_ENABLE_CXX
+AX_SWIG_PYTHON
 
 AC_CHECK_LIB([hiredis], [redisConnect])
 PKG_CHECK_MODULES([LIBNL], [libnl-3.0 libnl-genl-3.0 libnl-route-3.0])
@@ -84,6 +89,7 @@ AC_SUBST(CFLAGS_COMMON)
 AC_CONFIG_FILES([
     Makefile
     common/Makefile
+    pyext/Makefile
     tests/Makefile
 ])
 
