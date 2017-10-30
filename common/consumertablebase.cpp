@@ -37,7 +37,21 @@ void ConsumerTableBase::pop(std::string &key, std::string &op, std::vector<Field
 {
     KeyOpFieldsValuesTuple kco;
 
-    pop(kco, prefix);
+    if (m_buffer.empty())
+    {
+        pops(m_buffer, prefix);
+
+        if (m_buffer.empty())
+        {
+            fvs.clear();
+            key.clear();
+            op.clear();
+            return;
+        }
+    }
+
+    kco = m_buffer.front();
+    m_buffer.pop_front();
 
     key = kfvKey(kco);
     op = kfvOp(kco);
