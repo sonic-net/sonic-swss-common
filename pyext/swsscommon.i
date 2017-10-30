@@ -11,6 +11,7 @@
 %{
 #include "schema.h"
 #include "dbconnector.h"
+#include "select.h"
 #include "selectable.h"
 #include "rediscommand.h"
 #include "table.h"
@@ -27,6 +28,7 @@
 #include "schema.h"
 %include "dbconnector.h"
 %include "selectable.h"
+%include "select.h"
 %include "rediscommand.h"
 %include "redispipeline.h"
 %include "redisselect.h"
