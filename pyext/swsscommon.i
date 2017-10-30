@@ -25,7 +25,7 @@
 #include "notificationconsumer.h"
 %}
 
-#include "schema.h"
+%include "schema.h"
 %include "dbconnector.h"
 %include "selectable.h"
 %include "select.h"
