@@ -10,34 +10,13 @@ class ConsumerTableBase: public TableConsumable, public RedisTransactioner
 public:
     const int POP_BATCH_SIZE;
 
-    ConsumerTableBase(DBConnector *db, std::string tableName, int popBatchSize = DEFAULT_POP_BATCH_SIZE):
-        TableConsumable(tableName),
-        RedisTransactioner(db),
-        POP_BATCH_SIZE(popBatchSize)
-    {
-    }
+    ConsumerTableBase(DBConnector *db, std::string tableName, int popBatchSize = DEFAULT_POP_BATCH_SIZE);
 
-    virtual ~ConsumerTableBase() {}
+    virtual ~ConsumerTableBase();
 
-    void pop(KeyOpFieldsValuesTuple &kco, std::string prefix = EMPTY_PREFIX)
-    {
-        if (m_buffer.empty())
-        {
-            pops(m_buffer, prefix);
+    void pop(KeyOpFieldsValuesTuple &kco, std::string prefix = EMPTY_PREFIX);
 
-            if (m_buffer.empty())
-            {
-                auto& values = kfvFieldsValues(kco);
-                values.clear();
-                kfvKey(kco).clear();
-                kfvOp(kco).clear();
-                return;
-            }
-        }
-
-        kco = m_buffer.front();
-        m_buffer.pop_front();
-    }
+    void pop(std::string &key, std::string &op, std::vector<FieldValueTuple> &fvs, std::string prefix = EMPTY_PREFIX);
 
 protected:
 
