@@ -4,6 +4,11 @@
 *.lo
 *.o
 
+# Generated Source #
+####################
+pyext/swsscommon.py
+pyext/swsscommon_wrap.cpp
+
 # Packaging Files #
 ###################
 debian/files

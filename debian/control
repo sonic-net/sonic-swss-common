@@ -23,3 +23,8 @@ Depends: libswsscommon (= ${binary:Version})
 Section: libdevel
 Description: This package contains development files for Switch State Service.
 
+Package: python-swsscommon
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Pre-Depends}
+Section: libs
+Description: This package contains Switch State Service common Python library.
