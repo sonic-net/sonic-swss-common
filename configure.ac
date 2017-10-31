@@ -11,9 +11,6 @@ AC_PROG_CXX
 AC_PROG_LIBTOOL
 AC_HEADER_STDC
 AM_PATH_PYTHON
-AX_PKG_SWIG([3.0.2], [], [ AC_MSG_ERROR([SWIG is required to build..]) ])
-AX_SWIG_ENABLE_CXX
-AX_SWIG_PYTHON
 
 AC_CHECK_LIB([hiredis], [redisConnect])
 PKG_CHECK_MODULES([LIBNL], [libnl-3.0 libnl-genl-3.0 libnl-route-3.0])
@@ -40,6 +37,8 @@ AC_ARG_ENABLE(gtest,
 	*) AC_MSG_ERROR(bad value ${enableval} for --enable-gtest) ;;
 esac],[gtest=false])
 AM_CONDITIONAL(GTEST, test x$gtest = xtrue)
+
+AC_PATH_PROG(SWIG, [swig3.0])
 
 CFLAGS_COMMON=""
 CFLAGS_COMMON+=" -ansi"
