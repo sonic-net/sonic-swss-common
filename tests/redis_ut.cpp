@@ -10,6 +10,7 @@
 #include "common/notificationproducer.h"
 #include "common/select.h"
 #include "common/selectableevent.h"
+#include "common/selectabletimer.h"
 #include "common/table.h"
 
 using namespace std;
@@ -321,6 +322,31 @@ TEST(DBConnector, selectableevent)
     EXPECT_EQ(value, 2);
 }
 
+TEST(DBConnector, selectabletimer)
+{
+    timespec interval = { .tv_sec = 1, .tv_nsec = 0 };
+    SelectableTimer timer(interval);
+
+    Select s;
+    s.addSelectable(&timer);
+    Selectable *sel;
+    int fd, result;
+
+    // Wait long enough so we got timer notification first
+    result = s.select(&sel, &fd, 2000);
+    ASSERT_EQ(result, Select::OBJECT);
+    ASSERT_EQ(sel, &timer);
+
+    // Wait short so we got select timeout first
+    result = s.select(&sel, &fd, 10);
+    ASSERT_EQ(result, Select::TIMEOUT);
+
+    // Wait long enough so we got timer notification first
+    result = s.select(&sel, &fd, 10000);
+    ASSERT_EQ(result, Select::OBJECT);
+    ASSERT_EQ(sel, &timer);
+}
+
 TEST(Table, test)
 {
     string tableName = "TABLE_UT_TEST";
@@ -535,6 +561,45 @@ TEST(ProducerConsumer, Pop)
     EXPECT_EQ(op, "op");
     EXPECT_EQ(fvField(fvs[0]), "f");
     EXPECT_EQ(fvValue(fvs[0]), "v");
+}
+
+TEST(ProducerConsumer, Pop2)
+{
+    std::string tableName = "tableName";
+
+    DBConnector db(TEST_VIEW, "localhost", 6379, 0);
+    ProducerTable p(&db, tableName);
+
+    std::vector<FieldValueTuple> values;
+
+    FieldValueTuple t("f", "v");
+    values.push_back(t);
+    p.set("key", values, "op", "prefix_");
+
+    FieldValueTuple t2("f2", "v2");
+    values.clear();
+    values.push_back(t2);
+    p.set("key", values, "op", "prefix_");
+
+    ConsumerTable c(&db, tableName);
+
+    std::string key;
+    std::string op;
+    std::vector<FieldValueTuple> fvs;
+
+    c.pop(key, op, fvs, "prefix_");
+
+    EXPECT_EQ(key, "key");
+    EXPECT_EQ(op, "op");
+    EXPECT_EQ(fvField(fvs[0]), "f");
+    EXPECT_EQ(fvValue(fvs[0]), "v");
+
+    c.pop(key, op, fvs, "prefix_");
+
+    EXPECT_EQ(key, "key");
+    EXPECT_EQ(op, "op");
+    EXPECT_EQ(fvField(fvs[0]), "f2");
+    EXPECT_EQ(fvValue(fvs[0]), "v2");
 }
 
 TEST(ProducerConsumer, PopEmpty)

@@ -33,6 +33,7 @@ libswsscommon_la_SOURCES = \
     redisselect.cpp           \
     select.cpp                \
     selectableevent.cpp       \
+    selectabletimer.cpp       \
     consumertable.cpp         \
     consumertablebase.cpp     \
     consumerstatetable.cpp    \
