@@ -61,10 +61,10 @@ void Table::del(string key, string /* op */, string /*prefix*/)
     RedisReply r(m_db, string("DEL ") + getKeyName(key), REDIS_REPLY_INTEGER);
 }
 
-void TableEntryEnumerable::getTableContent(vector<KeyOpFieldsValuesTuple> &tuples)
+void TableEntryEnumerable::getContent(vector<KeyOpFieldsValuesTuple> &tuples)
 {
     vector<string> keys;
-    getTableKeys(keys);
+    getKeys(keys);
 
     tuples.clear();
 
@@ -78,7 +78,7 @@ void TableEntryEnumerable::getTableContent(vector<KeyOpFieldsValuesTuple> &tuple
     }
 }
 
-void Table::getTableKeys(vector<string> &keys)
+void Table::getKeys(vector<string> &keys)
 {
     string keys_cmd("KEYS " + getTableName() + getTableNameSeparator() + "*");
     RedisReply r(m_db, keys_cmd, REDIS_REPLY_ARRAY);

@@ -24,7 +24,7 @@ SubscriberStateTable::SubscriberStateTable(DBConnector *db, string tableName)
     psubscribe(m_db, m_keyspace);
 
     vector<string> keys;
-    m_table.getTableKeys(keys);
+    m_table.getKeys(keys);
 
     for (auto key: keys)
     {

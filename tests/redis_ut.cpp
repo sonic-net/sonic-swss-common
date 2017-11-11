@@ -350,7 +350,7 @@ TEST(Table, test)
 
     cout << "- Step 2. GET_TABLE_CONTENT" << endl;
     vector<KeyOpFieldsValuesTuple> tuples;
-    t.getTableContent(tuples);
+    t.getContent(tuples);
 
     cout << "Get total " << tuples.size() << " number of entries" << endl;
     EXPECT_EQ(tuples.size(), (size_t)2);
@@ -392,7 +392,7 @@ TEST(Table, test)
     cout << "- Step 5. DEL and GET_TABLE_CONTENT" << endl;
     cout << "Delete key [b]" << endl;
     t.del(key_2);
-    t.getTableContent(tuples);
+    t.getContent(tuples);
 
     EXPECT_EQ(tuples.size(), unsigned(0));
 
@@ -431,7 +431,7 @@ TEST(Table, table_separator_test)
 
     cout << "- Step 2. GET_TABLE_CONTENT" << endl;
     vector<KeyOpFieldsValuesTuple> tuples;
-    t.getTableContent(tuples);
+    t.getContent(tuples);
 
     cout << "Get total " << tuples.size() << " number of entries" << endl;
     EXPECT_EQ(tuples.size(), (size_t)2);
@@ -473,7 +473,7 @@ TEST(Table, table_separator_test)
     cout << "- Step 5. DEL and GET_TABLE_CONTENT" << endl;
     cout << "Delete key [b]" << endl;
     t.del(key_2);
-    t.getTableContent(tuples);
+    t.getContent(tuples);
 
     EXPECT_EQ(tuples.size(), unsigned(0));
 
