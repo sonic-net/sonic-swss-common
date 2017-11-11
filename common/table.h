@@ -105,11 +105,11 @@ public:
     virtual bool get(std::string key, std::vector<FieldValueTuple> &values) = 0;
 
     /* get all the keys in the table */
-    virtual void getTableKeys(std::vector<std::string> &keys) = 0;
+    virtual void getKeys(std::vector<std::string> &keys) = 0;
 
     /* Read the whole table content from the DB directly */
     /* NOTE: Not an atomic function */
-    void getTableContent(std::vector<KeyOpFieldsValuesTuple> &tuples);
+    void getContent(std::vector<KeyOpFieldsValuesTuple> &tuples);
 };
 
 class Table : public RedisTransactioner, public TableBase, public TableEntryEnumerable {
@@ -129,9 +129,9 @@ public:
 
     /* Read a value from the DB directly */
     /* Returns false if the key doesn't exists */
-    virtual bool get(std::string key, std::vector<FieldValueTuple> &values);
+    virtual bool get(std::string key, std::vector<FieldValueTuple> &ovalues);
 
-    void getTableKeys(std::vector<std::string> &keys);
+    void getKeys(std::vector<std::string> &keys);
 
     void dump(TableDump &tableDump);
 

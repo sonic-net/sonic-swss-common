@@ -1,15 +1,5 @@
 %module swsscommon
 
-%include <std_string.i>
-%include <std_vector.i>
-%include <std_pair.i>
-%include <typemaps.i>
-
-%template(FieldValuePair) std::pair<std::string, std::string>;
-%template(FieldValuePairs) std::vector<std::pair<std::string, std::string>>;
-%apply std::string& OUTPUT {std::string &key};
-%apply std::string& OUTPUT {std::string &op};
-
 %{
 #include "schema.h"
 #include "dbconnector.h"
@@ -26,6 +16,15 @@
 #include "subscriberstatetable.h"
 #include "notificationconsumer.h"
 %}
+
+%include <std_string.i>
+%include <std_vector.i>
+%include <std_pair.i>
+%include <typemaps.i>
+
+%template(FieldValuePair) std::pair<std::string, std::string>;
+%template(FieldValuePairs) std::vector<std::pair<std::string, std::string>>;
+%template(VectorString) std::vector<std::string>;
 
 %apply int *OUTPUT {int *fd};
 %typemap(in, numinputs=0) swss::Selectable ** (swss::Selectable *temp) {
@@ -49,9 +48,23 @@
 %include "redispipeline.h"
 %include "redisselect.h"
 %include "redistran.h"
+
+%apply std::vector<std::string>& OUTPUT {std::vector<std::string> &keys};
+%apply std::vector<std::pair<std::string, std::string>>& OUTPUT {std::vector<std::pair<std::string, std::string>> &ovalues};
 %include "table.h"
+%clear std::vector<std::string> &keys;
+%clear std::vector<std::pair<std::string, std::string>> &values;
+
 %include "producerstatetable.h"
+
+%apply std::string& OUTPUT {std::string &key};
+%apply std::string& OUTPUT {std::string &op};
+%apply std::vector<std::pair<std::string, std::string>>& OUTPUT {std::vector<std::pair<std::string, std::string>> &fvs};
 %include "consumertablebase.h"
+%clear std::string &key;
+%clear std::string &op;
+%clear std::vector<std::pair<std::string, std::string>> &fvs;
+
 %include "consumerstatetable.h"
 %include "subscriberstatetable.h"
 %include "notificationconsumer.h"
