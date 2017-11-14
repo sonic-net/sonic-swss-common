@@ -350,6 +350,12 @@ TEST(DBConnector, selectabletimer)
     result = s.select(&sel, &fd, 10000);
     ASSERT_EQ(result, Select::OBJECT);
     ASSERT_EQ(sel, &timer);
+
+    // Reset and wait long enough so we got timer notification first
+    timer.reset();
+    result = s.select(&sel, &fd, 10000);
+    ASSERT_EQ(result, Select::OBJECT);
+    ASSERT_EQ(sel, &timer);
 }
 
 TEST(Table, test)

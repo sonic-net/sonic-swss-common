@@ -15,6 +15,7 @@ public:
     virtual ~SelectableTimer();
     void start();
     void stop();
+    void reset();
     void setInterval(const timespec& interval);
 
     virtual void addFd(fd_set *fd);

@@ -54,6 +54,12 @@ void SelectableTimer::stop()
     }
 }
 
+void SelectableTimer::reset()
+{
+    stop();
+    start();
+}
+
 void SelectableTimer::setInterval(const timespec& interval)
 {
     // The initial expiration and intervals to caller specified
