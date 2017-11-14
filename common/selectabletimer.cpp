@@ -18,8 +18,7 @@ SelectableTimer::SelectableTimer(const timespec& interval)
     m_tfd = timerfd_create(CLOCK_REALTIME, 0);
     if (m_tfd == -1)
     {
-        SWSS_LOG_ERROR("failed to create timerfd, errno: %s", strerror(errno));
-        throw std::runtime_error("failed to create timerfd");
+        SWSS_LOG_THROW("failed to create timerfd, errno: %s", strerror(errno));
     }
     setInterval(interval);
 }
@@ -41,8 +40,7 @@ void SelectableTimer::start()
     int rc = timerfd_settime(m_tfd, 0, &m_interval, NULL);
     if (rc == -1)
     {
-        SWSS_LOG_ERROR("failed to set timerfd, errno: %s", strerror(errno));
-        throw std::runtime_error("failed to set timerfd");
+        SWSS_LOG_THROW("failed to set timerfd, errno: %s", strerror(errno));
     }
 }
 
@@ -52,8 +50,7 @@ void SelectableTimer::stop()
     int rc = timerfd_settime(m_tfd, 0, &m_zero, NULL);
     if (rc == -1)
     {
-        SWSS_LOG_ERROR("failed to set timerfd to zero, errno: %s", strerror(errno));
-        throw std::runtime_error("failed to set timerfd to zero");
+        SWSS_LOG_THROW("failed to set timerfd to zero, errno: %s", strerror(errno));
     }
 }
 
@@ -88,9 +85,7 @@ void SelectableTimer::readMe()
 
     if (s != sizeof(uint64_t))
     {
-        SWSS_LOG_ERROR("read failed, errno: %s", strerror(errno));
-
-        throw std::runtime_error("read failed");
+        SWSS_LOG_THROW("read failed, errno: %s", strerror(errno));
     }
 }
 
