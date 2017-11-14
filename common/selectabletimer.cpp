@@ -12,6 +12,7 @@
 namespace swss {
 
 SelectableTimer::SelectableTimer(const timespec& interval)
+    : m_zero({{0, 0}, {0, 0}})
 {
     // Create the timer
     m_tfd = timerfd_create(CLOCK_REALTIME, 0);
@@ -20,19 +21,7 @@ SelectableTimer::SelectableTimer(const timespec& interval)
         SWSS_LOG_ERROR("failed to create timerfd, errno: %s", strerror(errno));
         throw std::runtime_error("failed to create timerfd");
     }
-
-    // The initial expiration and intervals to caller specified
-    struct itimerspec interv;
-    interv.it_value = interval;
-    interv.it_interval = interval;
-
-    // Set the timer interval
-    int rc = timerfd_settime(m_tfd, 0, &interv, NULL);
-    if (rc == -1)
-    {
-        SWSS_LOG_ERROR("failed to set timerfd, errno: %s", strerror(errno));
-        throw std::runtime_error("failed to set timerfd");
-    }
+    setInterval(interval);
 }
 
 SelectableTimer::~SelectableTimer()
@@ -44,6 +33,35 @@ SelectableTimer::~SelectableTimer()
         err = close(m_tfd);
     }
     while(err == -1 && errno == EINTR);
+}
+
+void SelectableTimer::start()
+{
+    // Set the timer interval and the timer is automatically started
+    int rc = timerfd_settime(m_tfd, 0, &m_interval, NULL);
+    if (rc == -1)
+    {
+        SWSS_LOG_ERROR("failed to set timerfd, errno: %s", strerror(errno));
+        throw std::runtime_error("failed to set timerfd");
+    }
+}
+
+void SelectableTimer::stop()
+{
+    // Set the timer interval and the timer is automatically started
+    int rc = timerfd_settime(m_tfd, 0, &m_zero, NULL);
+    if (rc == -1)
+    {
+        SWSS_LOG_ERROR("failed to set timerfd to zero, errno: %s", strerror(errno));
+        throw std::runtime_error("failed to set timerfd to zero");
+    }
+}
+
+void SelectableTimer::setInterval(const timespec& interval)
+{
+    // The initial expiration and intervals to caller specified
+    m_interval.it_value = interval;
+    m_interval.it_interval = interval;
 }
 
 void SelectableTimer::addFd(fd_set *fd)

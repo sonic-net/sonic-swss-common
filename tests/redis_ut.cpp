@@ -332,7 +332,12 @@ TEST(DBConnector, selectabletimer)
     Selectable *sel;
     int fd, result;
 
+    // Wait a non started timer
+    result = s.select(&sel, &fd, 2000);
+    ASSERT_EQ(result, Select::TIMEOUT);
+
     // Wait long enough so we got timer notification first
+    timer.start();
     result = s.select(&sel, &fd, 2000);
     ASSERT_EQ(result, Select::OBJECT);
     ASSERT_EQ(sel, &timer);

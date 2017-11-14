@@ -13,6 +13,9 @@ class SelectableTimer : public Selectable
 public:
     SelectableTimer(const timespec& interval);
     virtual ~SelectableTimer();
+    void start();
+    void stop();
+    void setInterval(const timespec& interval);
 
     virtual void addFd(fd_set *fd);
     virtual bool isMe(fd_set *fd);
@@ -21,6 +24,8 @@ public:
 
 private:
     int m_tfd;
+    itimerspec m_interval;
+    itimerspec m_zero;
 };
 
 }
