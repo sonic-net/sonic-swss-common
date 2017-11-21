@@ -32,6 +32,7 @@ config.status
 configure
 libtool
 Makefile.in
+!goext/Makefile.in
 stamp-h1
 **/.deps/
 **/.libs/

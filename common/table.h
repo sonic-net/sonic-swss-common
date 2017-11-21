@@ -23,6 +23,9 @@ namespace swss {
 typedef std::pair<std::string, std::string> FieldValueTuple;
 #define fvField std::get<0>
 #define fvValue std::get<1>
+typedef std::pair<std::string, std::string> KeyOpTuple;
+#define koKey std::get<0>
+#define koOp std::get<1>
 typedef std::tuple<std::string, std::string, std::vector<FieldValueTuple> > KeyOpFieldsValuesTuple;
 #define kfvKey    std::get<0>
 #define kfvOp     std::get<1>
