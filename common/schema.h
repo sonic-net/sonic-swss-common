@@ -105,7 +105,9 @@ namespace swss {
 #define STATE_PORT_TABLE_NAME           "PORT_TABLE"
 #define STATE_LAG_TABLE_NAME            "LAG_TABLE"
 #define STATE_VLAN_TABLE_NAME           "VLAN_TABLE"
+#define STATE_VLAN_MEMBER_TABLE_NAME    "VLAN_MEMBER_TABLE"
 #define STATE_INTERFACE_TABLE_NAME      "INTERFACE_TABLE"
+#define STATE_FDB_TABLE_NAME            "FDB_TABLE"
 
 /***** MISC *****/
 
