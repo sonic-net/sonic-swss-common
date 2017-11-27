@@ -1,4 +1,4 @@
-GOPATH = /sonic/go
+GOPATH = /tmp/sonic/go
 
 # SRCDIR is the relative path to the current source directory
 # - For in-source-tree builds, SRCDIR with be either '' or './', but
@@ -72,8 +72,8 @@ build: $(SRCDIR_CXXSRCS)
 	  cp $(IWRAP:.i=.h) $(GOPATHDIR)/; \
 	fi
 
-	rsync -av  --exclude '*.cpp' --exclude '*.o'  --exclude '*.lo' $(SRCDIR) $(GOPATHDIR)/;
-	rsync -av  --exclude 'loglevel.cpp' $(SRCDIR)/*.cpp $(GOPATHDIR)/;
+	@rsync -av  --exclude '*.cpp' --exclude '*.o'  --exclude '*.lo' $(SRCDIR) $(GOPATHDIR)/;
+	@rsync -av  --exclude 'loglevel.cpp' $(SRCDIR)/*.cpp $(GOPATHDIR)/;
 
 	cp $(GOSRCS) $(GOPATHDIR)/
 	export GOPATH; \

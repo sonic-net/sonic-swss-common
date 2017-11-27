@@ -78,7 +78,7 @@ func Test_ProducerStateTable(t *testing.T) {
 
 	vpsr := swsscommon.NewFieldValuePairs()
 	defer swsscommon.DeleteFieldValuePairs(vpsr)
-	// Reusing FieldValuePair for KeyOpTuple as std::pair<std::string, std::string>
+
 	ko := swsscommon.NewStringPair()
 	defer swsscommon.DeleteStringPair(ko)
 	//var key, op string
@@ -131,21 +131,21 @@ func Test_SubscriberStateTable(t *testing.T) {
 
 	tbl.Set("aaa", fvs)
 
-	//const timout = 1000
-	// s := swsscommon.NewRedisSelect()
-	//defer swsscommon.DeleteRedisSelect(s)
 	fd := []int{0}
 	var timeout uint = 1000
-	//ret := sel.Xselect(s.SwigGetSelectable(), fd, timeout)
 	ret := sel.Xselect(fd, timeout)
 
 	if ret != swsscommon.SelectOBJECT {
 		t.Error("Expecting : ", swsscommon.SelectOBJECT)
 	}
 
+	if !sel.IsSelected(cst.SwigGetSelectable()) {
+		t.Error("Invalid Selectable object ")
+	}
+
 	vpsr := swsscommon.NewFieldValuePairs()
 	defer swsscommon.DeleteFieldValuePairs(vpsr)
-	// Reusing FieldValuePair for KeyOpTuple as std::pair<std::string, std::string>
+
 	ko := swsscommon.NewStringPair()
 	defer swsscommon.DeleteStringPair(ko)
 	cst.Pop(ko, vpsr)
