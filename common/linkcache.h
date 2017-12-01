@@ -17,6 +17,7 @@ public:
 
     /* Translate ifindex to name */
     std::string ifindexToName(int ifindex);
+    struct rtnl_link* getLinkByName(const char* name);
 
 private:
     LinkCache();

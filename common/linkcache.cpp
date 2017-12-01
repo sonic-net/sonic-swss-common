@@ -75,3 +75,8 @@ string LinkCache::ifindexToName(int ifindex)
 
     return string(addrStr);
 }
+
+struct rtnl_link* LinkCache::getLinkByName(const char *name)
+{
+    return rtnl_link_get_by_name(m_link_cache, name);
+}
