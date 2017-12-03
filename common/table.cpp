@@ -88,8 +88,7 @@ void Table::getKeys(vector<string> &keys)
     for (unsigned int i = 0; i < reply->elements; i++)
     {
         string key = reply->element[i]->str;
-        auto pos = key.find(getTableNameSeparator());
-        keys.push_back(key.substr(pos+1));
+        keys.push_back(key.substr(getTableName().length()+1));
     }
 }
 
