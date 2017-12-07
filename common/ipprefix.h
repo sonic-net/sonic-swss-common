@@ -24,6 +24,15 @@ public:
         return m_ip;
     }
 
+    inline IpAddress getBroadcastIp() const
+    {
+        if(!isV4())
+        {
+            return m_ip;
+        }
+        return IpAddress(ntohl(htonl(m_ip.getV4Addr()) | ~(htonl(getMask().getV4Addr()))));
+    }
+
     inline IpAddress getMask() const
     {
         switch (m_ip.getIp().family)
