@@ -59,7 +59,7 @@ TEST(IpPrefix, ipv6)
     IpPrefix ipp128("2001:4898:f0:f153:357c:77b2:49c9:627c/128");
     EXPECT_EQ(ipp128.getIp().to_string(), "2001:4898:f0:f153:357c:77b2:49c9:627c");
     EXPECT_EQ(ipp128.getMask().to_string(), "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
-
+    
     EXPECT_THROW(IpPrefix("2001:4898:f0:f153:357c:77b2:49c9:627c/-1"), invalid_argument);
     EXPECT_THROW(IpPrefix("2001:4898:f0:f153:357c:77b2:49c9:627c/-2"), invalid_argument);
     EXPECT_THROW(IpPrefix("2001:4898:f0:f153:357c:77b2:49c9:627c/129"), invalid_argument);

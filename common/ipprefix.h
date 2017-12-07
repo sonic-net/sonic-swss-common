@@ -30,7 +30,7 @@ public:
         {
             case AF_INET:
             {
-                return IpAddress(ntohl(htonl(m_ip.getV4Addr()) | ~(htonl(getMask().getV4Addr()))));
+                return IpAddress((m_ip.getV4Addr()) | ~(getMask().getV4Addr()));
             }
             case AF_INET6:
             {
