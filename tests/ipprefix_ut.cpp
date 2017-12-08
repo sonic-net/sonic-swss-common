@@ -13,6 +13,14 @@ TEST(IpPrefix, ipv4)
     IpPrefix ip2("1.1.1.1/32");
     IpAddress mask2("255.255.255.255");
     EXPECT_EQ(ip2.getMask(), mask2);
+
+    IpPrefix ip3("192.168.0.1/27");
+    IpAddress bcast3("192.168.0.31");
+    EXPECT_EQ(ip3.getBroadcastIp(), bcast3);
+
+    IpPrefix ip4("10.1.1.1/24");
+    IpAddress bcast4("10.1.1.255");
+    EXPECT_EQ(ip4.getBroadcastIp(), bcast4);
 }
 
 TEST(IpPrefix, ipv6)
@@ -36,14 +44,17 @@ TEST(IpPrefix, ipv6)
     IpPrefix ipp64("2001:4898:f0:f153:357c:77b2:49c9:627c/64");
     EXPECT_EQ(ipp64.getIp().to_string(), "2001:4898:f0:f153:357c:77b2:49c9:627c");
     EXPECT_EQ(ipp64.getMask().to_string(), "ffff:ffff:ffff:ffff::");
+    EXPECT_EQ(ipp64.getBroadcastIp().to_string(), "2001:4898:f0:f153:ffff:ffff:ffff:ffff");
     
     IpPrefix ipp65("2001:4898:f0:f153:357c:77b2:49c9:627c/65");
     EXPECT_EQ(ipp65.getIp().to_string(), "2001:4898:f0:f153:357c:77b2:49c9:627c");
     EXPECT_EQ(ipp65.getMask().to_string(), "ffff:ffff:ffff:ffff:8000::");
+    EXPECT_EQ(ipp65.getBroadcastIp().to_string(), "2001:4898:f0:f153:7fff:ffff:ffff:ffff");
     
     IpPrefix ipp127("2001:4898:f0:f153:357c:77b2:49c9:627c/127");
     EXPECT_EQ(ipp127.getIp().to_string(), "2001:4898:f0:f153:357c:77b2:49c9:627c");
     EXPECT_EQ(ipp127.getMask().to_string(), "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe");
+    EXPECT_EQ(ipp127.getBroadcastIp().to_string(), "2001:4898:f0:f153:357c:77b2:49c9:627d");
     
     IpPrefix ipp128("2001:4898:f0:f153:357c:77b2:49c9:627c/128");
     EXPECT_EQ(ipp128.getIp().to_string(), "2001:4898:f0:f153:357c:77b2:49c9:627c");

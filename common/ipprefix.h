@@ -24,6 +24,35 @@ public:
         return m_ip;
     }
 
+    inline IpAddress getBroadcastIp() const
+    {
+        switch (m_ip.getIp().family)
+        {
+            case AF_INET:
+            {
+                return IpAddress((m_ip.getV4Addr()) | ~(getMask().getV4Addr()));
+            }
+            case AF_INET6:
+            {
+                ip_addr_t ipa;
+                ipa.family = AF_INET6;
+                const uint8_t *prefix = m_ip.getV6Addr();
+                IpAddress ip6mask = getMask();
+                const uint8_t *mask = ip6mask.getV6Addr();
+
+                for (int i = 0; i < 16; ++i)
+                {
+                    ipa.ip_addr.ipv6_addr[i] = (uint8_t)(prefix[i] | ~mask[i]);
+                }
+                return IpAddress(ipa);
+            }
+            default:
+            {
+                throw std::logic_error("Invalid family");
+            }
+        }
+    }
+
     inline IpAddress getMask() const
     {
         switch (m_ip.getIp().family)
