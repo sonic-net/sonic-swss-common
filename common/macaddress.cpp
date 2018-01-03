@@ -24,41 +24,97 @@ MacAddress::MacAddress(const std::string& macStr)
 
 const std::string MacAddress::to_string() const
 {
-    char tmp_mac[32];
-    sprintf(tmp_mac, "%02x:%02x:%02x:%02x:%02x:%02x", m_mac[0], m_mac[1], m_mac[2], m_mac[3], m_mac[4], m_mac[5]);
-    return std::string(tmp_mac);
+    return MacAddress::to_string(m_mac);
 }
 
 std::string MacAddress::to_string(const uint8_t* mac)
 {
-    uint8_t tmp_mac[32];
-    sprintf((char*)tmp_mac, "%02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-    return std::string((char*)tmp_mac);
+    std::string str(17, ':');
+    for(int i = 0; i < 6; i++) {
+        int left = i * 3;
+        int right = left + 1;
+        char left_half = static_cast<char>(mac[i] >> 4);
+        char right_half = mac[i] & 0x0f;
+
+        if (left_half >= 0 && left_half <= 9)
+        {
+            str[left] = static_cast<char>(left_half + '0');
+        } else {
+            str[left] = static_cast<char>(left_half + 'a' - 0x0a);
+        }
+
+        if (right_half >= 0 && right_half <= 9)
+        {
+            str[right] = static_cast<char>(right_half + '0');
+        } else {
+            str[right] = static_cast<char>(right_half + 'a' - 0x0a);
+        }
+    }
+
+    return str;
 }
 
-bool MacAddress::parseMacString(const string& macStr, uint8_t* mac)
+bool MacAddress::parseMacString(const string& str_mac, uint8_t* bin_mac)
 {
-    int i;
-    unsigned int value;
-    char ignore;
-    istringstream iss(macStr);
-
-    if (mac == NULL)
+    if (bin_mac == NULL)
     {
         return false;
     }
 
-    iss >> hex;
-
-    for (i = 0; i < 5; i++)
+    if (str_mac.length() != 17)
     {
-        iss >> value >> ignore;
-        if (!iss) return false;
-        if (value >= 256) return false;
-        mac[i] = (uint8_t)value;
+        return false;
     }
-    iss >> value;
-    mac[5] = (uint8_t)value;
+
+    const char* ptr_mac = str_mac.c_str();
+
+    if ((ptr_mac[2]  != ':' || ptr_mac[5]  != ':' || ptr_mac[8] != ':' || ptr_mac[11] != ':' || ptr_mac[14] != ':')
+     && (ptr_mac[2]  != '-' || ptr_mac[5]  != '-' || ptr_mac[8] != '-' || ptr_mac[11] != '-' || ptr_mac[14] != '-'))
+    {
+        return false;
+    }
+
+    for(int i = 0; i < 6; i++)
+    {
+        int left  = i * 3;
+        int right = left + 1;
+
+        if (ptr_mac[left] >= '0' &&  ptr_mac[left] <= '9')
+        {
+            bin_mac[i] = static_cast<uint8_t>(ptr_mac[left] - '0');
+        }
+        else if (ptr_mac[left] >= 'A' &&  ptr_mac[left] <= 'F')
+        {
+            bin_mac[i] = static_cast<uint8_t>(ptr_mac[left] - 'A' + 0x0a);
+        }
+        else if (ptr_mac[left] >= 'a' &&  ptr_mac[left] <= 'f')
+        {
+            bin_mac[i] = static_cast<uint8_t>(ptr_mac[left] - 'a' + 0x0a);
+        }
+        else
+        {
+            return false;
+        }
+
+        bin_mac[i] = static_cast<uint8_t>(bin_mac[i] << 4);
+
+        if (ptr_mac[right] >= '0' &&  ptr_mac[right] <= '9')
+        {
+            bin_mac[i] |= static_cast<uint8_t>(ptr_mac[right] - '0');
+        }
+        else if (ptr_mac[right] >= 'A' &&  ptr_mac[right] <= 'F')
+        {
+            bin_mac[i] |= static_cast<uint8_t>(ptr_mac[right] - 'A' + 0x0a);
+        }
+        else if (ptr_mac[right] >= 'a' &&  ptr_mac[right] <= 'f')
+        {
+            bin_mac[i] |= static_cast<uint8_t>(ptr_mac[right] - 'a' + 0x0a);
+        }
+        else
+        {
+            return false;
+        }
+    }
 
     return true;
 }
