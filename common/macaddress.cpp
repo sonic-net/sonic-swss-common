@@ -68,8 +68,8 @@ bool MacAddress::parseMacString(const string& str_mac, uint8_t* bin_mac)
 
     const char* ptr_mac = str_mac.c_str();
 
-    if ((ptr_mac[2]  != ':' || ptr_mac[5]  != ':' || ptr_mac[8] != ':' || ptr_mac[11] != ':' || ptr_mac[14] != ':')
-     && (ptr_mac[2]  != '-' || ptr_mac[5]  != '-' || ptr_mac[8] != '-' || ptr_mac[11] != '-' || ptr_mac[14] != '-'))
+    if ((ptr_mac[2] != ':' || ptr_mac[5] != ':' || ptr_mac[8] != ':' || ptr_mac[11] != ':' || ptr_mac[14] != ':')
+     && (ptr_mac[2] != '-' || ptr_mac[5] != '-' || ptr_mac[8] != '-' || ptr_mac[11] != '-' || ptr_mac[14] != '-'))
     {
         return false;
     }
@@ -79,15 +79,15 @@ bool MacAddress::parseMacString(const string& str_mac, uint8_t* bin_mac)
         int left  = i * 3;
         int right = left + 1;
 
-        if (ptr_mac[left] >= '0' &&  ptr_mac[left] <= '9')
+        if (ptr_mac[left] >= '0' && ptr_mac[left] <= '9')
         {
             bin_mac[i] = static_cast<uint8_t>(ptr_mac[left] - '0');
         }
-        else if (ptr_mac[left] >= 'A' &&  ptr_mac[left] <= 'F')
+        else if (ptr_mac[left] >= 'A' && ptr_mac[left] <= 'F')
         {
             bin_mac[i] = static_cast<uint8_t>(ptr_mac[left] - 'A' + 0x0a);
         }
-        else if (ptr_mac[left] >= 'a' &&  ptr_mac[left] <= 'f')
+        else if (ptr_mac[left] >= 'a' && ptr_mac[left] <= 'f')
         {
             bin_mac[i] = static_cast<uint8_t>(ptr_mac[left] - 'a' + 0x0a);
         }
@@ -98,15 +98,15 @@ bool MacAddress::parseMacString(const string& str_mac, uint8_t* bin_mac)
 
         bin_mac[i] = static_cast<uint8_t>(bin_mac[i] << 4);
 
-        if (ptr_mac[right] >= '0' &&  ptr_mac[right] <= '9')
+        if (ptr_mac[right] >= '0' && ptr_mac[right] <= '9')
         {
             bin_mac[i] |= static_cast<uint8_t>(ptr_mac[right] - '0');
         }
-        else if (ptr_mac[right] >= 'A' &&  ptr_mac[right] <= 'F')
+        else if (ptr_mac[right] >= 'A' && ptr_mac[right] <= 'F')
         {
             bin_mac[i] |= static_cast<uint8_t>(ptr_mac[right] - 'A' + 0x0a);
         }
-        else if (ptr_mac[right] >= 'a' &&  ptr_mac[right] <= 'f')
+        else if (ptr_mac[right] >= 'a' && ptr_mac[right] <= 'f')
         {
             bin_mac[i] |= static_cast<uint8_t>(ptr_mac[right] - 'a' + 0x0a);
         }
