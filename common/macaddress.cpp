@@ -39,14 +39,18 @@ std::string MacAddress::to_string(const uint8_t* mac)
         if (left_half >= 0 && left_half <= 9)
         {
             str[left] = static_cast<char>(left_half + '0');
-        } else {
+        }
+        else
+        {
             str[left] = static_cast<char>(left_half + 'a' - 0x0a);
         }
 
         if (right_half >= 0 && right_half <= 9)
         {
             str[right] = static_cast<char>(right_half + '0');
-        } else {
+        }
+        else
+        {
             str[right] = static_cast<char>(right_half + 'a' - 0x0a);
         }
     }
