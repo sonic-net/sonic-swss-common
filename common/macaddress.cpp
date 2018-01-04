@@ -46,6 +46,9 @@ std::string MacAddress::to_string(const uint8_t* mac)
     return str;
 }
 
+// This function parses a string to a binary mac address (uint8_t[6])
+// The string should contain mac address only. No spaces are allowed.
+// The mac address separators could be either ':' or '-'
 bool MacAddress::parseMacString(const string& str_mac, uint8_t* bin_mac)
 {
     if (bin_mac == NULL)
@@ -60,8 +63,14 @@ bool MacAddress::parseMacString(const string& str_mac, uint8_t* bin_mac)
 
     const char* ptr_mac = str_mac.c_str();
 
-    if ((ptr_mac[2] != ':' || ptr_mac[5] != ':' || ptr_mac[8] != ':' || ptr_mac[11] != ':' || ptr_mac[14] != ':')
-     && (ptr_mac[2] != '-' || ptr_mac[5] != '-' || ptr_mac[8] != '-' || ptr_mac[11] != '-' || ptr_mac[14] != '-'))
+    // first check that all mac address separators are equal to each other
+    if (!allequal(ptr_mac[2], ptr_mac[5], ptr_mac[8], ptr_mac[11], ptr_mac[14]))
+    {
+        return false;
+    }
+
+    // then check that the first separator is equal to ':' or '-'
+    if (ptr_mac[2] != ':' && ptr_mac[2] != '-')
     {
         return false;
     }
