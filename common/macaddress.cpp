@@ -20,7 +20,7 @@ MacAddress::MacAddress(const uint8_t *mac)
 MacAddress::MacAddress(const std::string& macStr)
 {
     bool suc = MacAddress::parseMacString(macStr, m_mac);
-    if (!suc) throw invalid_argument("invalid mac address " + macStr);
+    if (!suc) throw invalid_argument("can't parse mac address '" + macStr + "'");
 }
 
 const std::string MacAddress::to_string() const
@@ -30,30 +30,17 @@ const std::string MacAddress::to_string() const
 
 std::string MacAddress::to_string(const uint8_t* mac)
 {
+    const static char char_table[] = "0123456789abcdef";
+
     std::string str(mac_address_str_length, ':');
     for(int i = 0; i < ETHER_ADDR_LEN; ++i) {
         int left = i * 3;      // left  digit position of hexadecimal number
         int right = left + 1;  // right digit position of hexadecimal number
-        char left_half = static_cast<char>(mac[i] >> 4);
-        char right_half = mac[i] & 0x0f;
+        int left_half  = mac[i] >> 4;
+        int right_half = mac[i] & 0x0f;
 
-        if (left_half >= 0 && left_half <= 9)
-        {
-            str[left] = static_cast<char>(left_half + '0');
-        }
-        else
-        {
-            str[left] = static_cast<char>(left_half + 'a' - 0x0a);
-        }
-
-        if (right_half >= 0 && right_half <= 9)
-        {
-            str[right] = static_cast<char>(right_half + '0');
-        }
-        else
-        {
-            str[right] = static_cast<char>(right_half + 'a' - 0x0a);
-        }
+        str[left]  = char_table[left_half];
+        str[right] = char_table[right_half];
     }
 
     return str;
