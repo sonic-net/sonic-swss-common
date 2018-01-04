@@ -1,25 +1,26 @@
-#include "macaddress.h"
-
-#include <sstream>
 #include <stdexcept>
+
+#include "macaddress.h"
 
 using namespace swss;
 using namespace std;
 
+const size_t mac_address_str_length = ETHER_ADDR_LEN*2 + 5; // 6 hexadecimal numbers (two digits each) + 5 delimiters
+
 MacAddress::MacAddress()
 {
-    memset(m_mac, 0, 6);
+    memset(m_mac, 0, ETHER_ADDR_LEN);
 }
 
 MacAddress::MacAddress(const uint8_t *mac)
 {
-    memcpy(m_mac, mac, 6);
+    memcpy(m_mac, mac, ETHER_ADDR_LEN);
 }
 
 MacAddress::MacAddress(const std::string& macStr)
 {
     bool suc = MacAddress::parseMacString(macStr, m_mac);
-    if (!suc) throw invalid_argument("macStr");
+    if (!suc) throw invalid_argument("invalid mac address " + macStr);
 }
 
 const std::string MacAddress::to_string() const
@@ -29,10 +30,10 @@ const std::string MacAddress::to_string() const
 
 std::string MacAddress::to_string(const uint8_t* mac)
 {
-    std::string str(17, ':');
-    for(int i = 0; i < 6; i++) {
-        int left = i * 3;
-        int right = left + 1;
+    std::string str(mac_address_str_length, ':');
+    for(int i = 0; i < ETHER_ADDR_LEN; ++i) {
+        int left = i * 3;      // left  digit position of hexadecimal number
+        int right = left + 1;  // right digit position of hexadecimal number
         char left_half = static_cast<char>(mac[i] >> 4);
         char right_half = mac[i] & 0x0f;
 
@@ -65,7 +66,7 @@ bool MacAddress::parseMacString(const string& str_mac, uint8_t* bin_mac)
         return false;
     }
 
-    if (str_mac.length() != 17)
+    if (str_mac.length() != mac_address_str_length)
     {
         return false;
     }
@@ -78,10 +79,10 @@ bool MacAddress::parseMacString(const string& str_mac, uint8_t* bin_mac)
         return false;
     }
 
-    for(int i = 0; i < 6; i++)
+    for(int i = 0; i < ETHER_ADDR_LEN; ++i)
     {
-        int left  = i * 3;
-        int right = left + 1;
+        int left  = i * 3;    // left  digit position of hexadecimal number
+        int right = left + 1; // right digit position of hexadecimal number
 
         if (ptr_mac[left] >= '0' && ptr_mac[left] <= '9')
         {

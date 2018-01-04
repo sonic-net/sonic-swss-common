@@ -1,3 +1,4 @@
+#include <net/ethernet.h>
 #include <gtest/gtest.h>
 #include "common/macaddress.h"
 
