@@ -1,64 +1,121 @@
-#include "macaddress.h"
-
-#include <sstream>
 #include <stdexcept>
+
+#include "macaddress.h"
 
 using namespace swss;
 using namespace std;
 
+const size_t mac_address_str_length = ETHER_ADDR_LEN*2 + 5; // 6 hexadecimal numbers (two digits each) + 5 delimiters
+
 MacAddress::MacAddress()
 {
-    memset(m_mac, 0, 6);
+    memset(m_mac, 0, ETHER_ADDR_LEN);
 }
 
 MacAddress::MacAddress(const uint8_t *mac)
 {
-    memcpy(m_mac, mac, 6);
+    memcpy(m_mac, mac, ETHER_ADDR_LEN);
 }
 
 MacAddress::MacAddress(const std::string& macStr)
 {
     bool suc = MacAddress::parseMacString(macStr, m_mac);
-    if (!suc) throw invalid_argument("macStr");
+    if (!suc) throw invalid_argument("can't parse mac address '" + macStr + "'");
 }
 
 const std::string MacAddress::to_string() const
 {
-    char tmp_mac[32];
-    sprintf(tmp_mac, "%02x:%02x:%02x:%02x:%02x:%02x", m_mac[0], m_mac[1], m_mac[2], m_mac[3], m_mac[4], m_mac[5]);
-    return std::string(tmp_mac);
+    return MacAddress::to_string(m_mac);
 }
 
 std::string MacAddress::to_string(const uint8_t* mac)
 {
-    uint8_t tmp_mac[32];
-    sprintf((char*)tmp_mac, "%02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-    return std::string((char*)tmp_mac);
+    const static char char_table[] = "0123456789abcdef";
+
+    std::string str(mac_address_str_length, ':');
+    for(int i = 0; i < ETHER_ADDR_LEN; ++i) {
+        int left = i * 3;      // left  digit position of hexadecimal number
+        int right = left + 1;  // right digit position of hexadecimal number
+        int left_half  = mac[i] >> 4;
+        int right_half = mac[i] & 0x0f;
+
+        str[left]  = char_table[left_half];
+        str[right] = char_table[right_half];
+    }
+
+    return str;
 }
 
-bool MacAddress::parseMacString(const string& macStr, uint8_t* mac)
+// This function parses a string to a binary mac address (uint8_t[6])
+// The string should contain mac address only. No spaces are allowed.
+// The mac address separators could be either ':' or '-'
+bool MacAddress::parseMacString(const string& str_mac, uint8_t* bin_mac)
 {
-    int i;
-    unsigned int value;
-    char ignore;
-    istringstream iss(macStr);
-
-    if (mac == NULL)
+    if (bin_mac == NULL)
     {
         return false;
     }
 
-    iss >> hex;
-
-    for (i = 0; i < 5; i++)
+    if (str_mac.length() != mac_address_str_length)
     {
-        iss >> value >> ignore;
-        if (!iss) return false;
-        if (value >= 256) return false;
-        mac[i] = (uint8_t)value;
+        return false;
     }
-    iss >> value;
-    mac[5] = (uint8_t)value;
+
+    const char* ptr_mac = str_mac.c_str();
+
+    // first check that all mac address separators are equal to each other
+    if (!allequal(ptr_mac[2], ptr_mac[5], ptr_mac[8], ptr_mac[11], ptr_mac[14]))
+    {
+        return false;
+    }
+
+    // then check that the first separator is equal to ':' or '-'
+    if (ptr_mac[2] != ':' && ptr_mac[2] != '-')
+    {
+        return false;
+    }
+
+    for(int i = 0; i < ETHER_ADDR_LEN; ++i)
+    {
+        int left  = i * 3;    // left  digit position of hexadecimal number
+        int right = left + 1; // right digit position of hexadecimal number
+
+        if (ptr_mac[left] >= '0' && ptr_mac[left] <= '9')
+        {
+            bin_mac[i] = static_cast<uint8_t>(ptr_mac[left] - '0');
+        }
+        else if (ptr_mac[left] >= 'A' && ptr_mac[left] <= 'F')
+        {
+            bin_mac[i] = static_cast<uint8_t>(ptr_mac[left] - 'A' + 0x0a);
+        }
+        else if (ptr_mac[left] >= 'a' && ptr_mac[left] <= 'f')
+        {
+            bin_mac[i] = static_cast<uint8_t>(ptr_mac[left] - 'a' + 0x0a);
+        }
+        else
+        {
+            return false;
+        }
+
+        bin_mac[i] = static_cast<uint8_t>(bin_mac[i] << 4);
+
+        if (ptr_mac[right] >= '0' && ptr_mac[right] <= '9')
+        {
+            bin_mac[i] |= static_cast<uint8_t>(ptr_mac[right] - '0');
+        }
+        else if (ptr_mac[right] >= 'A' && ptr_mac[right] <= 'F')
+        {
+            bin_mac[i] |= static_cast<uint8_t>(ptr_mac[right] - 'A' + 0x0a);
+        }
+        else if (ptr_mac[right] >= 'a' && ptr_mac[right] <= 'f')
+        {
+            bin_mac[i] |= static_cast<uint8_t>(ptr_mac[right] - 'a' + 0x0a);
+        }
+        else
+        {
+            return false;
+        }
+    }
 
     return true;
 }

@@ -1,11 +1,22 @@
 #ifndef __MACADDRESS__
 #define __MACADDRESS__
 
+#include <net/ethernet.h>
 #include <string.h>
 #include <stdint.h>
 #include <string>
 
 namespace swss {
+
+template <typename T>
+bool allequal(const T &t, const T &u) {
+    return t == u;
+}
+
+template <typename T, typename... Others>
+bool allequal(const T &t, const T &u, Others const &... args) {
+    return (t == u) && allequal(u, args...);
+}
 
 class MacAddress
 {
@@ -19,7 +30,7 @@ public:
 
     inline void getMac(uint8_t *mac) const
     {
-        memcpy(mac, m_mac, 6);
+        memcpy(mac, m_mac, ETHER_ADDR_LEN);
     }
 
     inline const uint8_t *getMac() const
@@ -29,7 +40,7 @@ public:
 
     inline bool operator==(const MacAddress &o) const
     {
-        return !memcmp(m_mac, o.m_mac, 6);
+        return !memcmp(m_mac, o.m_mac, ETHER_ADDR_LEN);
     }
 
     inline bool operator!=(const MacAddress &o) const
@@ -60,7 +71,7 @@ public:
     static bool parseMacString(const std::string& strmac, uint8_t* mac);
 
 private:
-    uint8_t m_mac[6];
+    uint8_t m_mac[ETHER_ADDR_LEN];
 };
 
 }
