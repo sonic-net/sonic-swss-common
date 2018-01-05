@@ -8,16 +8,6 @@
 
 namespace swss {
 
-template <typename T>
-bool allequal(const T &t, const T &u) {
-    return t == u;
-}
-
-template <typename T, typename... Others>
-bool allequal(const T &t, const T &u, Others const &... args) {
-    return (t == u) && allequal(u, args...);
-}
-
 class MacAddress
 {
 public:
