@@ -64,7 +64,11 @@ bool MacAddress::parseMacString(const string& str_mac, uint8_t* bin_mac)
     const char* ptr_mac = str_mac.c_str();
 
     // first check that all mac address separators are equal to each other
-    if (!allequal(ptr_mac[2], ptr_mac[5], ptr_mac[8], ptr_mac[11], ptr_mac[14]))
+    // 2, 5, 8, 11, and 14 are MAC address separator positions
+    if (!(ptr_mac[2]  == ptr_mac[5]
+       && ptr_mac[5]  == ptr_mac[8]
+       && ptr_mac[8]  == ptr_mac[11]
+       && ptr_mac[11] == ptr_mac[14]))
     {
         return false;
     }
