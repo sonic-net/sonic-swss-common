@@ -41,3 +41,19 @@ def test_SubscriberStateTable():
     assert op == "SET"
     assert len(cfvs) == 1
     assert cfvs[0] == ('a', 'b')
+
+def test_Notification():
+    db = swsscommon.DBConnector(0, "localhost", 6379, 0)
+    ntfc = swsscommon.NotificationConsumer(db, "testntf")
+    sel = swsscommon.Select()
+    sel.addSelectable(ntfc)
+    fvs = swsscommon.FieldValuePairs([('a','b')])
+    ntfp = swsscommon.NotificationProducer(db, "testntf")
+    ntfp.send("aaa", "bbb", fvs)
+    (state, c, fd) = sel.select()
+    assert state == swsscommon.Select.OBJECT
+    (op, data, cfvs) = ntfc.pop()
+    assert op == "aaa"
+    assert data == "bbb"
+    assert len(cfvs) == 1
+    assert cfvs[0] == ('a', 'b')
