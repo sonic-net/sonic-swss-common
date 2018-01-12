@@ -139,7 +139,7 @@ void RedisReply::checkStatusQueued()
     checkStatus("QUEUED");
 }
 
-template<> long long int RedisReply::getReply<long long int>()
+template<> int64_t RedisReply::getReply<int64_t>()
 {
     return getContext()->integer;
 }

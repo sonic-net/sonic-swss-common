@@ -27,7 +27,7 @@ ConsumerStateTable::ConsumerStateTable(DBConnector *db, std::string tableName, i
     }
 
     RedisReply r(dequeueReply());
-    setQueueLength(r.getReply<long long int>());
+    setQueueLength(r.getReply<int64_t>());
 }
 
 void ConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, std::string /*prefix*/)

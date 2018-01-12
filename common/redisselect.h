@@ -28,11 +28,11 @@ public:
     /* PSUBSCRIBE */
     void psubscribe(DBConnector* db, std::string channelName);
 
-    void setQueueLength(long long int queueLength);
+    void setQueueLength(int64_t queueLength);
 
 protected:
     std::unique_ptr<DBConnector> m_subscribe;
-    long long int m_queueLength;
+    int64_t m_queueLength;
 };
 
 }

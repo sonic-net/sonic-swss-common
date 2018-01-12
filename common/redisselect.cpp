@@ -80,7 +80,7 @@ void RedisSelect::psubscribe(DBConnector* db, std::string channelName)
     RedisReply r(m_subscribe.get(), s, REDIS_REPLY_ARRAY);
 }
 
-void RedisSelect::setQueueLength(long long int queueLength)
+void RedisSelect::setQueueLength(int64_t queueLength)
 {
     m_queueLength = queueLength;
 }

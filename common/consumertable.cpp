@@ -31,7 +31,7 @@ ConsumerTable::ConsumerTable(DBConnector *db, string tableName, int popBatchSize
     }
 
     RedisReply r(dequeueReply());
-    setQueueLength(r.getReply<long long int>());
+    setQueueLength(r.getReply<int64_t>());
 }
 
 void ConsumerTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, string prefix)
