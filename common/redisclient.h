@@ -32,23 +32,23 @@ class RedisClient
 
         std::vector<std::string> keys(std::string key);
 
-        std::vector<std::string> hkeys(std::string key);
+        //std::vector<std::string> hkeys(std::string key);
 
         void set(std::string key, std::string value);
 
         void hset(std::string key, std::string field, std::string value);
 
-        void mset(std::unordered_map<std::string, std::string> map);
+        //void mset(std::unordered_map<std::string, std::string> map);
 
-        void hmset(std::string key, std::unordered_map<std::string, std::string> map);
+        //void hmset(std::string key, std::unordered_map<std::string, std::string> map);
 
         std::shared_ptr<std::string> get(std::string key);
 
         std::shared_ptr<std::string> hget(std::string key, std::string field);
 
-        std::vector<std::shared_ptr<std::string>> mget(std::vector<std::string> keys);
+        //std::vector<std::shared_ptr<std::string>> mget(std::vector<std::string> keys);
 
-        std::vector<std::shared_ptr<std::string>> hmget(std::string key, std::vector<std::string> fields);
+        //std::vector<std::shared_ptr<std::string>> hmget(std::string key, std::vector<std::string> fields);
 
         int64_t incr(std::string key);
 

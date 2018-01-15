@@ -10,6 +10,7 @@
 #include "redispipeline.h"
 #include "redisselect.h"
 #include "redistran.h"
+#include "redisclient.h"
 #include "producerstatetable.h"
 #include "consumertablebase.h"
 #include "consumerstatetable.h"
@@ -78,3 +79,4 @@
 %clear std::vector<std::pair<std::string, std::string>> &values;
 
 %include "notificationproducer.h"
+%include "redisclient.h"
