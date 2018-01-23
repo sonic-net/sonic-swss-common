@@ -48,7 +48,7 @@ for i = n, 1, -1 do
            st = st + 2
        end
 
-   elseif op ~= 'get' and op ~= 'getresponse' and op ~= 'notify' then
+   elseif op ~= 'flush' and op ~= 'flushresponse' and op ~= 'get' and op ~= 'getresponse' and op ~= 'notify' then
        local keyname = KEYS[4] .. ':' .. key
        if key == '' then
            keyname = KEYS[4]
