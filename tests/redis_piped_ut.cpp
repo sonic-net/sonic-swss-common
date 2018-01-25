@@ -326,7 +326,8 @@ TEST(Table, piped_test)
 {
     string tableName = "TABLE_UT_TEST";
     DBConnector db(TEST_VIEW, "localhost", 6379, 0);
-    Table t(&db, tableName);
+    RedisPipeline pipeline(&db);
+    Table t(&pipeline, tableName, DEFAULT_TABLE_NAME_SEPARATOR, true);
 
     clearDB();
     cout << "Starting table manipulations" << endl;
@@ -348,6 +349,7 @@ TEST(Table, piped_test)
 
     t.set(key_1, values);
     t.set(key_2, values);
+    t.flush();
 
     cout << "- Step 2. GET_TABLE_CONTENT" << endl;
     vector<KeyOpFieldsValuesTuple> tuples;

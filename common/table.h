@@ -12,6 +12,7 @@
 #include "dbconnector.h"
 #include "redisreply.h"
 #include "redisselect.h"
+#include "redispipeline.h"
 #include "schema.h"
 #include "redistran.h"
 
@@ -112,10 +113,11 @@ public:
     void getContent(std::vector<KeyOpFieldsValuesTuple> &tuples);
 };
 
-class Table : public RedisTransactioner, public TableBase, public TableEntryEnumerable {
+class Table : public TableBase, public TableEntryEnumerable {
 public:
     Table(DBConnector *db, std::string tableName, std::string tableSeparator = DEFAULT_TABLE_NAME_SEPARATOR);
-    virtual ~Table() { }
+    Table(RedisPipeline *pipeline, std::string tableName, std::string tableSeparator, bool buffered);
+    virtual ~Table();
 
     /* Set an entry in the DB directly (op not in use) */
     virtual void set(std::string key,
@@ -133,9 +135,17 @@ public:
 
     void getKeys(std::vector<std::string> &keys);
 
+    void setBuffered(bool buffered);
+
+    void flush();
+
     void dump(TableDump &tableDump);
 
 protected:
+
+    bool m_buffered;
+    bool m_pipeowned;
+    RedisPipeline *m_pipe;
 
     /* Strip special symbols from keys used for type identification
      * Input example:

@@ -13,16 +13,42 @@ using namespace swss;
 using json = nlohmann::json;
 
 Table::Table(DBConnector *db, string tableName, string tableSeparator)
-    : RedisTransactioner(db), TableBase(tableName, tableSeparator)
+    : Table(new RedisPipeline(db, 1), tableName, tableSeparator, false)
 {
+    m_pipeowned = true;
+}
+
+Table::Table(RedisPipeline *pipeline, string tableName, string tableSeparator, bool buffered)
+    : TableBase(tableName, tableSeparator)
+    , m_buffered(buffered)
+    , m_pipeowned(false)
+    , m_pipe(pipeline)
+{
+}
+
+Table::~Table()
+{
+    if (m_pipeowned)
+    {
+        delete m_pipe;
+    }
+}
+
+void Table::setBuffered(bool buffered)
+{
+    m_buffered = buffered;
+}
+
+void Table::flush()
+{
+    m_pipe->flush();
 }
 
 bool Table::get(string key, vector<FieldValueTuple> &values)
 {
-    string hgetall_key("HGETALL ");
-    hgetall_key += getKeyName(key);
-
-    RedisReply r(m_db, hgetall_key, REDIS_REPLY_ARRAY);
+    RedisCommand hgetall_key;
+    hgetall_key.format("HGETALL %s", getKeyName(key).c_str());
+    RedisReply r = m_pipe->push(hgetall_key, REDIS_REPLY_ARRAY);
     redisReply *reply = r.getContext();
     values.clear();
 
@@ -51,14 +77,18 @@ void Table::set(string key, vector<FieldValueTuple> &values,
     RedisCommand cmd;
     cmd.formatHMSET(getKeyName(key), values);
 
-    RedisReply r(m_db, cmd, REDIS_REPLY_STATUS);
-
-    r.checkStatusOK();
+    m_pipe->push(cmd, REDIS_REPLY_STATUS);
+    if (!m_buffered)
+    {
+        m_pipe->flush();
+    }
 }
 
 void Table::del(string key, string /* op */, string /*prefix*/)
 {
-    RedisReply r(m_db, string("DEL ") + getKeyName(key), REDIS_REPLY_INTEGER);
+    RedisCommand del_key;
+    del_key.format("DEL %s", getKeyName(key).c_str());
+    m_pipe->push(del_key, REDIS_REPLY_INTEGER);
 }
 
 void TableEntryEnumerable::getContent(vector<KeyOpFieldsValuesTuple> &tuples)
@@ -80,8 +110,9 @@ void TableEntryEnumerable::getContent(vector<KeyOpFieldsValuesTuple> &tuples)
 
 void Table::getKeys(vector<string> &keys)
 {
-    string keys_cmd("KEYS " + getTableName() + getTableNameSeparator() + "*");
-    RedisReply r(m_db, keys_cmd, REDIS_REPLY_ARRAY);
+    RedisCommand keys_cmd;
+    keys_cmd.format("KEYS %s%s*", getTableName().c_str(), getTableNameSeparator().c_str());
+    RedisReply r = m_pipe->push(keys_cmd, REDIS_REPLY_ARRAY);
     redisReply *reply = r.getContext();
     keys.clear();
 
@@ -103,7 +134,7 @@ void Table::dump(TableDump& tableDump)
 
     static std::string luaScript = loadLuaScript("table_dump.lua");
 
-    static std::string sha = loadRedisScript(m_db, luaScript);
+    static std::string sha = m_pipe->loadRedisScript(luaScript);
 
     SWSS_LOG_TIMER("getting");
 
@@ -112,7 +143,7 @@ void Table::dump(TableDump& tableDump)
             sha.c_str(),
             getTableName().c_str());
 
-    RedisReply r(m_db, command, REDIS_REPLY_STRING);
+    RedisReply r = m_pipe->push(command, REDIS_REPLY_STRING);
 
     auto ctx = r.getContext();
 
