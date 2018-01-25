@@ -3,6 +3,7 @@
 
 #include <assert.h>
 #include <stdexcept>
+#include <arpa/inet.h>
 #include "ipaddress.h"
 
 namespace swss {
@@ -65,7 +66,7 @@ public:
             {
                 ip_addr_t ipa;
                 ipa.family = AF_INET6;
-                
+
                 assert(m_mask >= 0 && m_mask <= 128);
                 int mid = m_mask >> 3;
                 int bits = m_mask & 0x7;
@@ -126,6 +127,49 @@ public:
 
                 return true;
             }
+            default:
+            {
+                throw std::logic_error("Invalid family");
+            }
+        }
+    }
+
+    inline IpPrefix getSubnet() const
+    {
+        switch (m_ip.getIp().family)
+        {
+            case AF_INET:
+            {
+                uint32_t ipaddr = m_ip.getV4Addr();
+                uint32_t mask = getMask().getV4Addr();
+
+                ipaddr &= mask;
+                return IpPrefix(ipaddr, m_mask);
+            }
+
+            case AF_INET6:
+            {
+                const uint8_t *ipaddr = m_ip.getV6Addr();
+                uint8_t subnet[INET6_ADDRSTRLEN] = {0};
+                memcpy(subnet, ipaddr, 16);
+
+                IpAddress ip6mask = getMask();
+                const uint8_t *mask = ip6mask.getV6Addr();
+
+                for (int i = 0; i < 16; ++i)
+                {
+                    subnet[i] &= mask[i];
+                }
+
+                char buf[INET6_ADDRSTRLEN];
+                std::string ipStr(inet_ntop(AF_INET6,
+                                            &subnet,
+                                            buf,
+                                            INET6_ADDRSTRLEN));
+
+                return IpPrefix(ipStr + "/" + std::to_string(m_mask));
+            }
+
             default:
             {
                 throw std::logic_error("Invalid family");
