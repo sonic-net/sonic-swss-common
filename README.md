@@ -7,36 +7,18 @@ The SWitch State Service (SWSS) common library provides libraries for database c
 
 ## Getting Started
 
-### Install
+### Build from Source
 
-Before installing, add key and package sources:
+Checkout the source:
 
-    sudo apt-key adv --keyserver apt-mo.trafficmanager.net --recv-keys 417A0893
-    echo 'deb http://apt-mo.trafficmanager.net/repos/sonic/ trusty main' | sudo tee -a /etc/apt/sources.list.d/sonic.list
-    sudo apt-get update
+    git clone --recursive https://github.com/Azure/sonic-swss-common
 
-Install dependencies:
 
-    sudo apt-get install redis-server -t trusty
-    sudo apt-get install libhiredis0.13 -t trusty
+Install build dependencies:
 
-Install building dependencies:
-
-    sudo apt-get install libtool
-    sudo apt-get install autoconf automake
-    sudo apt-get install dh-exec
-
-There are a few different ways you can install SONiC-SWSS.
-
-#### Install from Debian Repo
-
-For your convenience, you can install prepared packages on Debian Jessie:
-
-    sudo apt-get install sonic-swss-common
-
-#### Install from Source
-
-Checkout the source: `git clone https://github.com/Azure/sonic-swss-common.git` and install it yourself.
+    sudo apt-get install make libtool m4 autoconf dh-exec debhelper cmake pkg-config \
+                         libhiredis-dev libnl-3-dev libnl-genl-3-dev libnl-route-3-dev swig3.0 \
+                         libpython2.7-dev
 
 You can compile and install from source using:
 
@@ -48,7 +30,7 @@ You can also build a debian package using:
 
     ./autogen.sh
     ./configure
-    fakeroot debian/rules binary
+    dpkg-buildpackage -us -uc -b
 
 ## Need Help?
 
