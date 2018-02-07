@@ -69,6 +69,7 @@ namespace swss {
 
 #define DAEMON_TABLE_NAME "DAEMON_TABLE"
 #define DAEMON_LOGLEVEL "LOGLEVEL"
+#define DAEMON_LOGOUTPUT "LOGOUTPUT"
 
 /***** FLEX COUNTER DATABASE *****/
 
