@@ -74,6 +74,14 @@ public:
 
     std::string to_string() const;
 
+    enum AddrScope {
+        GLOBAL_SCOPE,
+        LINK_SCOPE,
+        HOST_SCOPE
+    };
+
+    IpAddress::AddrScope getAddrScope() const;
+
 private:
     struct ip_addr_t m_ip;
 };
