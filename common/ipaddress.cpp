@@ -5,12 +5,6 @@
 
 using namespace swss;
 
-/* Auxiliary prefixes used to determine the scope of any given address */
-static IpAddress ipv4LinkScopeAddress("169.254.0.0");
-static IpAddress ipv6LinkScopeAddress("fe80::0");
-static IpAddress ipv4HostScopeAddress("127.0.0.1");
-static IpAddress ipv6HostScopeAddress("::1");
-
 IpAddress::IpAddress(uint32_t ip)
 {
     m_ip.family = AF_INET;
@@ -46,6 +40,12 @@ std::string IpAddress::to_string() const
 
 IpAddress::AddrScope IpAddress::getAddrScope() const
 {
+    /* Auxiliary prefixes used to determine the scope of any given address */
+    static const IpAddress ipv4LinkScopeAddress = IpAddress("169.254.0.0");
+    static const IpAddress ipv6LinkScopeAddress = IpAddress("FE80::0");
+    static const IpAddress ipv4HostScopeAddress = IpAddress("127.0.0.1");
+    static const IpAddress ipv6HostScopeAddress = IpAddress("::1");
+
     if (isV4())
     {
         const uint32_t ip1 = htonl(getV4Addr());
