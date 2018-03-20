@@ -12,14 +12,25 @@ using namespace std;
 using namespace swss;
 using json = nlohmann::json;
 
-Table::Table(DBConnector *db, string tableName, string tableSeparator)
-    : Table(new RedisPipeline(db, 1), tableName, tableSeparator, false)
+const TableNameSeparatorMap TableBase::tableNameSeparatorMap = {
+   { APPL_DB,         LEGACY_TABLE_NAME_SEPARATOR },
+   { ASIC_DB,         LEGACY_TABLE_NAME_SEPARATOR },
+   { COUNTERS_DB,     LEGACY_TABLE_NAME_SEPARATOR },
+   { LOGLEVEL_DB,     LEGACY_TABLE_NAME_SEPARATOR },
+   { CONFIG_DB,       NEW_TABLE_NAME_SEPARATOR },
+   { PFC_WD_DB,       LEGACY_TABLE_NAME_SEPARATOR },
+   { FLEX_COUNTER_DB, LEGACY_TABLE_NAME_SEPARATOR },
+   { STATE_DB,        NEW_TABLE_NAME_SEPARATOR }
+};
+
+Table::Table(DBConnector *db, string tableName)
+    : Table(new RedisPipeline(db, 1), tableName, false)
 {
     m_pipeowned = true;
 }
 
-Table::Table(RedisPipeline *pipeline, string tableName, string tableSeparator, bool buffered)
-    : TableBase(tableName, tableSeparator)
+Table::Table(RedisPipeline *pipeline, string tableName, bool buffered)
+    : TableBase(pipeline->getDbConnector(), tableName)
     , m_buffered(buffered)
     , m_pipeowned(false)
     , m_pipe(pipeline)

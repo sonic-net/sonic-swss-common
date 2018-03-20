@@ -147,7 +147,7 @@ void TableBasicTest(string tableName, string separator)
 {
     DBConnector db(TEST_VIEW, "localhost", 6379, 0);
 
-    Table t(&db, tableName, separator);
+    Table t(&db, tableName);
     string tableNameSeparator = t.getTableNameSeparator();
     ASSERT_STREQ(tableNameSeparator.c_str(), separator.c_str());
 
@@ -451,17 +451,19 @@ TEST(DBConnector, selectabletimer)
 
 TEST(Table, basic)
 {
-    TableBasicTest("TABLE_UT_TEST", ":");
+    TableBasicTest("TABLE_UT_TEST", LEGACY_TABLE_NAME_SEPARATOR);
 }
 
 TEST(Table, separator_in_table_name)
 {
-    TableBasicTest("TABLE_UT:TEST", ":");
+    std::string tableName = "TABLE_UT" + std::string(LEGACY_TABLE_NAME_SEPARATOR) + "TEST";
+
+    TableBasicTest(tableName, LEGACY_TABLE_NAME_SEPARATOR);
 }
 
 TEST(Table, table_separator_test)
 {
-    TableBasicTest("TABLE_UT_TEST", CONFIGDB_TABLE_NAME_SEPARATOR);
+    TableBasicTest("TABLE_UT_TEST", NEW_TABLE_NAME_SEPARATOR);
 }
 
 TEST(ProducerConsumer, Prefix)

@@ -15,11 +15,11 @@ using namespace std;
 namespace swss {
 
 SubscriberStateTable::SubscriberStateTable(DBConnector *db, string tableName)
-    : ConsumerTableBase(db, tableName), m_table(db, tableName, CONFIGDB_TABLE_NAME_SEPARATOR)
+    : ConsumerTableBase(db, tableName), m_table(db, tableName)
 {
     m_keyspace = "__keyspace@";
 
-    m_keyspace += to_string(db->getDB()) + "__:" + tableName + CONFIGDB_TABLE_NAME_SEPARATOR + "*";
+    m_keyspace += to_string(db->getDB()) + "__:" + tableName + m_table.getTableNameSeparator() + "*";
 
     psubscribe(m_db, m_keyspace);
 
@@ -134,7 +134,7 @@ void SubscriberStateTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, string /*pr
         }
 
         string table_entry = msg.substr(pos + 1);
-        pos = table_entry.find(CONFIGDB_TABLE_NAME_SEPARATOR);
+        pos = table_entry.find(m_table.getTableNameSeparator());
         if (pos == table_entry.npos)
         {
             SWSS_LOG_ERROR("invalid key %s returned for pmessage of %s", ctx->str, m_keyspace.c_str());

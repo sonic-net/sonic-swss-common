@@ -95,7 +95,7 @@ static inline void clearDB()
 static void producerWorker(int index)
 {
     DBConnector db(TEST_VIEW, dbhost, dbport, 0);
-    Table p(&db, testTableName, CONFIGDB_TABLE_NAME_SEPARATOR);
+    Table p(&db, testTableName);
 
     for (int i = 0; i < NUMBER_OF_OPS; i++)
     {
@@ -179,7 +179,7 @@ TEST(SubscriberStateTable, set)
     /* Prepare producer */
     int index = 0;
     DBConnector db(TEST_VIEW, dbhost, dbport, 0);
-    Table p(&db, testTableName, CONFIGDB_TABLE_NAME_SEPARATOR);
+    Table p(&db, testTableName);
     string key = "TheKey";
     int maxNumOfFields = 2;
 
@@ -234,7 +234,7 @@ TEST(SubscriberStateTable, del)
     /* Prepare producer */
     int index = 0;
     DBConnector db(TEST_VIEW, dbhost, dbport, 0);
-    Table p(&db, testTableName, CONFIGDB_TABLE_NAME_SEPARATOR);
+    Table p(&db, testTableName);
     string key = "TheKey";
     int maxNumOfFields = 2;
 
@@ -287,7 +287,7 @@ TEST(SubscriberStateTable, table_state)
     /* Prepare producer */
     int index = 0;
     DBConnector db(TEST_VIEW, dbhost, dbport, 0);
-    Table p(&db, testTableName, CONFIGDB_TABLE_NAME_SEPARATOR);
+    Table p(&db, testTableName);
 
     for (int i = 0; i < NUMBER_OF_OPS; i++)
    {

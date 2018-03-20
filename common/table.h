@@ -18,8 +18,11 @@
 
 namespace swss {
 
-#define DEFAULT_TABLE_NAME_SEPARATOR    ":"
-#define CONFIGDB_TABLE_NAME_SEPARATOR   "|"
+#define LEGACY_TABLE_NAME_SEPARATOR  ":"
+#define NEW_TABLE_NAME_SEPARATOR     "|"
+
+// Mapping of DB ID to table name separator string
+typedef std::map<int, std::string> TableNameSeparatorMap;
 
 typedef std::pair<std::string, std::string> FieldValueTuple;
 #define fvField std::get<0>
@@ -34,17 +37,21 @@ typedef std::map<std::string,TableMap> TableDump;
 
 class TableBase {
 public:
-    TableBase(std::string tableName, std::string tableSeparator = DEFAULT_TABLE_NAME_SEPARATOR)
-        : m_tableName(tableName), m_tableSeparator(tableSeparator)
+    TableBase(DBConnector *db, std::string tableName)
+        : m_tableName(tableName)
     {
-        const std::string legalSeparators = ":|";
-        if (legalSeparators.find(tableSeparator) == std::string::npos)
-            throw std::invalid_argument("Invalid table name separator");
+        /* Look up table separator for the provided DB */
+        auto it = tableNameSeparatorMap.find(db->getDB());
+
+        if (it == tableNameSeparatorMap.end())
+            throw std::invalid_argument("Unable to find table separator for DB " + std::to_string(db->getDB()));
+
+        m_tableSeparator = it->second;
     }
 
     std::string getTableName() const { return m_tableName; }
 
-    /* Return the actual key name as a comibation of tableName:key */
+    /* Return the actual key name as a combination of tableName<table_separator>key */
     std::string getKeyName(std::string key)
     {
         if (key == "") return m_tableName;
@@ -59,6 +66,8 @@ public:
 
     std::string getChannelName() { return m_tableName + "_CHANNEL"; }
 private:
+    static const TableNameSeparatorMap tableNameSeparatorMap;
+
     std::string m_tableName;
     std::string m_tableSeparator;
 };
@@ -95,7 +104,7 @@ public:
     /* The default value of pop batch size is 128 */
     static constexpr int DEFAULT_POP_BATCH_SIZE = 128;
 
-    TableConsumable(std::string tableName) : TableBase(tableName) { }
+    TableConsumable(DBConnector *db, std::string tableName) : TableBase(db, tableName) { }
 };
 
 class TableEntryEnumerable {
@@ -115,8 +124,8 @@ public:
 
 class Table : public TableBase, public TableEntryEnumerable {
 public:
-    Table(DBConnector *db, std::string tableName, std::string tableSeparator = DEFAULT_TABLE_NAME_SEPARATOR);
-    Table(RedisPipeline *pipeline, std::string tableName, std::string tableSeparator, bool buffered);
+    Table(DBConnector *db, std::string tableName);
+    Table(RedisPipeline *pipeline, std::string tableName, bool buffered);
     virtual ~Table();
 
     /* Set an entry in the DB directly (op not in use) */

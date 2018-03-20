@@ -92,6 +92,11 @@ public:
         return m_remaining;
     }
 
+    DBConnector *getDbConnector()
+    {
+        return m_db;
+    }
+
 private:
     DBConnector *m_db;
     std::queue<int> m_expectedTypes;
