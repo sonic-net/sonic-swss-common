@@ -20,7 +20,8 @@ const TableNameSeparatorMap TableBase::tableNameSeparatorMap = {
    { CONFIG_DB,       NEW_TABLE_NAME_SEPARATOR },
    { PFC_WD_DB,       LEGACY_TABLE_NAME_SEPARATOR },
    { FLEX_COUNTER_DB, LEGACY_TABLE_NAME_SEPARATOR },
-   { STATE_DB,        NEW_TABLE_NAME_SEPARATOR }
+   { STATE_DB,        NEW_TABLE_NAME_SEPARATOR },
+   { TEST_DB,         LEGACY_TABLE_NAME_SEPARATOR }
 };
 
 Table::Table(DBConnector *db, string tableName)

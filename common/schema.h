@@ -13,6 +13,7 @@ namespace swss {
 #define PFC_WD_DB       5
 #define FLEX_COUNTER_DB 5
 #define STATE_DB        6
+#define TEST_DB         15
 
 /***** APPLICATION DATABASE *****/
 
