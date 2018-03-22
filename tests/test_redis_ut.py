@@ -28,7 +28,7 @@ def test_Table():
 
 def test_SubscriberStateTable():
     db = swsscommon.DBConnector(0, "localhost", 6379, 0)
-    t = swsscommon.Table(db, "testsst", '|')
+    t = swsscommon.Table(db, "testsst")
     sel = swsscommon.Select()
     cst = swsscommon.SubscriberStateTable(db, "testsst")
     sel.addSelectable(cst)
