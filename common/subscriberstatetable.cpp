@@ -19,7 +19,7 @@ SubscriberStateTable::SubscriberStateTable(DBConnector *db, string tableName)
 {
     m_keyspace = "__keyspace@";
 
-    m_keyspace += to_string(db->getDB()) + "__:" + tableName + m_table.getTableNameSeparator() + "*";
+    m_keyspace += to_string(db->getDbId()) + "__:" + tableName + m_table.getTableNameSeparator() + "*";
 
     psubscribe(m_db, m_keyspace);
 

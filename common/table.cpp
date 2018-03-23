@@ -31,7 +31,7 @@ Table::Table(DBConnector *db, string tableName)
 }
 
 Table::Table(RedisPipeline *pipeline, string tableName, bool buffered)
-    : TableBase(pipeline->getDbConnector(), tableName)
+    : TableBase(pipeline->getDbId(), tableName)
     , m_buffered(buffered)
     , m_pipeowned(false)
     , m_pipe(pipeline)

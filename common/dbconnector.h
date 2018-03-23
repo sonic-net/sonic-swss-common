@@ -20,13 +20,13 @@ public:
      * Timeout - The time in milisecond until exception is been thrown. For
      *           infinite wait, set this value to 0
      */
-    DBConnector(int db, std::string hostname, int port, unsigned int timeout);
-    DBConnector(int db, std::string unixPath, unsigned int timeout);
+    DBConnector(int dbId, std::string hostname, int port, unsigned int timeout);
+    DBConnector(int dbId, std::string unixPath, unsigned int timeout);
 
     ~DBConnector();
 
     redisContext *getContext();
-    int getDB();
+    int getDbId();
 
     static void select(DBConnector *db);
 
@@ -35,7 +35,7 @@ public:
 
 private:
     redisContext *m_conn;
-    int m_db;
+    int m_id;
 };
 
 }

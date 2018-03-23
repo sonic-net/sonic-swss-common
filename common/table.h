@@ -37,14 +37,14 @@ typedef std::map<std::string,TableMap> TableDump;
 
 class TableBase {
 public:
-    TableBase(DBConnector *db, std::string tableName)
+    TableBase(int dbId, std::string tableName)
         : m_tableName(tableName)
     {
         /* Look up table separator for the provided DB */
-        auto it = tableNameSeparatorMap.find(db->getDB());
+        auto it = tableNameSeparatorMap.find(dbId);
 
         if (it == tableNameSeparatorMap.end())
-            throw std::invalid_argument("Unable to find table separator for DB " + std::to_string(db->getDB()));
+            throw std::invalid_argument("Unable to find table separator for DB " + std::to_string(dbId));
 
         m_tableSeparator = it->second;
     }
@@ -104,7 +104,7 @@ public:
     /* The default value of pop batch size is 128 */
     static constexpr int DEFAULT_POP_BATCH_SIZE = 128;
 
-    TableConsumable(DBConnector *db, std::string tableName) : TableBase(db, tableName) { }
+    TableConsumable(int dbId, std::string tableName) : TableBase(dbId, tableName) { }
 };
 
 class TableEntryEnumerable {
