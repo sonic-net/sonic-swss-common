@@ -16,6 +16,7 @@
 using namespace std;
 using namespace swss;
 
+#define TEST_DB             (15) // Default Redis config supports 16 databases, max DB ID is 15
 #define NUMBER_OF_THREADS   (64) // Spawning more than 256 threads causes libc++ to except
 #define NUMBER_OF_OPS     (1000)
 #define MAX_FIELDS_DIV      (30) // Testing up to 30 fields objects
@@ -142,16 +143,14 @@ void clearDB()
     r.checkStatusOK();
 }
 
-void TableBasicTest(string tableName, string separator)
+void TableBasicTest(string tableName)
 {
     DBConnector db(TEST_DB, "localhost", 6379, 0);
 
     Table t(&db, tableName);
-    string tableNameSeparator = t.getTableNameSeparator();
-    ASSERT_STREQ(tableNameSeparator.c_str(), separator.c_str());
 
     clearDB();
-    cout << "Starting table manipulations, table name separator is " << separator << endl;
+    cout << "Starting table manipulations" << endl;
 
     string key_1 = "a";
     string key_2 = "b";
@@ -450,19 +449,19 @@ TEST(DBConnector, selectabletimer)
 
 TEST(Table, basic)
 {
-    TableBasicTest("TABLE_UT_TEST", LEGACY_TABLE_NAME_SEPARATOR);
+    TableBasicTest("TABLE_UT_TEST");
 }
 
 TEST(Table, separator_in_table_name)
 {
-    std::string tableName = "TABLE_UT" + std::string(LEGACY_TABLE_NAME_SEPARATOR) + "TEST";
+    std::string tableName = "TABLE_UT|TEST";
 
-    TableBasicTest(tableName, LEGACY_TABLE_NAME_SEPARATOR);
+    TableBasicTest(tableName);
 }
 
 TEST(Table, table_separator_test)
 {
-    TableBasicTest("TABLE_UT_TEST", NEW_TABLE_NAME_SEPARATOR);
+    TableBasicTest("TABLE_UT_TEST");
 }
 
 TEST(ProducerConsumer, Prefix)

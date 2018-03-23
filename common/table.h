@@ -18,9 +18,6 @@
 
 namespace swss {
 
-#define LEGACY_TABLE_NAME_SEPARATOR  ":"
-#define NEW_TABLE_NAME_SEPARATOR     "|"
-
 // Mapping of DB ID to table name separator string
 typedef std::map<int, std::string> TableNameSeparatorMap;
 
@@ -43,10 +40,15 @@ public:
         /* Look up table separator for the provided DB */
         auto it = tableNameSeparatorMap.find(dbId);
 
-        if (it == tableNameSeparatorMap.end())
-            throw std::invalid_argument("Unable to find table separator for DB " + std::to_string(dbId));
-
-        m_tableSeparator = it->second;
+        if (it != tableNameSeparatorMap.end())
+        {
+            m_tableSeparator = it->second;
+        }
+        else
+        {
+            SWSS_LOG_NOTICE("Unrecognized database ID. Using default table name separator ('%s')", NEW_TABLE_NAME_SEPARATOR.c_str());
+            m_tableSeparator = NEW_TABLE_NAME_SEPARATOR;
+        }
     }
 
     std::string getTableName() const { return m_tableName; }
@@ -66,6 +68,8 @@ public:
 
     std::string getChannelName() { return m_tableName + "_CHANNEL"; }
 private:
+    static const std::string LEGACY_TABLE_NAME_SEPARATOR;
+    static const std::string NEW_TABLE_NAME_SEPARATOR;
     static const TableNameSeparatorMap tableNameSeparatorMap;
 
     std::string m_tableName;

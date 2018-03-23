@@ -12,6 +12,9 @@ using namespace std;
 using namespace swss;
 using json = nlohmann::json;
 
+const std::string TableBase::LEGACY_TABLE_NAME_SEPARATOR = ":";
+const std::string TableBase::NEW_TABLE_NAME_SEPARATOR = "|";
+
 const TableNameSeparatorMap TableBase::tableNameSeparatorMap = {
    { APPL_DB,         LEGACY_TABLE_NAME_SEPARATOR },
    { ASIC_DB,         LEGACY_TABLE_NAME_SEPARATOR },
@@ -20,8 +23,7 @@ const TableNameSeparatorMap TableBase::tableNameSeparatorMap = {
    { CONFIG_DB,       NEW_TABLE_NAME_SEPARATOR },
    { PFC_WD_DB,       LEGACY_TABLE_NAME_SEPARATOR },
    { FLEX_COUNTER_DB, LEGACY_TABLE_NAME_SEPARATOR },
-   { STATE_DB,        NEW_TABLE_NAME_SEPARATOR },
-   { TEST_DB,         LEGACY_TABLE_NAME_SEPARATOR }
+   { STATE_DB,        NEW_TABLE_NAME_SEPARATOR }
 };
 
 Table::Table(DBConnector *db, string tableName)
