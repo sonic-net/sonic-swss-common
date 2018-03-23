@@ -94,7 +94,7 @@ public:
 
     int getDbId()
     {
-        return m_db == NULL ? -1 : m_db->getDbId();
+        return m_db->getDbId();
     }
 
 private:
