@@ -32,9 +32,12 @@ public:
     };
     int select(Selectable **c, int *fd, unsigned int timeout = std::numeric_limits<unsigned int>::max());
 
+    /* Check whether the Selectable object is the one which has pending event */
+    bool isSelected(Selectable *selectable);
 private:
     std::vector<Selectable * > m_objects;
     std::vector<int> m_fds;
+    Selectable *m_selected;
 };
 
 }

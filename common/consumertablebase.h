@@ -17,6 +17,7 @@ public:
     void pop(KeyOpFieldsValuesTuple &kco, std::string prefix = EMPTY_PREFIX);
 
     void pop(std::string &key, std::string &op, std::vector<FieldValueTuple> &fvs, std::string prefix = EMPTY_PREFIX);
+    void pop(KeyOpTuple &ko, std::vector<FieldValueTuple> &fvs, std::string prefix = EMPTY_PREFIX);
 
 protected:
 

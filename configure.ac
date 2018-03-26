@@ -89,6 +89,7 @@ AC_CONFIG_FILES([
     Makefile
     common/Makefile
     pyext/Makefile
+    goext/Makefile
     tests/Makefile
 ])
 

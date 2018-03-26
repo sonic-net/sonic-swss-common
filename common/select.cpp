@@ -38,6 +38,11 @@ void Select::addFd(int fd)
     m_fds.push_back(fd);
 }
 
+bool Select::isSelected(Selectable *selectable)
+{
+    return (selectable == m_selected);
+}
+
 int Select::select(Selectable **c, int *fd, unsigned int timeout)
 {
     SWSS_LOG_ENTER();
@@ -49,6 +54,7 @@ int Select::select(Selectable **c, int *fd, unsigned int timeout)
 
     FD_ZERO(&fs);
     *c = NULL;
+    m_selected = NULL;
     *fd = 0;
     if (timeout != numeric_limits<unsigned int>::max())
         pTimeout = &t;
@@ -62,6 +68,7 @@ int Select::select(Selectable **c, int *fd, unsigned int timeout)
             return Select::ERROR;
         else if (err == Selectable::DATA) {
             *c = i;
+            m_selected = *c;
             return Select::OBJECT;
         }
         /* else, timeout = no data */
@@ -91,6 +98,7 @@ int Select::select(Selectable **c, int *fd, unsigned int timeout)
         {
             i->readMe();
             *c = i;
+            m_selected = *c;
             return Select::OBJECT;
         }
 

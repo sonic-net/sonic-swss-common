@@ -1,0 +1,111 @@
+GOPATH = /tmp/sonic/go
+
+# SRCDIR is the relative path to the current source directory
+# - For in-source-tree builds, SRCDIR with be either '' or './', but
+#   '../' for the test suites that build in a subdir (e.g. C#, Java)
+# - For out-of-source-tree builds, SRCDIR will be a relative
+#   path ending with a '/'
+SRCDIR = ../common
+
+SRCDIR_CXXSRCS := $(wildcard $(SRC_DIR)/*.cpp) $(wildcard $(SRC_DIR)/*.h)
+
+
+ifeq (,$(DEBUG))
+DBGFLAGS = -ggdb -DDEBUG
+else
+DBGFLAGS = -g -DNDEBUG
+endif
+
+CC         = @CC@
+CXX        = @CXX@
+CPPFLAGS   = $(DBGFLAGS) @LIBNL_CFLAGS@
+CFLAGS     =
+CXXFLAGS   = $(DBGFLAGS) @CXXFLAGS@  @CFLAGS_COMMON@ \
+             -Wno-packed -Wno-cast-qual -Wno-unused-function -fpermissive -Wno-error
+LDFLAGS    = @LDFLAGS@
+SRCS       =
+INCLUDES   =
+LIBS       = @LIBS@ -lpthread $(LIBNL_LIBS)
+INTERFACE  = swsscommon.i
+INTERFACEDIR  =
+INTERFACEPATH = $(INTERFACEDIR)$(INTERFACE)
+SWIGOPT    =
+
+
+SWIG_LIB_DIR = ./swig/Lib
+SWIGEXE    = ./swig/swig
+SWIG_LIB_SET = env SWIG_LIB=$(SWIG_LIB_DIR)
+SWIGTOOL   =
+SWIG       = $(SWIG_LIB_SET) $(SWIGTOOL) $(SWIGEXE)
+
+
+IWRAP      = $(INTERFACE:.i=_wrap.i)
+ISRCS      = $(IWRAP:.i=.c)
+ICXXSRCS   = $(IWRAP:.i=.cxx)
+IOBJS      = $(IWRAP:.i=.o)
+
+GO = /usr/local/go/bin/go
+GOC = compile
+GOOPT = -intgosize 64
+GOVERSIONOPTION = version
+
+GOSRCS = $(INTERFACE:.i=.go)
+
+REPODIR := $(shell git remote -v | grep fetch | cut -f 3- -d / | cut -f 1 -d ' ')
+GOPATHDIR = $(GOPATH)/src/$(REPODIR)
+
+all: build
+
+build: $(SRCDIR_CXXSRCS)
+	# To use swig version 3.0.12 .
+	if [ ! -x $(SWIGEXE) ]; then \
+		git clone https://github.com/swig/swig.git; \
+		cd swig && git checkout rel-3.0.12 && ./autogen.sh && ./configure && make; cd - ; \
+	fi
+
+	$(SWIG) -go -c++ -cgo $(GOOPT) $(GOSWIGARG) $(SWIGOPT)  -I$(SRCDIR) -o $(ICXXSRCS) $(INTERFACEPATH)
+
+	mkdir -p $(GOPATH)/src/$(REPODIR) 2>/dev/null || true
+	rm -f -r $(GOPATHDIR)/*
+	cp $(ICXXSRCS) $(GOPATHDIR)/
+	if test -f $(IWRAP:.i=.h); then \
+	  cp $(IWRAP:.i=.h) $(GOPATHDIR)/; \
+	fi
+
+	@rsync -av  --exclude '*.cpp' --exclude '*.o'  --exclude '*.lo' $(SRCDIR) $(GOPATHDIR)/;
+	@rsync -av  --exclude 'loglevel.cpp' $(SRCDIR)/*.cpp $(GOPATHDIR)/;
+
+	cp $(GOSRCS) $(GOPATHDIR)/
+	export GOPATH; \
+	CGO_CPPFLAGS="$(CPPFLAGS) $(INCLUDES) -I $(GOPATHDIR) -I $(GOPATHDIR)/common"; \
+	export CGO_CPPFLAGS; \
+	CGO_CFLAGS="$(CFLAGS)"; \
+	export CGO_CFLAGS; \
+	CGO_CXXFLAGS="$(CXXFLAGS)"; \
+	export CGO_CXXFLAGS; \
+	CGO_LDFLAGS="$(LDFLAGS) -lm $(LIBS)"; \
+	export CGO_LDFLAGS; \
+	(cd $(GOPATHDIR) && GOPATH=$(GOPATH) $(GO) install -x)
+
+install:
+	@echo "install: Not doing anything!!"
+
+uninstall:
+	@echo "uninstall: Not doing anything!!"
+
+# -----------------------------------------------------------------
+# Version display
+# -----------------------------------------------------------------
+
+version:
+	$(GO) $(GOVERSIONOPTION)
+
+# -----------------------------------------------------------------
+# Cleaning the Go examples
+# -----------------------------------------------------------------
+
+clean:
+	rm -f *_wrap* *_gc* *.gox .~* $(GOSRCS)
+	rm -rf $(GOPATHDIR)
+	rm -f core
+	rm -f *.o *.[568] *.a *.so

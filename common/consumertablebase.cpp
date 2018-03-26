@@ -18,6 +18,11 @@ void ConsumerTableBase::pop(KeyOpFieldsValuesTuple &kco, std::string prefix)
     pop(kfvKey(kco), kfvOp(kco), kfvFieldsValues(kco), prefix);
 }
 
+void ConsumerTableBase::pop(KeyOpTuple &ko, std::vector<FieldValueTuple> &fvs, std::string prefix)
+{
+    pop(koKey(ko), koOp(ko), fvs, prefix);
+}
+
 void ConsumerTableBase::pop(std::string &key, std::string &op, std::vector<FieldValueTuple> &fvs, std::string prefix)
 {
     if (m_buffer.empty())

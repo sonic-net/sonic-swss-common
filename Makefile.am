@@ -1,4 +1,4 @@
-SUBDIRS = common pyext
+SUBDIRS = common pyext goext
 
 ACLOCAL_AMFLAGS = -I m4
 
