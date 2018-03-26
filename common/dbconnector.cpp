@@ -30,7 +30,7 @@ DBConnector::~DBConnector()
 
 DBConnector::DBConnector(int dbId, string hostname, int port,
                          unsigned int timeout) :
-    m_id(dbId)
+    m_dbId(dbId)
 {
     struct timeval tv = {0, (suseconds_t)timeout * 1000};
 
@@ -47,7 +47,7 @@ DBConnector::DBConnector(int dbId, string hostname, int port,
 }
 
 DBConnector::DBConnector(int dbId, string unixPath, unsigned int timeout) :
-    m_id(dbId)
+    m_dbId(dbId)
 {
     struct timeval tv = {0, (suseconds_t)timeout * 1000};
 
@@ -70,7 +70,7 @@ redisContext *DBConnector::getContext()
 
 int DBConnector::getDbId()
 {
-    return m_id;
+    return m_dbId;
 }
 
 DBConnector *DBConnector::newConnector(unsigned int timeout)

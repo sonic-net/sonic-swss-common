@@ -35,7 +35,7 @@ public:
 
 private:
     redisContext *m_conn;
-    int m_id;
+    int m_dbId;
 };
 
 }
