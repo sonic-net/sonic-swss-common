@@ -12,18 +12,21 @@ using namespace std;
 using namespace swss;
 using json = nlohmann::json;
 
-const std::string TableBase::LEGACY_TABLE_NAME_SEPARATOR = ":";
-const std::string TableBase::NEW_TABLE_NAME_SEPARATOR = "|";
+// NOTE: Vertical bar ('|') is the new standard for table name separator
+// moving forward. We plan to eventually deprecate the colon separator
+// and transition all databases to use the vertical bar.
+const std::string TableBase::TABLE_NAME_SEPARATOR_COLON = ":";
+const std::string TableBase::TABLE_NAME_SEPARATOR_VBAR = "|";
 
 const TableNameSeparatorMap TableBase::tableNameSeparatorMap = {
-   { APPL_DB,         LEGACY_TABLE_NAME_SEPARATOR },
-   { ASIC_DB,         LEGACY_TABLE_NAME_SEPARATOR },
-   { COUNTERS_DB,     LEGACY_TABLE_NAME_SEPARATOR },
-   { LOGLEVEL_DB,     LEGACY_TABLE_NAME_SEPARATOR },
-   { CONFIG_DB,       NEW_TABLE_NAME_SEPARATOR },
-   { PFC_WD_DB,       LEGACY_TABLE_NAME_SEPARATOR },
-   { FLEX_COUNTER_DB, LEGACY_TABLE_NAME_SEPARATOR },
-   { STATE_DB,        NEW_TABLE_NAME_SEPARATOR }
+   { APPL_DB,         TABLE_NAME_SEPARATOR_COLON },
+   { ASIC_DB,         TABLE_NAME_SEPARATOR_COLON },
+   { COUNTERS_DB,     TABLE_NAME_SEPARATOR_COLON },
+   { LOGLEVEL_DB,     TABLE_NAME_SEPARATOR_COLON },
+   { CONFIG_DB,       TABLE_NAME_SEPARATOR_VBAR  },
+   { PFC_WD_DB,       TABLE_NAME_SEPARATOR_COLON },
+   { FLEX_COUNTER_DB, TABLE_NAME_SEPARATOR_COLON },
+   { STATE_DB,        TABLE_NAME_SEPARATOR_VBAR  }
 };
 
 Table::Table(DBConnector *db, string tableName)

@@ -46,8 +46,8 @@ public:
         }
         else
         {
-            SWSS_LOG_NOTICE("Unrecognized database ID. Using default table name separator ('%s')", NEW_TABLE_NAME_SEPARATOR.c_str());
-            m_tableSeparator = NEW_TABLE_NAME_SEPARATOR;
+            SWSS_LOG_NOTICE("Unrecognized database ID. Using default table name separator ('%s')", TABLE_NAME_SEPARATOR_VBAR.c_str());
+            m_tableSeparator = TABLE_NAME_SEPARATOR_VBAR;
         }
     }
 
@@ -68,8 +68,8 @@ public:
 
     std::string getChannelName() { return m_tableName + "_CHANNEL"; }
 private:
-    static const std::string LEGACY_TABLE_NAME_SEPARATOR;
-    static const std::string NEW_TABLE_NAME_SEPARATOR;
+    static const std::string TABLE_NAME_SEPARATOR_COLON;
+    static const std::string TABLE_NAME_SEPARATOR_VBAR;
     static const TableNameSeparatorMap tableNameSeparatorMap;
 
     std::string m_tableName;
