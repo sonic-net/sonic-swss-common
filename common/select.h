@@ -33,7 +33,7 @@ public:
         TIMEOUT = 2,
     };
 
-    int select(Selectable **c, int *fd, unsigned int timeout = std::numeric_limits<unsigned int>::max());
+    int select(Selectable **c, unsigned int timeout = std::numeric_limits<unsigned int>::max());
 
 private:
     int select1(Selectable **c, unsigned int timeout);

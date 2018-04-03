@@ -130,10 +130,9 @@ int Select::select1(Selectable **c, unsigned int timeout)
     return Select::TIMEOUT;
 }
 
-int Select::select(Selectable **c, int *fd, unsigned int timeout)
+int Select::select(Selectable **c, unsigned int timeout)
 {
     SWSS_LOG_ENTER();
-    *fd = 0;
 
     int ret;
 

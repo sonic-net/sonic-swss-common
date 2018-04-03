@@ -106,14 +106,13 @@ static void consumerWorker(int index)
     ConsumerStateTable c(&db, tableName);
     Select cs;
     Selectable *selectcs;
-    int tmpfd;
     int numberOfKeysSet = 0;
     int numberOfKeyDeleted = 0;
     int ret, i = 0;
     KeyOpFieldsValuesTuple kco;
 
     cs.addSelectable(&c);
-    while ((ret = cs.select(&selectcs, &tmpfd)) == Select::OBJECT)
+    while ((ret = cs.select(&selectcs)) == Select::OBJECT)
     {
         c.pop(kco);
         if (kfvOp(kco) == "SET")
@@ -182,11 +181,10 @@ TEST(ConsumerStateTable, double_set)
     Select cs;
     Selectable *selectcs;
     cs.addSelectable(&c);
-    int tmpfd;
 
     /* First pop operation */
     {
-        int ret = cs.select(&selectcs, &tmpfd);
+        int ret = cs.select(&selectcs);
         EXPECT_TRUE(ret == Select::OBJECT);
         KeyOpFieldsValuesTuple kco;
         c.pop(kco);
@@ -214,7 +212,7 @@ TEST(ConsumerStateTable, double_set)
 
     /* Second select operation */
     {
-        int ret = cs.select(&selectcs, &tmpfd, 1000);
+        int ret = cs.select(&selectcs, 1000);
         EXPECT_TRUE(ret == Select::TIMEOUT);
     }
 }
@@ -250,11 +248,10 @@ TEST(ConsumerStateTable, set_del)
     Select cs;
     Selectable *selectcs;
     cs.addSelectable(&c);
-    int tmpfd;
 
     /* First pop operation */
     {
-        int ret = cs.select(&selectcs, &tmpfd);
+        int ret = cs.select(&selectcs);
         EXPECT_TRUE(ret == Select::OBJECT);
         KeyOpFieldsValuesTuple kco;
         c.pop(kco);
@@ -267,7 +264,7 @@ TEST(ConsumerStateTable, set_del)
 
     /* Second select operation */
     {
-        int ret = cs.select(&selectcs, &tmpfd, 1000);
+        int ret = cs.select(&selectcs, 1000);
         EXPECT_TRUE(ret == Select::TIMEOUT);
     }
 }
@@ -314,11 +311,10 @@ TEST(ConsumerStateTable, set_del_set)
     Select cs;
     Selectable *selectcs;
     cs.addSelectable(&c);
-    int tmpfd;
 
     /* First pop operation */
     {
-        int ret = cs.select(&selectcs, &tmpfd);
+        int ret = cs.select(&selectcs);
         EXPECT_TRUE(ret == Select::OBJECT);
         KeyOpFieldsValuesTuple kco;
         c.pop(kco);
@@ -342,7 +338,7 @@ TEST(ConsumerStateTable, set_del_set)
 
     /* Second select operation */
     {
-        int ret = cs.select(&selectcs, &tmpfd, 1000);
+        int ret = cs.select(&selectcs, 1000);
         EXPECT_TRUE(ret == Select::TIMEOUT);
     }
 }
@@ -374,13 +370,12 @@ TEST(ConsumerStateTable, singlethread)
     ConsumerStateTable c(&db, tableName);
     Select cs;
     Selectable *selectcs;
-    int tmpfd;
     int ret, i = 0;
     KeyOpFieldsValuesTuple kco;
 
     cs.addSelectable(&c);
     int numberOfKeysSet = 0;
-    while ((ret = cs.select(&selectcs, &tmpfd)) == Select::OBJECT)
+    while ((ret = cs.select(&selectcs)) == Select::OBJECT)
     {
         c.pop(kco);
         EXPECT_TRUE(kfvOp(kco) == "SET");
@@ -402,7 +397,7 @@ TEST(ConsumerStateTable, singlethread)
     }
 
     int numberOfKeyDeleted = 0;
-    while ((ret = cs.select(&selectcs, &tmpfd)) == Select::OBJECT)
+    while ((ret = cs.select(&selectcs)) == Select::OBJECT)
     {
         c.pop(kco);
         EXPECT_TRUE(kfvOp(kco) == "DEL");
@@ -479,9 +474,8 @@ TEST(ConsumerStateTable, multitable)
     while (1)
     {
         Selectable *is;
-        int fd;
 
-        ret = cs.select(&is, &fd);
+        ret = cs.select(&is);
         EXPECT_EQ(ret, Select::OBJECT);
 
         ((ConsumerStateTable *)is)->pop(kco);

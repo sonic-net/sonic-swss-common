@@ -89,17 +89,16 @@ TEST(Prioriry, priority_select_1)
     s2.notify();
     s3.notify();
 
-    int tmpfd;
     int ret;
-    ret = cs.select(&selectcs, &tmpfd);
+    ret = cs.select(&selectcs);
     EXPECT_EQ(ret, Select::OBJECT);
     EXPECT_EQ(selectcs, &s3);
 
-    ret = cs.select(&selectcs, &tmpfd);
+    ret = cs.select(&selectcs);
     EXPECT_EQ(ret, Select::OBJECT);
     EXPECT_EQ(selectcs, &s2);
 
-    ret = cs.select(&selectcs, &tmpfd);
+    ret = cs.select(&selectcs);
     EXPECT_EQ(ret, Select::OBJECT);
     EXPECT_EQ(selectcs, &s1);
 }
@@ -121,17 +120,16 @@ TEST(Prioriry, priority_select_2)
     cs.addSelectable(&s2);
     cs.addSelectable(&s3);
 
-    int tmpfd;
     int ret;
-    ret = cs.select(&selectcs, &tmpfd);
+    ret = cs.select(&selectcs);
     EXPECT_EQ(ret, Select::OBJECT);
     EXPECT_EQ(selectcs, &s3);
 
-    ret = cs.select(&selectcs, &tmpfd);
+    ret = cs.select(&selectcs);
     EXPECT_EQ(ret, Select::OBJECT);
     EXPECT_EQ(selectcs, &s2);
 
-    ret = cs.select(&selectcs, &tmpfd);
+    ret = cs.select(&selectcs);
     EXPECT_EQ(ret, Select::OBJECT);
     EXPECT_EQ(selectcs, &s1);
 }
@@ -153,17 +151,16 @@ TEST(Prioriry, priority_select_3)
     s2.notify();
     s3.notify();
 
-    int tmpfd;
     int ret;
-    ret = cs.select(&selectcs, &tmpfd);
+    ret = cs.select(&selectcs);
     EXPECT_EQ(ret, Select::OBJECT);
     EXPECT_EQ(selectcs, &s3);
 
-    ret = cs.select(&selectcs, &tmpfd);
+    ret = cs.select(&selectcs);
     EXPECT_EQ(ret, Select::OBJECT);
     EXPECT_TRUE(selectcs==&s1 || selectcs==&s2);
 
-    ret = cs.select(&selectcs, &tmpfd);
+    ret = cs.select(&selectcs);
     EXPECT_EQ(ret, Select::OBJECT);
     EXPECT_TRUE(selectcs==&s1 || selectcs==&s2);
 }
@@ -185,17 +182,16 @@ TEST(Prioriry, priority_select_4)
     s2.notify();
     s3.notify();
 
-    int tmpfd;
     int ret;
-    ret = cs.select(&selectcs, &tmpfd);
+    ret = cs.select(&selectcs);
     EXPECT_EQ(ret, Select::OBJECT);
     EXPECT_TRUE(selectcs==&s2 || selectcs==&s3);
 
-    ret = cs.select(&selectcs, &tmpfd);
+    ret = cs.select(&selectcs);
     EXPECT_EQ(ret, Select::OBJECT);
     EXPECT_TRUE(selectcs==&s2 || selectcs==&s3);
 
-    ret = cs.select(&selectcs, &tmpfd);
+    ret = cs.select(&selectcs);
     EXPECT_EQ(ret, Select::OBJECT);
     EXPECT_EQ(selectcs, &s1);
 }
@@ -214,14 +210,13 @@ TEST(Prioriry, priority_select_5)
     s1.notify();
     s2.notify();
 
-    int tmpfd;
     int ret;
-    ret = cs.select(&selectcs, &tmpfd);
+    ret = cs.select(&selectcs);
     EXPECT_EQ(ret, Select::OBJECT);
     EXPECT_EQ(selectcs, &s2);
 
     cs.removeSelectable(&s1);
 
-    ret = cs.select(&selectcs, &tmpfd, 1000);
+    ret = cs.select(&selectcs, 1000);
     EXPECT_EQ(ret, Select::TIMEOUT);
 }

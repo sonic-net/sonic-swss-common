@@ -166,10 +166,9 @@ Logger::Priority Logger::getMinPrio()
 
     while(true)
     {
-        int fd = 0;
         Selectable *selectable = nullptr;
 
-        int ret = select.select(&selectable, &fd);
+        int ret = select.select(&selectable);
 
         if (ret == Select::ERROR)
         {

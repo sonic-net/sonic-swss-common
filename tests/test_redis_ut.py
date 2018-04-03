@@ -34,7 +34,7 @@ def test_SubscriberStateTable():
     sel.addSelectable(cst)
     fvs = swsscommon.FieldValuePairs([('a','b')])
     t.set("aaa", fvs)
-    (state, c, fd) = sel.select()
+    (state, c) = sel.select()
     assert state == swsscommon.Select.OBJECT
     (key, op, cfvs) = cst.pop()
     assert key == "aaa"
@@ -50,7 +50,7 @@ def test_Notification():
     fvs = swsscommon.FieldValuePairs([('a','b')])
     ntfp = swsscommon.NotificationProducer(db, "testntf")
     ntfp.send("aaa", "bbb", fvs)
-    (state, c, fd) = sel.select()
+    (state, c) = sel.select()
     assert state == swsscommon.Select.OBJECT
     (op, data, cfvs) = ntfc.pop()
     assert op == "aaa"

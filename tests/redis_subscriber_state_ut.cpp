@@ -128,7 +128,6 @@ static void subscriberWorker(int index, int *status)
     SubscriberStateTable c(&db, testTableName);
     Select cs;
     Selectable *selectcs;
-    int tmpfd;
     int numberOfKeysSet = 0;
     int numberOfKeyDeleted = 0;
     int ret, i = 0;
@@ -138,7 +137,7 @@ static void subscriberWorker(int index, int *status)
 
     status[index] = 1;
 
-    while ((ret = cs.select(&selectcs, &tmpfd, 10000)) == Select::OBJECT)
+    while ((ret = cs.select(&selectcs, 10000)) == Select::OBJECT)
     {
         c.pop(kco);
         if (kfvOp(kco) == "SET")
@@ -167,7 +166,7 @@ static void subscriberWorker(int index, int *status)
 
     /* Verify that all data are read */
     {
-        ret = cs.select(&selectcs, &tmpfd, 1000);
+        ret = cs.select(&selectcs, 1000);
         EXPECT_TRUE(ret == Select::TIMEOUT);
     }
 }
@@ -200,11 +199,9 @@ TEST(SubscriberStateTable, set)
         p.set(key, fields);
     }
 
-    int tmpfd;
-
     /* Pop operation */
     {
-        int ret = cs.select(&selectcs, &tmpfd);
+        int ret = cs.select(&selectcs);
         EXPECT_TRUE(ret == Select::OBJECT);
         KeyOpFieldsValuesTuple kco;
         c.pop(kco);
@@ -255,11 +252,9 @@ TEST(SubscriberStateTable, del)
         p.set(key, fields);
     }
 
-    int tmpfd;
-
     /* Pop operation for set */
     {
-        int ret = cs.select(&selectcs, &tmpfd);
+        int ret = cs.select(&selectcs);
         EXPECT_TRUE(ret == Select::OBJECT);
         KeyOpFieldsValuesTuple kco;
         c.pop(kco);
@@ -271,7 +266,7 @@ TEST(SubscriberStateTable, del)
 
     /* Pop operation for del */
     {
-        int ret = cs.select(&selectcs, &tmpfd);
+        int ret = cs.select(&selectcs);
         EXPECT_TRUE(ret == Select::OBJECT);
         KeyOpFieldsValuesTuple kco;
         c.pop(kco);
@@ -311,14 +306,13 @@ TEST(SubscriberStateTable, table_state)
     SubscriberStateTable c(&db, testTableName);
     Select cs;
     Selectable *selectcs;
-    int tmpfd;
     int ret, i = 0;
     KeyOpFieldsValuesTuple kco;
 
     cs.addSelectable(&c);
     int numberOfKeysSet = 0;
 
-    while ((ret = cs.select(&selectcs, &tmpfd)) == Select::OBJECT)
+    while ((ret = cs.select(&selectcs)) == Select::OBJECT)
     {
        c.pop(kco);
        EXPECT_TRUE(kfvOp(kco) == "SET");
@@ -336,7 +330,7 @@ TEST(SubscriberStateTable, table_state)
 
     /* Verify that all data are read */
     {
-        ret = cs.select(&selectcs, &tmpfd, 1000);
+        ret = cs.select(&selectcs, 1000);
         EXPECT_TRUE(ret == Select::TIMEOUT);
     }
 }
