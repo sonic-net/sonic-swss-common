@@ -133,7 +133,7 @@ static void consumerWorker(int index)
             break;
     }
 
-    EXPECT_EQ(ret, Selectable::DATA);
+    EXPECT_EQ(ret, Select::OBJECT);
 }
 
 static void clearDB()

@@ -11,23 +11,50 @@ namespace swss {
 class Selectable
 {
 public:
+    Selectable(int pri = 0) : m_priority(pri) {}
     virtual ~Selectable() {};
 
-    enum {
-        DATA = 0,
-        ERROR = 1,
-        NODATA = 2
+    /* return file handler for the Selectable */
+    virtual int getFd() = 0;
+
+    /* Read all data from the fd assicaited with Selectable */
+    virtual void readData() = 0;
+
+    /* true if Selectable has data in its cache */
+    virtual bool hasCachedData()
+    {
+        return false;
+    }
+
+    /* true if Selectable was initialized with data */
+    virtual bool initializedWithData()
+    {
+        return false;
+    }
+
+    /* run this function after every read */
+    virtual void updateAfterRead()
+    {
+    }
+
+    int getPri() const
+    {
+        return m_priority;
+    }
+
+    struct cmp
+    {
+        bool operator()(const Selectable* a, const Selectable* b) const
+        {
+            if (a->getPri() == b->getPri())
+                return a > b;
+            else
+                return a->getPri() > b->getPri();
+        }
     };
 
-    /* Implements FD_SET */
-    virtual void addFd(fd_set *fd) = 0;
-    virtual bool isMe(fd_set *fd) = 0;
-
-    /* Read and empty socket caching (if exists) */
-    virtual int readCache() = 0;
-
-    /* Read a message from the socket */
-    virtual void readMe() = 0;
+private:
+    int m_priority;
 };
 
 }

@@ -11,8 +11,8 @@
 
 namespace swss {
 
-SelectableEvent::SelectableEvent() :
-    m_efd(0)
+SelectableEvent::SelectableEvent(int pri) :
+    Selectable(pri), m_efd(0)
 {
     m_efd = eventfd(0, 0);
 
@@ -35,17 +35,12 @@ SelectableEvent::~SelectableEvent()
     while(err == -1 && errno == EINTR);
 }
 
-void SelectableEvent::addFd(fd_set *fd)
+int SelectableEvent::getFd()
 {
-    FD_SET(m_efd, fd);
+    return m_efd;
 }
 
-int SelectableEvent::readCache()
-{
-    return Selectable::NODATA;
-}
-
-void SelectableEvent::readMe()
+void SelectableEvent::readData()
 {
     uint64_t r;
 
@@ -62,11 +57,6 @@ void SelectableEvent::readMe()
 
         throw std::runtime_error("read failed");
     }
-}
-
-bool SelectableEvent::isMe(fd_set *fd)
-{
-    return FD_ISSET(m_efd, fd);
 }
 
 void SelectableEvent::notify()

@@ -55,10 +55,10 @@ public:
     static Logger &getInstance();
     static void setMinPrio(Priority prio);
     static Priority getMinPrio();
-    static void linkToDbWithOutput(const std::string dbName, const PriorityChangeNotify& prioNotify, const std::string& defPrio, const OutputChangeNotify& outputNotify, const std::string& defOutput);
-    static void linkToDb(const std::string dbName, const PriorityChangeNotify& notify, const std::string& defPrio);
+    static void linkToDbWithOutput(const std::string& dbName, const PriorityChangeNotify& prioNotify, const std::string& defPrio, const OutputChangeNotify& outputNotify, const std::string& defOutput);
+    static void linkToDb(const std::string& dbName, const PriorityChangeNotify& notify, const std::string& defPrio);
     // Must be called after all linkToDb to start select from DB
-    static void linkToDbNative(const std::string dbName);
+    static void linkToDbNative(const std::string& dbName);
     void write(Priority prio, const char *fmt, ...)
 #ifdef __GNUC__
         __attribute__ ((format (printf, 3, 4)))

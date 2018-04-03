@@ -133,7 +133,7 @@ static void consumerWorker(int index)
     }
 
     EXPECT_TRUE(numberOfKeysSet <= numberOfKeyDeleted);
-    EXPECT_EQ(ret, Selectable::DATA);
+    EXPECT_EQ(ret, Select::OBJECT);
 }
 
 static inline void clearDB()
@@ -416,7 +416,7 @@ TEST(ConsumerStateTable, singlethread)
     }
 
     EXPECT_TRUE(numberOfKeysSet <= numberOfKeyDeleted);
-    EXPECT_EQ(ret, Selectable::DATA);
+    EXPECT_EQ(ret, Select::OBJECT);
 
     cout << "Done. Waiting for all job to finish " << NUMBER_OF_OPS << " jobs." << endl;
 

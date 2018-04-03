@@ -95,7 +95,7 @@ public:
     /* The default value of pop batch size is 128 */
     static constexpr int DEFAULT_POP_BATCH_SIZE = 128;
 
-    TableConsumable(std::string tableName) : TableBase(tableName) { }
+    TableConsumable(std::string tableName, int pri) : TableBase(tableName), RedisSelect(pri) { }
 };
 
 class TableEntryEnumerable {

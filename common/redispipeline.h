@@ -64,7 +64,7 @@ public:
         if (m_remaining == 0) return NULL;
 
         redisReply *reply;
-        redisGetReply(m_db->getContext(), (void**)&reply);
+        redisGetReply(m_db->getContext(), reinterpret_cast<void**>(&reply));
         RedisReply r(reply);
         m_remaining--;
 

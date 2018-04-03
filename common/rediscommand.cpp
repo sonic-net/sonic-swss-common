@@ -21,6 +21,7 @@ void RedisCommand::format(const char *fmt, ...)
     va_list ap;
     va_start(ap, fmt);
     int len = redisvFormatCommand(&temp, fmt, ap);
+    va_end(ap);
     if (len == -1) {
         throw std::bad_alloc();
     } else if (len == -2) {

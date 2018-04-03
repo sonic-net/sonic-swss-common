@@ -3,6 +3,9 @@
 
 #include <string>
 #include <vector>
+#include <queue>
+#include <unordered_map>
+#include <set>
 #include <limits>
 #include <hiredis/hiredis.h>
 #include "selectable.h"
@@ -12,29 +15,32 @@ namespace swss {
 class Select
 {
 public:
+    Select();
+    ~Select();
+
     /* Add object for select */
     void addSelectable(Selectable *selectable);
+
+    /* Remove object from select */
     void removeSelectable(Selectable *selectable);
+
+    /* Add multiple messages for select */
     void addSelectables(std::vector<Selectable *> selectables);
 
-    /* Add file-descriptor for select  */
-    void addFd(int fd);
-
-    /*
-     * Wait until data will arrived, returns the object on which select()
-     * was signaled.
-     */
     enum {
         OBJECT = 0,
-        FD = 1,
-        ERROR = 2,
-        TIMEOUT = 3
+        ERROR = 1,
+        TIMEOUT = 2,
     };
+
     int select(Selectable **c, int *fd, unsigned int timeout = std::numeric_limits<unsigned int>::max());
 
 private:
-    std::vector<Selectable * > m_objects;
-    std::vector<int> m_fds;
+    int select1(Selectable **c, unsigned int timeout);
+
+    int m_epoll_fd;
+    std::unordered_map<int, Selectable *> m_objects;
+    std::set<Selectable *, Selectable::cmp> m_ready;
 };
 
 }

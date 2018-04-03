@@ -14,8 +14,8 @@ using namespace std;
 
 namespace swss {
 
-ConsumerTable::ConsumerTable(DBConnector *db, string tableName, int popBatchSize)
-    : ConsumerTableBase(db, tableName, popBatchSize)
+ConsumerTable::ConsumerTable(DBConnector *db, string tableName, int popBatchSize, int pri)
+    : ConsumerTableBase(db, tableName, popBatchSize, pri)
     , TableName_KeyValueOpQueues(tableName)
 {
     for (;;)
