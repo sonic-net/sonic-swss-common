@@ -47,7 +47,7 @@ void RedisCommand::formatHMSET(const std::string &key,
 
     std::vector<const char*> args = { cmd, key.c_str() };
 
-    for (const auto &fvt: values)
+    for (const auto& fvt: values)
     {
         args.push_back(fvField(fvt).c_str());
         args.push_back(fvValue(fvt).c_str());
