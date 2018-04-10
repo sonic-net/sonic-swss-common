@@ -17,7 +17,7 @@ constexpr const char *DBConnector::DEFAULT_UNIXSOCKET;
 void DBConnector::select(DBConnector *db)
 {
     string select("SELECT ");
-    select += to_string(db->getDB());
+    select += to_string(db->getDbId());
 
     RedisReply r(db, select, REDIS_REPLY_STATUS);
     r.checkStatusOK();
@@ -28,9 +28,9 @@ DBConnector::~DBConnector()
     redisFree(m_conn);
 }
 
-DBConnector::DBConnector(int db, string hostname, int port,
+DBConnector::DBConnector(int dbId, string hostname, int port,
                          unsigned int timeout) :
-    m_db(db)
+    m_dbId(dbId)
 {
     struct timeval tv = {0, (suseconds_t)timeout * 1000};
 
@@ -46,8 +46,8 @@ DBConnector::DBConnector(int db, string hostname, int port,
     select(this);
 }
 
-DBConnector::DBConnector(int db, string unixPath, unsigned int timeout) :
-    m_db(db)
+DBConnector::DBConnector(int dbId, string unixPath, unsigned int timeout) :
+    m_dbId(dbId)
 {
     struct timeval tv = {0, (suseconds_t)timeout * 1000};
 
@@ -68,20 +68,20 @@ redisContext *DBConnector::getContext()
     return m_conn;
 }
 
-int DBConnector::getDB()
+int DBConnector::getDbId()
 {
-    return m_db;
+    return m_dbId;
 }
 
 DBConnector *DBConnector::newConnector(unsigned int timeout)
 {
     if (getContext()->connection_type == REDIS_CONN_TCP)
-        return new DBConnector(getDB(),
+        return new DBConnector(getDbId(),
                                getContext()->tcp.host,
                                getContext()->tcp.port,
                                timeout);
     else
-        return new DBConnector(getDB(),
+        return new DBConnector(getDbId(),
                                getContext()->unix_sock.path,
                                timeout);
 }

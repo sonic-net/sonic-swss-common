@@ -40,12 +40,12 @@ void swss::NotificationConsumer::subscribe()
 
     /* Create new new context to DB */
     if (m_db->getContext()->connection_type == REDIS_CONN_TCP)
-        m_subscribe = new DBConnector(m_db->getDB(),
+        m_subscribe = new DBConnector(m_db->getDbId(),
                                       m_db->getContext()->tcp.host,
                                       m_db->getContext()->tcp.port,
                                       NOTIFICATION_SUBSCRIBE_TIMEOUT);
     else
-        m_subscribe = new DBConnector(m_db->getDB(),
+        m_subscribe = new DBConnector(m_db->getDbId(),
                                       m_db->getContext()->unix_sock.path,
                                       NOTIFICATION_SUBSCRIBE_TIMEOUT);
 
