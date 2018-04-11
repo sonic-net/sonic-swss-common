@@ -70,7 +70,7 @@ void Logger::swssOutputNotify(std::string component, std::string outputStr)
     }
 }
 
-void Logger::linkToDbWithOutput(const std::string& dbName, const PriorityChangeNotify& prioNotify, const std::string& defPrio, const OutputChangeNotify& outputNotify, const std::string& defOutput)
+void Logger::linkToDbWithOutput(const std::string dbName, const PriorityChangeNotify& prioNotify, const std::string& defPrio, const OutputChangeNotify& outputNotify, const std::string& defOutput)
 {
     auto& logger = getInstance();
 
@@ -122,12 +122,12 @@ void Logger::linkToDbWithOutput(const std::string& dbName, const PriorityChangeN
     outputNotify(key, output);
 }
 
-void Logger::linkToDb(const std::string& dbName, const PriorityChangeNotify& prioNotify, const std::string& defPrio)
+void Logger::linkToDb(const std::string dbName, const PriorityChangeNotify& prioNotify, const std::string& defPrio)
 {
     linkToDbWithOutput(dbName, prioNotify, defPrio, swssOutputNotify, "SYSLOG");
 }
 
-void Logger::linkToDbNative(const std::string& dbName)
+void Logger::linkToDbNative(const std::string dbName)
 {
     auto& logger = getInstance();
 

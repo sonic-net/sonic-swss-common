@@ -45,9 +45,10 @@ IpPrefix::IpPrefix(
     }
 }
 
-IpPrefix::IpPrefix(uint32_t ipPrefix, int mask) : m_ip(ipPrefix),
-                                                  m_mask(mask)
+IpPrefix::IpPrefix(uint32_t ipPrefix, int mask)
 {
+    m_ip = IpAddress(ipPrefix);
+    m_mask = mask;
     if (!isValid())
     {
         throw std::invalid_argument("Invalid IpPrefix from prefix and mask");
