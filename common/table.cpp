@@ -98,7 +98,7 @@ void TableEntryEnumerable::getContent(vector<KeyOpFieldsValuesTuple> &tuples)
 
     tuples.clear();
 
-    for (const auto& key: keys)
+    for (auto key: keys)
     {
         vector<FieldValueTuple> values;
         string op = "";

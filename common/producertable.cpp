@@ -89,7 +89,7 @@ void ProducerTable::set(string key, vector<FieldValueTuple> &values, string op, 
         json j;
         string json_key = getKeyName(key);
         j[json_key] = json::object();
-        for (const auto& it : values)
+        for (auto it : values)
             j[json_key][fvField(it)] = fvValue(it);
         j["OP"] = op;
         m_dumpFile << j.dump(4);

@@ -11,7 +11,7 @@ using namespace swss;
 IpAddresses::IpAddresses(const string &ipsStr)
 {
     auto ips = tokenize(ipsStr, IP_DELIMITER);
-    for (const auto& ip : ips)
+    for (auto ip : ips)
         m_ips.insert(ip);
 }
 
@@ -39,7 +39,7 @@ bool IpAddresses::contains(const IpAddress &ip) const
 
 bool IpAddresses::contains(const IpAddresses &ips) const
 {
-    for (const auto& ip : ips.getIpAddresses())
+    for (auto ip : ips.getIpAddresses())
     {
         if (!contains(ip))
         {

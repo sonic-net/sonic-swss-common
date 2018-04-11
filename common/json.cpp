@@ -13,7 +13,7 @@ string JSon::buildJson(const vector<FieldValueTuple> &fv)
     nlohmann::json j = nlohmann::json::array();
 
     // we use array to save order
-    for (const auto& i : fv)
+    for (auto &i : fv)
     {
         j.push_back(fvField(i));
         j.push_back(fvValue(i));

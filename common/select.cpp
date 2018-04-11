@@ -81,7 +81,7 @@ void Select::removeSelectable(Selectable *selectable)
 
 void Select::addSelectables(vector<Selectable *> selectables)
 {
-    for(const auto& it : selectables)
+    for(auto it : selectables)
     {
         addSelectable(it);
     }
