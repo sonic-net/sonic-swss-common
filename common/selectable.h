@@ -78,7 +78,8 @@ public:
     };
 
 private:
-    int m_priority;
+    int m_priority; // defines priority of Selectable inside Select
+                    // higher value is higher priority
     std::chrono::time_point<std::chrono::steady_clock> m_last_time_used;
 };
 

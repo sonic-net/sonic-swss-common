@@ -24,7 +24,7 @@ public:
     /* Remove object from select */
     void removeSelectable(Selectable *selectable);
 
-    /* Add multiple messages for select */
+    /* Add multiple objects for select */
     void addSelectables(std::vector<Selectable *> selectables);
 
     enum {
@@ -36,7 +36,7 @@ public:
     int select(Selectable **c, unsigned int timeout = std::numeric_limits<unsigned int>::max());
 
 private:
-    int select1(Selectable **c, unsigned int timeout);
+    int check_descriptors(Selectable **c, unsigned int timeout);
 
     int m_epoll_fd;
     std::unordered_map<int, Selectable *> m_objects;
