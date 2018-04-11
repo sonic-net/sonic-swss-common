@@ -12,7 +12,7 @@
 using namespace std;
 using namespace swss;
 
-#define TEST_VIEW            (7)
+#define TEST_DB             (15) // Default Redis config supports 16 databases, max DB ID is 15
 #define NUMBER_OF_THREADS   (64) // Spawning more than 256 threads causes libc++ to except
 #define NUMBER_OF_OPS     (1000)
 #define MAX_FIELDS_DIV      (30) // Testing up to 30 fields objects
@@ -87,14 +87,14 @@ static inline void validateFields(const string& key, const vector<FieldValueTupl
 
 static inline void clearDB()
 {
-    DBConnector db(TEST_VIEW, dbhost, dbport, 0);
+    DBConnector db(TEST_DB, dbhost, dbport, 0);
     RedisReply r(&db, "FLUSHALL", REDIS_REPLY_STATUS);
     r.checkStatusOK();
 }
 
 static void producerWorker(int index)
 {
-    DBConnector db(TEST_VIEW, dbhost, dbport, 0);
+    DBConnector db(TEST_DB, dbhost, dbport, 0);
     Table p(&db, testTableName);
 
     for (int i = 0; i < NUMBER_OF_OPS; i++)
@@ -124,7 +124,7 @@ static void producerWorker(int index)
 
 static void subscriberWorker(int index, int *status)
 {
-    DBConnector db(TEST_VIEW, dbhost, dbport, 0);
+    DBConnector db(TEST_DB, dbhost, dbport, 0);
     SubscriberStateTable c(&db, testTableName);
     Select cs;
     Selectable *selectcs;
@@ -178,7 +178,7 @@ TEST(SubscriberStateTable, set)
 
     /* Prepare producer */
     int index = 0;
-    DBConnector db(TEST_VIEW, dbhost, dbport, 0);
+    DBConnector db(TEST_DB, dbhost, dbport, 0);
     Table p(&db, testTableName);
     string key = "TheKey";
     int maxNumOfFields = 2;
@@ -233,7 +233,7 @@ TEST(SubscriberStateTable, del)
 
     /* Prepare producer */
     int index = 0;
-    DBConnector db(TEST_VIEW, dbhost, dbport, 0);
+    DBConnector db(TEST_DB, dbhost, dbport, 0);
     Table p(&db, testTableName);
     string key = "TheKey";
     int maxNumOfFields = 2;
@@ -286,7 +286,7 @@ TEST(SubscriberStateTable, table_state)
 
     /* Prepare producer */
     int index = 0;
-    DBConnector db(TEST_VIEW, dbhost, dbport, 0);
+    DBConnector db(TEST_DB, dbhost, dbport, 0);
     Table p(&db, testTableName);
 
     for (int i = 0; i < NUMBER_OF_OPS; i++)

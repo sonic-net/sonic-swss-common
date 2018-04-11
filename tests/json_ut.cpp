@@ -6,13 +6,13 @@ using namespace std;
 using namespace swss;
 using json = nlohmann::json;
 
-#define TEST_VIEW       (7)
+#define TEST_DB         (15) // Default Redis config supports 16 databases, max DB ID is 15
 #define TEST_DUMP_FILE  "ut_dump_file.txt"
 
 TEST(JSON, test)
 {
     /* Construct the file */
-    DBConnector db(TEST_VIEW, "localhost", 6379, 0);
+    DBConnector db(TEST_DB, "localhost", 6379, 0);
     ProducerTable *p;
     p = new ProducerTable(&db, "UT_REDIS", TEST_DUMP_FILE);
 
