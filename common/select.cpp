@@ -116,10 +116,15 @@ int Select::select1(Selectable **c, unsigned int timeout)
 
         *c = sel;
 
-        if (!sel->hasCachedData())
+        m_ready.erase(sel);
+        // we must update clock only when the selector out of the m_ready
+        // otherwise we break invariant of the m_ready
+        sel->updateClock();
+
+        if (sel->hasCachedData())
         {
-            // remove Selectable from the ready when there're no messages anymore
-            m_ready.erase(sel);
+            // reinsert Selectable back to the m_ready set, when there're more messages in the cache
+            m_ready.insert(sel);
         }
 
         sel->updateAfterRead();

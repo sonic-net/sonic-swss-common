@@ -18,7 +18,7 @@ using namespace swss;
 #define DEFAULT_POP_BATCH_SIZE (10)
 
 
-TEST(Prioriry, default_pri_values)
+TEST(Priority, default_pri_values)
 {
     std::string tableName = "tableName";
 
@@ -45,7 +45,7 @@ TEST(Prioriry, default_pri_values)
     EXPECT_EQ(sst.getPri(), 0);
 }
 
-TEST(Prioriry, set_pri_values)
+TEST(Priority, set_pri_values)
 {
     std::string tableName = "tableName";
 
@@ -72,7 +72,7 @@ TEST(Prioriry, set_pri_values)
     EXPECT_EQ(sst.getPri(), 108);
 }
 
-TEST(Prioriry, priority_select_1)
+TEST(Priority, priority_select_1)
 {
     Select cs;
     Selectable *selectcs;
@@ -103,7 +103,7 @@ TEST(Prioriry, priority_select_1)
     EXPECT_EQ(selectcs, &s1);
 }
 
-TEST(Prioriry, priority_select_2)
+TEST(Priority, priority_select_2)
 {
     Select cs;
     Selectable *selectcs;
@@ -134,7 +134,7 @@ TEST(Prioriry, priority_select_2)
     EXPECT_EQ(selectcs, &s1);
 }
 
-TEST(Prioriry, priority_select_3)
+TEST(Priority, priority_select_3)
 {
     Select cs;
     Selectable *selectcs;
@@ -165,7 +165,7 @@ TEST(Prioriry, priority_select_3)
     EXPECT_TRUE(selectcs==&s1 || selectcs==&s2);
 }
 
-TEST(Prioriry, priority_select_4)
+TEST(Priority, priority_select_4)
 {
     Select cs;
     Selectable *selectcs;
@@ -196,7 +196,7 @@ TEST(Prioriry, priority_select_4)
     EXPECT_EQ(selectcs, &s1);
 }
 
-TEST(Prioriry, priority_select_5)
+TEST(Priority, priority_select_5)
 {
     Select cs;
     Selectable *selectcs;
@@ -219,4 +219,32 @@ TEST(Prioriry, priority_select_5)
 
     ret = cs.select(&selectcs, 1000);
     EXPECT_EQ(ret, Select::TIMEOUT);
+}
+
+TEST(Priority, priority_select_6)
+{
+    Select cs;
+    Selectable *selectcs1;
+    Selectable *selectcs2;
+
+    SelectableEvent s1(1000);
+    SelectableEvent s2(1000);
+
+    cs.addSelectable(&s1);
+    cs.addSelectable(&s2);
+
+    s1.notify();
+    s2.notify();
+
+    int ret;
+    ret = cs.select(&selectcs1);
+    EXPECT_EQ(ret, Select::OBJECT);
+
+    s1.notify();
+    s2.notify();
+
+    ret = cs.select(&selectcs2);
+    EXPECT_EQ(ret, Select::OBJECT);
+    // we gave fair scheduler. we've read different selectables on the second read
+    EXPECT_NE(selectcs1, selectcs2);
 }

@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <limits>
+#include <chrono>
 #include <hiredis/hiredis.h>
 
 namespace swss {
@@ -11,7 +12,9 @@ namespace swss {
 class Selectable
 {
 public:
-    Selectable(int pri = 0) : m_priority(pri) {}
+    Selectable(int pri = 0) : m_priority(pri),
+                              m_last_time_used(std::chrono::steady_clock::now()) {}
+
     virtual ~Selectable() {};
 
     /* return file handler for the Selectable */
@@ -42,19 +45,41 @@ public:
         return m_priority;
     }
 
+    std::chrono::time_point<std::chrono::steady_clock> getLastTimeUsed() const
+    {
+        return m_last_time_used;
+    }
+
+    void updateClock()
+    {
+        m_last_time_used = std::chrono::steady_clock::now();
+    }
+
     struct cmp
     {
         bool operator()(const Selectable* a, const Selectable* b) const
         {
-            if (a->getPri() == b->getPri())
-                return a > b;
-            else
-                return a->getPri() > b->getPri();
+            /* Choose Selectable with highest priority first */
+            if (a->getPri() > b->getPri())
+                return true;
+            else if (a->getPri() < b->getPri())
+                return false;
+
+            /* if the priorities are equal */
+            /* use Selectable which was selected later */
+            if (a->getLastTimeUsed() < b->getLastTimeUsed())
+                return true;
+            else if (a->getLastTimeUsed() > b->getLastTimeUsed())
+                return false;
+
+            /* an impossible case, but prefer a Selectable with lowest address */
+            return a < b;
         }
     };
 
 private:
     int m_priority;
+    std::chrono::time_point<std::chrono::steady_clock> m_last_time_used;
 };
 
 }
