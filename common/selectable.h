@@ -72,8 +72,8 @@ public:
             else if (a->getLastTimeUsed() > b->getLastTimeUsed())
                 return false;
 
-            /* an impossible case, but prefer a Selectable with lowest address */
-            return a < b;
+            /* when a == b */
+            return false;
         }
     };
 
