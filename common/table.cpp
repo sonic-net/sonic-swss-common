@@ -12,14 +12,31 @@ using namespace std;
 using namespace swss;
 using json = nlohmann::json;
 
-Table::Table(DBConnector *db, string tableName, string tableSeparator)
-    : Table(new RedisPipeline(db, 1), tableName, tableSeparator, false)
+// NOTE: Vertical bar ('|') is the new standard for table name separator
+// moving forward. We plan to eventually deprecate the colon separator
+// and transition all databases to use the vertical bar.
+const std::string TableBase::TABLE_NAME_SEPARATOR_COLON = ":";
+const std::string TableBase::TABLE_NAME_SEPARATOR_VBAR = "|";
+
+const TableNameSeparatorMap TableBase::tableNameSeparatorMap = {
+   { APPL_DB,         TABLE_NAME_SEPARATOR_COLON },
+   { ASIC_DB,         TABLE_NAME_SEPARATOR_COLON },
+   { COUNTERS_DB,     TABLE_NAME_SEPARATOR_COLON },
+   { LOGLEVEL_DB,     TABLE_NAME_SEPARATOR_COLON },
+   { CONFIG_DB,       TABLE_NAME_SEPARATOR_VBAR  },
+   { PFC_WD_DB,       TABLE_NAME_SEPARATOR_COLON },
+   { FLEX_COUNTER_DB, TABLE_NAME_SEPARATOR_COLON },
+   { STATE_DB,        TABLE_NAME_SEPARATOR_VBAR  }
+};
+
+Table::Table(DBConnector *db, string tableName)
+    : Table(new RedisPipeline(db, 1), tableName, false)
 {
     m_pipeowned = true;
 }
 
-Table::Table(RedisPipeline *pipeline, string tableName, string tableSeparator, bool buffered)
-    : TableBase(tableName, tableSeparator)
+Table::Table(RedisPipeline *pipeline, string tableName, bool buffered)
+    : TableBase(pipeline->getDbId(), tableName)
     , m_buffered(buffered)
     , m_pipeowned(false)
     , m_pipe(pipeline)

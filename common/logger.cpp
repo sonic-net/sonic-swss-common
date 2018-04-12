@@ -118,8 +118,8 @@ void Logger::linkToDbWithOutput(const std::string dbName, const PriorityChangeNo
 
     logger.m_currentPrios[dbName] = prio;
     logger.m_currentOutputs[dbName] = output;
-    prioNotify(key, prio);
-    outputNotify(key, output);
+    prioNotify(dbName, prio);
+    outputNotify(dbName, output);
 }
 
 void Logger::linkToDb(const std::string dbName, const PriorityChangeNotify& prioNotify, const std::string& defPrio)
