@@ -6,15 +6,16 @@ using namespace std;
 using namespace swss;
 using json = nlohmann::json;
 
-#define TEST_VIEW       (7)
+#define TEST_DB         (15) // Default Redis config supports 16 databases, max DB ID is 15
 #define TEST_DUMP_FILE  "ut_dump_file.txt"
 
 TEST(JSON, test)
 {
     /* Construct the file */
-    DBConnector db(TEST_VIEW, "localhost", 6379, 0);
+    DBConnector db(TEST_DB, "localhost", 6379, 0);
     ProducerTable *p;
     p = new ProducerTable(&db, "UT_REDIS", TEST_DUMP_FILE);
+    string separator = p->getTableNameSeparator();
 
     vector<FieldValueTuple> fvTuples;
     FieldValueTuple fv1("test_field_1", "test_value_1");
@@ -51,7 +52,7 @@ TEST(JSON, test)
                 EXPECT_TRUE(it.value() == "SET" || it.value() == "DEL");
             else
             {
-                EXPECT_TRUE(it.key() == "UT_REDIS:test_key_1" || it.key() == "UT_REDIS:test_key_2");
+                EXPECT_TRUE(it.key() == "UT_REDIS" + separator + "test_key_1" || it.key() == "UT_REDIS" + separator + "test_key_2");
                 auto subitem = it.value();
                 EXPECT_TRUE(subitem.is_object());
                 if (subitem.size() > 0)
