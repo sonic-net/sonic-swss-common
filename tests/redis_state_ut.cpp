@@ -15,11 +15,11 @@
 using namespace std;
 using namespace swss;
 
-#define TEST_DB             (15) // Default Redis config supports 16 databases, max DB ID is 15
-#define NUMBER_OF_THREADS   (64) // Spawning more than 256 threads causes libc++ to except
-#define NUMBER_OF_OPS     (1000)
-#define MAX_FIELDS_DIV      (30) // Testing up to 30 fields objects
-#define PRINT_SKIP          (10) // Print + for Producer and - for Consumer for every 100 ops
+#define TEST_DB           APPL_DB // Need to test against a DB which uses a colon table name separator due to hardcoding in consumer_table_pops.lua
+#define NUMBER_OF_THREADS    (64) // Spawning more than 256 threads causes libc++ to except
+#define NUMBER_OF_OPS      (1000)
+#define MAX_FIELDS_DIV       (30) // Testing up to 30 fields objects
+#define PRINT_SKIP           (10) // Print + for Producer and - for Consumer for every 100 ops
 
 static inline int getMaxFields(int i)
 {
