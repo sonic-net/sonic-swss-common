@@ -84,7 +84,7 @@ void NetLink::readData()
     {
         err = nl_recvmsgs_default(m_socket);
     }
-    while(err == -EINTR); // Retry if the process was interrupted by a signal
+    while(err == -NLE_INTR); // Retry if the process was interrupted by a signal
 
     if (err < 0)
     {

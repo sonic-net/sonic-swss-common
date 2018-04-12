@@ -2,7 +2,6 @@
 
 namespace swss {
 
-
 ConsumerTableBase::ConsumerTableBase(DBConnector *db, std::string tableName, int popBatchSize, int pri):
         TableConsumable(db->getDbId(), tableName, pri),
         RedisTransactioner(db),
