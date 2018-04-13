@@ -45,6 +45,12 @@ public:
         return m_priority;
     }
 
+private:
+
+    friend class Select;
+
+    // only Select class can access and update m_last_time_used
+
     std::chrono::time_point<std::chrono::steady_clock> getLastTimeUsed() const
     {
         return m_last_time_used;
@@ -55,7 +61,7 @@ public:
         m_last_time_used = std::chrono::steady_clock::now();
     }
 
-private:
+
     int m_priority; // defines priority of Selectable inside Select
                     // higher value is higher priority
     std::chrono::time_point<std::chrono::steady_clock> m_last_time_used;
