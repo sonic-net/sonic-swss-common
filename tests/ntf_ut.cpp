@@ -74,3 +74,4 @@ TEST(Notifications, test)
 
     notification_thread->join();
 }
+//FIXME: no tests inside

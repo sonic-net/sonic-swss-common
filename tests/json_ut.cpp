@@ -38,13 +38,13 @@ TEST(JSON, test)
     file >> j;
 
     EXPECT_TRUE(j.is_array());
-    EXPECT_TRUE(j.size() == 3);
+    EXPECT_EQ(j.size(), 3u);
 
     for (size_t i = 0; i < j.size(); i++)
     {
         auto item = j[i];
         EXPECT_TRUE(item.is_object());
-        EXPECT_TRUE(item.size() == 2);
+        EXPECT_EQ(item.size(), 2u);
 
         for (auto it = item.begin(); it != item.end(); it++)
         {
