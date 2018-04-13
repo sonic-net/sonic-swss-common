@@ -12,15 +12,15 @@ TEST(EXEC, result)
 
     string result1;
     int ret = exec(cmd1, result1);
-    EXPECT_TRUE(ret == 0);
+    EXPECT_EQ(ret, 0);
 
     string result2;
     ret = exec(cmd2, result2);
-    EXPECT_TRUE(ret == 0);
+    EXPECT_EQ(ret, 0);
 
     string result3;
     ret = exec(cmd3, result3);
-    EXPECT_TRUE(ret == 0);
+    EXPECT_EQ(ret, 0);
 
     EXPECT_EQ(result1, result2);
     EXPECT_EQ(result2, result3);
@@ -32,5 +32,5 @@ TEST(EXEC, error)
 
     string result;
     int ret = exec(cmd, result);
-    EXPECT_FALSE(ret == 0);
+    EXPECT_NE(ret, 0);
 }

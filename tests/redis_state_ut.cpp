@@ -132,7 +132,7 @@ static void consumerWorker(int index)
             break;
     }
 
-    EXPECT_TRUE(numberOfKeysSet <= numberOfKeyDeleted);
+    EXPECT_LE(numberOfKeysSet, numberOfKeyDeleted);
     EXPECT_EQ(ret, Selectable::DATA);
 }
 
@@ -187,11 +187,11 @@ TEST(ConsumerStateTable, double_set)
     /* First pop operation */
     {
         int ret = cs.select(&selectcs, &tmpfd);
-        EXPECT_TRUE(ret == Select::OBJECT);
+        EXPECT_EQ(ret, Select::OBJECT);
         KeyOpFieldsValuesTuple kco;
         c.pop(kco);
-        EXPECT_TRUE(kfvKey(kco) == key);
-        EXPECT_TRUE(kfvOp(kco) == "SET");
+        EXPECT_EQ(kfvKey(kco), key);
+        EXPECT_EQ(kfvOp(kco), "SET");
 
         auto fvs = kfvFieldsValues(kco);
         EXPECT_EQ(fvs.size(), (unsigned int)(maxNumOfFields + maxNumOfFields/2));
@@ -215,7 +215,7 @@ TEST(ConsumerStateTable, double_set)
     /* Second select operation */
     {
         int ret = cs.select(&selectcs, &tmpfd, 1000);
-        EXPECT_TRUE(ret == Select::TIMEOUT);
+        EXPECT_EQ(ret, Select::TIMEOUT);
     }
 }
 
@@ -255,11 +255,11 @@ TEST(ConsumerStateTable, set_del)
     /* First pop operation */
     {
         int ret = cs.select(&selectcs, &tmpfd);
-        EXPECT_TRUE(ret == Select::OBJECT);
+        EXPECT_EQ(ret, Select::OBJECT);
         KeyOpFieldsValuesTuple kco;
         c.pop(kco);
-        EXPECT_TRUE(kfvKey(kco) == key);
-        EXPECT_TRUE(kfvOp(kco) == "DEL");
+        EXPECT_EQ(kfvKey(kco), key);
+        EXPECT_EQ(kfvOp(kco), "DEL");
 
         auto fvs = kfvFieldsValues(kco);
         EXPECT_EQ(fvs.size(), 0U);
@@ -268,7 +268,7 @@ TEST(ConsumerStateTable, set_del)
     /* Second select operation */
     {
         int ret = cs.select(&selectcs, &tmpfd, 1000);
-        EXPECT_TRUE(ret == Select::TIMEOUT);
+        EXPECT_EQ(ret, Select::TIMEOUT);
     }
 }
 
@@ -319,11 +319,11 @@ TEST(ConsumerStateTable, set_del_set)
     /* First pop operation */
     {
         int ret = cs.select(&selectcs, &tmpfd);
-        EXPECT_TRUE(ret == Select::OBJECT);
+        EXPECT_EQ(ret, Select::OBJECT);
         KeyOpFieldsValuesTuple kco;
         c.pop(kco);
-        EXPECT_TRUE(kfvKey(kco) == key);
-        EXPECT_TRUE(kfvOp(kco) == "SET");
+        EXPECT_EQ(kfvKey(kco), key);
+        EXPECT_EQ(kfvOp(kco), "SET");
 
         auto fvs = kfvFieldsValues(kco);
         EXPECT_EQ(fvs.size(), (unsigned int)maxNumOfFields);
@@ -343,7 +343,7 @@ TEST(ConsumerStateTable, set_del_set)
     /* Second select operation */
     {
         int ret = cs.select(&selectcs, &tmpfd, 1000);
-        EXPECT_TRUE(ret == Select::TIMEOUT);
+        EXPECT_EQ(ret, Select::TIMEOUT);
     }
 }
 
@@ -383,7 +383,7 @@ TEST(ConsumerStateTable, singlethread)
     while ((ret = cs.select(&selectcs, &tmpfd)) == Select::OBJECT)
     {
         c.pop(kco);
-        EXPECT_TRUE(kfvOp(kco) == "SET");
+        EXPECT_EQ(kfvOp(kco), "SET");
         numberOfKeysSet++;
         validateFields(kfvKey(kco), kfvFieldsValues(kco));
 
@@ -405,7 +405,7 @@ TEST(ConsumerStateTable, singlethread)
     while ((ret = cs.select(&selectcs, &tmpfd)) == Select::OBJECT)
     {
         c.pop(kco);
-        EXPECT_TRUE(kfvOp(kco) == "DEL");
+        EXPECT_EQ(kfvOp(kco), "DEL");
         numberOfKeyDeleted++;
 
         if ((i++ % 100) == 0)
@@ -415,7 +415,7 @@ TEST(ConsumerStateTable, singlethread)
             break;
     }
 
-    EXPECT_TRUE(numberOfKeysSet <= numberOfKeyDeleted);
+    EXPECT_LE(numberOfKeysSet, numberOfKeyDeleted);
     EXPECT_EQ(ret, Selectable::DATA);
 
     cout << "Done. Waiting for all job to finish " << NUMBER_OF_OPS << " jobs." << endl;
@@ -500,7 +500,7 @@ TEST(ConsumerStateTable, multitable)
             break;
     }
 
-    EXPECT_TRUE(numberOfKeysSet <= numberOfKeyDeleted);
+    EXPECT_LE(numberOfKeysSet, numberOfKeyDeleted);
 
     /* Making sure threads stops execution */
     for (i = 0; i < NUMBER_OF_THREADS; i++)
