@@ -163,12 +163,12 @@ static void subscriberWorker(int index, int *status)
 
     }
 
-    EXPECT_TRUE(numberOfKeysSet <= numberOfKeyDeleted);
+    EXPECT_LE(numberOfKeysSet, numberOfKeyDeleted);
 
     /* Verify that all data are read */
     {
         ret = cs.select(&selectcs, &tmpfd, 1000);
-        EXPECT_TRUE(ret == Select::TIMEOUT);
+        EXPECT_EQ(ret, Select::TIMEOUT);
     }
 }
 
@@ -205,11 +205,11 @@ TEST(SubscriberStateTable, set)
     /* Pop operation */
     {
         int ret = cs.select(&selectcs, &tmpfd);
-        EXPECT_TRUE(ret == Select::OBJECT);
+        EXPECT_EQ(ret, Select::OBJECT);
         KeyOpFieldsValuesTuple kco;
         c.pop(kco);
-        EXPECT_TRUE(kfvKey(kco) == key);
-        EXPECT_TRUE(kfvOp(kco) == "SET");
+        EXPECT_EQ(kfvKey(kco), key);
+        EXPECT_EQ(kfvOp(kco), "SET");
 
         auto fvs = kfvFieldsValues(kco);
         EXPECT_EQ(fvs.size(), (unsigned int)(maxNumOfFields));
@@ -260,11 +260,11 @@ TEST(SubscriberStateTable, del)
     /* Pop operation for set */
     {
         int ret = cs.select(&selectcs, &tmpfd);
-        EXPECT_TRUE(ret == Select::OBJECT);
+        EXPECT_EQ(ret, Select::OBJECT);
         KeyOpFieldsValuesTuple kco;
         c.pop(kco);
-        EXPECT_TRUE(kfvKey(kco) == key);
-        EXPECT_TRUE(kfvOp(kco) == "SET");
+        EXPECT_EQ(kfvKey(kco), key);
+        EXPECT_EQ(kfvOp(kco), "SET");
     }
 
     p.del(key);
@@ -272,11 +272,11 @@ TEST(SubscriberStateTable, del)
     /* Pop operation for del */
     {
         int ret = cs.select(&selectcs, &tmpfd);
-        EXPECT_TRUE(ret == Select::OBJECT);
+        EXPECT_EQ(ret, Select::OBJECT);
         KeyOpFieldsValuesTuple kco;
         c.pop(kco);
-        EXPECT_TRUE(kfvKey(kco) == key);
-        EXPECT_TRUE(kfvOp(kco) == "DEL");
+        EXPECT_EQ(kfvKey(kco), key);
+        EXPECT_EQ(kfvOp(kco), "DEL");
     }
 }
 
@@ -321,7 +321,7 @@ TEST(SubscriberStateTable, table_state)
     while ((ret = cs.select(&selectcs, &tmpfd)) == Select::OBJECT)
     {
        c.pop(kco);
-       EXPECT_TRUE(kfvOp(kco) == "SET");
+       EXPECT_EQ(kfvOp(kco), "SET");
        numberOfKeysSet++;
        validateFields(kfvKey(kco), kfvFieldsValues(kco));
 
@@ -337,7 +337,7 @@ TEST(SubscriberStateTable, table_state)
     /* Verify that all data are read */
     {
         ret = cs.select(&selectcs, &tmpfd, 1000);
-        EXPECT_TRUE(ret == Select::TIMEOUT);
+        EXPECT_EQ(ret, Select::TIMEOUT);
     }
 }
 
