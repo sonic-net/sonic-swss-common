@@ -87,7 +87,7 @@ void Select::addSelectables(vector<Selectable *> selectables)
     }
 }
 
-int Select::check_descriptors(Selectable **c, unsigned int timeout)
+int Select::poll_descriptors(Selectable **c, unsigned int timeout)
 {
     int sz_selectables = static_cast<int>(m_objects.size());
     std::vector<struct epoll_event> events(sz_selectables);
@@ -146,14 +146,14 @@ int Select::select(Selectable **c, unsigned int timeout)
         timeout = -1;
 
     /* check if we have some data */
-    ret = check_descriptors(c, 0);
+    ret = poll_descriptors(c, 0);
 
     /* return if we have data, we have an error or desired timeout was 0 */
     if (ret != Select::TIMEOUT || timeout == 0)
         return ret;
 
     /* wait for data */
-    ret = check_descriptors(c, timeout);
+    ret = poll_descriptors(c, timeout);
 
     return ret;
 

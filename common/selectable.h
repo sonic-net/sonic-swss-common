@@ -13,7 +13,7 @@ class Selectable
 {
 public:
     Selectable(int pri = 0) : m_priority(pri),
-                              m_last_time_used(std::chrono::steady_clock::now()) {}
+                              m_last_used_time(std::chrono::steady_clock::now()) {}
 
     virtual ~Selectable() {};
 
@@ -49,22 +49,22 @@ private:
 
     friend class Select;
 
-    // only Select class can access and update m_last_time_used
+    // only Select class can access and update m_last_used_time
 
     std::chrono::time_point<std::chrono::steady_clock> getLastTimeUsed() const
     {
-        return m_last_time_used;
+        return m_last_used_time;
     }
 
     void updateClock()
     {
-        m_last_time_used = std::chrono::steady_clock::now();
+        m_last_used_time = std::chrono::steady_clock::now();
     }
 
 
     int m_priority; // defines priority of Selectable inside Select
                     // higher value is higher priority
-    std::chrono::time_point<std::chrono::steady_clock> m_last_time_used;
+    std::chrono::time_point<std::chrono::steady_clock> m_last_used_time;
 };
 
 }

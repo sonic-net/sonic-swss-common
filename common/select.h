@@ -58,7 +58,7 @@ private:
         }
     };
 
-    int check_descriptors(Selectable **c, unsigned int timeout);
+    int poll_descriptors(Selectable **c, unsigned int timeout);
 
     int m_epoll_fd;
     std::unordered_map<int, Selectable *> m_objects;
