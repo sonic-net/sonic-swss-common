@@ -55,28 +55,6 @@ public:
         m_last_time_used = std::chrono::steady_clock::now();
     }
 
-    struct cmp
-    {
-        bool operator()(const Selectable* a, const Selectable* b) const
-        {
-            /* Choose Selectable with highest priority first */
-            if (a->getPri() > b->getPri())
-                return true;
-            else if (a->getPri() < b->getPri())
-                return false;
-
-            /* if the priorities are equal */
-            /* use Selectable which was selected later */
-            if (a->getLastTimeUsed() < b->getLastTimeUsed())
-                return true;
-            else if (a->getLastTimeUsed() > b->getLastTimeUsed())
-                return false;
-
-            /* when a == b */
-            return false;
-        }
-    };
-
 private:
     int m_priority; // defines priority of Selectable inside Select
                     // higher value is higher priority

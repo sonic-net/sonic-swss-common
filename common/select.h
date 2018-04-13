@@ -36,11 +36,33 @@ public:
     int select(Selectable **c, unsigned int timeout = std::numeric_limits<unsigned int>::max());
 
 private:
+    struct cmp
+    {
+        bool operator()(const Selectable* a, const Selectable* b) const
+        {
+            /* Choose Selectable with highest priority first */
+            if (a->getPri() > b->getPri())
+                return true;
+            else if (a->getPri() < b->getPri())
+                return false;
+
+            /* if the priorities are equal */
+            /* use Selectable which was selected later */
+            if (a->getLastTimeUsed() < b->getLastTimeUsed())
+                return true;
+            else if (a->getLastTimeUsed() > b->getLastTimeUsed())
+                return false;
+
+            /* when a == b */
+            return false;
+        }
+    };
+
     int check_descriptors(Selectable **c, unsigned int timeout);
 
     int m_epoll_fd;
     std::unordered_map<int, Selectable *> m_objects;
-    std::set<Selectable *, Selectable::cmp> m_ready;
+    std::set<Selectable *, Select::cmp> m_ready;
 };
 
 }
