@@ -51,12 +51,12 @@ private:
 
     // only Select class can access and update m_last_used_time
 
-    std::chrono::time_point<std::chrono::steady_clock> getLastTimeUsed() const
+    std::chrono::time_point<std::chrono::steady_clock> getLastUsedTime() const
     {
         return m_last_used_time;
     }
 
-    void updateClock()
+    void updateLastUsedTime()
     {
         m_last_used_time = std::chrono::steady_clock::now();
     }
