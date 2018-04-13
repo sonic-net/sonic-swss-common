@@ -38,23 +38,21 @@ TEST(JSON, test)
     file >> j;
 
     EXPECT_TRUE(j.is_array());
-    EXPECT_EQ(j.size(), 3);
+    EXPECT_EQ(j.size(), 3u);
 
     for (size_t i = 0; i < j.size(); i++)
     {
         auto item = j[i];
         EXPECT_TRUE(item.is_object());
-        EXPECT_EQ(item.size(), 2);
+        EXPECT_EQ(item.size(), 2u);
 
         for (auto it = item.begin(); it != item.end(); it++)
         {
             if (it.key() == "OP")
-                EXPECT_TRUE(it.value() == "SET" || it.value() == "DEL"); // FIXME: better use construction below
-//                EXPECT_THAT(it.value(), AnyOf("SET", "DEL"));
+                EXPECT_TRUE(it.value() == "SET" || it.value() == "DEL");
             else
             {
-                EXPECT_TRUE(it.key() == "UT_REDIS" + separator + "test_key_1" || it.key() == "UT_REDIS" + separator + "test_key_2"); // FIXME: better to use construction below
-//                EXPECT_THAT(it.key(), AnyOf(string("UT_REDIS") + separator + "test_key_1", string("UT_REDIS") + separator + "test_key_2"));
+                EXPECT_TRUE(it.key() == "UT_REDIS" + separator + "test_key_1" || it.key() == "UT_REDIS" + separator + "test_key_2");
                 auto subitem = it.value();
                 EXPECT_TRUE(subitem.is_object());
                 if (subitem.size() > 0)
