@@ -10,7 +10,7 @@ class ConsumerTableBase: public TableConsumable, public RedisTransactioner
 public:
     const int POP_BATCH_SIZE;
 
-    ConsumerTableBase(DBConnector *db, std::string tableName, int popBatchSize = DEFAULT_POP_BATCH_SIZE);
+    ConsumerTableBase(DBConnector *db, std::string tableName, int popBatchSize = DEFAULT_POP_BATCH_SIZE, int pri = 0);
 
     virtual ~ConsumerTableBase();
 

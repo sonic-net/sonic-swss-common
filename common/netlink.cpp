@@ -9,8 +9,8 @@
 using namespace swss;
 using namespace std;
 
-NetLink::NetLink() :
-    m_socket(NULL)
+NetLink::NetLink(int pri) :
+    Selectable(pri), m_socket(NULL)
 {
     m_socket = nl_socket_alloc();
     if (!m_socket)
@@ -71,24 +71,21 @@ void NetLink::dumpRequest(int rtmGetCommand)
     }
 }
 
-void NetLink::addFd(fd_set *fd)
+int NetLink::getFd()
 {
-    FD_SET(nl_socket_get_fd(m_socket), fd);
+    return nl_socket_get_fd(m_socket);
 }
 
-bool NetLink::isMe(fd_set *fd)
+void NetLink::readData()
 {
-    return FD_ISSET(nl_socket_get_fd(m_socket), fd);
-}
+    int err;
 
-int NetLink::readCache()
-{
-    return NODATA;
-}
+    do
+    {
+        err = nl_recvmsgs_default(m_socket);
+    }
+    while(err == -NLE_INTR); // Retry if the process was interrupted by a signal
 
-void NetLink::readMe()
-{
-    int err = nl_recvmsgs_default(m_socket);
     if (err < 0)
     {
         if (err == -NLE_NOMEM)

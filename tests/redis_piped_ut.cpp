@@ -106,14 +106,13 @@ static void consumerWorker(int index)
     ConsumerTable c(&db, tableName);
     Select cs;
     Selectable *selectcs;
-    int tmpfd;
     int numberOfKeysSet = 0;
     int numberOfKeyDeleted = 0;
     int ret, i = 0;
     KeyOpFieldsValuesTuple kco;
 
     cs.addSelectable(&c);
-    while ((ret = cs.select(&selectcs, &tmpfd)) == Select::OBJECT)
+    while ((ret = cs.select(&selectcs)) == Select::OBJECT)
     {
         c.pop(kco);
         if (kfvOp(kco) == "SET")
@@ -133,7 +132,7 @@ static void consumerWorker(int index)
             break;
     }
 
-    EXPECT_EQ(ret, Selectable::DATA);
+    EXPECT_EQ(ret, Select::OBJECT);
 }
 
 static void clearDB()
@@ -199,9 +198,8 @@ TEST(DBConnector, piped_multitable)
     while (1)
     {
         Selectable *is;
-        int fd;
 
-        ret = cs.select(&is, &fd);
+        ret = cs.select(&is);
         EXPECT_EQ(ret, Select::OBJECT);
 
         ((ConsumerTable *)is)->pop(kco);
@@ -255,13 +253,13 @@ TEST(DBConnector, piped_notifications)
     Select s;
     s.addSelectable(&nc);
     Selectable *sel;
-    int fd, value = 1;
+    int value = 1;
 
     clearDB();
 
     thread np(notificationProducer);
 
-    int result = s.select(&sel, &fd, 2000);
+    int result = s.select(&sel, 2000);
     if (result == Select::OBJECT)
     {
         cout << "Got notification from producer" << endl;
@@ -291,11 +289,10 @@ static void selectableEventThread(Selectable *ev, int *value)
     Select s;
     s.addSelectable(ev);
     Selectable *sel;
-    int fd;
 
     cout << "Starting listening ... " << endl;
 
-    int result = s.select(&sel, &fd, 2000);
+    int result = s.select(&sel, 2000);
     if (result == Select::OBJECT)
     {
         if (sel == ev)

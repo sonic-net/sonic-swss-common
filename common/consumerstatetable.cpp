@@ -11,8 +11,8 @@
 
 namespace swss {
 
-ConsumerStateTable::ConsumerStateTable(DBConnector *db, std::string tableName, int popBatchSize)
-    : ConsumerTableBase(db, tableName, popBatchSize)
+ConsumerStateTable::ConsumerStateTable(DBConnector *db, std::string tableName, int popBatchSize, int pri)
+    : ConsumerTableBase(db, tableName, popBatchSize, pri)
     , TableName_KeySet(tableName)
 {
     for (;;)

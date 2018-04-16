@@ -106,14 +106,13 @@ void consumerWorker(int index)
     ConsumerTable c(&db, tableName);
     Select cs;
     Selectable *selectcs;
-    int tmpfd;
     int numberOfKeysSet = 0;
     int numberOfKeyDeleted = 0;
     int ret, i = 0;
     KeyOpFieldsValuesTuple kco;
 
     cs.addSelectable(&c);
-    while ((ret = cs.select(&selectcs, &tmpfd)) == Select::OBJECT)
+    while ((ret = cs.select(&selectcs)) == Select::OBJECT)
     {
         c.pop(kco);
         if (kfvOp(kco) == "SET")
@@ -133,7 +132,7 @@ void consumerWorker(int index)
             break;
     }
 
-    EXPECT_EQ(ret, Selectable::DATA);
+    EXPECT_EQ(ret, Select::OBJECT);
 }
 
 void clearDB()
@@ -288,9 +287,8 @@ TEST(DBConnector, multitable)
     while (1)
     {
         Selectable *is;
-        int fd;
 
-        ret = cs.select(&is, &fd);
+        ret = cs.select(&is);
         EXPECT_EQ(ret, Select::OBJECT);
 
         ((ConsumerTable *)is)->pop(kco);
@@ -344,13 +342,13 @@ TEST(DBConnector, notifications)
     Select s;
     s.addSelectable(&nc);
     Selectable *sel;
-    int fd, value = 1;
+    int value = 1;
 
     clearDB();
 
     thread np(notificationProducer);
 
-    int result = s.select(&sel, &fd, 2000);
+    int result = s.select(&sel, 2000);
     if (result == Select::OBJECT)
     {
         cout << "Got notification from producer" << endl;
@@ -380,11 +378,10 @@ void selectableEventThread(Selectable *ev, int *value)
     Select s;
     s.addSelectable(ev);
     Selectable *sel;
-    int fd;
 
     cout << "Starting listening ... " << endl;
 
-    int result = s.select(&sel, &fd, 2000);
+    int result = s.select(&sel, 2000);
     if (result == Select::OBJECT)
     {
         if (sel == ev)
@@ -419,30 +416,30 @@ TEST(DBConnector, selectabletimer)
     Select s;
     s.addSelectable(&timer);
     Selectable *sel;
-    int fd, result;
+    int result;
 
     // Wait a non started timer
-    result = s.select(&sel, &fd, 2000);
+    result = s.select(&sel, 2000);
     ASSERT_EQ(result, Select::TIMEOUT);
 
     // Wait long enough so we got timer notification first
     timer.start();
-    result = s.select(&sel, &fd, 2000);
+    result = s.select(&sel, 2000);
     ASSERT_EQ(result, Select::OBJECT);
     ASSERT_EQ(sel, &timer);
 
     // Wait short so we got select timeout first
-    result = s.select(&sel, &fd, 10);
+    result = s.select(&sel, 10);
     ASSERT_EQ(result, Select::TIMEOUT);
 
     // Wait long enough so we got timer notification first
-    result = s.select(&sel, &fd, 10000);
+    result = s.select(&sel, 10000);
     ASSERT_EQ(result, Select::OBJECT);
     ASSERT_EQ(sel, &timer);
 
     // Reset and wait long enough so we got timer notification first
     timer.reset();
-    result = s.select(&sel, &fd, 10000);
+    result = s.select(&sel, 10000);
     ASSERT_EQ(result, Select::OBJECT);
     ASSERT_EQ(sel, &timer);
 }

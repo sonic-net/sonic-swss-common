@@ -2,8 +2,8 @@
 
 namespace swss {
 
-ConsumerTableBase::ConsumerTableBase(DBConnector *db, std::string tableName, int popBatchSize):
-        TableConsumable(db->getDbId(), tableName),
+ConsumerTableBase::ConsumerTableBase(DBConnector *db, std::string tableName, int popBatchSize, int pri):
+        TableConsumable(db->getDbId(), tableName, pri),
         RedisTransactioner(db),
         POP_BATCH_SIZE(popBatchSize)
 {
