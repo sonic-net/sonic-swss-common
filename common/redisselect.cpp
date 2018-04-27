@@ -62,7 +62,7 @@ void RedisSelect::updateAfterRead()
 }
 
 /* Create a new redisContext, SELECT DB and SUBSCRIBE */
-void RedisSelect::subscribe(DBConnector* db, std::string channelName)
+void RedisSelect::subscribe(DBConnector* db, const std::string &channelName)
 {
     m_subscribe.reset(db->newConnector(SUBSCRIBE_TIMEOUT));
 
@@ -73,7 +73,7 @@ void RedisSelect::subscribe(DBConnector* db, std::string channelName)
 }
 
 /* PSUBSCRIBE */
-void RedisSelect::psubscribe(DBConnector* db, std::string channelName)
+void RedisSelect::psubscribe(DBConnector* db, const std::string &channelName)
 {
     m_subscribe.reset(db->newConnector(SUBSCRIBE_TIMEOUT));
 

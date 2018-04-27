@@ -12,7 +12,7 @@
 
 using namespace swss;
 
-[[ noreturn ]] void usage(std::string program, int status, std::string message)
+[[ noreturn ]] void usage(const std::string &program, int status, const std::string &message)
 {
     if (message.size() != 0)
     {
@@ -44,7 +44,7 @@ void setLoglevel(DBConnector& db, const std::string& component, const std::strin
     table.set(component, fieldValues);
 }
 
-bool validateSaiLoglevel(std::string prioStr)
+bool validateSaiLoglevel(const std::string &prioStr)
 {
     static const std::vector<std::string> saiPrios = {
         "SAI_LOG_LEVEL_CRITICAL",
@@ -112,7 +112,7 @@ int main(int argc, char **argv)
     auto keys = redisClient.keys("*");
     for (auto& key : keys)
     {
-        size_t colonPos = key.find(":");
+        size_t colonPos = key.find(':');
         if (colonPos == std::string::npos)
         {
             continue;
@@ -133,7 +133,8 @@ int main(int argc, char **argv)
         std::sort(keys.begin(), keys.end());
         for (const auto& key : keys)
         {
-            auto level = redisClient.hget(key + ":" + key, DAEMON_LOGLEVEL);
+            const auto redis_key = std::string(key).append(":").append(key);
+            auto level = redisClient.hget(redis_key, DAEMON_LOGLEVEL);
             std::cout << std::left << std::setw(30) << key << *level << std::endl;
         }
         return (EXIT_SUCCESS);

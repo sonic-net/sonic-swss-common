@@ -11,7 +11,7 @@ using namespace swss;
 IpAddresses::IpAddresses(const string &ipsStr)
 {
     auto ips = tokenize(ipsStr, IP_DELIMITER);
-    for (auto ip : ips)
+    for (const auto &ip : ips)
         m_ips.insert(ip);
 }
 

@@ -28,7 +28,7 @@ DBConnector::~DBConnector()
     redisFree(m_conn);
 }
 
-DBConnector::DBConnector(int dbId, string hostname, int port,
+DBConnector::DBConnector(int dbId, const string& hostname, int port,
                          unsigned int timeout) :
     m_dbId(dbId)
 {
@@ -46,7 +46,7 @@ DBConnector::DBConnector(int dbId, string hostname, int port,
     select(this);
 }
 
-DBConnector::DBConnector(int dbId, string unixPath, unsigned int timeout) :
+DBConnector::DBConnector(int dbId, const string& unixPath, unsigned int timeout) :
     m_dbId(dbId)
 {
     struct timeval tv = {0, (suseconds_t)timeout * 1000};

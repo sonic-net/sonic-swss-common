@@ -8,12 +8,12 @@
 #include <sstream>
 #include <iomanip>
 #include <stdexcept>
-#include <schema.h>
-#include <select.h>
-#include <dbconnector.h>
-#include <redisclient.h>
-#include <consumerstatetable.h>
-#include <producerstatetable.h>
+#include "schema.h"
+#include "select.h"
+#include "dbconnector.h"
+#include "redisclient.h"
+#include "consumerstatetable.h"
+#include "producerstatetable.h"
 
 namespace swss {
 
@@ -34,7 +34,7 @@ const Logger::PriorityStringMap Logger::priorityStringMap = {
     { "DEBUG", SWSS_DEBUG }
 };
 
-void Logger::swssPrioNotify(std::string component, std::string prioStr)
+void Logger::swssPrioNotify(const std::string &component, const std::string &prioStr)
 {
     auto& logger = getInstance();
 
@@ -55,7 +55,7 @@ const Logger::OutputStringMap Logger::outputStringMap = {
     { "STDERR", SWSS_STDERR }
 };
 
-void Logger::swssOutputNotify(std::string component, std::string outputStr)
+void Logger::swssOutputNotify(const std::string &component, const std::string &outputStr)
 {
     auto& logger = getInstance();
 
@@ -70,7 +70,7 @@ void Logger::swssOutputNotify(std::string component, std::string outputStr)
     }
 }
 
-void Logger::linkToDbWithOutput(const std::string dbName, const PriorityChangeNotify& prioNotify, const std::string& defPrio, const OutputChangeNotify& outputNotify, const std::string& defOutput)
+void Logger::linkToDbWithOutput(const std::string &dbName, const PriorityChangeNotify& prioNotify, const std::string& defPrio, const OutputChangeNotify& outputNotify, const std::string& defOutput)
 {
     auto& logger = getInstance();
 
@@ -122,12 +122,12 @@ void Logger::linkToDbWithOutput(const std::string dbName, const PriorityChangeNo
     outputNotify(dbName, output);
 }
 
-void Logger::linkToDb(const std::string dbName, const PriorityChangeNotify& prioNotify, const std::string& defPrio)
+void Logger::linkToDb(const std::string &dbName, const PriorityChangeNotify& prioNotify, const std::string& defPrio)
 {
     linkToDbWithOutput(dbName, prioNotify, defPrio, swssOutputNotify, "SYSLOG");
 }
 
-void Logger::linkToDbNative(const std::string dbName)
+void Logger::linkToDbNative(const std::string &dbName)
 {
     auto& logger = getInstance();
 
@@ -188,7 +188,7 @@ Logger::Priority Logger::getMinPrio()
         auto values = kfvFieldsValues(koValues);
         for (const auto& i : values)
         {
-            std::string field = fvField(i), value = fvValue(i);
+            const std::string &field = fvField(i), &value = fvValue(i);
             if ((field == DAEMON_LOGLEVEL) && (value != m_currentPrios[key]))
             {
                 m_currentPrios[key] = value;

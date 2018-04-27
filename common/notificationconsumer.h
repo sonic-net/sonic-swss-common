@@ -19,7 +19,7 @@ namespace swss {
 class NotificationConsumer : public Selectable
 {
 public:
-    NotificationConsumer(swss::DBConnector *db, std::string channel, int pri = 100);
+    NotificationConsumer(swss::DBConnector *db, const std::string &channel, int pri = 100);
 
     void pop(std::string &op, std::string &data, std::vector<FieldValueTuple> &values);
 

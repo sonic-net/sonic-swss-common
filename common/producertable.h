@@ -17,23 +17,23 @@ namespace swss {
 class ProducerTable : public TableBase, public TableName_KeyValueOpQueues
 {
 public:
-    ProducerTable(DBConnector *db, std::string tableName);
-    ProducerTable(RedisPipeline *pipeline, std::string tableName, bool buffered = false);
-    ProducerTable(DBConnector *db, std::string tableName, std::string dumpFile);
+    ProducerTable(DBConnector *db, const std::string &tableName);
+    ProducerTable(RedisPipeline *pipeline, const std::string &tableName, bool buffered = false);
+    ProducerTable(DBConnector *db, const std::string &tableName, const std::string &dumpFile);
     virtual ~ProducerTable();
 
     void setBuffered(bool buffered);
 
     /* Implements set() and del() commands using notification messages */
 
-    virtual void set(std::string key,
-                     std::vector<FieldValueTuple> &values,
-                     std::string op = SET_COMMAND,
-                     std::string prefix = EMPTY_PREFIX);
+    virtual void set(const std::string &key,
+                     const std::vector<FieldValueTuple> &values,
+                     const std::string &op = SET_COMMAND,
+                     const std::string &prefix = EMPTY_PREFIX);
 
-    virtual void del(std::string key,
-                     std::string op = DEL_COMMAND,
-                     std::string prefix = EMPTY_PREFIX);
+    virtual void del(const std::string &key,
+                     const std::string &op = DEL_COMMAND,
+                     const std::string &prefix = EMPTY_PREFIX);
 
     void flush();
 
@@ -49,7 +49,7 @@ private:
     RedisPipeline *m_pipe;
     std::string m_shaEnque;
 
-    void enqueueDbChange(std::string key, std::string value, std::string op, std::string prefix);
+    void enqueueDbChange(const std::string &key, const std::string &value, const std::string &op, const std::string &prefix);
 };
 
 }

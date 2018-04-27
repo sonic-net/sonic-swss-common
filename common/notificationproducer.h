@@ -16,9 +16,9 @@ namespace swss {
 class NotificationProducer
 {
 public:
-    NotificationProducer(swss::DBConnector *db, std::string channel);
+    NotificationProducer(swss::DBConnector *db, const std::string &channel);
 
-    void send(std::string op, std::string data, std::vector<FieldValueTuple> &values);
+    void send(const std::string &op, const std::string &data, std::vector<FieldValueTuple> &values);
 
 private:
 

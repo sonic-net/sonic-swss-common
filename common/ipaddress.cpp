@@ -13,7 +13,7 @@ IpAddress::IpAddress(uint32_t ip)
 
 IpAddress::IpAddress(const std::string &ipStr)
 {
-    if (ipStr.find(":") != std::string::npos)
+    if (ipStr.find(':') != std::string::npos)
     {
         m_ip.family = AF_INET6;
     }

@@ -21,10 +21,10 @@ public:
     void updateAfterRead() override;
 
     /* Create a new redisContext, SELECT DB and SUBSCRIBE */
-    void subscribe(DBConnector* db, std::string channelName);
+    void subscribe(DBConnector* db, const std::string &channelName);
 
     /* PSUBSCRIBE */
-    void psubscribe(DBConnector* db, std::string channelName);
+    void psubscribe(DBConnector* db, const std::string &channelName);
 
     void setQueueLength(long long int queueLength);
 

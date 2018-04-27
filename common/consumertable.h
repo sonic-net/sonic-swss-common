@@ -13,10 +13,10 @@ namespace swss {
 class ConsumerTable : public ConsumerTableBase, public TableName_KeyValueOpQueues
 {
 public:
-    ConsumerTable(DBConnector *db, std::string tableName, int popBatchSize = DEFAULT_POP_BATCH_SIZE, int pri = 0);
+    ConsumerTable(DBConnector *db, const std::string &tableName, int popBatchSize = DEFAULT_POP_BATCH_SIZE, int pri = 0);
 
     /* Get multiple pop elements */
-    void pops(std::deque<KeyOpFieldsValuesTuple> &vkco, std::string prefix = EMPTY_PREFIX);
+    void pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const std::string &prefix = EMPTY_PREFIX);
 };
 
 }

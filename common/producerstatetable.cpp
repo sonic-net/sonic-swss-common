@@ -13,13 +13,13 @@ using namespace std;
 
 namespace swss {
 
-ProducerStateTable::ProducerStateTable(DBConnector *db, string tableName)
+ProducerStateTable::ProducerStateTable(DBConnector *db, const string &tableName)
     : ProducerStateTable(new RedisPipeline(db, 1), tableName, false)
 {
     m_pipeowned = true;
 }
 
-ProducerStateTable::ProducerStateTable(RedisPipeline *pipeline, string tableName, bool buffered)
+ProducerStateTable::ProducerStateTable(RedisPipeline *pipeline, const string &tableName, bool buffered)
     : TableBase(pipeline->getDbId(), tableName)
     , TableName_KeySet(tableName)
     , m_buffered(buffered)
@@ -54,8 +54,8 @@ void ProducerStateTable::setBuffered(bool buffered)
     m_buffered = buffered;
 }
 
-void ProducerStateTable::set(string key, vector<FieldValueTuple> &values,
-                 string op /*= SET_COMMAND*/, string prefix)
+void ProducerStateTable::set(const string &key, const vector<FieldValueTuple> &values,
+                 const string &op /*= SET_COMMAND*/, const string &prefix)
 {
     // Assembly redis command args into a string vector
     vector<string> args;
@@ -89,7 +89,7 @@ void ProducerStateTable::set(string key, vector<FieldValueTuple> &values,
     }
 }
 
-void ProducerStateTable::del(string key, string op /*= DEL_COMMAND*/, string prefix)
+void ProducerStateTable::del(const string &key, const string &op /*= DEL_COMMAND*/, const string &prefix)
 {
     // Assembly redis command args into a string vector
     vector<string> args;

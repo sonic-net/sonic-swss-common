@@ -2,7 +2,7 @@
 
 namespace swss {
 
-ConsumerTableBase::ConsumerTableBase(DBConnector *db, std::string tableName, int popBatchSize, int pri):
+ConsumerTableBase::ConsumerTableBase(DBConnector *db, const std::string &tableName, int popBatchSize, int pri):
         TableConsumable(db->getDbId(), tableName, pri),
         RedisTransactioner(db),
         POP_BATCH_SIZE(popBatchSize)
@@ -13,12 +13,12 @@ ConsumerTableBase::~ConsumerTableBase()
 {
 }
 
-void ConsumerTableBase::pop(KeyOpFieldsValuesTuple &kco, std::string prefix)
+void ConsumerTableBase::pop(KeyOpFieldsValuesTuple &kco, const std::string &prefix)
 {
     pop(kfvKey(kco), kfvOp(kco), kfvFieldsValues(kco), prefix);
 }
 
-void ConsumerTableBase::pop(std::string &key, std::string &op, std::vector<FieldValueTuple> &fvs, std::string prefix)
+void ConsumerTableBase::pop(std::string &key, std::string &op, std::vector<FieldValueTuple> &fvs, const std::string &prefix)
 {
     if (m_buffer.empty())
     {

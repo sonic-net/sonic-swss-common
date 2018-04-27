@@ -1,11 +1,11 @@
 #include "notificationproducer.h"
 
-swss::NotificationProducer::NotificationProducer(swss::DBConnector *db, std::string channel):
+swss::NotificationProducer::NotificationProducer(swss::DBConnector *db, const std::string &channel):
     m_db(db), m_channel(channel)
 {
 }
 
-void swss::NotificationProducer::send(std::string op, std::string data, std::vector<FieldValueTuple> &values)
+void swss::NotificationProducer::send(const std::string &op, const std::string &data, std::vector<FieldValueTuple> &values)
 {
     SWSS_LOG_ENTER();
 

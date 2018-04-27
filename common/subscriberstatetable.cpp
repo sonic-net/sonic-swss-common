@@ -14,7 +14,7 @@ using namespace std;
 
 namespace swss {
 
-SubscriberStateTable::SubscriberStateTable(DBConnector *db, string tableName, int popBatchSize, int pri)
+SubscriberStateTable::SubscriberStateTable(DBConnector *db, const string &tableName, int popBatchSize, int pri)
     : ConsumerTableBase(db, tableName, popBatchSize, pri), m_table(db, tableName)
 {
     m_keyspace = "__keyspace@";
@@ -86,7 +86,7 @@ bool SubscriberStateTable::hasCachedData()
     return m_buffer.size() > 1 || m_keyspace_event_buffer.size() > 1;
 }
 
-void SubscriberStateTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, string /*prefix*/)
+void SubscriberStateTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, const string& /*prefix*/)
 {
     vkco.clear();
 
@@ -125,7 +125,7 @@ void SubscriberStateTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, string /*pr
 
         ctx = event->getContext()->element[2];
         string msg(ctx->str);
-        size_t pos = msg.find(":");
+        size_t pos = msg.find(':');
         if (pos == msg.npos)
         {
             SWSS_LOG_ERROR("invalid format %s returned for pmessage of %s", ctx->str, m_keyspace.c_str());
