@@ -10,7 +10,7 @@
 
 namespace swss {
 
-static inline uint64_t __to_uint64(std::string str, uint64_t min = std::numeric_limits<uint64_t>::min(), uint64_t max = std::numeric_limits<uint64_t>::max())
+static inline uint64_t __to_uint64(const std::string &str, uint64_t min = std::numeric_limits<uint64_t>::min(), uint64_t max = std::numeric_limits<uint64_t>::max())
 {
     size_t idx = 0;
     uint64_t ret = stoul(str, &idx, 0);
@@ -27,7 +27,7 @@ static inline uint64_t __to_uint64(std::string str, uint64_t min = std::numeric_
     return ret;
 }
 
-static inline int64_t __to_int64(std::string str, int64_t min = std::numeric_limits<int64_t>::min(), int64_t max = std::numeric_limits<int64_t>::max())
+static inline int64_t __to_int64(const std::string &str, int64_t min = std::numeric_limits<int64_t>::min(), int64_t max = std::numeric_limits<int64_t>::max())
 {
     size_t idx = 0;
     int64_t ret = stol(str, &idx, 0);
@@ -45,7 +45,7 @@ static inline int64_t __to_int64(std::string str, int64_t min = std::numeric_lim
 }
 
 template <typename T>
-T to_int(std::string str, T min = std::numeric_limits<T>::min(), T max = std::numeric_limits<T>::max())
+T to_int(const std::string &str, T min = std::numeric_limits<T>::min(), T max = std::numeric_limits<T>::max())
 {
     static_assert(std::is_signed<T>::value, "Signed integer is expected");
     static_assert(std::numeric_limits<T>::max() <= std::numeric_limits<int64_t>::max(), "Type is too big");
@@ -54,7 +54,7 @@ T to_int(std::string str, T min = std::numeric_limits<T>::min(), T max = std::nu
 }
 
 template <typename T>
-T to_uint(std::string str, T min = std::numeric_limits<T>::min(), T max = std::numeric_limits<T>::max())
+T to_uint(const std::string &str, T min = std::numeric_limits<T>::min(), T max = std::numeric_limits<T>::max())
 {
     static_assert(std::is_unsigned<T>::value, "Unsigned integer is expected");
     static_assert(std::numeric_limits<T>::max() <= std::numeric_limits<uint64_t>::max(), "Type is too big");

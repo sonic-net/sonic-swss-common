@@ -4,7 +4,7 @@ using namespace std;
 
 namespace swss {
 
-map<set<int>, string> handlePortMap(string file)
+map<set<int>, string> handlePortMap(const string &file)
 {
     map<set<int>, string> port_map;
 

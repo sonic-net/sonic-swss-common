@@ -12,13 +12,13 @@ using json = nlohmann::json;
 
 namespace swss {
 
-ProducerTable::ProducerTable(DBConnector *db, string tableName)
+ProducerTable::ProducerTable(DBConnector *db, const string &tableName)
     : ProducerTable(new RedisPipeline(db, 1), tableName, false)
 {
     m_pipeowned = true;
 }
 
-ProducerTable::ProducerTable(RedisPipeline *pipeline, string tableName, bool buffered)
+ProducerTable::ProducerTable(RedisPipeline *pipeline, const string &tableName, bool buffered)
     : TableBase(pipeline->getDbId(), tableName)
     , TableName_KeyValueOpQueues(tableName)
     , m_buffered(buffered)
@@ -34,7 +34,7 @@ ProducerTable::ProducerTable(RedisPipeline *pipeline, string tableName, bool buf
     m_shaEnque = m_pipe->loadRedisScript(luaEnque);
 }
 
-ProducerTable::ProducerTable(DBConnector *db, string tableName, string dumpFile)
+ProducerTable::ProducerTable(DBConnector *db, const string &tableName, const string &dumpFile)
     : ProducerTable(db, tableName)
 {
     m_dumpFile.open(dumpFile, fstream::out | fstream::trunc);
@@ -59,7 +59,7 @@ void ProducerTable::setBuffered(bool buffered)
     m_buffered = buffered;
 }
 
-void ProducerTable::enqueueDbChange(string key, string value, string op, string /* prefix */)
+void ProducerTable::enqueueDbChange(const string &key, const string &value, const string &op, const string& /* prefix */)
 {
     RedisCommand command;
     command.format(
@@ -77,7 +77,7 @@ void ProducerTable::enqueueDbChange(string key, string value, string op, string 
     m_pipe->push(command, REDIS_REPLY_NIL);
 }
 
-void ProducerTable::set(string key, vector<FieldValueTuple> &values, string op, string prefix)
+void ProducerTable::set(const string &key, const vector<FieldValueTuple> &values, const string &op, const string &prefix)
 {
     if (m_dumpFile.is_open())
     {
@@ -103,7 +103,7 @@ void ProducerTable::set(string key, vector<FieldValueTuple> &values, string op, 
     }
 }
 
-void ProducerTable::del(string key, string op, string prefix)
+void ProducerTable::del(const string &key, const string &op, const string &prefix)
 {
     if (m_dumpFile.is_open())
     {

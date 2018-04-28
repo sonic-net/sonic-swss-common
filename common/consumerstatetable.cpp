@@ -11,7 +11,7 @@
 
 namespace swss {
 
-ConsumerStateTable::ConsumerStateTable(DBConnector *db, std::string tableName, int popBatchSize, int pri)
+ConsumerStateTable::ConsumerStateTable(DBConnector *db, const std::string &tableName, int popBatchSize, int pri)
     : ConsumerTableBase(db, tableName, popBatchSize, pri)
     , TableName_KeySet(tableName)
 {
@@ -30,7 +30,7 @@ ConsumerStateTable::ConsumerStateTable(DBConnector *db, std::string tableName, i
     setQueueLength(r.getReply<long long int>());
 }
 
-void ConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, std::string /*prefix*/)
+void ConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const std::string& /*prefix*/)
 {
     static std::string luaScript = loadLuaScript("consumer_state_table_pops.lua");
 

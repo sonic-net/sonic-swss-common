@@ -21,7 +21,7 @@ public:
     bool exec();
 
     /* Send a command within a transaction */
-    void enqueue(std::string command, int expectedType);
+    void enqueue(const std::string &command, int expectedType);
 
     redisReply *dequeueReply();
 

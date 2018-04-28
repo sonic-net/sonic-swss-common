@@ -34,7 +34,7 @@ typedef std::map<std::string,TableMap> TableDump;
 
 class TableBase {
 public:
-    TableBase(int dbId, std::string tableName)
+    TableBase(int dbId, const std::string &tableName)
         : m_tableName(tableName)
     {
         /* Look up table separator for the provided DB */
@@ -54,7 +54,7 @@ public:
     std::string getTableName() const { return m_tableName; }
 
     /* Return the actual key name as a combination of tableName<table_separator>key */
-    std::string getKeyName(std::string key)
+    std::string getKeyName(const std::string &key)
     {
         if (key == "") return m_tableName;
         else return m_tableName + m_tableSeparator + key;
@@ -81,14 +81,14 @@ public:
     virtual ~TableEntryWritable() { }
 
     /* Set an entry in the table */
-    virtual void set(std::string key,
-                     std::vector<FieldValueTuple> &values,
-                     std::string op = "",
-                     std::string prefix = EMPTY_PREFIX) = 0;
+    virtual void set(const std::string &key,
+                     const std::vector<FieldValueTuple> &values,
+                     const std::string &op = "",
+                     const std::string &prefix = EMPTY_PREFIX) = 0;
     /* Delete an entry in the table */
-    virtual void del(std::string key,
-                     std::string op = "",
-                     std::string prefix = EMPTY_PREFIX) = 0;
+    virtual void del(const std::string &key,
+                     const std::string &op = "",
+                     const std::string &prefix = EMPTY_PREFIX) = 0;
 
 };
 
@@ -97,10 +97,10 @@ public:
     virtual ~TableEntryPoppable() { }
 
     /* Pop an action (set or del) on the table */
-    virtual void pop(KeyOpFieldsValuesTuple &kco, std::string prefix = EMPTY_PREFIX) = 0;
+    virtual void pop(KeyOpFieldsValuesTuple &kco, const std::string &prefix = EMPTY_PREFIX) = 0;
 
     /* Get multiple pop elements */
-    virtual void pops(std::deque<KeyOpFieldsValuesTuple> &vkco, std::string prefix = EMPTY_PREFIX) = 0;
+    virtual void pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const std::string &prefix = EMPTY_PREFIX) = 0;
 };
 
 class TableConsumable : public TableBase, public TableEntryPoppable, public RedisSelect {
@@ -108,7 +108,7 @@ public:
     /* The default value of pop batch size is 128 */
     static constexpr int DEFAULT_POP_BATCH_SIZE = 128;
 
-    TableConsumable(int dbId, std::string tableName, int pri) : TableBase(dbId, tableName), RedisSelect(pri) { }
+    TableConsumable(int dbId, const std::string &tableName, int pri) : TableBase(dbId, tableName), RedisSelect(pri) { }
 };
 
 class TableEntryEnumerable {
@@ -116,7 +116,7 @@ public:
     virtual ~TableEntryEnumerable() { }
 
     /* Get all the field-value tuple of the table entry with the key */
-    virtual bool get(std::string key, std::vector<FieldValueTuple> &values) = 0;
+    virtual bool get(const std::string &key, std::vector<FieldValueTuple> &values) = 0;
 
     /* get all the keys in the table */
     virtual void getKeys(std::vector<std::string> &keys) = 0;
@@ -128,23 +128,23 @@ public:
 
 class Table : public TableBase, public TableEntryEnumerable {
 public:
-    Table(DBConnector *db, std::string tableName);
-    Table(RedisPipeline *pipeline, std::string tableName, bool buffered);
+    Table(DBConnector *db, const std::string &tableName);
+    Table(RedisPipeline *pipeline, const std::string &tableName, bool buffered);
     virtual ~Table();
 
     /* Set an entry in the DB directly (op not in use) */
-    virtual void set(std::string key,
-                     std::vector<FieldValueTuple> &values,
-                     std::string op = "",
-                     std::string prefix = EMPTY_PREFIX);
+    virtual void set(const std::string &key,
+                     const std::vector<FieldValueTuple> &values,
+                     const std::string &op = "",
+                     const std::string &prefix = EMPTY_PREFIX);
     /* Delete an entry in the table */
-    virtual void del(std::string key,
-                     std::string op = "",
-                     std::string prefix = EMPTY_PREFIX);
+    virtual void del(const std::string &key,
+                     const std::string &op = "",
+                     const std::string &prefix = EMPTY_PREFIX);
 
     /* Read a value from the DB directly */
     /* Returns false if the key doesn't exists */
-    virtual bool get(std::string key, std::vector<FieldValueTuple> &ovalues);
+    virtual bool get(const std::string &key, std::vector<FieldValueTuple> &ovalues);
 
     void getKeys(std::vector<std::string> &keys);
 
@@ -167,7 +167,7 @@ protected:
      * 1) "ports@"
      * 2) "Ethernet0,Ethernet4,...
      * */
-    std::string stripSpecialSym(std::string key);
+    std::string stripSpecialSym(const std::string &key);
 };
 
 class TableName_KeyValueOpQueues {
@@ -176,7 +176,7 @@ private:
     std::string m_value;
     std::string m_op;
 public:
-    TableName_KeyValueOpQueues(std::string tableName)
+    TableName_KeyValueOpQueues(const std::string &tableName)
         : m_key(tableName + "_KEY_QUEUE")
         , m_value(tableName + "_VALUE_QUEUE")
         , m_op(tableName + "_OP_QUEUE")
@@ -192,7 +192,7 @@ class TableName_KeySet {
 private:
     std::string m_key;
 public:
-    TableName_KeySet(std::string tableName)
+    TableName_KeySet(const std::string &tableName)
         : m_key(tableName + "_KEY_SET")
     {
     }

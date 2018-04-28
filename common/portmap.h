@@ -8,7 +8,7 @@
 
 namespace swss {
 
-std::map<std::set<int>, std::string> handlePortMap(std::string file);
+std::map<std::set<int>, std::string> handlePortMap(const std::string &file);
 
 }
 

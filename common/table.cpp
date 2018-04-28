@@ -29,13 +29,13 @@ const TableNameSeparatorMap TableBase::tableNameSeparatorMap = {
    { STATE_DB,        TABLE_NAME_SEPARATOR_VBAR  }
 };
 
-Table::Table(DBConnector *db, string tableName)
+Table::Table(DBConnector *db, const string &tableName)
     : Table(new RedisPipeline(db, 1), tableName, false)
 {
     m_pipeowned = true;
 }
 
-Table::Table(RedisPipeline *pipeline, string tableName, bool buffered)
+Table::Table(RedisPipeline *pipeline, const string &tableName, bool buffered)
     : TableBase(pipeline->getDbId(), tableName)
     , m_buffered(buffered)
     , m_pipeowned(false)
@@ -61,7 +61,7 @@ void Table::flush()
     m_pipe->flush();
 }
 
-bool Table::get(string key, vector<FieldValueTuple> &values)
+bool Table::get(const string &key, vector<FieldValueTuple> &values)
 {
     RedisCommand hgetall_key;
     hgetall_key.format("HGETALL %s", getKeyName(key).c_str());
@@ -85,8 +85,8 @@ bool Table::get(string key, vector<FieldValueTuple> &values)
     return true;
 }
 
-void Table::set(string key, vector<FieldValueTuple> &values,
-                string /*op*/, string /*prefix*/)
+void Table::set(const string &key, const vector<FieldValueTuple> &values,
+                const string& /*op*/, const string& /*prefix*/)
 {
     if (values.size() == 0)
         return;
@@ -101,7 +101,7 @@ void Table::set(string key, vector<FieldValueTuple> &values,
     }
 }
 
-void Table::del(string key, string /* op */, string /*prefix*/)
+void Table::del(const string &key, const string& /* op */, const string& /*prefix*/)
 {
     RedisCommand del_key;
     del_key.format("DEL %s", getKeyName(key).c_str());
@@ -192,7 +192,7 @@ void Table::dump(TableDump& tableDump)
     }
 }
 
-string Table::stripSpecialSym(string key)
+string Table::stripSpecialSym(const string &key)
 {
     size_t pos = key.find('@');
     if (pos != key.npos)

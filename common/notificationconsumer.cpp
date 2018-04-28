@@ -6,7 +6,7 @@
 #define REDIS_PUBLISH_MESSAGE_INDEX (2)
 #define REDIS_PUBLISH_MESSAGE_ELEMNTS (3)
 
-swss::NotificationConsumer::NotificationConsumer(swss::DBConnector *db, std::string channel, int pri):
+swss::NotificationConsumer::NotificationConsumer(swss::DBConnector *db, const std::string &channel, int pri):
     Selectable(pri),
     m_db(db),
     m_subscribe(NULL),
