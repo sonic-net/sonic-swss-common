@@ -39,7 +39,7 @@ bool IpAddresses::contains(const IpAddress &ip) const
 
 bool IpAddresses::contains(const IpAddresses &ips) const
 {
-    for (auto ip : ips.getIpAddresses())
+    for (const auto &ip : ips.getIpAddresses())
     {
         if (!contains(ip))
         {

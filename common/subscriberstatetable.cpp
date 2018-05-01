@@ -26,7 +26,7 @@ SubscriberStateTable::SubscriberStateTable(DBConnector *db, const string &tableN
     vector<string> keys;
     m_table.getKeys(keys);
 
-    for (auto key: keys)
+    for (const auto &key: keys)
     {
         KeyOpFieldsValuesTuple kco;
 
