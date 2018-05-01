@@ -101,13 +101,13 @@ static inline std::set<std::string> runRedisScript(DBConnector &db, const std::s
         if (ctx->type == REDIS_REPLY_NIL)
         {
             SWSS_LOG_ERROR("Got EMPTY response type from redis %d", ctx->type);
-            return std::move(ret);
+            return ret;
         }
 
         else if (ctx->type != REDIS_REPLY_ARRAY)
         {
             SWSS_LOG_ERROR("Got invalid response type from redis %d", ctx->type);
-            return std::move(ret);
+            return ret;
         }
 
         for (size_t i = 0; i < ctx->elements; i++)
@@ -125,7 +125,7 @@ static inline std::set<std::string> runRedisScript(DBConnector &db, const std::s
         SWSS_LOG_ERROR("Caught exception while running Redis lua script");
     }
 
-    return std::move(ret);
+    return ret;
 }
 
 }
