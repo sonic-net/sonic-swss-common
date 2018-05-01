@@ -20,7 +20,7 @@ class IpAddress
 {
 public:
     IpAddress() {}
-    IpAddress(const ip_addr_t &ip) { m_ip = ip; }
+    IpAddress(const ip_addr_t &ip) : m_ip(ip) {}
     IpAddress(uint32_t ip);
     IpAddress(const std::string &ipStr);
 
