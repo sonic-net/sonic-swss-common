@@ -101,19 +101,18 @@ static inline std::set<std::string> runRedisScript(DBConnector &db, const std::s
         if (ctx->type == REDIS_REPLY_NIL)
         {
             SWSS_LOG_ERROR("Got EMPTY response type from redis %d", ctx->type);
-            return ret;
         }
-
         else if (ctx->type != REDIS_REPLY_ARRAY)
         {
             SWSS_LOG_ERROR("Got invalid response type from redis %d", ctx->type);
-            return ret;
         }
-
-        for (size_t i = 0; i < ctx->elements; i++)
+        else
         {
-            SWSS_LOG_DEBUG("Got element %lu %s", i, ctx->element[i]->str);
-            ret.insert(ctx->element[i]->str);
+            for (size_t i = 0; i < ctx->elements; i++)
+            {
+                SWSS_LOG_DEBUG("Got element %lu %s", i, ctx->element[i]->str);
+                ret.emplace(ctx->element[i]->str);
+            }
         }
     }
     catch (const std::exception& e)
