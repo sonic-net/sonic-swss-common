@@ -35,7 +35,7 @@ IpPrefix::IpPrefix(
         }
         catch(const std::logic_error& ex)
         {
-            throw std::invalid_argument(std::string("Failed to covert mask: ") + ex.what());
+            throw std::invalid_argument(std::string("Failed to convert mask: ") + ex.what());
         }
         
         if (!isValid())
