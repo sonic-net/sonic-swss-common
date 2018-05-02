@@ -31,8 +31,8 @@ public:
     void onNetlinkMessage(struct nl_msg *msg);
 
 private:
-    NetDispatcher();
-    ~NetDispatcher();
+    NetDispatcher() = default;
+    ~NetDispatcher() = default;
 
     /* nl_msg_parse callback API */
     static void nlCallback(struct nl_object *obj, void *context);

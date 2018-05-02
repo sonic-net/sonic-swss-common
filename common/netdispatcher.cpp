@@ -4,14 +4,6 @@
 
 using namespace swss;
 
-NetDispatcher::NetDispatcher()
-{
-}
-
-NetDispatcher::~NetDispatcher()
-{
-}
-
 NetDispatcher& NetDispatcher::getInstance()
 {
     static NetDispatcher gInstance;

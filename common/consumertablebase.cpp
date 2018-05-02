@@ -9,10 +9,6 @@ ConsumerTableBase::ConsumerTableBase(DBConnector *db, const std::string &tableNa
 {
 }
 
-ConsumerTableBase::~ConsumerTableBase()
-{
-}
-
 void ConsumerTableBase::pop(KeyOpFieldsValuesTuple &kco, const std::string &prefix)
 {
     pop(kfvKey(kco), kfvOp(kco), kfvFieldsValues(kco), prefix);
