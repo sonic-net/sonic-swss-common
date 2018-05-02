@@ -80,7 +80,7 @@ redisReply *RedisTransactioner::dequeueReply()
 void RedisTransactioner::clearResults()
 {
     if (m_results.empty()) return;
-    for (auto r: m_results)
+    for (const auto& r: m_results)
     {
         freeReplyObject(r);
     }

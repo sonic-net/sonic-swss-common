@@ -26,7 +26,7 @@ SubscriberStateTable::SubscriberStateTable(DBConnector *db, const string &tableN
     vector<string> keys;
     m_table.getKeys(keys);
 
-    for (auto key: keys)
+    for (const auto &key: keys)
     {
         KeyOpFieldsValuesTuple kco;
 
@@ -117,7 +117,7 @@ void SubscriberStateTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, const strin
         }
         /* The second element should be the original pattern matched */
         auto ctx = event->getContext()->element[1];
-        if (m_keyspace.compare(ctx->str))
+        if (m_keyspace != ctx->str)
         {
             SWSS_LOG_ERROR("invalid pattern %s returned for pmessage of %s", ctx->str, m_keyspace.c_str());
             continue;

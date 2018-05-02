@@ -35,7 +35,7 @@ IpPrefix::IpPrefix(
         }
         catch(const std::logic_error& ex)
         {
-            throw std::invalid_argument(std::string("Failed to covert mask: ") + ex.what());
+            throw std::invalid_argument(std::string("Failed to convert mask: ") + ex.what());
         }
         
         if (!isValid())
@@ -45,10 +45,8 @@ IpPrefix::IpPrefix(
     }
 }
 
-IpPrefix::IpPrefix(uint32_t ipPrefix, int mask)
+IpPrefix::IpPrefix(uint32_t ipPrefix, int mask) : m_ip(ipPrefix), m_mask(mask)
 {
-    m_ip = IpAddress(ipPrefix);
-    m_mask = mask;
     if (!isValid())
     {
         throw std::invalid_argument("Invalid IpPrefix from prefix and mask");
