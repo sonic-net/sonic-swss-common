@@ -69,7 +69,7 @@ void ProducerStateTable::set(const string &key, const vector<FieldValueTuple> &v
 
     args.push_back("G");
     args.push_back(key);
-    for (auto& iv: values)
+    for (const auto& iv: values)
     {
         args.push_back(fvField(iv));
         args.push_back(fvValue(iv));
