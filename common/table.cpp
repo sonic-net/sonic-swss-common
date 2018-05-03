@@ -78,8 +78,8 @@ bool Table::get(const string &key, vector<FieldValueTuple> &values)
 
     for (unsigned int i = 0; i < reply->elements; i += 2)
     {
-        values.push_back(make_pair(stripSpecialSym(reply->element[i]->str),
-                                    reply->element[i + 1]->str));
+        values.emplace_back(stripSpecialSym(reply->element[i]->str),
+                                    reply->element[i + 1]->str);
     }
 
     return true;
@@ -121,7 +121,7 @@ void TableEntryEnumerable::getContent(vector<KeyOpFieldsValuesTuple> &tuples)
         string op = "";
 
         get(key, values);
-        tuples.push_back(make_tuple(key, op, values));
+        tuples.emplace_back(key, op, values);
     }
 }
 
