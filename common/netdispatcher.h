@@ -32,7 +32,6 @@ public:
 
 private:
     NetDispatcher() = default;
-    ~NetDispatcher() = default;
 
     /* nl_msg_parse callback API */
     static void nlCallback(struct nl_object *obj, void *context);
