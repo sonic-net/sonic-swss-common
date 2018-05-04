@@ -13,7 +13,7 @@ class SelectableEvent : public Selectable
 {
 public:
     SelectableEvent(int pri = 0);
-    virtual ~SelectableEvent();
+    ~SelectableEvent() override;
 
     void notify();
 

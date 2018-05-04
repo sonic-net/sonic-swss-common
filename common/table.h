@@ -78,7 +78,7 @@ private:
 
 class TableEntryWritable {
 public:
-    virtual ~TableEntryWritable() { }
+    virtual ~TableEntryWritable() = default;
 
     /* Set an entry in the table */
     virtual void set(const std::string &key,
@@ -94,7 +94,7 @@ public:
 
 class TableEntryPoppable {
 public:
-    virtual ~TableEntryPoppable() { }
+    virtual ~TableEntryPoppable() = default;
 
     /* Pop an action (set or del) on the table */
     virtual void pop(KeyOpFieldsValuesTuple &kco, const std::string &prefix = EMPTY_PREFIX) = 0;
@@ -113,7 +113,7 @@ public:
 
 class TableEntryEnumerable {
 public:
-    virtual ~TableEntryEnumerable() { }
+    virtual ~TableEntryEnumerable() = default;
 
     /* Get all the field-value tuple of the table entry with the key */
     virtual bool get(const std::string &key, std::vector<FieldValueTuple> &values) = 0;
@@ -130,7 +130,7 @@ class Table : public TableBase, public TableEntryEnumerable {
 public:
     Table(DBConnector *db, const std::string &tableName);
     Table(RedisPipeline *pipeline, const std::string &tableName, bool buffered);
-    virtual ~Table();
+    ~Table() override;
 
     /* Set an entry in the DB directly (op not in use) */
     virtual void set(const std::string &key,

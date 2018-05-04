@@ -67,7 +67,7 @@ vector<string> RedisClient::keys(const string &key)
 
     vector<string> list;
     for (unsigned int i = 0; i < ctx->elements; i++)
-        list.push_back(ctx->element[i]->str);
+        list.emplace_back(ctx->element[i]->str);
 
     return list;
 }

@@ -23,7 +23,7 @@ public:
 
     void pop(std::string &op, std::string &data, std::vector<FieldValueTuple> &values);
 
-    virtual ~NotificationConsumer();
+    ~NotificationConsumer() override;
 
     int getFd() override;
     void readData() override;

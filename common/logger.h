@@ -107,7 +107,7 @@ public:
     };
 
 private:
-    Logger(){};
+    Logger() = default;
     ~Logger();
     Logger(const Logger&);
     Logger &operator=(const Logger&);

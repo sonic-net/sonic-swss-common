@@ -11,7 +11,7 @@ namespace swss {
 class IpPrefix
 {
 public:
-    IpPrefix() {}
+    IpPrefix() = default;
     IpPrefix(const std::string &ipPrefixStr);
     IpPrefix(uint32_t addr, int mask);
 
