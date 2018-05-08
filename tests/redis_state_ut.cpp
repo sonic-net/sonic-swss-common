@@ -215,6 +215,13 @@ TEST(ConsumerStateTable, double_set)
         int ret = cs.select(&selectcs, 1000);
         EXPECT_EQ(ret, Select::TIMEOUT);
     }
+
+    /* State Queue should be empty */
+    RedisCommand keys;
+    keys.format("KEYS %s*", tableName.c_str());
+    RedisReply r(&db, keys, REDIS_REPLY_ARRAY);
+    auto qlen = r.getContext()->elements;
+    EXPECT_EQ(qlen, 0U);
 }
 
 TEST(ConsumerStateTable, set_del)
