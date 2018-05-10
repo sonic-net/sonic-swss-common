@@ -13,6 +13,7 @@ namespace swss {
 #define PFC_WD_DB       5
 #define FLEX_COUNTER_DB 5
 #define STATE_DB        6
+#define RESTORE_DB      7
 
 /***** APPLICATION DATABASE *****/
 
@@ -31,6 +32,8 @@ namespace swss {
 #define APP_SWITCH_TABLE_NAME           "SWITCH_TABLE"
 
 #define APP_COPP_TABLE_NAME             "COPP_TABLE"
+
+#define APP_WARM_START_TABLE_NAME       "WARM_START_TABLE"
 
 /***** TO BE REMOVED *****/
 
@@ -77,7 +80,7 @@ namespace swss {
 #define PFC_WD_STATE_TABLE "PFC_WD_STATE_TABLE"
 #define PFC_WD_PORT_COUNTER_ID_LIST "PORT_COUNTER_ID_LIST"
 #define PFC_WD_QUEUE_COUNTER_ID_LIST "QUEUE_COUNTER_ID_LIST"
-#define PFC_WD_QUEUE_ATTR_ID_LIST "QUEUE_ATTR_ID_LIST" 
+#define PFC_WD_QUEUE_ATTR_ID_LIST "QUEUE_ATTR_ID_LIST"
 #define PLUGIN_TABLE "PLUGIN_TABLE"
 #define LUA_PLUGIN_TYPE "LUA_PLUGIN_TYPE"
 #define SAI_OBJECT_TYPE "SAI_OBJECT_TYPE"

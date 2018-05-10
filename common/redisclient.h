@@ -29,6 +29,7 @@ class RedisClient
         int64_t hdel(const std::string &key, const std::string &field);
 
         std::unordered_map<std::string, std::string> hgetall(const std::string &key);
+        std::map<std::string, std::string> hgetallordered(const std::string &key);
 
         std::vector<std::string> keys(const std::string &key);
 
@@ -41,6 +42,8 @@ class RedisClient
         void mset(const std::unordered_map<std::string, std::string> &map);
 
         void hmset(const std::string &key, const std::unordered_map<std::string, std::string> &map);
+        void hmset(const std::string &key, const std::vector<FieldValueTuple> &values);
+        void hmset(const std::string &key, const std::map<std::string, std::string> &vmap);
 
         std::shared_ptr<std::string> get(const std::string &key);
 
