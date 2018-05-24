@@ -49,7 +49,9 @@ TEST(JSON, test)
         for (auto it = item.begin(); it != item.end(); it++)
         {
             if (it.key() == "OP")
+            {
                 EXPECT_TRUE(it.value() == "SET" || it.value() == "DEL");
+            }
             else
             {
                 EXPECT_TRUE(it.key() == "UT_REDIS" + separator + "test_key_1" || it.key() == "UT_REDIS" + separator + "test_key_2");
@@ -60,9 +62,13 @@ TEST(JSON, test)
                     for (auto subit = subitem.begin(); subit != subitem.end(); subit++)
                     {
                         if (subit.key() == "test_field_1")
+                        {
                             EXPECT_EQ(subit.value(), "test_value_1");
+                        }
                         if (subit.key() == "test_field_2")
+                        {
                             EXPECT_EQ(subit.value(), "test_value_2");
+                        }
                     }
                 }
             }
