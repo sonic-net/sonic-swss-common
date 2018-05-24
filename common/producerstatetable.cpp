@@ -65,7 +65,7 @@ void ProducerStateTable::set(const string &key, const vector<FieldValueTuple> &v
     args.emplace_back(getChannelName());
     args.emplace_back(getKeySetName());
 
-    args.insert(args.end(), values.size(), getKeyName(key));
+    args.insert(args.end(), values.size(), getStateHashPrefix() + getKeyName(key));
 
     args.emplace_back("G");
     args.emplace_back(key);
@@ -98,7 +98,7 @@ void ProducerStateTable::del(const string &key, const string &op /*= DEL_COMMAND
     args.emplace_back("3");
     args.emplace_back(getChannelName());
     args.emplace_back(getKeySetName());
-    args.emplace_back(getKeyName(key));
+    args.emplace_back(getStateHashPrefix() + getKeyName(key));
     args.emplace_back("G");
     args.emplace_back(key);
     args.emplace_back("''");

@@ -218,7 +218,7 @@ TEST(ConsumerStateTable, double_set)
 
     /* State Queue should be empty */
     RedisCommand keys;
-    keys.format("KEYS %s*", tableName.c_str());
+    keys.format("KEYS %s*", (c.getStateHashPrefix() + tableName).c_str());
     RedisReply r(&db, keys, REDIS_REPLY_ARRAY);
     auto qlen = r.getContext()->elements;
     EXPECT_EQ(qlen, 0U);
@@ -274,6 +274,13 @@ TEST(ConsumerStateTable, set_del)
         int ret = cs.select(&selectcs, 1000);
         EXPECT_EQ(ret, Select::TIMEOUT);
     }
+
+    /* State Queue should be empty */
+    RedisCommand keys;
+    keys.format("KEYS %s*", (p.getStateHashPrefix() + tableName).c_str());
+    RedisReply r(&db, keys, REDIS_REPLY_ARRAY);
+    auto qlen = r.getContext()->elements;
+    EXPECT_EQ(qlen, 0U);
 }
 
 TEST(ConsumerStateTable, set_del_set)
@@ -348,6 +355,13 @@ TEST(ConsumerStateTable, set_del_set)
         int ret = cs.select(&selectcs, 1000);
         EXPECT_EQ(ret, Select::TIMEOUT);
     }
+
+    /* State Queue should be empty */
+    RedisCommand keys;
+    keys.format("KEYS %s*", (c.getStateHashPrefix() + tableName).c_str());
+    RedisReply r(&db, keys, REDIS_REPLY_ARRAY);
+    auto qlen = r.getContext()->elements;
+    EXPECT_EQ(qlen, 0U);
 }
 
 TEST(ConsumerStateTable, singlethread)
@@ -422,6 +436,13 @@ TEST(ConsumerStateTable, singlethread)
 
     cout << "Done. Waiting for all job to finish " << NUMBER_OF_OPS << " jobs." << endl;
 
+    /* State Queue should be empty */
+    RedisCommand keys;
+    keys.format("KEYS %s*", (c.getStateHashPrefix() + tableName).c_str());
+    RedisReply r(&db, keys, REDIS_REPLY_ARRAY);
+    auto qlen = r.getContext()->elements;
+    EXPECT_EQ(qlen, 0U);
+
     cout << endl << "Done." << endl;
 }
 
@@ -449,6 +470,7 @@ TEST(ConsumerStateTable, test)
         consumerThreads[i]->join();
         delete consumerThreads[i];
     }
+
     cout << endl << "Done." << endl;
 }
 
@@ -456,6 +478,7 @@ TEST(ConsumerStateTable, multitable)
 {
     DBConnector db(TEST_DB, "localhost", 6379, 0);
     ConsumerStateTable *consumers[NUMBER_OF_THREADS];
+    vector<string> tablenames(NUMBER_OF_THREADS);
     thread *producerThreads[NUMBER_OF_THREADS];
     KeyOpFieldsValuesTuple kco;
     Select cs;
@@ -470,8 +493,8 @@ TEST(ConsumerStateTable, multitable)
     /* Starting the consumer before the producer */
     for (i = 0; i < NUMBER_OF_THREADS; i++)
     {
-        consumers[i] = new ConsumerStateTable(&db, string("UT_REDIS_THREAD_") +
-                                         to_string(i));
+        tablenames[i] = string("UT_REDIS_THREAD_") + to_string(i);
+        consumers[i] = new ConsumerStateTable(&db, tablenames[i]);
         producerThreads[i] = new thread(producerWorker, i);
     }
 
@@ -511,6 +534,13 @@ TEST(ConsumerStateTable, multitable)
         delete producerThreads[i];
     }
 
+
+    /* State Queue should be empty */
+    RedisCommand keys;
+    keys.format("KEYS %s*", (consumers[0]->getStateHashPrefix() + tablenames[0]).c_str());
+    RedisReply r(&db, keys, REDIS_REPLY_ARRAY);
+    auto qlen = r.getContext()->elements;
+    EXPECT_EQ(qlen, 0U);
+
     cout << endl << "Done." << endl;
 }
-
