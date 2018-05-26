@@ -41,13 +41,11 @@ void ConsumerTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, const string &pref
     static string sha = loadRedisScript(m_db, luaScript);
     RedisCommand command;
     command.format(
-        "EVALSHA %s 4 %s %s %s %s %d '' '' ''",
+        "EVALSHA %s 2 %s %s %d '' '' ''",
         sha.c_str(),
         getKeyQueueTableName().c_str(),
-        getOpQueueTableName().c_str(),
-        getValueQueueTableName().c_str(),
         (prefix+getTableName()).c_str(),
-        POP_BATCH_SIZE);
+        POP_BATCH_SIZE*3);
 
     RedisReply r(m_db, command, REDIS_REPLY_ARRAY);
 
