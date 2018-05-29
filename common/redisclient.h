@@ -26,6 +26,8 @@ class RedisClient
 
         int64_t del(const std::string &key);
 
+        int64_t exists(const std::string &key);
+
         int64_t hdel(const std::string &key, const std::string &field);
 
         std::unordered_map<std::string, std::string> hgetall(const std::string &key);

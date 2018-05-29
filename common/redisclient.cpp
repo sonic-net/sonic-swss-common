@@ -20,6 +20,14 @@ int64_t RedisClient::del(const string &key)
     return r.getContext()->integer;
 }
 
+int64_t RedisClient::exists(const string &key)
+{
+    RedisCommand sexists;
+    sexists.format("EXISTS %s", key.c_str());
+    RedisReply r(m_db, sexists, REDIS_REPLY_INTEGER);
+    return r.getContext()->integer;
+}
+
 int64_t RedisClient::hdel(const string &key, const string &field)
 {
     RedisCommand shdel;
