@@ -196,8 +196,14 @@ void TableBasicTest(string tableName)
         {
             string value_1 = "1", value_2 = "2";
             cout << " " << fvField(fv) << ":" << fvValue(fv) << flush;
-            if (fvField(fv) == "field_1") EXPECT_EQ(fvValue(fv), value_1);
-            if (fvField(fv) == "field_2") EXPECT_EQ(fvValue(fv), value_2);
+            if (fvField(fv) == "field_1")
+            {
+                EXPECT_EQ(fvValue(fv), value_1);
+            }
+            if (fvField(fv) == "field_2")
+            {
+                EXPECT_EQ(fvValue(fv), value_2);
+            }
         }
         cout << endl;
     }
@@ -216,8 +222,14 @@ void TableBasicTest(string tableName)
     {
         string value_1 = "1", value_2 = "2";
         cout << " " << fvField(fv) << ":" << fvValue(fv) << flush;
-        if (fvField(fv) == "field_1") EXPECT_EQ(fvValue(fv), value_1);
-        if (fvField(fv) == "field_2") EXPECT_EQ(fvValue(fv), value_2);
+        if (fvField(fv) == "field_1")
+        {
+            EXPECT_EQ(fvValue(fv), value_1);
+        }
+        if (fvField(fv) == "field_2")
+        {
+            EXPECT_EQ(fvValue(fv), value_2);
+        }
     }
     cout << endl;
 
