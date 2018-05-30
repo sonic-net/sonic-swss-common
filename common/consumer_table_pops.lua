@@ -1,7 +1,9 @@
 local rets = {}
-local keys   = redis.call('LRANGE', KEYS[1], -ARGV[1], -1)
+-- pop Key, Value and OP together.
+local popsize = ARGV[1] * 3
+local keys   = redis.call('LRANGE', KEYS[1], -popsize, -1)
 
-redis.call('LTRIM', KEYS[1], 0, -ARGV[1]-1)
+redis.call('LTRIM', KEYS[1], 0, -popsize-1)
 
 local n = table.getn(keys)
 for i = n, 1, -3 do
