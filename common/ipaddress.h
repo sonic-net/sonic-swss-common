@@ -19,8 +19,8 @@ struct ip_addr_t {
 class IpAddress
 {
 public:
-    IpAddress() {}
-    IpAddress(const ip_addr_t &ip) { m_ip = ip; }
+    IpAddress() = default;
+    IpAddress(const ip_addr_t &ip) : m_ip(ip) {}
     IpAddress(uint32_t ip);
     IpAddress(const std::string &ipStr);
 
@@ -73,6 +73,14 @@ public:
     }
 
     std::string to_string() const;
+
+    enum AddrScope {
+        GLOBAL_SCOPE,
+        LINK_SCOPE,
+        HOST_SCOPE
+    };
+
+    IpAddress::AddrScope getAddrScope() const;
 
 private:
     struct ip_addr_t m_ip;

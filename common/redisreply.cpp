@@ -34,7 +34,7 @@ RedisReply::RedisReply(DBConnector *db, const RedisCommand& command)
     guard([&]{checkReply();}, command.c_str());
 }
 
-RedisReply::RedisReply(DBConnector *db, string command)
+RedisReply::RedisReply(DBConnector *db, const string &command)
 {
     redisAppendCommand(db->getContext(), command.c_str());
     redisGetReply(db->getContext(), (void**)&m_reply);
@@ -47,7 +47,7 @@ RedisReply::RedisReply(DBConnector *db, const RedisCommand& command, int expecte
     guard([&]{checkReplyType(expectedType);}, command.c_str());
 }
 
-RedisReply::RedisReply(DBConnector *db, string command, int expectedType)
+RedisReply::RedisReply(DBConnector *db, const string &command, int expectedType)
     : RedisReply(db, command)
 {
     guard([&]{checkReplyType(expectedType);}, command.c_str());
@@ -85,7 +85,7 @@ redisReply *RedisReply::getChild(size_t index)
     return m_reply->element[index];
 }
 
-void RedisReply::checkStatus(char *status)
+void RedisReply::checkStatus(const char *status)
 {
     if (strcmp(m_reply->str, status) != 0)
     {

@@ -63,7 +63,7 @@ bool RedisTransactioner::exec()
 }
 
 /* Send a command within a transaction */
-void RedisTransactioner::enqueue(std::string command, int expectedType)
+void RedisTransactioner::enqueue(const std::string &command, int expectedType)
 {
     RedisReply r(m_db, command, REDIS_REPLY_STATUS);
     r.checkStatusQueued();
@@ -80,7 +80,7 @@ redisReply *RedisTransactioner::dequeueReply()
 void RedisTransactioner::clearResults()
 {
     if (m_results.empty()) return;
-    for (auto r: m_results)
+    for (const auto& r: m_results)
     {
         freeReplyObject(r);
     }

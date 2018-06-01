@@ -27,18 +27,24 @@ public:
 
     redisReply *push(const RedisCommand& command, int expectedType)
     {
-        if (expectedType == REDIS_REPLY_NIL)
+        switch (expectedType)
         {
-            redisAppendFormattedCommand(m_db->getContext(), command.c_str(), command.length());
-            m_remaining++;
-            mayflush();
-            return NULL;
-        }
-        else
-        {
-            flush();
-            RedisReply r(m_db, command, expectedType);
-            return r.release();
+            case REDIS_REPLY_NIL:
+            case REDIS_REPLY_STATUS:
+            case REDIS_REPLY_INTEGER:
+            {
+                redisAppendFormattedCommand(m_db->getContext(), command.c_str(), command.length());
+                m_expectedTypes.push(expectedType);
+                m_remaining++;
+                mayflush();
+                return NULL;
+            }
+            default:
+            {
+                flush();
+                RedisReply r(m_db, command, expectedType);
+                return r.release();
+            }
         }
     }
 
@@ -59,8 +65,17 @@ public:
 
         redisReply *reply;
         redisGetReply(m_db->getContext(), (void**)&reply);
+        RedisReply r(reply);
         m_remaining--;
-        return reply;
+
+        int expectedType = m_expectedTypes.front();
+        m_expectedTypes.pop();
+        r.checkReplyType(expectedType);
+        if (expectedType == REDIS_REPLY_STATUS)
+        {
+            r.checkStatusOK();
+        }
+        return r.release();
     }
 
     void flush()
@@ -77,8 +92,14 @@ public:
         return m_remaining;
     }
 
+    int getDbId()
+    {
+        return m_db->getDbId();
+    }
+
 private:
     DBConnector *m_db;
+    std::queue<int> m_expectedTypes;
     size_t m_remaining;
 
     void mayflush()

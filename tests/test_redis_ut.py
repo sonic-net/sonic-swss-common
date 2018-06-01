@@ -28,16 +28,32 @@ def test_Table():
 
 def test_SubscriberStateTable():
     db = swsscommon.DBConnector(0, "localhost", 6379, 0)
-    t = swsscommon.Table(db, "testsst", '|')
+    t = swsscommon.Table(db, "testsst")
     sel = swsscommon.Select()
     cst = swsscommon.SubscriberStateTable(db, "testsst")
     sel.addSelectable(cst)
     fvs = swsscommon.FieldValuePairs([('a','b')])
     t.set("aaa", fvs)
-    (state, c, fd) = sel.select()
+    (state, c) = sel.select()
     assert state == swsscommon.Select.OBJECT
     (key, op, cfvs) = cst.pop()
     assert key == "aaa"
     assert op == "SET"
+    assert len(cfvs) == 1
+    assert cfvs[0] == ('a', 'b')
+
+def test_Notification():
+    db = swsscommon.DBConnector(0, "localhost", 6379, 0)
+    ntfc = swsscommon.NotificationConsumer(db, "testntf")
+    sel = swsscommon.Select()
+    sel.addSelectable(ntfc)
+    fvs = swsscommon.FieldValuePairs([('a','b')])
+    ntfp = swsscommon.NotificationProducer(db, "testntf")
+    ntfp.send("aaa", "bbb", fvs)
+    (state, c) = sel.select()
+    assert state == swsscommon.Select.OBJECT
+    (op, data, cfvs) = ntfc.pop()
+    assert op == "aaa"
+    assert data == "bbb"
     assert len(cfvs) == 1
     assert cfvs[0] == ('a', 'b')

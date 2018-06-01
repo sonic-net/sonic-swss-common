@@ -10,7 +10,7 @@ endif
 
 CFLAGS_GTEST = -I $(top_srcdir)/googletest/googletest/include
 LDADD_GTEST = $(top_srcdir)/googletest/build/googlemock/gtest/libgtest_main.a \
-        $(top_srcdir)/googletest/build/googlemock/gtest/libgtest.a
+              $(top_srcdir)/googletest/build/googlemock/gtest/libgtest.a
 
 tests_SOURCES = redis_ut.cpp                \
                 redis_piped_ut.cpp          \
@@ -24,9 +24,10 @@ tests_SOURCES = redis_ut.cpp                \
                 macaddress_ut.cpp           \
                 converter_ut.cpp            \
                 exec_ut.cpp                 \
-				redis_subscriber_state_ut.cpp
+                redis_subscriber_state_ut.cpp \
+                selectable_priority.cpp
 
-tests_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_GTEST)
-tests_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_GTEST)
-tests_LDADD = $(LDADD_GTEST) -lpthread -L$(top_srcdir)/common -lswsscommon
+tests_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_GTEST) $(LIBNL_CFLAGS)
+tests_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_GTEST) $(LIBNL_CFLAGS)
+tests_LDADD = $(LDADD_GTEST) -lpthread -L$(top_srcdir)/common -lswsscommon $(LIBNL_LIBS)
 

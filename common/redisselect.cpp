@@ -8,55 +8,61 @@
 
 namespace swss {
 
-RedisSelect::RedisSelect()
+RedisSelect::RedisSelect(int pri) : Selectable(pri), m_queueLength(-1)
 {
 }
 
-void RedisSelect::addFd(fd_set *fd)
+int RedisSelect::getFd()
 {
-    FD_SET(m_subscribe->getContext()->fd, fd);
+    return m_subscribe->getContext()->fd;
 }
 
-int RedisSelect::readCache()
+void RedisSelect::readData()
 {
-    redisReply *reply = NULL;
+    redisReply *reply = nullptr;
 
-    /* Read the messages in queue before subscribe command execute */
-    if (m_queueLength) {
-        m_queueLength--;
-        return Selectable::DATA;
-    }
-
-    if (redisGetReplyFromReader(m_subscribe->getContext(),
-                (void**)&reply) != REDIS_OK)
-    {
-        return Selectable::ERROR;
-    } else if (reply != NULL)
-    {
-        freeReplyObject(reply);
-        return Selectable::DATA;
-    }
-
-    return Selectable::NODATA;
-}
-
-void RedisSelect::readMe()
-{
-    redisReply *reply = NULL;
-
-    if (redisGetReply(m_subscribe->getContext(), (void**)&reply) != REDIS_OK)
-        throw "Unable to read redis reply";
+    if (redisGetReply(m_subscribe->getContext(), reinterpret_cast<void**>(&reply)) != REDIS_OK)
+        throw std::runtime_error("Unable to read redis reply");
 
     freeReplyObject(reply);
+    m_queueLength++;
+
+    reply = nullptr;
+    int status;
+    do
+    {
+        status = redisGetReplyFromReader(m_subscribe->getContext(), reinterpret_cast<void**>(&reply));
+        if(reply != nullptr && status == REDIS_OK)
+        {
+            m_queueLength++;
+            freeReplyObject(reply);
+        }
+    }
+    while(reply != nullptr && status == REDIS_OK);
+
+    if (status != REDIS_OK)
+    {
+        throw std::runtime_error("Unable to read redis reply");
+    }
 }
 
-bool RedisSelect::isMe(fd_set *fd)
+bool RedisSelect::hasCachedData()
 {
-    return FD_ISSET(m_subscribe->getContext()->fd, fd);
+    return m_queueLength > 1;
+}
+
+bool RedisSelect::initializedWithData()
+{
+    return m_queueLength > 0;
+}
+
+void RedisSelect::updateAfterRead()
+{
+    m_queueLength--;
 }
 
 /* Create a new redisContext, SELECT DB and SUBSCRIBE */
-void RedisSelect::subscribe(DBConnector* db, std::string channelName)
+void RedisSelect::subscribe(DBConnector* db, const std::string &channelName)
 {
     m_subscribe.reset(db->newConnector(SUBSCRIBE_TIMEOUT));
 
@@ -67,7 +73,7 @@ void RedisSelect::subscribe(DBConnector* db, std::string channelName)
 }
 
 /* PSUBSCRIBE */
-void RedisSelect::psubscribe(DBConnector* db, std::string channelName)
+void RedisSelect::psubscribe(DBConnector* db, const std::string &channelName)
 {
     m_subscribe.reset(db->newConnector(SUBSCRIBE_TIMEOUT));
 

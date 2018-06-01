@@ -12,15 +12,13 @@ namespace swss {
 class SelectableEvent : public Selectable
 {
 public:
-    SelectableEvent();
-    virtual ~SelectableEvent();
+    SelectableEvent(int pri = 0);
+    ~SelectableEvent() override;
 
     void notify();
 
-    virtual void addFd(fd_set *fd);
-    virtual bool isMe(fd_set *fd);
-    virtual int readCache();
-    virtual void readMe();
+    int getFd() override;
+    void readData() override;
 
 private:
     int m_efd;

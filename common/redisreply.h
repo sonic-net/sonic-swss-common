@@ -16,7 +16,7 @@ public:
      * No reply type specified.
      */
     RedisReply(DBConnector *db, const RedisCommand& command);
-    RedisReply(DBConnector *db, std::string command);
+    RedisReply(DBConnector *db, const std::string &command);
     /*
      * Send a new command to redis and waits for reply
      * The reply must be one of REDIS_REPLY_* format (e.g. REDIS_REPLY_STATUS,
@@ -25,7 +25,7 @@ public:
      *               protocol
      */
     RedisReply(DBConnector *db, const RedisCommand& command, int expectedType);
-    RedisReply(DBConnector *db, std::string command, int expectedType);
+    RedisReply(DBConnector *db, const std::string &command, int expectedType);
 
     /* auto_ptr for native structue (Free the memory on destructor) */
     RedisReply(redisReply *reply);
@@ -53,7 +53,7 @@ public:
     void checkStatusQueued();
 
 private:
-    void checkStatus(char *status);
+    void checkStatus(const char *status);
     void checkReply();
 
     redisReply *m_reply;

@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <limits>
+#include <chrono>
 #include <hiredis/hiredis.h>
 
 namespace swss {
@@ -11,23 +12,59 @@ namespace swss {
 class Selectable
 {
 public:
-    virtual ~Selectable() {};
+    Selectable(int pri = 0) : m_priority(pri),
+                              m_last_used_time(std::chrono::steady_clock::now()) {}
 
-    enum {
-        DATA = 0,
-        ERROR = 1,
-        NODATA = 2
-    };
+    virtual ~Selectable() = default;
 
-    /* Implements FD_SET */
-    virtual void addFd(fd_set *fd) = 0;
-    virtual bool isMe(fd_set *fd) = 0;
+    /* return file handler for the Selectable */
+    virtual int getFd() = 0;
 
-    /* Read and empty socket caching (if exists) */
-    virtual int readCache() = 0;
+    /* Read all data from the fd assicaited with Selectable */
+    virtual void readData() = 0;
 
-    /* Read a message from the socket */
-    virtual void readMe() = 0;
+    /* true if Selectable has data in its cache */
+    virtual bool hasCachedData()
+    {
+        return false;
+    }
+
+    /* true if Selectable was initialized with data */
+    virtual bool initializedWithData()
+    {
+        return false;
+    }
+
+    /* run this function after every read */
+    virtual void updateAfterRead()
+    {
+    }
+
+    int getPri() const
+    {
+        return m_priority;
+    }
+
+private:
+
+    friend class Select;
+
+    // only Select class can access and update m_last_used_time
+
+    std::chrono::time_point<std::chrono::steady_clock> getLastUsedTime() const
+    {
+        return m_last_used_time;
+    }
+
+    void updateLastUsedTime()
+    {
+        m_last_used_time = std::chrono::steady_clock::now();
+    }
+
+
+    int m_priority; // defines priority of Selectable inside Select
+                    // higher value is higher priority
+    std::chrono::time_point<std::chrono::steady_clock> m_last_used_time;
 };
 
 }

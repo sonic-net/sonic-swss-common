@@ -9,16 +9,14 @@ namespace swss {
 
 class NetLink : public Selectable {
 public:
-    NetLink();
-    virtual ~NetLink();
+    NetLink(int pri = 0);
+    ~NetLink() override;
 
     void registerGroup(int rtnlGroup);
     void dumpRequest(int rtmGetCommand);
 
-    virtual void addFd(fd_set *fd);
-    virtual bool isMe(fd_set *fd);
-    virtual int readCache();
-    virtual void readMe();
+    int getFd() override;
+    void readData() override;
 
 private:
     static int onNetlinkMsg(struct nl_msg *msg, void *arg);

@@ -115,3 +115,32 @@ TEST(IpPrefix, subnet)
     EXPECT_FALSE(prefix1.isAddressInSubnet(ip3));
     EXPECT_FALSE(prefix2.isAddressInSubnet(ip3));
 }
+
+TEST(IpPrefix, getSubnet)
+{
+    // IPv4 prefixes
+    IpPrefix prefix1("1.1.1.0/0");
+    IpPrefix prefix2("1.1.1.191/24");
+    IpPrefix prefix3("1.1.1.191/26");
+    IpPrefix prefix4("1.1.191.1/20");
+    IpPrefix prefix5("2.2.2.2/32");
+
+    // IPv6 prefixes
+    IpPrefix prefix6("::/0");
+    IpPrefix prefix7("2001:4898:f0:f153:357c:77b2:49c9:627c/64");
+    IpPrefix prefix8("2001:4898:f0:f153:357c:77b2:49c9:627c/63");
+    IpPrefix prefix9("2001:4898:f0:f153:357c:77b2:49c9:627c/45");
+    IpPrefix prefix10("2001:4898:f0:f153:357c:77b2:49c9:627c/128");
+
+    EXPECT_EQ("0.0.0.0/0", prefix1.getSubnet().to_string());
+    EXPECT_EQ("1.1.1.0/24", prefix2.getSubnet().to_string());
+    EXPECT_EQ("1.1.1.128/26", prefix3.getSubnet().to_string());
+    EXPECT_EQ("1.1.176.0/20", prefix4.getSubnet().to_string());
+    EXPECT_EQ("2.2.2.2/32", prefix5.getSubnet().to_string());
+
+    EXPECT_EQ("::/0", prefix6.getSubnet().to_string());
+    EXPECT_EQ("2001:4898:f0:f153::/64", prefix7.getSubnet().to_string());
+    EXPECT_EQ("2001:4898:f0:f152::/63", prefix8.getSubnet().to_string());
+    EXPECT_EQ("2001:4898:f0::/45", prefix9.getSubnet().to_string());
+    EXPECT_EQ("2001:4898:f0:f153:357c:77b2:49c9:627c/128", prefix10.getSubnet().to_string());
+}

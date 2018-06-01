@@ -14,19 +14,19 @@ using namespace std;
 
 namespace swss {
 
-SubscriberStateTable::SubscriberStateTable(DBConnector *db, string tableName)
-    : ConsumerTableBase(db, tableName), m_table(db, tableName, CONFIGDB_TABLE_NAME_SEPARATOR)
+SubscriberStateTable::SubscriberStateTable(DBConnector *db, const string &tableName, int popBatchSize, int pri)
+    : ConsumerTableBase(db, tableName, popBatchSize, pri), m_table(db, tableName)
 {
     m_keyspace = "__keyspace@";
 
-    m_keyspace += to_string(db->getDB()) + "__:" + tableName + CONFIGDB_TABLE_NAME_SEPARATOR + "*";
+    m_keyspace += to_string(db->getDbId()) + "__:" + tableName + m_table.getTableNameSeparator() + "*";
 
     psubscribe(m_db, m_keyspace);
 
     vector<string> keys;
     m_table.getKeys(keys);
 
-    for (auto key: keys)
+    for (const auto &key: keys)
     {
         KeyOpFieldsValuesTuple kco;
 
@@ -42,52 +42,51 @@ SubscriberStateTable::SubscriberStateTable(DBConnector *db, string tableName)
     }
 }
 
-int SubscriberStateTable::readCache()
+void SubscriberStateTable::readData()
 {
-    redisReply *reply = NULL;
+    redisReply *reply = nullptr;
 
-    /* If buffers already contain data notify caller about this */
-    if (!m_buffer.empty() || !m_keyspace_event_buffer.empty())
+    /* Read data from redis. This call is non blocking. This method
+     * is called from Select framework when data is available in socket.
+     * NOTE: All data should be stored in event buffer. It won't be possible to
+     * read them second time. */
+    if (redisGetReply(m_subscribe->getContext(), reinterpret_cast<void**>(&reply)) != REDIS_OK)
     {
-        return Selectable::DATA;
+        throw std::runtime_error("Unable to read redis reply");
     }
+
+    m_keyspace_event_buffer.push_back(shared_ptr<RedisReply>(make_shared<RedisReply>(reply)));
 
     /* Try to read data from redis cacher.
      * If data exists put it to event buffer.
      * NOTE: Keyspace event is not persistent and it won't
      * be possible to read it second time. If it is not stared in
      * the buffer it will be lost. */
-    if (redisGetReplyFromReader(m_subscribe->getContext(),
-                                (void**)&reply) != REDIS_OK)
-    {
-        return Selectable::ERROR;
-    }
-    else if (reply != NULL)
-    {
-        m_keyspace_event_buffer.push_back(shared_ptr<RedisReply>(make_shared<RedisReply>(reply)));
-        return Selectable::DATA;
-    }
 
-    return Selectable::NODATA;
+    reply = nullptr;
+    int status;
+    do
+    {
+        status = redisGetReplyFromReader(m_subscribe->getContext(), reinterpret_cast<void**>(&reply));
+        if(reply != nullptr && status == REDIS_OK)
+        {
+            m_keyspace_event_buffer.push_back(shared_ptr<RedisReply>(make_shared<RedisReply>(reply)));
+        }
+    }
+    while(reply != nullptr && status == REDIS_OK);
+
+    if (status != REDIS_OK)
+    {
+        throw std::runtime_error("Unable to read redis reply");
+    }
 }
 
-void SubscriberStateTable::readMe()
+bool SubscriberStateTable::hasCachedData()
 {
-    redisReply *reply = NULL;
-
-    /* Read data from redis. This call is non blocking. This method
-     * is called from Select framework when data is available in socket.
-     * NOTE: All data should be stored in event buffer. It won't be possible to
-     * read them second time. */
-    if (redisGetReply(m_subscribe->getContext(), (void**)&reply) != REDIS_OK)
-    {
-        throw runtime_error("Unable to read redis reply");
-    }
-
-    m_keyspace_event_buffer.push_back(shared_ptr<RedisReply>(make_shared<RedisReply>(reply)));
+    return m_buffer.size() > 1 || m_keyspace_event_buffer.size() > 1;
 }
 
-void SubscriberStateTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, string /*prefix*/)
+void SubscriberStateTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, const string& /*prefix*/)
 {
     vkco.clear();
 
@@ -118,7 +117,7 @@ void SubscriberStateTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, string /*pr
         }
         /* The second element should be the original pattern matched */
         auto ctx = event->getContext()->element[1];
-        if (m_keyspace.compare(ctx->str))
+        if (m_keyspace != ctx->str)
         {
             SWSS_LOG_ERROR("invalid pattern %s returned for pmessage of %s", ctx->str, m_keyspace.c_str());
             continue;
@@ -126,7 +125,7 @@ void SubscriberStateTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, string /*pr
 
         ctx = event->getContext()->element[2];
         string msg(ctx->str);
-        size_t pos = msg.find(":");
+        size_t pos = msg.find(':');
         if (pos == msg.npos)
         {
             SWSS_LOG_ERROR("invalid format %s returned for pmessage of %s", ctx->str, m_keyspace.c_str());
@@ -134,7 +133,7 @@ void SubscriberStateTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, string /*pr
         }
 
         string table_entry = msg.substr(pos + 1);
-        pos = table_entry.find(CONFIGDB_TABLE_NAME_SEPARATOR);
+        pos = table_entry.find(m_table.getTableNameSeparator());
         if (pos == table_entry.npos)
         {
             SWSS_LOG_ERROR("invalid key %s returned for pmessage of %s", ctx->str, m_keyspace.c_str());

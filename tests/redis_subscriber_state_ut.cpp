@@ -12,7 +12,7 @@
 using namespace std;
 using namespace swss;
 
-#define TEST_VIEW            (7)
+#define TEST_DB             (15) // Default Redis config supports 16 databases, max DB ID is 15
 #define NUMBER_OF_THREADS   (64) // Spawning more than 256 threads causes libc++ to except
 #define NUMBER_OF_OPS     (1000)
 #define MAX_FIELDS_DIV      (30) // Testing up to 30 fields objects
@@ -87,15 +87,15 @@ static inline void validateFields(const string& key, const vector<FieldValueTupl
 
 static inline void clearDB()
 {
-    DBConnector db(TEST_VIEW, dbhost, dbport, 0);
+    DBConnector db(TEST_DB, dbhost, dbport, 0);
     RedisReply r(&db, "FLUSHALL", REDIS_REPLY_STATUS);
     r.checkStatusOK();
 }
 
 static void producerWorker(int index)
 {
-    DBConnector db(TEST_VIEW, dbhost, dbport, 0);
-    Table p(&db, testTableName, CONFIGDB_TABLE_NAME_SEPARATOR);
+    DBConnector db(TEST_DB, dbhost, dbport, 0);
+    Table p(&db, testTableName);
 
     for (int i = 0; i < NUMBER_OF_OPS; i++)
     {
@@ -124,11 +124,10 @@ static void producerWorker(int index)
 
 static void subscriberWorker(int index, int *status)
 {
-    DBConnector db(TEST_VIEW, dbhost, dbport, 0);
+    DBConnector db(TEST_DB, dbhost, dbport, 0);
     SubscriberStateTable c(&db, testTableName);
     Select cs;
     Selectable *selectcs;
-    int tmpfd;
     int numberOfKeysSet = 0;
     int numberOfKeyDeleted = 0;
     int ret, i = 0;
@@ -138,7 +137,7 @@ static void subscriberWorker(int index, int *status)
 
     status[index] = 1;
 
-    while ((ret = cs.select(&selectcs, &tmpfd, 10000)) == Select::OBJECT)
+    while ((ret = cs.select(&selectcs, 10000)) == Select::OBJECT)
     {
         c.pop(kco);
         if (kfvOp(kco) == "SET")
@@ -163,12 +162,12 @@ static void subscriberWorker(int index, int *status)
 
     }
 
-    EXPECT_TRUE(numberOfKeysSet <= numberOfKeyDeleted);
+    EXPECT_LE(numberOfKeysSet, numberOfKeyDeleted);
 
     /* Verify that all data are read */
     {
-        ret = cs.select(&selectcs, &tmpfd, 1000);
-        EXPECT_TRUE(ret == Select::TIMEOUT);
+        ret = cs.select(&selectcs, 1000);
+        EXPECT_EQ(ret, Select::TIMEOUT);
     }
 }
 
@@ -178,8 +177,8 @@ TEST(SubscriberStateTable, set)
 
     /* Prepare producer */
     int index = 0;
-    DBConnector db(TEST_VIEW, dbhost, dbport, 0);
-    Table p(&db, testTableName, CONFIGDB_TABLE_NAME_SEPARATOR);
+    DBConnector db(TEST_DB, dbhost, dbport, 0);
+    Table p(&db, testTableName);
     string key = "TheKey";
     int maxNumOfFields = 2;
 
@@ -200,16 +199,14 @@ TEST(SubscriberStateTable, set)
         p.set(key, fields);
     }
 
-    int tmpfd;
-
     /* Pop operation */
     {
-        int ret = cs.select(&selectcs, &tmpfd);
-        EXPECT_TRUE(ret == Select::OBJECT);
+        int ret = cs.select(&selectcs);
+        EXPECT_EQ(ret, Select::OBJECT);
         KeyOpFieldsValuesTuple kco;
         c.pop(kco);
-        EXPECT_TRUE(kfvKey(kco) == key);
-        EXPECT_TRUE(kfvOp(kco) == "SET");
+        EXPECT_EQ(kfvKey(kco), key);
+        EXPECT_EQ(kfvOp(kco), "SET");
 
         auto fvs = kfvFieldsValues(kco);
         EXPECT_EQ(fvs.size(), (unsigned int)(maxNumOfFields));
@@ -233,8 +230,8 @@ TEST(SubscriberStateTable, del)
 
     /* Prepare producer */
     int index = 0;
-    DBConnector db(TEST_VIEW, dbhost, dbport, 0);
-    Table p(&db, testTableName, CONFIGDB_TABLE_NAME_SEPARATOR);
+    DBConnector db(TEST_DB, dbhost, dbport, 0);
+    Table p(&db, testTableName);
     string key = "TheKey";
     int maxNumOfFields = 2;
 
@@ -255,28 +252,26 @@ TEST(SubscriberStateTable, del)
         p.set(key, fields);
     }
 
-    int tmpfd;
-
     /* Pop operation for set */
     {
-        int ret = cs.select(&selectcs, &tmpfd);
-        EXPECT_TRUE(ret == Select::OBJECT);
+        int ret = cs.select(&selectcs);
+        EXPECT_EQ(ret, Select::OBJECT);
         KeyOpFieldsValuesTuple kco;
         c.pop(kco);
-        EXPECT_TRUE(kfvKey(kco) == key);
-        EXPECT_TRUE(kfvOp(kco) == "SET");
+        EXPECT_EQ(kfvKey(kco), key);
+        EXPECT_EQ(kfvOp(kco), "SET");
     }
 
     p.del(key);
 
     /* Pop operation for del */
     {
-        int ret = cs.select(&selectcs, &tmpfd);
-        EXPECT_TRUE(ret == Select::OBJECT);
+        int ret = cs.select(&selectcs);
+        EXPECT_EQ(ret, Select::OBJECT);
         KeyOpFieldsValuesTuple kco;
         c.pop(kco);
-        EXPECT_TRUE(kfvKey(kco) == key);
-        EXPECT_TRUE(kfvOp(kco) == "DEL");
+        EXPECT_EQ(kfvKey(kco), key);
+        EXPECT_EQ(kfvOp(kco), "DEL");
     }
 }
 
@@ -286,8 +281,8 @@ TEST(SubscriberStateTable, table_state)
 
     /* Prepare producer */
     int index = 0;
-    DBConnector db(TEST_VIEW, dbhost, dbport, 0);
-    Table p(&db, testTableName, CONFIGDB_TABLE_NAME_SEPARATOR);
+    DBConnector db(TEST_DB, dbhost, dbport, 0);
+    Table p(&db, testTableName);
 
     for (int i = 0; i < NUMBER_OF_OPS; i++)
    {
@@ -311,17 +306,16 @@ TEST(SubscriberStateTable, table_state)
     SubscriberStateTable c(&db, testTableName);
     Select cs;
     Selectable *selectcs;
-    int tmpfd;
     int ret, i = 0;
     KeyOpFieldsValuesTuple kco;
 
     cs.addSelectable(&c);
     int numberOfKeysSet = 0;
 
-    while ((ret = cs.select(&selectcs, &tmpfd)) == Select::OBJECT)
+    while ((ret = cs.select(&selectcs)) == Select::OBJECT)
     {
        c.pop(kco);
-       EXPECT_TRUE(kfvOp(kco) == "SET");
+       EXPECT_EQ(kfvOp(kco), "SET");
        numberOfKeysSet++;
        validateFields(kfvKey(kco), kfvFieldsValues(kco));
 
@@ -336,8 +330,8 @@ TEST(SubscriberStateTable, table_state)
 
     /* Verify that all data are read */
     {
-        ret = cs.select(&selectcs, &tmpfd, 1000);
-        EXPECT_TRUE(ret == Select::TIMEOUT);
+        ret = cs.select(&selectcs, 1000);
+        EXPECT_EQ(ret, Select::TIMEOUT);
     }
 }
 

@@ -16,7 +16,7 @@
 using namespace std;
 using namespace swss;
 
-#define TEST_VIEW            (7)
+#define TEST_DB             (15) // Default Redis config supports 16 databases, max DB ID is 15
 #define NUMBER_OF_THREADS   (64) // Spawning more than 256 threads causes libc++ to except
 #define NUMBER_OF_OPS     (1000)
 #define MAX_FIELDS_DIV      (30) // Testing up to 30 fields objects
@@ -74,7 +74,7 @@ void validateFields(const string& key, const vector<FieldValueTuple>& f)
 void producerWorker(int index)
 {
     string tableName = "UT_REDIS_THREAD_" + to_string(index);
-    DBConnector db(TEST_VIEW, "localhost", 6379, 0);
+    DBConnector db(TEST_DB, "localhost", 6379, 0);
     ProducerTable p(&db, tableName);
 
     for (int i = 0; i < NUMBER_OF_OPS; i++)
@@ -102,18 +102,17 @@ void producerWorker(int index)
 void consumerWorker(int index)
 {
     string tableName = "UT_REDIS_THREAD_" + to_string(index);
-    DBConnector db(TEST_VIEW, "localhost", 6379, 0);
+    DBConnector db(TEST_DB, "localhost", 6379, 0);
     ConsumerTable c(&db, tableName);
     Select cs;
     Selectable *selectcs;
-    int tmpfd;
     int numberOfKeysSet = 0;
     int numberOfKeyDeleted = 0;
     int ret, i = 0;
     KeyOpFieldsValuesTuple kco;
 
     cs.addSelectable(&c);
-    while ((ret = cs.select(&selectcs, &tmpfd)) == Select::OBJECT)
+    while ((ret = cs.select(&selectcs)) == Select::OBJECT)
     {
         c.pop(kco);
         if (kfvOp(kco) == "SET")
@@ -133,26 +132,24 @@ void consumerWorker(int index)
             break;
     }
 
-    EXPECT_EQ(ret, Selectable::DATA);
+    EXPECT_EQ(ret, Select::OBJECT);
 }
 
 void clearDB()
 {
-    DBConnector db(TEST_VIEW, "localhost", 6379, 0);
+    DBConnector db(TEST_DB, "localhost", 6379, 0);
     RedisReply r(&db, "FLUSHALL", REDIS_REPLY_STATUS);
     r.checkStatusOK();
 }
 
-void TableBasicTest(string tableName, string separator)
+void TableBasicTest(string tableName)
 {
-    DBConnector db(TEST_VIEW, "localhost", 6379, 0);
+    DBConnector db(TEST_DB, "localhost", 6379, 0);
 
-    Table t(&db, tableName, separator);
-    string tableNameSeparator = t.getTableNameSeparator();
-    ASSERT_STREQ(tableNameSeparator.c_str(), separator.c_str());
+    Table t(&db, tableName);
 
     clearDB();
-    cout << "Starting table manipulations, table name separator is " << separator << endl;
+    cout << "Starting table manipulations" << endl;
 
     string key_1 = "a";
     string key_2 = "b";
@@ -263,7 +260,7 @@ TEST(DBConnector, test)
 
 TEST(DBConnector, multitable)
 {
-    DBConnector db(TEST_VIEW, "localhost", 6379, 0);
+    DBConnector db(TEST_DB, "localhost", 6379, 0);
     ConsumerTable *consumers[NUMBER_OF_THREADS];
     thread *producerThreads[NUMBER_OF_THREADS];
     KeyOpFieldsValuesTuple kco;
@@ -290,9 +287,8 @@ TEST(DBConnector, multitable)
     while (1)
     {
         Selectable *is;
-        int fd;
 
-        ret = cs.select(&is, &fd);
+        ret = cs.select(&is);
         EXPECT_EQ(ret, Select::OBJECT);
 
         ((ConsumerTable *)is)->pop(kco);
@@ -328,7 +324,7 @@ void notificationProducer()
 {
     sleep(1);
 
-    DBConnector db(TEST_VIEW, "localhost", 6379, 0);
+    DBConnector db(TEST_DB, "localhost", 6379, 0);
     NotificationProducer np(&db, "UT_REDIS_CHANNEL");
 
     vector<FieldValueTuple> values;
@@ -341,18 +337,18 @@ void notificationProducer()
 
 TEST(DBConnector, notifications)
 {
-    DBConnector db(TEST_VIEW, "localhost", 6379, 0);
+    DBConnector db(TEST_DB, "localhost", 6379, 0);
     NotificationConsumer nc(&db, "UT_REDIS_CHANNEL");
     Select s;
     s.addSelectable(&nc);
     Selectable *sel;
-    int fd, value = 1;
+    int value = 1;
 
     clearDB();
 
     thread np(notificationProducer);
 
-    int result = s.select(&sel, &fd, 2000);
+    int result = s.select(&sel, 2000);
     if (result == Select::OBJECT)
     {
         cout << "Got notification from producer" << endl;
@@ -382,11 +378,10 @@ void selectableEventThread(Selectable *ev, int *value)
     Select s;
     s.addSelectable(ev);
     Selectable *sel;
-    int fd;
 
     cout << "Starting listening ... " << endl;
 
-    int result = s.select(&sel, &fd, 2000);
+    int result = s.select(&sel, 2000);
     if (result == Select::OBJECT)
     {
         if (sel == ev)
@@ -421,54 +416,56 @@ TEST(DBConnector, selectabletimer)
     Select s;
     s.addSelectable(&timer);
     Selectable *sel;
-    int fd, result;
+    int result;
 
     // Wait a non started timer
-    result = s.select(&sel, &fd, 2000);
+    result = s.select(&sel, 2000);
     ASSERT_EQ(result, Select::TIMEOUT);
 
     // Wait long enough so we got timer notification first
     timer.start();
-    result = s.select(&sel, &fd, 2000);
+    result = s.select(&sel, 2000);
     ASSERT_EQ(result, Select::OBJECT);
     ASSERT_EQ(sel, &timer);
 
     // Wait short so we got select timeout first
-    result = s.select(&sel, &fd, 10);
+    result = s.select(&sel, 10);
     ASSERT_EQ(result, Select::TIMEOUT);
 
     // Wait long enough so we got timer notification first
-    result = s.select(&sel, &fd, 10000);
+    result = s.select(&sel, 10000);
     ASSERT_EQ(result, Select::OBJECT);
     ASSERT_EQ(sel, &timer);
 
     // Reset and wait long enough so we got timer notification first
     timer.reset();
-    result = s.select(&sel, &fd, 10000);
+    result = s.select(&sel, 10000);
     ASSERT_EQ(result, Select::OBJECT);
     ASSERT_EQ(sel, &timer);
 }
 
 TEST(Table, basic)
 {
-    TableBasicTest("TABLE_UT_TEST", ":");
+    TableBasicTest("TABLE_UT_TEST");
 }
 
 TEST(Table, separator_in_table_name)
 {
-    TableBasicTest("TABLE_UT:TEST", ":");
+    std::string tableName = "TABLE_UT|TEST";
+
+    TableBasicTest(tableName);
 }
 
 TEST(Table, table_separator_test)
 {
-    TableBasicTest("TABLE_UT_TEST", CONFIGDB_TABLE_NAME_SEPARATOR);
+    TableBasicTest("TABLE_UT_TEST");
 }
 
 TEST(ProducerConsumer, Prefix)
 {
     std::string tableName = "tableName";
 
-    DBConnector db(TEST_VIEW, "localhost", 6379, 0);
+    DBConnector db(TEST_DB, "localhost", 6379, 0);
     ProducerTable p(&db, tableName);
 
     std::vector<FieldValueTuple> values;
@@ -497,7 +494,7 @@ TEST(ProducerConsumer, Pop)
 {
     std::string tableName = "tableName";
 
-    DBConnector db(TEST_VIEW, "localhost", 6379, 0);
+    DBConnector db(TEST_DB, "localhost", 6379, 0);
     ProducerTable p(&db, tableName);
 
     std::vector<FieldValueTuple> values;
@@ -525,7 +522,7 @@ TEST(ProducerConsumer, Pop2)
 {
     std::string tableName = "tableName";
 
-    DBConnector db(TEST_VIEW, "localhost", 6379, 0);
+    DBConnector db(TEST_DB, "localhost", 6379, 0);
     ProducerTable p(&db, tableName);
 
     std::vector<FieldValueTuple> values;
@@ -564,7 +561,7 @@ TEST(ProducerConsumer, PopEmpty)
 {
     std::string tableName = "tableName";
 
-    DBConnector db(TEST_VIEW, "localhost", 6379, 0);
+    DBConnector db(TEST_DB, "localhost", 6379, 0);
 
     ConsumerTable c(&db, tableName);
 

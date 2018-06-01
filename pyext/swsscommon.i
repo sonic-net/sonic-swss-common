@@ -15,6 +15,7 @@
 #include "consumerstatetable.h"
 #include "subscriberstatetable.h"
 #include "notificationconsumer.h"
+#include "notificationproducer.h"
 %}
 
 %include <std_string.i>
@@ -67,4 +68,13 @@
 
 %include "consumerstatetable.h"
 %include "subscriberstatetable.h"
+
+%apply std::string& OUTPUT {std::string &op};
+%apply std::string& OUTPUT {std::string &data};
+%apply std::vector<std::pair<std::string, std::string>>& OUTPUT {std::vector<std::pair<std::string, std::string>> &values};
 %include "notificationconsumer.h"
+%clear std::string &op;
+%clear std::string &data;
+%clear std::vector<std::pair<std::string, std::string>> &values;
+
+%include "notificationproducer.h"

@@ -7,6 +7,7 @@
 #include <map>
 #include <memory>
 #include <thread>
+#include <mutex>
 
 namespace swss {
 
@@ -37,16 +38,27 @@ public:
     };
 
     typedef std::map<std::string, Priority> PriorityStringMap;
-    typedef std::function<void (std::string component, std::string prioStr)> PriorityChangeNotify;
-    typedef std::map<std::string, PriorityChangeNotify> PriorityChangeObserver;
     static const PriorityStringMap priorityStringMap;
+    typedef std::function<void (std::string component, std::string prioStr)> PriorityChangeNotify;
+
+    enum Output
+    {
+        SWSS_SYSLOG,
+        SWSS_STDOUT,
+        SWSS_STDERR
+    };
+    typedef std::map<std::string, Output> OutputStringMap;
+    static const OutputStringMap outputStringMap;
+    typedef std::function<void (std::string component, std::string outputStr)> OutputChangeNotify;
+    typedef std::map<std::string, std::pair<PriorityChangeNotify, OutputChangeNotify>> LogSettingChangeObservers;
 
     static Logger &getInstance();
     static void setMinPrio(Priority prio);
     static Priority getMinPrio();
-    static void linkToDb(const std::string dbName, const PriorityChangeNotify& notify, const std::string& defPrio);
+    static void linkToDbWithOutput(const std::string &dbName, const PriorityChangeNotify& prioNotify, const std::string& defPrio, const OutputChangeNotify& outputNotify, const std::string& defOutput);
+    static void linkToDb(const std::string &dbName, const PriorityChangeNotify& notify, const std::string& defPrio);
     // Must be called after all linkToDb to start select from DB
-    static void linkToDbNative(const std::string dbName);
+    static void linkToDbNative(const std::string &dbName);
     void write(Priority prio, const char *fmt, ...)
 #ifdef __GNUC__
         __attribute__ ((format (printf, 3, 4)))
@@ -61,6 +73,7 @@ public:
     ;
 
     static std::string priorityToString(Priority prio);
+    static std::string outputToString(Output output);
 
     class ScopeLogger
     {
@@ -94,18 +107,22 @@ public:
     };
 
 private:
-    Logger(){};
+    Logger() = default;
     ~Logger();
     Logger(const Logger&);
     Logger &operator=(const Logger&);
 
-    static void swssNotify(std::string component, std::string prioStr);
-    void prioThread();
+    static void swssPrioNotify(const std::string &component, const std::string &prioStr);
+    static void swssOutputNotify(const std::string &component, const std::string &outputStr);
+    [[ noreturn ]] void settingThread();
 
-    PriorityChangeObserver m_priorityChangeObservers;
+    LogSettingChangeObservers m_settingChangeObservers;
     std::map<std::string, std::string> m_currentPrios;
     std::atomic<Priority> m_minPrio = { SWSS_NOTICE };
-    std::unique_ptr<std::thread> m_prioThread;
+    std::map<std::string, std::string> m_currentOutputs;
+    std::atomic<Output> m_output = { SWSS_SYSLOG };
+    std::unique_ptr<std::thread> m_settingThread;
+    std::mutex m_mutex;
 };
 
 }

@@ -14,8 +14,8 @@ using namespace std;
 
 namespace swss {
 
-ConsumerTable::ConsumerTable(DBConnector *db, string tableName, int popBatchSize)
-    : ConsumerTableBase(db, tableName, popBatchSize)
+ConsumerTable::ConsumerTable(DBConnector *db, const string &tableName, int popBatchSize, int pri)
+    : ConsumerTableBase(db, tableName, popBatchSize, pri)
     , TableName_KeyValueOpQueues(tableName)
 {
     for (;;)
@@ -34,7 +34,7 @@ ConsumerTable::ConsumerTable(DBConnector *db, string tableName, int popBatchSize
     setQueueLength(r.getReply<long long int>());
 }
 
-void ConsumerTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, string prefix)
+void ConsumerTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, const string &prefix)
 {
     static std::string luaScript = loadLuaScript("consumer_table_pops.lua");
 

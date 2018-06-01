@@ -12,7 +12,7 @@ RedisClient::RedisClient(swss::DBConnector *db):
 {
 }
 
-int64_t RedisClient::del(string key)
+int64_t RedisClient::del(const string &key)
 {
     RedisCommand sdel;
     sdel.format("DEL %s", key.c_str());
@@ -20,7 +20,7 @@ int64_t RedisClient::del(string key)
     return r.getContext()->integer;
 }
 
-int64_t RedisClient::hdel(string key, string field)
+int64_t RedisClient::hdel(const string &key, const string &field)
 {
     RedisCommand shdel;
     shdel.format("HDEL %s %s", key.c_str(), field.c_str());
@@ -28,21 +28,21 @@ int64_t RedisClient::hdel(string key, string field)
     return r.getContext()->integer;
 }
 
-void RedisClient::hset(string key, string field, string value)
+void RedisClient::hset(const string &key, const string &field, const string &value)
 {
     RedisCommand shset;
     shset.format("HSET %s %s %s", key.c_str(), field.c_str(), value.c_str());
     RedisReply r(m_db, shset, REDIS_REPLY_INTEGER);
 }
 
-void RedisClient::set(string key, string value)
+void RedisClient::set(const string &key, const string &value)
 {
     RedisCommand sset;
     sset.format("SET %s %s", key.c_str(), value.c_str());
     RedisReply r(m_db, sset, REDIS_REPLY_STATUS);
 }
 
-unordered_map<string, string> RedisClient::hgetall(string key)
+unordered_map<string, string> RedisClient::hgetall(const string &key)
 {
     RedisCommand sincr;
     sincr.format("HGETALL %s", key.c_str());
@@ -57,7 +57,7 @@ unordered_map<string, string> RedisClient::hgetall(string key)
     return map;
 }
 
-vector<string> RedisClient::keys(string key)
+vector<string> RedisClient::keys(const string &key)
 {
     RedisCommand skeys;
     skeys.format("KEYS %s", key.c_str());
@@ -67,12 +67,12 @@ vector<string> RedisClient::keys(string key)
 
     vector<string> list;
     for (unsigned int i = 0; i < ctx->elements; i++)
-        list.push_back(ctx->element[i]->str);
+        list.emplace_back(ctx->element[i]->str);
 
     return list;
 }
 
-int64_t RedisClient::incr(string key)
+int64_t RedisClient::incr(const string &key)
 {
     RedisCommand sincr;
     sincr.format("INCR %s", key.c_str());
@@ -80,7 +80,7 @@ int64_t RedisClient::incr(string key)
     return r.getContext()->integer;
 }
 
-int64_t RedisClient::decr(string key)
+int64_t RedisClient::decr(const string &key)
 {
     RedisCommand sdecr;
     sdecr.format("DECR %s", key.c_str());
@@ -88,7 +88,7 @@ int64_t RedisClient::decr(string key)
     return r.getContext()->integer;
 }
 
-shared_ptr<string> RedisClient::get(string key)
+shared_ptr<string> RedisClient::get(const string &key)
 {
     RedisCommand sget;
     sget.format("GET %s", key.c_str());
@@ -109,7 +109,7 @@ shared_ptr<string> RedisClient::get(string key)
     throw runtime_error("GET failed, memory exception");
 }
 
-shared_ptr<string> RedisClient::hget(string key, string field)
+shared_ptr<string> RedisClient::hget(const string &key, const string &field)
 {
     RedisCommand shget;
     shget.format("HGET %s %s", key.c_str(), field.c_str());
@@ -131,7 +131,7 @@ shared_ptr<string> RedisClient::hget(string key, string field)
     throw runtime_error("HGET failed, unexpected reply type, memory exception");
 }
 
-int64_t RedisClient::rpush(string list, string item)
+int64_t RedisClient::rpush(const string &list, const string &item)
 {
     RedisCommand srpush;
     srpush.format("RPUSH %s %s", list.c_str(), item.c_str());
@@ -139,7 +139,7 @@ int64_t RedisClient::rpush(string list, string item)
     return r.getContext()->integer;
 }
 
-shared_ptr<string> RedisClient::blpop(string list, int timeout)
+shared_ptr<string> RedisClient::blpop(const string &list, int timeout)
 {
     RedisCommand sblpop;
     sblpop.format("BLPOP %s %d", list.c_str(), timeout);

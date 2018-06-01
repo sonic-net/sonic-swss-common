@@ -15,7 +15,7 @@
 using namespace std;
 using namespace swss;
 
-#define TEST_VIEW            (7)
+#define TEST_DB             (15) // Default Redis config supports 16 databases, max DB ID is 15
 #define NUMBER_OF_THREADS   (64) // Spawning more than 256 threads causes libc++ to except
 #define NUMBER_OF_OPS     (1000)
 #define MAX_FIELDS_DIV      (30) // Testing up to 30 fields objects
@@ -73,7 +73,7 @@ static void validateFields(const string& key, const vector<FieldValueTuple>& f)
 static void producerWorker(int index)
 {
     string tableName = "UT_REDIS_THREAD_" + to_string(index);
-    DBConnector db(TEST_VIEW, "localhost", 6379, 0);
+    DBConnector db(TEST_DB, "localhost", 6379, 0);
     RedisPipeline pipeline(&db);
     ProducerTable p(&pipeline, tableName, true);
 
@@ -102,18 +102,17 @@ static void producerWorker(int index)
 static void consumerWorker(int index)
 {
     string tableName = "UT_REDIS_THREAD_" + to_string(index);
-    DBConnector db(TEST_VIEW, "localhost", 6379, 0);
+    DBConnector db(TEST_DB, "localhost", 6379, 0);
     ConsumerTable c(&db, tableName);
     Select cs;
     Selectable *selectcs;
-    int tmpfd;
     int numberOfKeysSet = 0;
     int numberOfKeyDeleted = 0;
     int ret, i = 0;
     KeyOpFieldsValuesTuple kco;
 
     cs.addSelectable(&c);
-    while ((ret = cs.select(&selectcs, &tmpfd)) == Select::OBJECT)
+    while ((ret = cs.select(&selectcs)) == Select::OBJECT)
     {
         c.pop(kco);
         if (kfvOp(kco) == "SET")
@@ -133,12 +132,12 @@ static void consumerWorker(int index)
             break;
     }
 
-    EXPECT_EQ(ret, Selectable::DATA);
+    EXPECT_EQ(ret, Select::OBJECT);
 }
 
 static void clearDB()
 {
-    DBConnector db(TEST_VIEW, "localhost", 6379, 0);
+    DBConnector db(TEST_DB, "localhost", 6379, 0);
     RedisReply r(&db, "FLUSHALL", REDIS_REPLY_STATUS);
     r.checkStatusOK();
 }
@@ -172,7 +171,7 @@ TEST(DBConnector, piped_test)
 
 TEST(DBConnector, piped_multitable)
 {
-    DBConnector db(TEST_VIEW, "localhost", 6379, 0);
+    DBConnector db(TEST_DB, "localhost", 6379, 0);
     ConsumerTable *consumers[NUMBER_OF_THREADS];
     thread *producerThreads[NUMBER_OF_THREADS];
     KeyOpFieldsValuesTuple kco;
@@ -199,9 +198,8 @@ TEST(DBConnector, piped_multitable)
     while (1)
     {
         Selectable *is;
-        int fd;
 
-        ret = cs.select(&is, &fd);
+        ret = cs.select(&is);
         EXPECT_EQ(ret, Select::OBJECT);
 
         ((ConsumerTable *)is)->pop(kco);
@@ -237,7 +235,7 @@ static void notificationProducer()
 {
     sleep(1);
 
-    DBConnector db(TEST_VIEW, "localhost", 6379, 0);
+    DBConnector db(TEST_DB, "localhost", 6379, 0);
     NotificationProducer np(&db, "UT_REDIS_CHANNEL");
 
     vector<FieldValueTuple> values;
@@ -250,18 +248,18 @@ static void notificationProducer()
 
 TEST(DBConnector, piped_notifications)
 {
-    DBConnector db(TEST_VIEW, "localhost", 6379, 0);
+    DBConnector db(TEST_DB, "localhost", 6379, 0);
     NotificationConsumer nc(&db, "UT_REDIS_CHANNEL");
     Select s;
     s.addSelectable(&nc);
     Selectable *sel;
-    int fd, value = 1;
+    int value = 1;
 
     clearDB();
 
     thread np(notificationProducer);
 
-    int result = s.select(&sel, &fd, 2000);
+    int result = s.select(&sel, 2000);
     if (result == Select::OBJECT)
     {
         cout << "Got notification from producer" << endl;
@@ -291,11 +289,10 @@ static void selectableEventThread(Selectable *ev, int *value)
     Select s;
     s.addSelectable(ev);
     Selectable *sel;
-    int fd;
 
     cout << "Starting listening ... " << endl;
 
-    int result = s.select(&sel, &fd, 2000);
+    int result = s.select(&sel, 2000);
     if (result == Select::OBJECT)
     {
         if (sel == ev)
@@ -325,8 +322,9 @@ TEST(DBConnector, piped_selectableevent)
 TEST(Table, piped_test)
 {
     string tableName = "TABLE_UT_TEST";
-    DBConnector db(TEST_VIEW, "localhost", 6379, 0);
-    Table t(&db, tableName);
+    DBConnector db(TEST_DB, "localhost", 6379, 0);
+    RedisPipeline pipeline(&db);
+    Table t(&pipeline, tableName, true);
 
     clearDB();
     cout << "Starting table manipulations" << endl;
@@ -348,6 +346,7 @@ TEST(Table, piped_test)
 
     t.set(key_1, values);
     t.set(key_2, values);
+    t.flush();
 
     cout << "- Step 2. GET_TABLE_CONTENT" << endl;
     vector<KeyOpFieldsValuesTuple> tuples;
@@ -404,7 +403,7 @@ TEST(ProducerConsumer, piped_Prefix)
 {
     string tableName = "tableName";
 
-    DBConnector db(TEST_VIEW, "localhost", 6379, 0);
+    DBConnector db(TEST_DB, "localhost", 6379, 0);
     RedisPipeline pipeline(&db);
     ProducerTable p(&pipeline, tableName, true);
 

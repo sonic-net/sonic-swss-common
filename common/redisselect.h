@@ -12,21 +12,19 @@ public:
     /* The database is already alive and kicking, no need for more than a second */
     static constexpr unsigned int SUBSCRIBE_TIMEOUT = 1000;
 
-    RedisSelect();
+    RedisSelect(int pri = 0);
 
-    void addFd(fd_set *fd);
-
-    int readCache();
-
-    void readMe();
-
-    bool isMe(fd_set *fd);
+    int getFd() override;
+    void readData() override;
+    bool hasCachedData() override;
+    bool initializedWithData() override;
+    void updateAfterRead() override;
 
     /* Create a new redisContext, SELECT DB and SUBSCRIBE */
-    void subscribe(DBConnector* db, std::string channelName);
+    void subscribe(DBConnector* db, const std::string &channelName);
 
     /* PSUBSCRIBE */
-    void psubscribe(DBConnector* db, std::string channelName);
+    void psubscribe(DBConnector* db, const std::string &channelName);
 
     void setQueueLength(long long int queueLength);
 

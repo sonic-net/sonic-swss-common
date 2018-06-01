@@ -24,39 +24,39 @@ class RedisClient
 
         RedisClient(swss::DBConnector *db);
 
-        int64_t del(std::string key);
+        int64_t del(const std::string &key);
 
-        int64_t hdel(std::string key, std::string field);
+        int64_t hdel(const std::string &key, const std::string &field);
 
-        std::unordered_map<std::string, std::string> hgetall(std::string key);
+        std::unordered_map<std::string, std::string> hgetall(const std::string &key);
 
-        std::vector<std::string> keys(std::string key);
+        std::vector<std::string> keys(const std::string &key);
 
-        std::vector<std::string> hkeys(std::string key);
+        std::vector<std::string> hkeys(const std::string &key);
 
-        void set(std::string key, std::string value);
+        void set(const std::string &key, const std::string &value);
 
-        void hset(std::string key, std::string field, std::string value);
+        void hset(const std::string &key, const std::string &field, const std::string &value);
 
-        void mset(std::unordered_map<std::string, std::string> map);
+        void mset(const std::unordered_map<std::string, std::string> &map);
 
-        void hmset(std::string key, std::unordered_map<std::string, std::string> map);
+        void hmset(const std::string &key, const std::unordered_map<std::string, std::string> &map);
 
-        std::shared_ptr<std::string> get(std::string key);
+        std::shared_ptr<std::string> get(const std::string &key);
 
-        std::shared_ptr<std::string> hget(std::string key, std::string field);
+        std::shared_ptr<std::string> hget(const std::string &key, const std::string &field);
 
-        std::vector<std::shared_ptr<std::string>> mget(std::vector<std::string> keys);
+        std::vector<std::shared_ptr<std::string>> mget(const std::vector<std::string> &keys);
 
-        std::vector<std::shared_ptr<std::string>> hmget(std::string key, std::vector<std::string> fields);
+        std::vector<std::shared_ptr<std::string>> hmget(const std::string &key, const std::vector<std::string> &fields);
 
-        int64_t incr(std::string key);
+        int64_t incr(const std::string &key);
 
-        int64_t decr(std::string key);
+        int64_t decr(const std::string &key);
 
-        int64_t rpush(std::string list, std::string item);
+        int64_t rpush(const std::string &list, const std::string &item);
 
-        std::shared_ptr<std::string> blpop(std::string list, int timeout);
+        std::shared_ptr<std::string> blpop(const std::string &list, int timeout);
 
     private:
         swss::DBConnector *m_db;

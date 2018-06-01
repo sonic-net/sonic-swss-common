@@ -19,16 +19,15 @@ namespace swss {
 class NotificationConsumer : public Selectable
 {
 public:
-    NotificationConsumer(swss::DBConnector *db, std::string channel);
+    NotificationConsumer(swss::DBConnector *db, const std::string &channel, int pri = 100);
 
     void pop(std::string &op, std::string &data, std::vector<FieldValueTuple> &values);
 
-    virtual ~NotificationConsumer();
+    ~NotificationConsumer() override;
 
-    virtual void addFd(fd_set *fd);
-    virtual bool isMe(fd_set *fd);
-    virtual int readCache();
-    virtual void readMe();
+    int getFd() override;
+    void readData() override;
+    bool hasCachedData() override;
 
 private:
 

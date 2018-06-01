@@ -11,8 +11,8 @@
 
 namespace swss {
 
-SelectableTimer::SelectableTimer(const timespec& interval)
-    : m_zero({{0, 0}, {0, 0}})
+SelectableTimer::SelectableTimer(const timespec& interval, int pri)
+    : Selectable(pri), m_zero({{0, 0}, {0, 0}})
 {
     // Create the timer
     m_tfd = timerfd_create(CLOCK_REALTIME, 0);
@@ -67,17 +67,12 @@ void SelectableTimer::setInterval(const timespec& interval)
     m_interval.it_interval = interval;
 }
 
-void SelectableTimer::addFd(fd_set *fd)
+int SelectableTimer::getFd()
 {
-    FD_SET(m_tfd, fd);
+    return m_tfd;
 }
 
-int SelectableTimer::readCache()
-{
-    return Selectable::NODATA;
-}
-
-void SelectableTimer::readMe()
+void SelectableTimer::readData()
 {
     uint64_t r;
 
@@ -95,9 +90,6 @@ void SelectableTimer::readMe()
     }
 }
 
-bool SelectableTimer::isMe(fd_set *fd)
-{
-    return FD_ISSET(m_tfd, fd);
-}
+// FIXME: if timer events are read slower than timer frequency we will lost time events
 
 }
