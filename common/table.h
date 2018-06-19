@@ -172,14 +172,20 @@ protected:
 
 class TableName_KeyValueOpQueues {
 private:
-    std::string m_keyvalueop;
+    std::string m_key;
+    std::string m_value;
+    std::string m_op;
 public:
     TableName_KeyValueOpQueues(const std::string &tableName)
-        : m_keyvalueop(tableName + "_KEY_VALUE_OP_QUEUE")
+        : m_key(tableName + "_KEY_QUEUE")
+        , m_value(tableName + "_VALUE_QUEUE")
+        , m_op(tableName + "_OP_QUEUE")
     {
     }
 
-    std::string getKeyValueOpQueueTableName() const { return m_keyvalueop; }
+    std::string getKeyQueueTableName() const { return m_key; }
+    std::string getValueQueueTableName() const { return m_value; }
+    std::string getOpQueueTableName() const { return m_op; }
 };
 
 class TableName_KeySet {
