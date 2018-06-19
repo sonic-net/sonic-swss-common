@@ -1,15 +1,17 @@
 local rets = {}
--- pop Key, Value and OP together.
-local popsize = ARGV[1] * 3
-local keys   = redis.call('LRANGE', KEYS[1], -popsize, -1)
+local keys   = redis.call('LRANGE', KEYS[1], -ARGV[1], -1)
+local ops    = redis.call('LRANGE', KEYS[2], -ARGV[1], -1)
+local values = redis.call('LRANGE', KEYS[3], -ARGV[1], -1)
 
-redis.call('LTRIM', KEYS[1], 0, -popsize-1)
+redis.call('LTRIM', KEYS[1], 0, -ARGV[1]-1)
+redis.call('LTRIM', KEYS[2], 0, -ARGV[1]-1)
+redis.call('LTRIM', KEYS[3], 0, -ARGV[1]-1)
 
 local n = table.getn(keys)
-for i = n, 1, -3 do
-   local op = keys[i-2]
-   local value = keys[i-1]
+for i = n, 1, -1 do
    local key = keys[i]
+   local op = ops[i]
+   local value = values[i]
    local dbop = op:sub(1,1)
    op = op:sub(2)
    local ret = {key, op}
@@ -33,7 +35,7 @@ for i = n, 1, -3 do
        while st <= len do
            local field = ret[st]
 -- keyname is ASIC_STATE : OBJECT_TYPE : OBJECT_ID
-           local keyname = KEYS[2] .. ':' .. key .. ':' .. field
+           local keyname = KEYS[4] .. ':' .. key .. ':' .. field
 
 -- value can be multiple a=v|a=v|... we need to split using gmatch
            local vars = ret[st+1]
@@ -47,9 +49,9 @@ for i = n, 1, -3 do
        end
 
    elseif op ~= 'flush' and op ~= 'flushresponse' and op ~= 'get' and op ~= 'getresponse' and op ~= 'notify' then
-       local keyname = KEYS[2] .. ':' .. key
+       local keyname = KEYS[4] .. ':' .. key
        if key == '' then
-           keyname = KEYS[2]
+           keyname = KEYS[4]
        end
 
        if dbop == 'D' then
