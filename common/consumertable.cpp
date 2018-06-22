@@ -31,7 +31,9 @@ ConsumerTable::ConsumerTable(DBConnector *db, const string &tableName, int popBa
     }
 
     RedisReply r(dequeueReply());
-    setQueueLength(r.getReply<long long int>());
+    long long int len = r.getReply<long long int>();
+    //Key, Value and OP are in one list, they are processed in one shot
+    setQueueLength(len/3);
 }
 
 void ConsumerTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, const string &prefix)
@@ -41,7 +43,7 @@ void ConsumerTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, const string &pref
     static string sha = loadRedisScript(m_db, luaScript);
     RedisCommand command;
     command.format(
-        "EVALSHA %s 2 %s %s %d '' '' ''",
+        "EVALSHA %s 2 %s %s %d ''",
         sha.c_str(),
         getKeyValueOpQueueTableName().c_str(),
         (prefix+getTableName()).c_str(),
