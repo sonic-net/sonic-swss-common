@@ -25,11 +25,17 @@ ProducerTable::ProducerTable(RedisPipeline *pipeline, const string &tableName, b
     , m_pipeowned(false)
     , m_pipe(pipeline)
 {
+    /*
+     * KEYS[1] : tableName + "_KEY_VALUE_OP_QUEUE
+     * ARGV[1] : key
+     * ARGV[2] : value
+     * ARGV[3] : op
+     * KEYS[2] : tableName + "_CHANNEL"
+     * ARGV[4] : "G"
+     */
     string luaEnque =
-        "redis.call('LPUSH', KEYS[1], ARGV[1]);"
-        "redis.call('LPUSH', KEYS[2], ARGV[2]);"
-        "redis.call('LPUSH', KEYS[3], ARGV[3]);"
-        "redis.call('PUBLISH', KEYS[4], ARGV[4]);";
+        "redis.call('LPUSH', KEYS[1], ARGV[1], ARGV[2], ARGV[3]);"
+        "redis.call('PUBLISH', KEYS[2], ARGV[4]);";
 
     m_shaEnque = m_pipe->loadRedisScript(luaEnque);
 }
@@ -62,12 +68,11 @@ void ProducerTable::setBuffered(bool buffered)
 void ProducerTable::enqueueDbChange(const string &key, const string &value, const string &op, const string& /* prefix */)
 {
     RedisCommand command;
+
     command.format(
-        "EVALSHA %s 4 %s %s %s %s %s %s %s %s",
+        "EVALSHA %s 2 %s %s %s %s %s %s",
         m_shaEnque.c_str(),
-        getKeyQueueTableName().c_str(),
-        getValueQueueTableName().c_str(),
-        getOpQueueTableName().c_str(),
+        getKeyValueOpQueueTableName().c_str(),
         getChannelName().c_str(),
         key.c_str(),
         value.c_str(),
