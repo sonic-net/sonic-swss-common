@@ -633,6 +633,12 @@ TEST(ProducerConsumer, ConsumerSelectWithInitData)
             break;
     }
 
+    /* Second select operation */
+    {
+        int ret = cs.select(&selectcs, 1000);
+        EXPECT_EQ(ret, Select::TIMEOUT);
+    }
+
     for (i = 0; i < NUMBER_OF_OPS; i++)
     {
         p.del(key(i));
@@ -652,6 +658,11 @@ TEST(ProducerConsumer, ConsumerSelectWithInitData)
 
         if (numberOfKeyDeleted == NUMBER_OF_OPS)
             break;
+    }
+    /* check select operation again */
+    {
+        int ret = cs.select(&selectcs, 1000);
+        EXPECT_EQ(ret, Select::TIMEOUT);
     }
 
     EXPECT_LE(numberOfKeysSet, numberOfKeyDeleted);
