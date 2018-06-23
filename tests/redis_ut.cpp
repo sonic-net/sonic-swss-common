@@ -635,7 +635,7 @@ TEST(ProducerConsumer, ConsumerSelectWithInitData)
 
     /* Second select operation */
     {
-        int ret = cs.select(&selectcs, 1000);
+        ret = cs.select(&selectcs, 1000);
         EXPECT_EQ(ret, Select::TIMEOUT);
     }
 
@@ -661,12 +661,11 @@ TEST(ProducerConsumer, ConsumerSelectWithInitData)
     }
     /* check select operation again */
     {
-        int ret = cs.select(&selectcs, 1000);
+        ret = cs.select(&selectcs, 1000);
         EXPECT_EQ(ret, Select::TIMEOUT);
     }
 
     EXPECT_LE(numberOfKeysSet, numberOfKeyDeleted);
-    EXPECT_EQ(ret, Select::OBJECT);
 
     cout << "Done. Waiting for all job to finish " << NUMBER_OF_OPS << " jobs." << endl;
 
