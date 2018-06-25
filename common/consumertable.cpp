@@ -20,18 +20,20 @@ ConsumerTable::ConsumerTable(DBConnector *db, const string &tableName, int popBa
 {
     for (;;)
     {
-        RedisReply watch(m_db, string("WATCH ") + getKeyQueueTableName(), REDIS_REPLY_STATUS);
+        RedisReply watch(m_db, string("WATCH ") + getKeyValueOpQueueTableName(), REDIS_REPLY_STATUS);
         watch.checkStatusOK();
         multi();
-        enqueue(string("LLEN ") + getKeyQueueTableName(), REDIS_REPLY_INTEGER);
+        enqueue(string("LLEN ") + getKeyValueOpQueueTableName(), REDIS_REPLY_INTEGER);
         subscribe(m_db, getChannelName());
-        enqueue(string("LLEN ") + getKeyQueueTableName(), REDIS_REPLY_INTEGER);
+        enqueue(string("LLEN ") + getKeyValueOpQueueTableName(), REDIS_REPLY_INTEGER);
         bool succ = exec();
         if (succ) break;
     }
 
     RedisReply r(dequeueReply());
-    setQueueLength(r.getReply<long long int>());
+    long long int len = r.getReply<long long int>();
+    //Key, Value and OP are in one list, they are processed in one shot
+    setQueueLength(len/3);
 }
 
 void ConsumerTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, const string &prefix)
@@ -41,11 +43,9 @@ void ConsumerTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, const string &pref
     static string sha = loadRedisScript(m_db, luaScript);
     RedisCommand command;
     command.format(
-        "EVALSHA %s 4 %s %s %s %s %d '' '' ''",
+        "EVALSHA %s 2 %s %s %d ''",
         sha.c_str(),
-        getKeyQueueTableName().c_str(),
-        getOpQueueTableName().c_str(),
-        getValueQueueTableName().c_str(),
+        getKeyValueOpQueueTableName().c_str(),
         (prefix+getTableName()).c_str(),
         POP_BATCH_SIZE);
 

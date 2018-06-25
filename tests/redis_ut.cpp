@@ -173,7 +173,7 @@ void TableBasicTest(string tableName)
     vector<string> keys;
     t.getKeys(keys);
     EXPECT_EQ(keys.size(), (size_t)2);
- 
+
     for (auto k : keys)
     {
         cout << "Get key [" << k << "]" << flush;
@@ -586,4 +586,88 @@ TEST(ProducerConsumer, PopEmpty)
     EXPECT_EQ(key, "");
     EXPECT_EQ(op, "");
     EXPECT_EQ(fvs.size(), 0U);
+}
+
+TEST(ProducerConsumer, ConsumerSelectWithInitData)
+{
+    clearDB();
+
+    string tableName = "tableName";
+    DBConnector db(TEST_DB, "localhost", 6379, 0);
+    ProducerTable p(&db, tableName);
+
+    for (int i = 0; i < NUMBER_OF_OPS; i++)
+    {
+        vector<FieldValueTuple> fields;
+        int maxNumOfFields = getMaxFields(i);
+        for (int j = 0; j < maxNumOfFields; j++)
+        {
+            FieldValueTuple t(field(j), value(j));
+            fields.push_back(t);
+        }
+        if ((i % 100) == 0)
+            cout << "+" << flush;
+
+        p.set(key(i), fields);
+    }
+
+    ConsumerTable c(&db, tableName);
+    Select cs;
+    Selectable *selectcs;
+    int ret, i = 0;
+    KeyOpFieldsValuesTuple kco;
+
+    cs.addSelectable(&c);
+    int numberOfKeysSet = 0;
+    while ((ret = cs.select(&selectcs)) == Select::OBJECT)
+    {
+        c.pop(kco);
+        EXPECT_EQ(kfvOp(kco), "SET");
+        numberOfKeysSet++;
+        validateFields(kfvKey(kco), kfvFieldsValues(kco));
+
+        if ((i++ % 100) == 0)
+            cout << "-" << flush;
+
+        if (numberOfKeysSet == NUMBER_OF_OPS)
+            break;
+    }
+
+    /* Second select operation */
+    {
+        ret = cs.select(&selectcs, 1000);
+        EXPECT_EQ(ret, Select::TIMEOUT);
+    }
+
+    for (i = 0; i < NUMBER_OF_OPS; i++)
+    {
+        p.del(key(i));
+        if ((i % 100) == 0)
+            cout << "+" << flush;
+    }
+
+    int numberOfKeyDeleted = 0;
+    while ((ret = cs.select(&selectcs)) == Select::OBJECT)
+    {
+        c.pop(kco);
+        EXPECT_EQ(kfvOp(kco), "DEL");
+        numberOfKeyDeleted++;
+
+        if ((i++ % 100) == 0)
+            cout << "-" << flush;
+
+        if (numberOfKeyDeleted == NUMBER_OF_OPS)
+            break;
+    }
+    /* check select operation again */
+    {
+        ret = cs.select(&selectcs, 1000);
+        EXPECT_EQ(ret, Select::TIMEOUT);
+    }
+
+    EXPECT_LE(numberOfKeysSet, numberOfKeyDeleted);
+
+    cout << "Done. Waiting for all job to finish " << NUMBER_OF_OPS << " jobs." << endl;
+
+    cout << endl << "Done." << endl;
 }
