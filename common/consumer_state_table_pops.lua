@@ -12,5 +12,8 @@ for i = 1, n do
       redis.call('HSET', tablename..key, fieldvalues[i], fieldvalues[i + 1])
    end
    redis.call('DEL', stateprefix..tablename..key)
+   if #fieldvalues == 0 then
+      redis.call('DEL', tablename..key)
+   end
 end
 return ret

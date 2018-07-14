@@ -11,6 +11,7 @@
 #include "common/table.h"
 #include "common/producerstatetable.h"
 #include "common/consumerstatetable.h"
+#include "common/redisclient.h"
 
 using namespace std;
 using namespace swss;
@@ -103,6 +104,7 @@ static void consumerWorker(int index)
 {
     string tableName = "UT_REDIS_THREAD_" + to_string(index);
     DBConnector db(TEST_DB, "localhost", 6379, 0);
+    RedisClient redisClient(&db);
     ConsumerStateTable c(&db, tableName);
     Select cs;
     Selectable *selectcs;
@@ -119,9 +121,17 @@ static void consumerWorker(int index)
         {
             numberOfKeysSet++;
             validateFields(kfvKey(kco), kfvFieldsValues(kco));
+
+            for (auto fv : kfvFieldsValues(kco))
+            {
+                string val = *redisClient.hget(tableName + ":" + kfvKey(kco), fvField(fv));
+                EXPECT_EQ(val, fvValue(fv));
+            }
         } else if (kfvOp(kco) == "DEL")
         {
             numberOfKeyDeleted++;
+            auto keys = redisClient.keys(tableName + ":" + kfvKey(kco));
+            EXPECT_EQ(0UL, keys.size());
         }
 
         if ((i++ % 100) == 0)
