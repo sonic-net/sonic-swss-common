@@ -8,8 +8,8 @@ for i = 1, n do
    local key = keys[i]
    local fieldvalues = redis.call('HGETALL', stateprefix..tablename..key)
    table.insert(ret, {key, fieldvalues})
-   for f, v in pairs(fieldvalues) do
-      redis.call('HSET', tablename..key, f, v)
+   for i = 1, #fieldvalues, 2 do
+      redis.call('HSET', tablename..key, fieldvalues[i], fieldvalues[i + 1])
    end
    redis.call('DEL', stateprefix..tablename..key)
 end
