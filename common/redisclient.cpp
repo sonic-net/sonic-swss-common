@@ -20,12 +20,12 @@ int64_t RedisClient::del(const string &key)
     return r.getContext()->integer;
 }
 
-int64_t RedisClient::exists(const string &key)
+bool RedisClient::exists(const string &key)
 {
-    RedisCommand sexists;
-    sexists.format("EXISTS %s", key.c_str());
-    RedisReply r(m_db, sexists, REDIS_REPLY_INTEGER);
-    return r.getContext()->integer;
+    RedisCommand rexists;
+    rexists.format("EXISTS %s", key.c_str());
+    RedisReply r(m_db, rexists, REDIS_REPLY_INTEGER);
+    return (r.getContext()->integer > 0);
 }
 
 int64_t RedisClient::hdel(const string &key, const string &field)
@@ -45,7 +45,7 @@ void RedisClient::hset(const string &key, const string &field, const string &val
 
 void RedisClient::hmset(const string &key, const vector<FieldValueTuple> &values)
 {
-    if (values.size() == 0)
+    if (values.empty())
         return;
 
     RedisCommand shmset;
@@ -55,15 +55,13 @@ void RedisClient::hmset(const string &key, const vector<FieldValueTuple> &values
 
 void RedisClient::hmset(const string &key, const std::map<std::string, std::string> &vmap)
 {
-    if (vmap.size() == 0)
+    if (vmap.empty())
         return;
 
     vector<FieldValueTuple> values;
-    auto it = vmap.begin();
-    while (it != vmap.end())
+    for(const auto it:vmap)
     {
-        values.push_back(FieldValueTuple(it->first, it->second));
-        it++;
+        values.emplace_back(it.first, it.second);
     }
 
     RedisCommand shmset;
@@ -88,7 +86,7 @@ unordered_map<string, string> RedisClient::hgetall(const string &key)
 
     unordered_map<string, string> map;
     for (unsigned int i = 0; i < ctx->elements; i += 2)
-        map[string(ctx->element[i]->str)] = string(ctx->element[i+1]->str);
+        map.emplace(ctx->element[i]->str, ctx->element[i+1]->str);
 
     return map;
 }
@@ -103,7 +101,7 @@ std::map<std::string, std::string> RedisClient::hgetallordered(const std::string
 
     map<string, string> map;
     for (unsigned int i = 0; i < ctx->elements; i += 2)
-        map[string(ctx->element[i]->str)] = string(ctx->element[i+1]->str);
+        map.emplace(ctx->element[i]->str, ctx->element[i+1]->str);
 
     return map;
 }
