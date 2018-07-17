@@ -45,9 +45,6 @@ void RedisClient::hset(const string &key, const string &field, const string &val
 
 void RedisClient::hmset(const string &key, const vector<FieldValueTuple> &values)
 {
-    if (values.empty())
-        return;
-
     RedisCommand shmset;
     shmset.formatHMSET(key, values);
     RedisReply r(m_db, shmset, REDIS_REPLY_STATUS);
@@ -55,9 +52,6 @@ void RedisClient::hmset(const string &key, const vector<FieldValueTuple> &values
 
 void RedisClient::hmset(const string &key, const std::map<std::string, std::string> &vmap)
 {
-    if (vmap.empty())
-        return;
-
     vector<FieldValueTuple> values;
     for(const auto it:vmap)
     {
