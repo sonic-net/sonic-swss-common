@@ -10,3 +10,5 @@ _swsscommon_la_LIBADD = ../common/libswsscommon.la -lpython$(PYTHON_VERSION)
 
 swsscommon_wrap.cpp: $(SWIG_SOURCES)
 	$(SWIG) -c++ -python -I../common -o $@ $<
+
+CLEANFILES = swsscommon_wrap.cpp
