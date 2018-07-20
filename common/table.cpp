@@ -92,7 +92,7 @@ void Table::set(const string &key, const vector<FieldValueTuple> &values,
         return;
 
     RedisCommand cmd;
-    cmd.formatHMSET(getKeyName(key), values);
+    cmd.formatHMSET(getKeyName(key), values.begin(), values.end());
 
     m_pipe->push(cmd, REDIS_REPLY_STATUS);
     if (!m_buffered)

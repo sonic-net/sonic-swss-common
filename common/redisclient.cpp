@@ -51,20 +51,14 @@ void RedisClient::hset(const string &key, const string &field, const string &val
 void RedisClient::hmset(const string &key, const vector<FieldValueTuple> &values)
 {
     RedisCommand shmset;
-    shmset.formatHMSET(key, values);
+    shmset.formatHMSET(key, values.begin(), values.end());
     RedisReply r(m_db, shmset, REDIS_REPLY_STATUS);
 }
 
 void RedisClient::hmset(const string &key, const std::map<std::string, std::string> &vmap)
 {
-    vector<FieldValueTuple> values;
-    for(const auto it:vmap)
-    {
-        values.emplace_back(it.first, it.second);
-    }
-
     RedisCommand shmset;
-    shmset.formatHMSET(key, values);
+    shmset.formatHMSET(key, vmap.begin(), vmap.end());
     RedisReply r(m_db, shmset, REDIS_REPLY_STATUS);
 }
 
@@ -77,20 +71,13 @@ void RedisClient::set(const string &key, const string &value)
 
 unordered_map<string, string> RedisClient::hgetall(const string &key)
 {
-    RedisCommand sincr;
-    sincr.format("HGETALL %s", key.c_str());
-    RedisReply r(m_db, sincr, REDIS_REPLY_ARRAY);
-
-    auto ctx = r.getContext();
-
     unordered_map<string, string> map;
-    for (unsigned int i = 0; i < ctx->elements; i += 2)
-        map.emplace(ctx->element[i]->str, ctx->element[i+1]->str);
-
+    hgetall(key, std::inserter(map, map.end()));
     return map;
 }
 
-std::map<std::string, std::string> RedisClient::hgetallordered(const std::string &key)
+template <typename OutputIterator>
+void RedisClient::hgetall(const std::string &key, OutputIterator result)
 {
     RedisCommand sincr;
     sincr.format("HGETALL %s", key.c_str());
@@ -100,9 +87,10 @@ std::map<std::string, std::string> RedisClient::hgetallordered(const std::string
 
     map<string, string> map;
     for (unsigned int i = 0; i < ctx->elements; i += 2)
-        map.emplace(ctx->element[i]->str, ctx->element[i+1]->str);
-
-    return map;
+    {
+        *result = std::make_pair(ctx->element[i]->str, ctx->element[i+1]->str);
+        ++result;
+    }
 }
 
 vector<string> RedisClient::keys(const string &key)

@@ -31,7 +31,9 @@ class RedisClient
         int64_t hdel(const std::string &key, const std::string &field);
 
         std::unordered_map<std::string, std::string> hgetall(const std::string &key);
-        std::map<std::string, std::string> hgetallordered(const std::string &key);
+
+        template <typename OutputIterator>
+        void hgetall(const std::string &key, OutputIterator result);
 
         std::vector<std::string> keys(const std::string &key);
 
