@@ -37,23 +37,11 @@ void RedisCommand::formatArgv(int argc, const char **argv, const size_t *argvlen
     }
 }
 
-    /* Format HMSET key multiple field value command */
+/* Format HMSET key multiple field value command */
 void RedisCommand::formatHMSET(const std::string &key,
                                const std::vector<FieldValueTuple> &values)
 {
-    if (values.empty()) throw std::invalid_argument("empty values");
-
-    const char* cmd = "HMSET";
-
-    std::vector<const char*> args = { cmd, key.c_str() };
-
-    for (const auto &fvt: values)
-    {
-        args.push_back(fvField(fvt).c_str());
-        args.push_back(fvValue(fvt).c_str());
-    }
-
-    formatArgv((int)args.size(), args.data(), NULL);
+    formatHMSET(key, values.begin(), values.end());
 }
 
 /* Format HSET key field value command */
