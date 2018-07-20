@@ -20,6 +20,19 @@ int64_t RedisClient::del(const string &key)
     return r.getContext()->integer;
 }
 
+bool RedisClient::exists(const string &key)
+{
+    RedisCommand rexists;
+    if (key.find_first_of(" \t") != string::npos)
+    {
+        SWSS_LOG_ERROR("EXISTS failed, invalid space or tab in single key: %s", key.c_str());
+        throw runtime_error("EXISTS failed, invalid space or tab in single key");
+    }
+    rexists.format("EXISTS %s", key.c_str());
+    RedisReply r(m_db, rexists, REDIS_REPLY_INTEGER);
+    return (r.getContext()->integer > 0);
+}
+
 int64_t RedisClient::hdel(const string &key, const string &field)
 {
     RedisCommand shdel;
@@ -44,16 +57,8 @@ void RedisClient::set(const string &key, const string &value)
 
 unordered_map<string, string> RedisClient::hgetall(const string &key)
 {
-    RedisCommand sincr;
-    sincr.format("HGETALL %s", key.c_str());
-    RedisReply r(m_db, sincr, REDIS_REPLY_ARRAY);
-
-    auto ctx = r.getContext();
-
     unordered_map<string, string> map;
-    for (unsigned int i = 0; i < ctx->elements; i += 2)
-        map[string(ctx->element[i]->str)] = string(ctx->element[i+1]->str);
-
+    hgetall(key, std::inserter(map, map.end()));
     return map;
 }
 
@@ -94,7 +99,7 @@ shared_ptr<string> RedisClient::get(const string &key)
     sget.format("GET %s", key.c_str());
     RedisReply r(m_db, sget);
     auto reply = r.getContext();
-    
+
     if (reply->type == REDIS_REPLY_NIL)
     {
         return shared_ptr<string>(NULL);
