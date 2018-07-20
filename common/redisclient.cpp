@@ -48,20 +48,6 @@ void RedisClient::hset(const string &key, const string &field, const string &val
     RedisReply r(m_db, shset, REDIS_REPLY_INTEGER);
 }
 
-void RedisClient::hmset(const string &key, const vector<FieldValueTuple> &values)
-{
-    RedisCommand shmset;
-    shmset.formatHMSET(key, values.begin(), values.end());
-    RedisReply r(m_db, shmset, REDIS_REPLY_STATUS);
-}
-
-void RedisClient::hmset(const string &key, const std::map<std::string, std::string> &vmap)
-{
-    RedisCommand shmset;
-    shmset.formatHMSET(key, vmap.begin(), vmap.end());
-    RedisReply r(m_db, shmset, REDIS_REPLY_STATUS);
-}
-
 void RedisClient::set(const string &key, const string &value)
 {
     RedisCommand sset;
@@ -74,23 +60,6 @@ unordered_map<string, string> RedisClient::hgetall(const string &key)
     unordered_map<string, string> map;
     hgetall(key, std::inserter(map, map.end()));
     return map;
-}
-
-template <typename OutputIterator>
-void RedisClient::hgetall(const std::string &key, OutputIterator result)
-{
-    RedisCommand sincr;
-    sincr.format("HGETALL %s", key.c_str());
-    RedisReply r(m_db, sincr, REDIS_REPLY_ARRAY);
-
-    auto ctx = r.getContext();
-
-    map<string, string> map;
-    for (unsigned int i = 0; i < ctx->elements; i += 2)
-    {
-        *result = std::make_pair(ctx->element[i]->str, ctx->element[i+1]->str);
-        ++result;
-    }
 }
 
 vector<string> RedisClient::keys(const string &key)

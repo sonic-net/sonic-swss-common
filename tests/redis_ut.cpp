@@ -268,8 +268,8 @@ TEST(DBConnector, RedisClient)
     cout << "Set key [a] field_1:1 field_2:2 field_3:3" << endl;
     cout << "Set key [b] field_1:1 field_2:2 field_3:3" << endl;
 
-    redic.hmset(key_1, values);
-    redic.hmset(key_2, values);
+    redic.hmset(key_1, values.begin(), values.end());
+    redic.hmset(key_2, values.begin(), values.end());
 
     cout << "- Step 2. GET_TABLE_KEYS" << endl;
     auto keys = redic.keys("*");
