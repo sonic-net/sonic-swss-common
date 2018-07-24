@@ -10,7 +10,7 @@ namespace swss {
 class IpAddresses
 {
 public:
-    IpAddresses() {}
+    IpAddresses() = default;
 
     /* A list of IpAddresses separated by ',' */
     IpAddresses(const std::string &ips);

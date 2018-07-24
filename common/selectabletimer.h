@@ -12,7 +12,7 @@ class SelectableTimer : public Selectable
 {
 public:
     SelectableTimer(const timespec& interval, int pri = 50);
-    virtual ~SelectableTimer();
+    ~SelectableTimer() override;
     void start();
     void stop();
     void reset();

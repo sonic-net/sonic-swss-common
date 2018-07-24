@@ -35,7 +35,7 @@ typedef std::map<std::string,TableMap> TableDump;
 class TableBase {
 public:
     TableBase(int dbId, const std::string &tableName)
-        : m_tableName(tableName)
+        : m_tableName(tableName), m_dbId(dbId)
     {
         /* Look up table separator for the provided DB */
         auto it = tableNameSeparatorMap.find(dbId);
@@ -52,6 +52,7 @@ public:
     }
 
     std::string getTableName() const { return m_tableName; }
+    int getDbId() const { return m_dbId; }
 
     /* Return the actual key name as a combination of tableName<table_separator>key */
     std::string getKeyName(const std::string &key)
@@ -74,11 +75,12 @@ private:
 
     std::string m_tableName;
     std::string m_tableSeparator;
+    int m_dbId;
 };
 
 class TableEntryWritable {
 public:
-    virtual ~TableEntryWritable() { }
+    virtual ~TableEntryWritable() = default;
 
     /* Set an entry in the table */
     virtual void set(const std::string &key,
@@ -94,7 +96,7 @@ public:
 
 class TableEntryPoppable {
 public:
-    virtual ~TableEntryPoppable() { }
+    virtual ~TableEntryPoppable() = default;
 
     /* Pop an action (set or del) on the table */
     virtual void pop(KeyOpFieldsValuesTuple &kco, const std::string &prefix = EMPTY_PREFIX) = 0;
@@ -113,7 +115,7 @@ public:
 
 class TableEntryEnumerable {
 public:
-    virtual ~TableEntryEnumerable() { }
+    virtual ~TableEntryEnumerable() = default;
 
     /* Get all the field-value tuple of the table entry with the key */
     virtual bool get(const std::string &key, std::vector<FieldValueTuple> &values) = 0;
@@ -130,7 +132,7 @@ class Table : public TableBase, public TableEntryEnumerable {
 public:
     Table(DBConnector *db, const std::string &tableName);
     Table(RedisPipeline *pipeline, const std::string &tableName, bool buffered);
-    virtual ~Table();
+    ~Table() override;
 
     /* Set an entry in the DB directly (op not in use) */
     virtual void set(const std::string &key,
@@ -172,20 +174,14 @@ protected:
 
 class TableName_KeyValueOpQueues {
 private:
-    std::string m_key;
-    std::string m_value;
-    std::string m_op;
+    std::string m_keyvalueop;
 public:
     TableName_KeyValueOpQueues(const std::string &tableName)
-        : m_key(tableName + "_KEY_QUEUE")
-        , m_value(tableName + "_VALUE_QUEUE")
-        , m_op(tableName + "_OP_QUEUE")
+        : m_keyvalueop(tableName + "_KEY_VALUE_OP_QUEUE")
     {
     }
 
-    std::string getKeyQueueTableName() const { return m_key; }
-    std::string getValueQueueTableName() const { return m_value; }
-    std::string getOpQueueTableName() const { return m_op; }
+    std::string getKeyValueOpQueueTableName() const { return m_keyvalueop; }
 };
 
 class TableName_KeySet {

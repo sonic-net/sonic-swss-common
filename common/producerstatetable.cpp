@@ -59,20 +59,20 @@ void ProducerStateTable::set(const string &key, const vector<FieldValueTuple> &v
 {
     // Assembly redis command args into a string vector
     vector<string> args;
-    args.push_back("EVALSHA");
-    args.push_back(m_shaSet);
-    args.push_back(to_string(values.size() + 2));
-    args.push_back(getChannelName());
-    args.push_back(getKeySetName());
+    args.emplace_back("EVALSHA");
+    args.emplace_back(m_shaSet);
+    args.emplace_back(to_string(values.size() + 2));
+    args.emplace_back(getChannelName());
+    args.emplace_back(getKeySetName());
 
     args.insert(args.end(), values.size(), getKeyName(key));
 
-    args.push_back("G");
-    args.push_back(key);
+    args.emplace_back("G");
+    args.emplace_back(key);
     for (const auto& iv: values)
     {
-        args.push_back(fvField(iv));
-        args.push_back(fvValue(iv));
+        args.emplace_back(fvField(iv));
+        args.emplace_back(fvValue(iv));
     }
 
     // Transform data structure
@@ -93,15 +93,15 @@ void ProducerStateTable::del(const string &key, const string &op /*= DEL_COMMAND
 {
     // Assembly redis command args into a string vector
     vector<string> args;
-    args.push_back("EVALSHA");
-    args.push_back(m_shaDel);
-    args.push_back("3");
-    args.push_back(getChannelName());
-    args.push_back(getKeySetName());
-    args.push_back(getKeyName(key));
-    args.push_back("G");
-    args.push_back(key);
-    args.push_back("''");
+    args.emplace_back("EVALSHA");
+    args.emplace_back(m_shaDel);
+    args.emplace_back("3");
+    args.emplace_back(getChannelName());
+    args.emplace_back(getKeySetName());
+    args.emplace_back(getKeyName(key));
+    args.emplace_back("G");
+    args.emplace_back(key);
+    args.emplace_back("''");
 
     // Transform data structure
     vector<const char *> args1;

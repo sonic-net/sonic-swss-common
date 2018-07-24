@@ -12,6 +12,7 @@
 #include "common/selectableevent.h"
 #include "common/selectabletimer.h"
 #include "common/table.h"
+#include "common/redisclient.h"
 
 using namespace std;
 using namespace swss;
@@ -173,7 +174,7 @@ void TableBasicTest(string tableName)
     vector<string> keys;
     t.getKeys(keys);
     EXPECT_EQ(keys.size(), (size_t)2);
- 
+
     for (auto k : keys)
     {
         cout << "Get key [" << k << "]" << flush;
@@ -196,8 +197,14 @@ void TableBasicTest(string tableName)
         {
             string value_1 = "1", value_2 = "2";
             cout << " " << fvField(fv) << ":" << fvValue(fv) << flush;
-            if (fvField(fv) == "field_1") EXPECT_EQ(fvValue(fv), value_1);
-            if (fvField(fv) == "field_2") EXPECT_EQ(fvValue(fv), value_2);
+            if (fvField(fv) == "field_1")
+            {
+                EXPECT_EQ(fvValue(fv), value_1);
+            }
+            if (fvField(fv) == "field_2")
+            {
+                EXPECT_EQ(fvValue(fv), value_2);
+            }
         }
         cout << endl;
     }
@@ -216,8 +223,14 @@ void TableBasicTest(string tableName)
     {
         string value_1 = "1", value_2 = "2";
         cout << " " << fvField(fv) << ":" << fvValue(fv) << flush;
-        if (fvField(fv) == "field_1") EXPECT_EQ(fvValue(fv), value_1);
-        if (fvField(fv) == "field_2") EXPECT_EQ(fvValue(fv), value_2);
+        if (fvField(fv) == "field_1")
+        {
+            EXPECT_EQ(fvValue(fv), value_1);
+        }
+        if (fvField(fv) == "field_2")
+        {
+            EXPECT_EQ(fvValue(fv), value_2);
+        }
     }
     cout << endl;
 
@@ -227,6 +240,103 @@ void TableBasicTest(string tableName)
     t.getContent(tuples);
 
     EXPECT_EQ(tuples.size(), unsigned(0));
+
+    cout << "Done." << endl;
+}
+
+TEST(DBConnector, RedisClient)
+{
+    DBConnector db(TEST_DB, "localhost", 6379, 0);
+
+    RedisClient redic(&db);
+
+    clearDB();
+    cout << "Starting table manipulations" << endl;
+
+    string key_1 = "a";
+    string key_2 = "b";
+    vector<FieldValueTuple> values;
+
+    for (int i = 1; i < 4; i++)
+    {
+        string field = "field_" + to_string(i);
+        string value = to_string(i);
+        values.push_back(make_pair(field, value));
+    }
+
+    cout << "- Step 1. SET" << endl;
+    cout << "Set key [a] field_1:1 field_2:2 field_3:3" << endl;
+    cout << "Set key [b] field_1:1 field_2:2 field_3:3" << endl;
+
+    redic.hmset(key_1, values.begin(), values.end());
+    redic.hmset(key_2, values.begin(), values.end());
+
+    cout << "- Step 2. GET_TABLE_KEYS" << endl;
+    auto keys = redic.keys("*");
+    EXPECT_EQ(keys.size(), (size_t)2);
+
+    for (auto k : keys)
+    {
+        cout << "Get key [" << k << "]" << flush;
+        EXPECT_EQ(k.length(), (size_t)1);
+    }
+
+    cout << "- Step 3. GET_TABLE_CONTENT" << endl;
+
+    for (auto k : keys)
+    {
+        cout << "Get key [" << k << "]" << flush;
+        auto fvs = redic.hgetall(k);
+        unsigned int size_v = 3;
+        EXPECT_EQ(fvs.size(), size_v);
+        for (auto fv: fvs)
+        {
+            string value_1 = "1", value_2 = "2";
+            cout << " " << fvField(fv) << ":" << fvValue(fv) << flush;
+            if (fvField(fv) == "field_1")
+            {
+                EXPECT_EQ(fvValue(fv), value_1);
+            }
+            if (fvField(fv) == "field_2")
+            {
+                EXPECT_EQ(fvValue(fv), value_2);
+            }
+        }
+        cout << endl;
+    }
+
+    cout << "- Step 4. DEL" << endl;
+    cout << "Delete key [a]" << endl;
+    redic.del(key_1);
+
+    cout << "- Step 5. GET" << endl;
+    cout << "Get key [a] and key [b]" << endl;
+    auto fvs = redic.hgetall(key_1);
+    EXPECT_TRUE(fvs.empty());
+    fvs = redic.hgetall(key_2);
+
+    cout << "Get key [b]" << flush;
+    for (auto fv: fvs)
+    {
+        string value_1 = "1", value_2 = "2";
+        cout << " " << fvField(fv) << ":" << fvValue(fv) << flush;
+        if (fvField(fv) == "field_1")
+        {
+            EXPECT_EQ(fvValue(fv), value_1);
+        }
+        if (fvField(fv) == "field_2")
+        {
+            EXPECT_EQ(fvValue(fv), value_2);
+        }
+    }
+    cout << endl;
+
+    cout << "- Step 6. DEL and GET_TABLE_CONTENT" << endl;
+    cout << "Delete key [b]" << endl;
+    redic.del(key_2);
+    fvs = redic.hgetall(key_2);
+
+    EXPECT_TRUE(fvs.empty());
 
     cout << "Done." << endl;
 }
@@ -574,4 +684,88 @@ TEST(ProducerConsumer, PopEmpty)
     EXPECT_EQ(key, "");
     EXPECT_EQ(op, "");
     EXPECT_EQ(fvs.size(), 0U);
+}
+
+TEST(ProducerConsumer, ConsumerSelectWithInitData)
+{
+    clearDB();
+
+    string tableName = "tableName";
+    DBConnector db(TEST_DB, "localhost", 6379, 0);
+    ProducerTable p(&db, tableName);
+
+    for (int i = 0; i < NUMBER_OF_OPS; i++)
+    {
+        vector<FieldValueTuple> fields;
+        int maxNumOfFields = getMaxFields(i);
+        for (int j = 0; j < maxNumOfFields; j++)
+        {
+            FieldValueTuple t(field(j), value(j));
+            fields.push_back(t);
+        }
+        if ((i % 100) == 0)
+            cout << "+" << flush;
+
+        p.set(key(i), fields);
+    }
+
+    ConsumerTable c(&db, tableName);
+    Select cs;
+    Selectable *selectcs;
+    int ret, i = 0;
+    KeyOpFieldsValuesTuple kco;
+
+    cs.addSelectable(&c);
+    int numberOfKeysSet = 0;
+    while ((ret = cs.select(&selectcs)) == Select::OBJECT)
+    {
+        c.pop(kco);
+        EXPECT_EQ(kfvOp(kco), "SET");
+        numberOfKeysSet++;
+        validateFields(kfvKey(kco), kfvFieldsValues(kco));
+
+        if ((i++ % 100) == 0)
+            cout << "-" << flush;
+
+        if (numberOfKeysSet == NUMBER_OF_OPS)
+            break;
+    }
+
+    /* Second select operation */
+    {
+        ret = cs.select(&selectcs, 1000);
+        EXPECT_EQ(ret, Select::TIMEOUT);
+    }
+
+    for (i = 0; i < NUMBER_OF_OPS; i++)
+    {
+        p.del(key(i));
+        if ((i % 100) == 0)
+            cout << "+" << flush;
+    }
+
+    int numberOfKeyDeleted = 0;
+    while ((ret = cs.select(&selectcs)) == Select::OBJECT)
+    {
+        c.pop(kco);
+        EXPECT_EQ(kfvOp(kco), "DEL");
+        numberOfKeyDeleted++;
+
+        if ((i++ % 100) == 0)
+            cout << "-" << flush;
+
+        if (numberOfKeyDeleted == NUMBER_OF_OPS)
+            break;
+    }
+    /* check select operation again */
+    {
+        ret = cs.select(&selectcs, 1000);
+        EXPECT_EQ(ret, Select::TIMEOUT);
+    }
+
+    EXPECT_LE(numberOfKeysSet, numberOfKeyDeleted);
+
+    cout << "Done. Waiting for all job to finish " << NUMBER_OF_OPS << " jobs." << endl;
+
+    cout << endl << "Done." << endl;
 }

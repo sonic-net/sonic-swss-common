@@ -10,7 +10,7 @@ namespace swss {
 class NetLink : public Selectable {
 public:
     NetLink(int pri = 0);
-    virtual ~NetLink();
+    ~NetLink() override;
 
     void registerGroup(int rtnlGroup);
     void dumpRequest(int rtmGetCommand);

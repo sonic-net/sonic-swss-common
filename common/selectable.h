@@ -15,7 +15,7 @@ public:
     Selectable(int pri = 0) : m_priority(pri),
                               m_last_used_time(std::chrono::steady_clock::now()) {}
 
-    virtual ~Selectable() {};
+    virtual ~Selectable() = default;
 
     /* return file handler for the Selectable */
     virtual int getFd() = 0;
