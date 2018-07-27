@@ -13,6 +13,8 @@
 #include "producerstatetable.h"
 #include "consumertablebase.h"
 #include "consumerstatetable.h"
+#include "producertable.h"
+#include "consumertable.h"
 #include "subscriberstatetable.h"
 #include "notificationconsumer.h"
 #include "notificationproducer.h"
@@ -56,6 +58,7 @@
 %clear std::vector<std::string> &keys;
 %clear std::vector<std::pair<std::string, std::string>> &values;
 
+%include "producertable.h"
 %include "producerstatetable.h"
 
 %apply std::string& OUTPUT {std::string &key};
@@ -66,6 +69,7 @@
 %clear std::string &op;
 %clear std::vector<std::pair<std::string, std::string>> &fvs;
 
+%include "consumertable.h"
 %include "consumerstatetable.h"
 %include "subscriberstatetable.h"
 
