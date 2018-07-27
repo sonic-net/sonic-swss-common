@@ -194,6 +194,7 @@ public:
     }
 
     std::string getKeySetName() const { return m_key; }
+    std::string getStateHashPrefix() const { return "_"; }
 };
 
 }
