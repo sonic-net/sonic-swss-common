@@ -21,6 +21,7 @@ using namespace swss;
 static const string dbhost = "localhost";
 static const int dbport = 6379;
 static const string testTableName = "UT_REDIS_TABLE";
+static const string testTableName2 = "UT_REDIS_TABLE2";
 
 static inline int getMaxFields(int i)
 {
@@ -373,4 +374,68 @@ TEST(SubscriberStateTable, one_producer_multiple_subscriber)
         delete subscriberThreads[i];
     }
     cout << endl << "Done." << endl;
+}
+
+TEST(SubscriberStateTable, cachedData)
+{
+    clearDB();
+
+    /* Prepare init data */
+    int index = 0;
+    int maxNumOfFields = 2;
+
+    DBConnector db(TEST_DB, dbhost, dbport, 0);
+    Table p(&db, testTableName);
+    string key = "TheKey";
+    /* Set operation */
+    {
+        vector<FieldValueTuple> fields;
+        for (int j = 0; j < maxNumOfFields; j++)
+        {
+            FieldValueTuple t(field(index, j), value(index, j));
+            fields.push_back(t);
+        }
+        p.set(key, fields);
+    }
+
+    Table p2(&db, testTableName2);
+    /* Set operation */
+    {
+        vector<FieldValueTuple> fields;
+        for (int j = 0; j < maxNumOfFields; j++)
+        {
+            FieldValueTuple t(field(index, j), value(index, j));
+            fields.push_back(t);
+        }
+        p2.set(key, fields);
+    }
+
+    /* Prepare subscriber */
+    SubscriberStateTable c(&db, testTableName);
+    SubscriberStateTable c2(&db, testTableName2);
+    Select cs;
+    Selectable *selectcs;
+    cs.addSelectable(&c);
+    cs.addSelectable(&c2);
+
+    /* Pop operation and check CachedSelectable */
+    {
+        int ret = cs.select(&selectcs);
+        EXPECT_EQ(ret, Select::OBJECT);
+        KeyOpFieldsValuesTuple kco;
+        c.pop(kco);
+        EXPECT_EQ(kfvKey(kco), key);
+        EXPECT_EQ(kfvOp(kco), "SET");
+
+        bool r = cs.hasCachedSelectable();
+        EXPECT_TRUE(r);
+
+        ret = cs.select(&selectcs);
+        EXPECT_EQ(ret, Select::OBJECT);
+        c.pop(kco);
+        EXPECT_EQ(kfvKey(kco), key);
+        EXPECT_EQ(kfvOp(kco), "SET");
+        r = cs.hasCachedSelectable();
+        EXPECT_FALSE(r);
+    }
 }
