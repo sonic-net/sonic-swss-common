@@ -1,5 +1,17 @@
 from swsscommon import swsscommon
 
+def test_ProducerTable():
+    db = swsscommon.DBConnector(0, "localhost", 6379, 0)
+    ps = swsscommon.ProducerTable(db, "abc")
+    cs = swsscommon.ConsumerTable(db, "abc")
+    fvs = swsscommon.FieldValuePairs([('a','b')])
+    ps.set("bbb", fvs)
+    (key, op, cfvs) = cs.pop()
+    assert key == "bbb"
+    assert op == "SET"
+    assert len(cfvs) == 1
+    assert cfvs[0] == ('a', 'b')
+
 def test_ProducerStateTable():
     db = swsscommon.DBConnector(0, "localhost", 6379, 0)
     ps = swsscommon.ProducerStateTable(db, "abc")
