@@ -9,7 +9,7 @@ ConsumerTableBase::ConsumerTableBase(DBConnector *db, const std::string &tableNa
 {
 }
 
-DBConnector* ConsumerTableBase::getDbConnector()
+const DBConnector* ConsumerTableBase::getDbConnector() const
 {
     return m_db;
 }

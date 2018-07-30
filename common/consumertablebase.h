@@ -14,7 +14,7 @@ public:
 
     ~ConsumerTableBase() override = default;
 
-    DBConnector* getDbConnector();
+    const DBConnector* getDbConnector() const;
 
     void pop(KeyOpFieldsValuesTuple &kco, const std::string &prefix = EMPTY_PREFIX);
 
