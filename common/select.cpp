@@ -159,7 +159,7 @@ int Select::select(Selectable **c, unsigned int timeout)
 
 }
 
-bool Select::hasCachedSelectable()
+bool Select::isQueueNonEmpty()
 {
     return !m_ready.empty();
 }
