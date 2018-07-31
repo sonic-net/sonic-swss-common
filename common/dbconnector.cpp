@@ -63,17 +63,17 @@ DBConnector::DBConnector(int dbId, const string& unixPath, unsigned int timeout)
     select(this);
 }
 
-redisContext *DBConnector::getContext()
+redisContext *DBConnector::getContext() const
 {
     return m_conn;
 }
 
-int DBConnector::getDbId()
+int DBConnector::getDbId() const
 {
     return m_dbId;
 }
 
-DBConnector *DBConnector::newConnector(unsigned int timeout)
+DBConnector *DBConnector::newConnector(unsigned int timeout) const
 {
     if (getContext()->connection_type == REDIS_CONN_TCP)
         return new DBConnector(getDbId(),

@@ -13,7 +13,7 @@ public:
     const size_t COMMAND_MAX;
     static constexpr int NEWCONNECTOR_TIMEOUT = 0;
 
-    RedisPipeline(DBConnector *db, size_t sz = 128)
+    RedisPipeline(const DBConnector *db, size_t sz = 128)
         : COMMAND_MAX(sz)
         , m_remaining(0)
     {

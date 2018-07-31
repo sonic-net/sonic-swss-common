@@ -25,13 +25,13 @@ public:
 
     ~DBConnector();
 
-    redisContext *getContext();
-    int getDbId();
+    redisContext *getContext() const;
+    int getDbId() const;
 
     static void select(DBConnector *db);
 
     /* Create new context to DB */
-    DBConnector *newConnector(unsigned int timeout);
+    DBConnector *newConnector(unsigned int timeout) const;
 
 private:
     redisContext *m_conn;

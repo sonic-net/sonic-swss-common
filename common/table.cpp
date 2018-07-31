@@ -29,7 +29,7 @@ const TableNameSeparatorMap TableBase::tableNameSeparatorMap = {
    { STATE_DB,        TABLE_NAME_SEPARATOR_VBAR  }
 };
 
-Table::Table(DBConnector *db, const string &tableName)
+Table::Table(const DBConnector *db, const string &tableName)
     : Table(new RedisPipeline(db, 1), tableName, false)
 {
     m_pipeowned = true;

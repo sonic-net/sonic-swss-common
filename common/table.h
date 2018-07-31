@@ -130,7 +130,7 @@ public:
 
 class Table : public TableBase, public TableEntryEnumerable {
 public:
-    Table(DBConnector *db, const std::string &tableName);
+    Table(const DBConnector *db, const std::string &tableName);
     Table(RedisPipeline *pipeline, const std::string &tableName, bool buffered);
     ~Table() override;
 
