@@ -439,8 +439,8 @@ TEST(SubscriberStateTable, cachedData)
         EXPECT_EQ(kfvOp(kco), "SET");
 
         /* There is one cached selectable left */
-        bool r = cs.isQueueNonEmpty();
-        EXPECT_TRUE(r);
+        bool r = cs.isQueueEmpty();
+        EXPECT_FALSE(r);
 
         ret = cs.select(&selectcs);
         EXPECT_EQ(ret, Select::OBJECT);
@@ -460,7 +460,7 @@ TEST(SubscriberStateTable, cachedData)
         EXPECT_EQ(kfvKey(kco), key);
         EXPECT_EQ(kfvOp(kco), "SET");
         /* No cached selectable left */
-        r = cs.isQueueNonEmpty();
-        EXPECT_FALSE(r);
+        r = cs.isQueueEmpty();
+        EXPECT_TRUE(r);
     }
 }

@@ -34,7 +34,7 @@ public:
     };
 
     int select(Selectable **c, unsigned int timeout = std::numeric_limits<unsigned int>::max());
-    bool isQueueNonEmpty();
+    bool isQueueEmpty();
 private:
     struct cmp
     {
