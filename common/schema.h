@@ -31,7 +31,6 @@ namespace swss {
 #define APP_SWITCH_TABLE_NAME           "SWITCH_TABLE"
 
 #define APP_COPP_TABLE_NAME             "COPP_TABLE"
-#define APP_WARM_RESTART_TABLE_NAME       "WARM_RESTART_TABLE"
 
 /***** TO BE REMOVED *****/
 
@@ -151,6 +150,7 @@ namespace swss {
 #define STATE_VLAN_TABLE_NAME           "VLAN_TABLE"
 #define STATE_VLAN_MEMBER_TABLE_NAME    "VLAN_MEMBER_TABLE"
 #define STATE_INTERFACE_TABLE_NAME      "INTERFACE_TABLE"
+#define STATE_WARM_RESTART_TABLE_NAME   "WARM_RESTART_TABLE"
 
 /***** MISC *****/
 
