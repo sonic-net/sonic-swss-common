@@ -148,6 +148,13 @@ public:
     /* Returns false if the key doesn't exists */
     virtual bool get(const std::string &key, std::vector<FieldValueTuple> &ovalues);
 
+    virtual bool getEntry(const std::string &key, const std::string &field,  std::string &value);
+    virtual void setEntry(const std::string &key,
+                          const std::string &field,
+                          const std::string &value,
+                          const std::string &op = "",
+                          const std::string &prefix = EMPTY_PREFIX);
+
     void getKeys(std::vector<std::string> &keys);
 
     void setBuffered(bool buffered);
