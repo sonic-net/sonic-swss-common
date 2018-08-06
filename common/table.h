@@ -148,8 +148,8 @@ public:
     /* Returns false if the key doesn't exists */
     virtual bool get(const std::string &key, std::vector<FieldValueTuple> &ovalues);
 
-    virtual bool getEntry(const std::string &key, const std::string &field,  std::string &value);
-    virtual void setEntry(const std::string &key,
+    virtual bool hget(const std::string &key, const std::string &field,  std::string &value);
+    virtual void hset(const std::string &key,
                           const std::string &field,
                           const std::string &value,
                           const std::string &op = "",
