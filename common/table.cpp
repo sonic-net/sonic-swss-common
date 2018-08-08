@@ -102,7 +102,7 @@ bool Table::hget(const string &key, const std::string &field,  std::string &valu
         throw system_error(make_error_code(errc::io_error),
                 "Got unexpected reply type");
 
-    value =  stripSpecialSym(reply->str);
+    value = stripSpecialSym(reply->str);
 
     return true;
 }
