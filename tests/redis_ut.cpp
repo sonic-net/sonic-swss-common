@@ -241,6 +241,32 @@ void TableBasicTest(string tableName)
 
     EXPECT_EQ(tuples.size(), unsigned(0));
 
+    cout << "- Step 7. hset and hget" << endl;
+    string key = "k";
+    string field_1 = "f1";
+    string value_1_set = "v1";
+    string field_2 = "f2";
+    string value_2_set = "v2";
+    string field_empty = "";
+    string value_empty = "";
+    t.hset(key, field_1, value_1_set);
+    t.hset(key, field_2, value_2_set);
+    t.hset(key, field_empty, value_empty);
+
+    string value_got;
+    t.hget(key, field_1, value_got);
+    EXPECT_EQ(value_1_set, value_got);
+
+    t.hget(key, field_2, value_got);
+    EXPECT_EQ(value_2_set, value_got);
+
+    bool r = t.hget(key, field_empty, value_got);
+    ASSERT_TRUE(r);
+    EXPECT_EQ(value_empty, value_got);
+
+    r = t.hget(key, "e", value_got);
+    ASSERT_FALSE(r);
+
     cout << "Done." << endl;
 }
 

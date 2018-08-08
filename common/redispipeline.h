@@ -48,6 +48,13 @@ public:
         }
     }
 
+    redisReply *push(const RedisCommand& command)
+    {
+        flush();
+        RedisReply r(m_db, command);
+        return r.release();
+    }
+
     std::string loadRedisScript(const std::string& script)
     {
         RedisCommand loadcmd;
