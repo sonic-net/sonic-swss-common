@@ -225,6 +225,62 @@ TEST(SubscriberStateTable, set)
     }
 }
 
+TEST(SubscriberStateTable, pops_intial)
+{
+    clearDB();
+
+    /* Prepare producer */
+    int index = 0;
+    DBConnector db(TEST_DB, dbhost, dbport, 0);
+    Table p(&db, testTableName);
+    string key = "TheKey";
+    int maxNumOfFields = 2;
+
+    /* Set operation */
+    {
+        vector<FieldValueTuple> fields;
+        for (int j = 0; j < maxNumOfFields; j++)
+        {
+            FieldValueTuple t(field(index, j), value(index, j));
+            fields.push_back(t);
+        }
+        p.set(key, fields);
+    }
+
+    /* Prepare subscriber */
+    SubscriberStateTable c(&db, testTableName);
+    Select cs;
+    cs.addSelectable(&c);
+    std::deque<KeyOpFieldsValuesTuple> entries;
+
+    /* Pop all the initial data */
+    {
+        c.pops(entries);
+        ASSERT_EQ(entries.size(), 1U);
+        KeyOpFieldsValuesTuple t = entries[0];
+        EXPECT_EQ(kfvKey(t), key);
+        auto fvs = kfvFieldsValues(t);
+        ASSERT_EQ(fvs.size(), (size_t)maxNumOfFields);
+
+        map<string, string> mm;
+        for (auto fv: fvs)
+        {
+            mm[fvField(fv)] = fvValue(fv);
+        }
+
+        for (int j = 0; j < maxNumOfFields; j++)
+        {
+            EXPECT_EQ(mm[field(index, j)], value(index, j));
+        }
+    }
+
+    /* Continue pop and get nothing */
+    {
+        c.pops(entries);
+        EXPECT_EQ(entries.size(), 0U);
+    }
+}
+
 TEST(SubscriberStateTable, del)
 {
     clearDB();
@@ -286,7 +342,7 @@ TEST(SubscriberStateTable, table_state)
     Table p(&db, testTableName);
 
     for (int i = 0; i < NUMBER_OF_OPS; i++)
-   {
+    {
        vector<FieldValueTuple> fields;
        int maxNumOfFields = getMaxFields(i);
        for (int j = 0; j < maxNumOfFields; j++)
@@ -301,7 +357,7 @@ TEST(SubscriberStateTable, table_state)
        }
 
        p.set(key(index, i), fields);
-   }
+    }
 
     /* Prepare subscriber */
     SubscriberStateTable c(&db, testTableName);
