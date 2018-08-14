@@ -43,9 +43,4 @@ void ConsumerTableBase::pop(std::string &key, std::string &op, std::vector<Field
     m_buffer.pop_front();
 }
 
-inline bool ConsumerTableBase::empty() const
-{
-    return m_buffer.empty();
-}
-
 }
