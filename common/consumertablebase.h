@@ -20,7 +20,7 @@ public:
 
     void pop(std::string &key, std::string &op, std::vector<FieldValueTuple> &fvs, const std::string &prefix = EMPTY_PREFIX);
 
-    inline bool empty() const;
+    bool empty() const;
 protected:
 
     std::deque<KeyOpFieldsValuesTuple> m_buffer;
