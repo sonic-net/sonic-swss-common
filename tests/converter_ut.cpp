@@ -76,3 +76,18 @@ TEST(CONVERTER, negative)
     EXPECT_THROW(to_int<int16_t>(val), invalid_argument);
     EXPECT_THROW(to_int<int8_t>(val), invalid_argument);;
 }
+
+TEST(CONVERTER, uppercase)
+{
+    string val = "str1";
+    EXPECT_EQ("STR1", to_upper(val));
+
+    val = "STR2";
+    EXPECT_EQ("STR2", to_upper(val));
+
+    val = "";
+    EXPECT_EQ("", to_upper(val));
+
+    const string c_val = "AbCd123$%^";
+    EXPECT_EQ("ABCD123$%^", to_upper(c_val));
+}
