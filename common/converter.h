@@ -63,7 +63,7 @@ T to_uint(const std::string &str, T min = std::numeric_limits<T>::min(), T max =
     return static_cast<T>(__to_uint64(str, min, max));
 }
 
-std::string to_upper(std::string str)
+static inline std::string to_upper(std::string str)
 {
     transform(str.begin(), str.end(), str.begin(), ::toupper);
     return str;
