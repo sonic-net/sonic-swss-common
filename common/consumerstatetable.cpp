@@ -38,11 +38,12 @@ void ConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const st
 
     RedisCommand command;
     command.format(
-        "EVALSHA %s 2 %s %s: %d ''",
+        "EVALSHA %s 2 %s %s: %d %s",
         sha.c_str(),
         getKeySetName().c_str(),
         getTableName().c_str(),
-        POP_BATCH_SIZE);
+        POP_BATCH_SIZE,
+        getStateHashPrefix().c_str());
 
     RedisReply r(m_db, command);
     auto ctx0 = r.getContext();
@@ -64,7 +65,6 @@ void ConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const st
         assert(values.empty());
 
         auto& ctx = ctx0->element[ie];
-        assert(ctx->elements == 2);
         assert(ctx->element[0]->type == REDIS_REPLY_STRING);
         std::string key = ctx->element[0]->str;
         kfvKey(kco) = key;

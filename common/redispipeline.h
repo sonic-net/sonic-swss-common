@@ -13,7 +13,7 @@ public:
     const size_t COMMAND_MAX;
     static constexpr int NEWCONNECTOR_TIMEOUT = 0;
 
-    RedisPipeline(DBConnector *db, size_t sz = 128)
+    RedisPipeline(const DBConnector *db, size_t sz = 128)
         : COMMAND_MAX(sz)
         , m_remaining(0)
     {
@@ -46,6 +46,13 @@ public:
                 return r.release();
             }
         }
+    }
+
+    redisReply *push(const RedisCommand& command)
+    {
+        flush();
+        RedisReply r(m_db, command);
+        return r.release();
     }
 
     std::string loadRedisScript(const std::string& script)

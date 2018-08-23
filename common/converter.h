@@ -1,6 +1,7 @@
 #ifndef __CONVERTER__
 #define __CONVERTER__
 
+#include <algorithm>
 #include <utility>
 #include <exception>
 #include <stdexcept>
@@ -60,6 +61,12 @@ T to_uint(const std::string &str, T min = std::numeric_limits<T>::min(), T max =
     static_assert(std::numeric_limits<T>::max() <= std::numeric_limits<uint64_t>::max(), "Type is too big");
 
     return static_cast<T>(__to_uint64(str, min, max));
+}
+
+static inline std::string to_upper(std::string str)
+{
+    transform(str.begin(), str.end(), str.begin(), ::toupper);
+    return str;
 }
 
 }

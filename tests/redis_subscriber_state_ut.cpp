@@ -21,6 +21,7 @@ using namespace swss;
 static const string dbhost = "localhost";
 static const int dbport = 6379;
 static const string testTableName = "UT_REDIS_TABLE";
+static const string testTableName2 = "UT_REDIS_TABLE2";
 
 static inline int getMaxFields(int i)
 {
@@ -224,6 +225,62 @@ TEST(SubscriberStateTable, set)
     }
 }
 
+TEST(SubscriberStateTable, pops_intial)
+{
+    clearDB();
+
+    /* Prepare producer */
+    int index = 0;
+    DBConnector db(TEST_DB, dbhost, dbport, 0);
+    Table p(&db, testTableName);
+    string key = "TheKey";
+    int maxNumOfFields = 2;
+
+    /* Set operation */
+    {
+        vector<FieldValueTuple> fields;
+        for (int j = 0; j < maxNumOfFields; j++)
+        {
+            FieldValueTuple t(field(index, j), value(index, j));
+            fields.push_back(t);
+        }
+        p.set(key, fields);
+    }
+
+    /* Prepare subscriber */
+    SubscriberStateTable c(&db, testTableName);
+    Select cs;
+    cs.addSelectable(&c);
+    std::deque<KeyOpFieldsValuesTuple> entries;
+
+    /* Pop all the initial data */
+    {
+        c.pops(entries);
+        ASSERT_EQ(entries.size(), 1U);
+        KeyOpFieldsValuesTuple t = entries[0];
+        EXPECT_EQ(kfvKey(t), key);
+        auto fvs = kfvFieldsValues(t);
+        ASSERT_EQ(fvs.size(), (size_t)maxNumOfFields);
+
+        map<string, string> mm;
+        for (auto fv: fvs)
+        {
+            mm[fvField(fv)] = fvValue(fv);
+        }
+
+        for (int j = 0; j < maxNumOfFields; j++)
+        {
+            EXPECT_EQ(mm[field(index, j)], value(index, j));
+        }
+    }
+
+    /* Continue pop and get nothing */
+    {
+        c.pops(entries);
+        EXPECT_EQ(entries.size(), 0U);
+    }
+}
+
 TEST(SubscriberStateTable, del)
 {
     clearDB();
@@ -285,7 +342,7 @@ TEST(SubscriberStateTable, table_state)
     Table p(&db, testTableName);
 
     for (int i = 0; i < NUMBER_OF_OPS; i++)
-   {
+    {
        vector<FieldValueTuple> fields;
        int maxNumOfFields = getMaxFields(i);
        for (int j = 0; j < maxNumOfFields; j++)
@@ -300,7 +357,7 @@ TEST(SubscriberStateTable, table_state)
        }
 
        p.set(key(index, i), fields);
-   }
+    }
 
     /* Prepare subscriber */
     SubscriberStateTable c(&db, testTableName);
@@ -373,4 +430,93 @@ TEST(SubscriberStateTable, one_producer_multiple_subscriber)
         delete subscriberThreads[i];
     }
     cout << endl << "Done." << endl;
+}
+
+TEST(SubscriberStateTable, cachedData)
+{
+    clearDB();
+
+    /* Prepare init data */
+    int index = 0;
+    int maxNumOfFields = 2;
+
+    DBConnector db(TEST_DB, dbhost, dbport, 0);
+    Table p(&db, testTableName);
+    string key1 = "TheKey1";
+    /* Set operation */
+    {
+        vector<FieldValueTuple> fields;
+        for (int j = 0; j < maxNumOfFields; j++)
+        {
+            FieldValueTuple t(field(index, j), value(index, j));
+            fields.push_back(t);
+        }
+        p.set(key1, fields);
+    }
+
+    Table p2(&db, testTableName2);
+    string key2 = "TheKey2";
+    /* Set operation */
+    {
+        vector<FieldValueTuple> fields;
+        for (int j = 0; j < maxNumOfFields; j++)
+        {
+            FieldValueTuple t(field(index, j), value(index, j));
+            fields.push_back(t);
+        }
+        p2.set(key2, fields);
+    }
+
+    /* Prepare subscriber */
+    SubscriberStateTable c1(&db, testTableName);
+    SubscriberStateTable c2(&db, testTableName2);
+    Select cs;
+    Selectable *selectcs;
+    cs.addSelectable(&c1);
+    cs.addSelectable(&c2);
+
+    /* Pop operation and check CachedSelectable */
+    {
+        string key = key1;
+        int ret = cs.select(&selectcs);
+        EXPECT_EQ(ret, Select::OBJECT);
+        KeyOpFieldsValuesTuple kco;
+        if (selectcs == &c1)
+        {
+            c1.pop(kco);
+        }
+        else
+        {
+            c2.pop(kco);
+            key = key2;
+        }
+
+        EXPECT_EQ(kfvKey(kco), key);
+        EXPECT_EQ(kfvOp(kco), "SET");
+
+        /* There is one cached selectable left */
+        bool r = cs.isQueueEmpty();
+        EXPECT_FALSE(r);
+
+        ret = cs.select(&selectcs);
+        EXPECT_EQ(ret, Select::OBJECT);
+        if (key == key1)
+        {
+            EXPECT_TRUE(selectcs == &c2);
+            key = key2;
+            c2.pop(kco);
+        }
+        else
+        {
+            EXPECT_TRUE(selectcs == &c1);
+            key = key1;
+            c1.pop(kco);
+        }
+
+        EXPECT_EQ(kfvKey(kco), key);
+        EXPECT_EQ(kfvOp(kco), "SET");
+        /* No cached selectable left */
+        r = cs.isQueueEmpty();
+        EXPECT_TRUE(r);
+    }
 }

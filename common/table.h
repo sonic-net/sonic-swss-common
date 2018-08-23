@@ -130,7 +130,7 @@ public:
 
 class Table : public TableBase, public TableEntryEnumerable {
 public:
-    Table(DBConnector *db, const std::string &tableName);
+    Table(const DBConnector *db, const std::string &tableName);
     Table(RedisPipeline *pipeline, const std::string &tableName, bool buffered);
     ~Table() override;
 
@@ -147,6 +147,13 @@ public:
     /* Read a value from the DB directly */
     /* Returns false if the key doesn't exists */
     virtual bool get(const std::string &key, std::vector<FieldValueTuple> &ovalues);
+
+    virtual bool hget(const std::string &key, const std::string &field,  std::string &value);
+    virtual void hset(const std::string &key,
+                          const std::string &field,
+                          const std::string &value,
+                          const std::string &op = "",
+                          const std::string &prefix = EMPTY_PREFIX);
 
     void getKeys(std::vector<std::string> &keys);
 
@@ -194,6 +201,7 @@ public:
     }
 
     std::string getKeySetName() const { return m_key; }
+    std::string getStateHashPrefix() const { return "_"; }
 };
 
 }
