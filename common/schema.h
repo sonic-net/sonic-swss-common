@@ -143,6 +143,9 @@ namespace swss {
 
 #define CFG_WARM_RESTART_TABLE_NAME                 "WARM_RESTART"
 
+#define CFG_VXLAN_TUNNEL_TABLE_NAME                 "VXLAN_TUNNEL"
+#define CFG_VXLAN_TUNNEL_MAP_TABLE_NAME             "VXLAN_TUNNEL_MAP"
+
 /***** STATE DATABASE *****/
 
 #define STATE_PORT_TABLE_NAME           "PORT_TABLE"
