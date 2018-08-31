@@ -376,6 +376,8 @@ TEST(ConsumerStateTable, async_singlethread)
         p.set(key(i), fields);
     }
     p.flush();
+    // KeySet of the ProducerStateTable has data to be picked up by ConsumerStateTable
+    EXPECT_FALSE(p.isEmpty());
 
     ConsumerStateTable c(&db, tableName);
     Select cs;
@@ -398,6 +400,8 @@ TEST(ConsumerStateTable, async_singlethread)
         if (numberOfKeysSet == NUMBER_OF_OPS)
             break;
     }
+    // KeySet of the ProducerStateTable has been emptied by ConsumerStateTable
+    EXPECT_TRUE(p.isEmpty());
 
     for (i = 0; i < NUMBER_OF_OPS; i++)
     {
@@ -405,6 +409,8 @@ TEST(ConsumerStateTable, async_singlethread)
         if ((i % 100) == 0)
             cout << "+" << flush;
     }
+
+    EXPECT_FALSE(p.isEmpty());
     p.flush();
 
     int numberOfKeyDeleted = 0;
@@ -420,6 +426,7 @@ TEST(ConsumerStateTable, async_singlethread)
         if (numberOfKeyDeleted == NUMBER_OF_OPS)
             break;
     }
+    EXPECT_TRUE(p.isEmpty());
 
     EXPECT_LE(numberOfKeysSet, numberOfKeyDeleted);
     EXPECT_EQ(ret, Select::OBJECT);

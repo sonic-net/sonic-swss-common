@@ -26,6 +26,8 @@ public:
 
     void flush();
 
+    bool isEmpty();
+
 private:
     bool m_buffered;
     bool m_pipeowned;

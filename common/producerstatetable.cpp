@@ -122,4 +122,15 @@ void ProducerStateTable::flush()
     m_pipe->flush();
 }
 
+bool ProducerStateTable::isEmpty()
+{
+    RedisCommand cmd;
+    cmd.format("SCARD %s", getKeySetName().c_str());
+    RedisReply r = m_pipe->push(cmd);
+    r.checkReplyType(REDIS_REPLY_INTEGER);
+
+    long long int setSize = r.getReply<long long int>();
+    return setSize == 0;
+}
+
 }
