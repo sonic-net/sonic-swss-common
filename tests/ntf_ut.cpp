@@ -15,7 +15,7 @@
 
 std::shared_ptr<std::thread> notification_thread;
 
-volatile int messages = 5000;
+const int messages = 5000;
 
 void ntf_thread(swss::NotificationConsumer& nc)
 {
@@ -51,6 +51,7 @@ void ntf_thread(swss::NotificationConsumer& nc)
             collected++;
         }
     }
+    EXPECT_EQ(collected, messages);
 }
 
 TEST(Notifications, test)
@@ -103,7 +104,7 @@ TEST(Notifications, pops)
 
     std::deque<swss::KeyOpFieldsValuesTuple> vkco;
     nc.pops(vkco);
-    EXPECT_FALSE(vkco.empty());
+    EXPECT_EQ(vkco.size(), (size_t)messages);
 
     for (size_t collected = 0; collected < vkco.size(); collected++)
     {

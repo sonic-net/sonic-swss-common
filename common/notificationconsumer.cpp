@@ -1,6 +1,7 @@
 #include "notificationconsumer.h"
 
 #include <iostream>
+#include "redisapi.h"
 
 #define NOTIFICATION_SUBSCRIBE_TIMEOUT (1000)
 #define REDIS_PUBLISH_MESSAGE_INDEX (2)
@@ -165,7 +166,17 @@ void swss::NotificationConsumer::pops(std::deque<KeyOpFieldsValuesTuple> &vkco)
     vkco.clear();
     while(!m_queue.empty())
     {
-        pop(op, data, values);
-        vkco.emplace_back(data, op, values);
+        while(!m_queue.empty())
+        {
+            pop(op, data, values);
+            vkco.emplace_back(data, op, values);
+        }
+
+        // Peek for more data in redis socket
+        int rc = swss::peekRedisContext(m_subscribe->getContext());
+        if (rc <= 0)
+            break;
+
+        readData();
     }
 }
