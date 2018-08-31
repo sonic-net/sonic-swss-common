@@ -154,3 +154,18 @@ void swss::NotificationConsumer::pop(std::string &op, std::string &data, std::ve
 
     values.erase(values.begin());
 }
+
+void swss::NotificationConsumer::pops(std::deque<KeyOpFieldsValuesTuple> &vkco)
+{
+    SWSS_LOG_ENTER();
+    std::string op;
+    std::string data;
+    std::vector<FieldValueTuple> values;
+
+    vkco.clear();
+    while(!m_queue.empty())
+    {
+        pop(op, data, values);
+        vkco.emplace_back(data, op, values);
+    }
+}

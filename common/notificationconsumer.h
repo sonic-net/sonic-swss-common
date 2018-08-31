@@ -22,6 +22,7 @@ public:
     NotificationConsumer(swss::DBConnector *db, const std::string &channel, int pri = 100);
 
     void pop(std::string &op, std::string &data, std::vector<FieldValueTuple> &values);
+    void pops(std::deque<KeyOpFieldsValuesTuple> &vkco);
 
     ~NotificationConsumer() override;
 
