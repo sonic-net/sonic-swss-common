@@ -173,7 +173,7 @@ void swss::NotificationConsumer::pops(std::deque<KeyOpFieldsValuesTuple> &vkco)
             vkco.emplace_back(data, op, values);
         }
 
-        // Too many popped, let's return to prevent DOS attach
+        // Too many popped, let's return to prevent DoS attach
         if (vkco.size() >= POP_BATCH_SIZE)
             return;
 
