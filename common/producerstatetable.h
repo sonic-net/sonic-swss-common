@@ -26,7 +26,7 @@ public:
 
     void flush();
 
-    int64_t setSize();
+    int64_t pendingCount();
 
     void drop();
 private:

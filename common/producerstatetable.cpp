@@ -127,7 +127,7 @@ void ProducerStateTable::flush()
     m_pipe->flush();
 }
 
-int64_t ProducerStateTable::setSize()
+int64_t ProducerStateTable::pendingCount()
 {
     RedisCommand cmd;
     cmd.format("SCARD %s", getKeySetName().c_str());
