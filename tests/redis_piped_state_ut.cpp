@@ -361,7 +361,35 @@ TEST(ConsumerStateTable, async_singlethread)
     RedisPipeline pipeline(&db);
     ProducerStateTable p(&pipeline, tableName, true);
 
+    // Do pending data drop test first.
     for (int i = 0; i < NUMBER_OF_OPS; i++)
+    {
+        vector<FieldValueTuple> fields;
+        int maxNumOfFields = getMaxFields(i);
+        for (int j = 0; j < maxNumOfFields; j++)
+        {
+            FieldValueTuple t(field(j), value(j));
+            fields.push_back(t);
+        }
+        if ((i % 100) == 0)
+            cout << "+" << flush;
+
+        p.set(key(i), fields);
+    }
+    p.drop();
+    EXPECT_EQ(p.setSize(), 0);
+
+    ConsumerStateTable c(&db, tableName);
+    Select cs;
+    Selectable *selectcs;
+    int ret, i = 0;
+    KeyOpFieldsValuesTuple kco;
+
+    cs.addSelectable(&c);
+    ret = cs.select(&selectcs, 1000);
+    EXPECT_EQ(ret, Select::TIMEOUT);
+
+    for (i = 0; i < NUMBER_OF_OPS; i++)
     {
         vector<FieldValueTuple> fields;
         int maxNumOfFields = getMaxFields(i);
@@ -377,15 +405,8 @@ TEST(ConsumerStateTable, async_singlethread)
     }
     p.flush();
     // KeySet of the ProducerStateTable has data to be picked up by ConsumerStateTable
-    EXPECT_FALSE(p.isEmpty());
+    EXPECT_EQ(p.setSize(), NUMBER_OF_OPS);
 
-    ConsumerStateTable c(&db, tableName);
-    Select cs;
-    Selectable *selectcs;
-    int ret, i = 0;
-    KeyOpFieldsValuesTuple kco;
-
-    cs.addSelectable(&c);
     int numberOfKeysSet = 0;
     while ((ret = cs.select(&selectcs)) == Select::OBJECT)
     {
@@ -401,7 +422,7 @@ TEST(ConsumerStateTable, async_singlethread)
             break;
     }
     // KeySet of the ProducerStateTable has been emptied by ConsumerStateTable
-    EXPECT_TRUE(p.isEmpty());
+    EXPECT_EQ(p.setSize(), 0);
 
     for (i = 0; i < NUMBER_OF_OPS; i++)
     {
@@ -410,7 +431,7 @@ TEST(ConsumerStateTable, async_singlethread)
             cout << "+" << flush;
     }
 
-    EXPECT_FALSE(p.isEmpty());
+    EXPECT_EQ(p.setSize(), NUMBER_OF_OPS);
     p.flush();
 
     int numberOfKeyDeleted = 0;
@@ -426,10 +447,40 @@ TEST(ConsumerStateTable, async_singlethread)
         if (numberOfKeyDeleted == NUMBER_OF_OPS)
             break;
     }
-    EXPECT_TRUE(p.isEmpty());
+    EXPECT_EQ(p.setSize(), 0);
 
     EXPECT_LE(numberOfKeysSet, numberOfKeyDeleted);
     EXPECT_EQ(ret, Select::OBJECT);
+
+    // drop test with consumer already listening
+    for (i = 0; i < NUMBER_OF_OPS; i++)
+    {
+        p.del(key(i));
+        if ((i % 100) == 0)
+            cout << "+" << flush;
+    }
+
+    EXPECT_EQ(p.setSize(), NUMBER_OF_OPS);
+    p.flush();
+    p.drop();
+    EXPECT_EQ(p.setSize(), 0);
+
+    int numberOfNotification = 0;
+    while ((ret = cs.select(&selectcs, 1000)) == Select::OBJECT)
+    {
+        c.pop(kco);
+        // keys have been droppd, expecting empty kco.
+        EXPECT_EQ(kfvOp(kco), "");
+        numberOfNotification++;
+
+        if ((i++ % 100) == 0)
+            cout << "-" << flush;
+    }
+    EXPECT_EQ(p.setSize(), 0);
+
+    // ConsumerStateTable got all the notifications though no real data available.
+    EXPECT_EQ(NUMBER_OF_OPS, numberOfNotification);
+    EXPECT_EQ(ret, Select::TIMEOUT);
 
     cout << "Done. Waiting for all job to finish " << NUMBER_OF_OPS << " jobs." << endl;
 

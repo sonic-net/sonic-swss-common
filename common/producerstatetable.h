@@ -26,14 +26,16 @@ public:
 
     void flush();
 
-    bool isEmpty();
+    int64_t setSize();
 
+    void drop();
 private:
     bool m_buffered;
     bool m_pipeowned;
     RedisPipeline *m_pipe;
     std::string m_shaSet;
     std::string m_shaDel;
+    std::string m_shaDrop;
 };
 
 }
