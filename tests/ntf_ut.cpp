@@ -81,12 +81,10 @@ TEST(Notifications, pops)
     SWSS_LOG_ENTER();
 
     swss::DBConnector dbNtf(ASIC_DB, "localhost", 6379, 0);
-    swss::NotificationConsumer nc(&dbNtf, "NOTIFICATIONS");
-
+    swss::NotificationConsumer nc(&dbNtf, "NOTIFICATIONS", 100, (size_t)messages);
     swss::NotificationProducer notifications(&dbNtf, "NOTIFICATIONS");
 
     std::vector<swss::FieldValueTuple> entry;
-
     for(int i = 0; i < messages; i++)
     {
         auto s = std::to_string(i+1);

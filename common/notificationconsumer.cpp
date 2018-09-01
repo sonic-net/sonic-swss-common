@@ -7,8 +7,9 @@
 #define REDIS_PUBLISH_MESSAGE_INDEX (2)
 #define REDIS_PUBLISH_MESSAGE_ELEMNTS (3)
 
-swss::NotificationConsumer::NotificationConsumer(swss::DBConnector *db, const std::string &channel, int pri):
+swss::NotificationConsumer::NotificationConsumer(swss::DBConnector *db, const std::string &channel, int pri, size_t popBatchSize):
     Selectable(pri),
+    POP_BATCH_SIZE(popBatchSize),
     m_db(db),
     m_subscribe(NULL),
     m_channel(channel)
@@ -171,6 +172,10 @@ void swss::NotificationConsumer::pops(std::deque<KeyOpFieldsValuesTuple> &vkco)
             pop(op, data, values);
             vkco.emplace_back(data, op, values);
         }
+
+        // Too many popped, let's return to prevent DOS attach
+        if (vkco.size() >= POP_BATCH_SIZE)
+            return;
 
         // Peek for more data in redis socket
         int rc = swss::peekRedisContext(m_subscribe->getContext());
