@@ -114,7 +114,50 @@ TEST(Notifications, pops)
         EXPECT_EQ((size_t)i, collected + 1);
     }
 
-    // Pop again and get nothing
-    nc.pops(vkco);
-    EXPECT_TRUE(vkco.empty());
+    // Peek and get nothing more
+    int rc = nc.peek();
+    EXPECT_EQ(rc, 0);
+}
+
+TEST(Notifications, peek)
+{
+    SWSS_LOG_ENTER();
+
+    swss::DBConnector dbNtf(ASIC_DB, "localhost", 6379, 0);
+    swss::NotificationConsumer nc(&dbNtf, "NOTIFICATIONS", 100, (size_t)10);
+    swss::NotificationProducer notifications(&dbNtf, "NOTIFICATIONS");
+
+    std::vector<swss::FieldValueTuple> entry;
+    for(int i = 0; i < messages; i++)
+    {
+        auto s = std::to_string(i+1);
+        notifications.send("ntf", s, entry);
+    }
+
+    // Pop all the notifications
+    std::deque<swss::KeyOpFieldsValuesTuple> vkco;
+    size_t popped = 0;
+    size_t npop = 10000;
+    int collected = 0;
+    while(nc.peek() > 0 && popped < npop)
+    {
+        nc.pops(vkco);
+        popped += vkco.size();
+
+        for (auto& kco : vkco)
+        {
+            collected++;
+            auto data = kfvKey(kco);
+            auto op = kfvOp(kco);
+
+            EXPECT_EQ(op, "ntf");
+            int i = stoi(data);
+            EXPECT_EQ(i, collected);
+        }
+    }
+    EXPECT_EQ(popped, (size_t)messages);
+
+    // Peek and get nothing more
+    int rc = nc.peek();
+    EXPECT_EQ(rc, 0);
 }
