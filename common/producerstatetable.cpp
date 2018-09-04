@@ -127,7 +127,7 @@ void ProducerStateTable::flush()
     m_pipe->flush();
 }
 
-int64_t ProducerStateTable::pendingCount()
+int64_t ProducerStateTable::count()
 {
     RedisCommand cmd;
     cmd.format("SCARD %s", getKeySetName().c_str());
@@ -139,7 +139,7 @@ int64_t ProducerStateTable::pendingCount()
 
 // Warning: calling this function will cause all data in keyset and the temporary table to be abandoned.
 // ConsumerState may have got the notification from PUBLISH, but will see no data popped.
-void ProducerStateTable::drop()
+void ProducerStateTable::clear()
 {
     // Assembly redis command args into a string vector
     vector<string> args;
