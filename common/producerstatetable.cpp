@@ -40,10 +40,10 @@ ProducerStateTable::ProducerStateTable(RedisPipeline *pipeline, const string &ta
         "redis.call('PUBLISH', KEYS[1], ARGV[1])\n";
     m_shaDel = m_pipe->loadRedisScript(luaDel);
 
-    string luaDrop =
+    string luaClear =
         "redis.call('DEL', KEYS[1])\n"
         "redis.call('DEL', KEYS[2])\n";
-    m_shaDrop = m_pipe->loadRedisScript(luaDrop);
+    m_shaClear = m_pipe->loadRedisScript(luaClear);
 }
 
 ProducerStateTable::~ProducerStateTable()
@@ -144,12 +144,10 @@ void ProducerStateTable::clear()
     // Assembly redis command args into a string vector
     vector<string> args;
     args.emplace_back("EVALSHA");
-    args.emplace_back(m_shaDrop);
+    args.emplace_back(m_shaClear);
     args.emplace_back("2");
     args.emplace_back(getKeySetName());
     args.emplace_back(getStateHashPrefix() + getTableName());
-    args.emplace_back("G");
-    args.emplace_back("''");
 
     // Transform data structure
     vector<const char *> args1;

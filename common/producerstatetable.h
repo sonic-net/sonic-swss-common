@@ -35,7 +35,7 @@ private:
     RedisPipeline *m_pipe;
     std::string m_shaSet;
     std::string m_shaDel;
-    std::string m_shaDrop;
+    std::string m_shaClear;
 };
 
 }
