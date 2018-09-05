@@ -1,5 +1,6 @@
 #pragma once
 #include <unistd.h>
+#include <poll.h>
 #include <stdexcept>
 #include <vector>
 #include <set>
@@ -125,6 +126,16 @@ static inline std::set<std::string> runRedisScript(DBConnector &db, const std::s
     }
 
     return ret;
+}
+
+static inline int peekRedisContext(redisContext *c)
+{
+    pollfd fd;
+    fd.fd = c->fd;
+    fd.events = POLLIN;
+
+    int rc = poll(&fd, 1, 0);
+    return rc;
 }
 
 }
