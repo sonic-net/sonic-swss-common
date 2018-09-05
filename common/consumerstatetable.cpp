@@ -15,6 +15,9 @@ ConsumerStateTable::ConsumerStateTable(DBConnector *db, const std::string &table
     : ConsumerTableBase(db, tableName, popBatchSize, pri)
     , TableName_KeySet(tableName)
 {
+    std::string m_luaScript = loadLuaScript("consumer_state_table_pops.lua");
+    m_sha = loadRedisScript(db, m_luaScript);
+
     for (;;)
     {
         RedisReply watch(m_db, "WATCH " + getKeySetName(), REDIS_REPLY_STATUS);
@@ -32,14 +35,10 @@ ConsumerStateTable::ConsumerStateTable(DBConnector *db, const std::string &table
 
 void ConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const std::string& /*prefix*/)
 {
-    static std::string luaScript = loadLuaScript("consumer_state_table_pops.lua");
-
-    static std::string sha = loadRedisScript(m_db, luaScript);
-
     RedisCommand command;
     command.format(
         "EVALSHA %s 2 %s %s: %d %s",
-        sha.c_str(),
+        m_sha.c_str(),
         getKeySetName().c_str(),
         getTableName().c_str(),
         POP_BATCH_SIZE,

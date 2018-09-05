@@ -13,6 +13,7 @@ using namespace std;
 namespace swss {
 
 constexpr const char *DBConnector::DEFAULT_UNIXSOCKET;
+constexpr const char *DBConnector::SECONDARY_UNIXSOCKET;
 
 void DBConnector::select(DBConnector *db)
 {

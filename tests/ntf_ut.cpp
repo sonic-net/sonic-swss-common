@@ -20,7 +20,7 @@ void ntf_thread()
 {
     SWSS_LOG_ENTER();
 
-    swss::DBConnector g_dbNtf(ASIC_DB, "localhost", 6379, 0);
+    swss::DBConnector g_dbNtf(ASIC_DB, "localhost", 6380, 0);
     swss::NotificationConsumer g_redisNotifications(&g_dbNtf, "NOTIFICATIONS");
 
     swss::Select s;
@@ -60,7 +60,7 @@ TEST(Notifications, test)
 
     sleep(1); // give time to subscribe to not miss notification
 
-    swss::DBConnector dbNtf(ASIC_DB, "localhost", 6379, 0);
+    swss::DBConnector dbNtf(ASIC_DB, "localhost", 6380, 0);
     swss::NotificationProducer notifications(&dbNtf, "NOTIFICATIONS");
 
     std::vector<swss::FieldValueTuple> entry;

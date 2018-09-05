@@ -177,6 +177,7 @@ protected:
      * 2) "Ethernet0,Ethernet4,...
      * */
     std::string stripSpecialSym(const std::string &key);
+    std::string m_sha;
 };
 
 class TableName_KeyValueOpQueues {

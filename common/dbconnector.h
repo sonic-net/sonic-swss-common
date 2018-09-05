@@ -12,6 +12,7 @@ class DBConnector
 {
 public:
     static constexpr const char *DEFAULT_UNIXSOCKET = "/var/run/redis/redis.sock";
+    static constexpr const char *SECONDARY_UNIXSOCKET = "/var/run/redis/redis-secondary.sock";
 
     /*
      * Connect to Redis DB wither with a hostname:port or unix socket

@@ -41,6 +41,8 @@ Table::Table(RedisPipeline *pipeline, const string &tableName, bool buffered)
     , m_pipeowned(false)
     , m_pipe(pipeline)
 {
+    std::string m_luaScript = loadLuaScript("table_dump.lua");
+    m_sha = pipeline->loadRedisScript(m_luaScript);
 }
 
 Table::~Table()
@@ -184,15 +186,11 @@ void Table::dump(TableDump& tableDump)
     // but it's not intended to be efficient
     // since it will not be used many times
 
-    static std::string luaScript = loadLuaScript("table_dump.lua");
-
-    static std::string sha = m_pipe->loadRedisScript(luaScript);
-
     SWSS_LOG_TIMER("getting");
 
     RedisCommand command;
     command.format("EVALSHA %s 1 %s ''",
-            sha.c_str(),
+            m_sha.c_str(),
             getTableName().c_str());
 
     RedisReply r = m_pipe->push(command, REDIS_REPLY_STRING);
