@@ -80,7 +80,7 @@ TEST(Notifications, pops)
 {
     SWSS_LOG_ENTER();
 
-    swss::DBConnector dbNtf(ASIC_DB, "localhost", 6379, 0);
+    swss::DBConnector dbNtf(ASIC_DB, "localhost", 6380, 0);
     swss::NotificationConsumer nc(&dbNtf, "NOTIFICATIONS", 100, (size_t)messages);
     swss::NotificationProducer notifications(&dbNtf, "NOTIFICATIONS");
 
@@ -123,7 +123,7 @@ TEST(Notifications, peek)
 {
     SWSS_LOG_ENTER();
 
-    swss::DBConnector dbNtf(ASIC_DB, "localhost", 6379, 0);
+    swss::DBConnector dbNtf(ASIC_DB, "localhost", 6380, 0);
     swss::NotificationConsumer nc(&dbNtf, "NOTIFICATIONS", 100, (size_t)10);
     swss::NotificationProducer notifications(&dbNtf, "NOTIFICATIONS");
 
