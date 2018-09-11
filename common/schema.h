@@ -159,6 +159,10 @@ namespace swss {
 #define IPV4_NAME "IPv4"
 #define IPV6_NAME "IPv6"
 
+#define FRONT_PANEL_PORT_PREFIX "Ethernet"
+#define PORTCHANNEL_PREFIX      "PortChannel"
+#define VLAN_PREFIX             "Vlan"
+
 #define SET_COMMAND "SET"
 #define DEL_COMMAND "DEL"
 #define EMPTY_PREFIX ""
