@@ -70,7 +70,8 @@ TEST(Notifications, test)
     {
         std::string s = std::to_string(i+1);
 
-        notifications.send("ntf", s, entry);
+        auto sentClients = notifications.send("ntf", s, entry);
+        EXPECT_EQ(sentClients, 1);
     }
 
     notification_thread->join();
@@ -88,7 +89,8 @@ TEST(Notifications, pops)
     for(int i = 0; i < messages; i++)
     {
         auto s = std::to_string(i+1);
-        notifications.send("ntf", s, entry);
+        auto sentClients = notifications.send("ntf", s, entry);
+        EXPECT_EQ(sentClients, 1);
     }
 
     // Pop all the notifications
@@ -131,7 +133,8 @@ TEST(Notifications, peek)
     for(int i = 0; i < messages; i++)
     {
         auto s = std::to_string(i+1);
-        notifications.send("ntf", s, entry);
+        auto sentClients = notifications.send("ntf", s, entry);
+        EXPECT_EQ(sentClients, 1);
     }
 
     // Pop all the notifications

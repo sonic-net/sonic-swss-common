@@ -18,7 +18,8 @@ class NotificationProducer
 public:
     NotificationProducer(swss::DBConnector *db, const std::string &channel);
 
-    void send(const std::string &op, const std::string &data, std::vector<FieldValueTuple> &values);
+    // Returns: the number of clients that received the message
+    int64_t send(const std::string &op, const std::string &data, std::vector<FieldValueTuple> &values);
 
 private:
 
