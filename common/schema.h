@@ -155,6 +155,7 @@ namespace swss {
 #define STATE_INTERFACE_TABLE_NAME      "INTERFACE_TABLE"
 #define STATE_FDB_TABLE_NAME            "FDB_TABLE"
 #define STATE_WARM_RESTART_TABLE_NAME   "WARM_RESTART_TABLE"
+#define STATE_VRF_TABLE_NAME            "VRF_TABLE"
 
 /***** MISC *****/
 
