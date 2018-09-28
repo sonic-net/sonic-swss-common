@@ -161,6 +161,7 @@ namespace swss {
 #define STATE_FDB_TABLE_NAME            "FDB_TABLE"
 #define STATE_WARM_RESTART_TABLE_NAME   "WARM_RESTART_TABLE"
 #define STATE_VRF_TABLE_NAME            "VRF_TABLE"
+#define STATE_MGMT_PORT_TABLE_NAME      "MGMT_PORT_TABLE"
 
 /***** MISC *****/
 
