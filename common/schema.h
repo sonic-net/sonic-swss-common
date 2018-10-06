@@ -33,6 +33,8 @@ namespace swss {
 #define APP_COPP_TABLE_NAME             "COPP_TABLE"
 #define APP_VRF_TABLE_NAME              "VRF_TABLE"
 #define APP_VNET_TABLE_NAME             "VNET_TABLE"
+#define APP_VNET_RT_TABLE_NAME          "VNET_ROUTE_TABLE"
+#define APP_VNET_RT_TUNNEL_TABLE_NAME   "VNET_ROUTE_TUNNEL_TABLE"
 #define APP_VXLAN_VRF_TABLE_NAME        "VXLAN_TUNNEL_MAP"
 
 /***** TO BE REMOVED *****/
