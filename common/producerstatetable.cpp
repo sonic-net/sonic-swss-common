@@ -36,12 +36,14 @@ ProducerStateTable::ProducerStateTable(RedisPipeline *pipeline, const string &ta
 
     string luaDel =
         "redis.call('SADD', KEYS[2], ARGV[2])\n"
+        "redis.call('SADD', KEYS[2] .. '_DEL', ARGV[2])\n"
         "redis.call('DEL', KEYS[3])\n"
         "redis.call('PUBLISH', KEYS[1], ARGV[1])\n";
     m_shaDel = m_pipe->loadRedisScript(luaDel);
 
     string luaClear =
         "redis.call('DEL', KEYS[1])\n"
+        "redis.call('DEL', KEYS[1] .. '_DEL')\n"
         "redis.call('DEL', KEYS[2])\n";
     m_shaClear = m_pipe->loadRedisScript(luaClear);
 }

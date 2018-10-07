@@ -374,6 +374,134 @@ TEST(ConsumerStateTable, set_del_set)
     EXPECT_EQ(qlen, 0U);
 }
 
+TEST(ConsumerStateTable, set_pop_del_set_pop_get)
+{
+    clearDB();
+
+    /* Prepare producer */
+    int index = 0;
+    string tableName = "UT_REDIS_THREAD_" + to_string(index);
+    DBConnector db(TEST_DB, "localhost", 6379, 0);
+    ProducerStateTable p(&db, tableName);
+    string key = "TheKey";
+    int maxNumOfFields = 2;
+
+    /* First set operation */
+    {
+        vector<FieldValueTuple> fields;
+        for (int j = 0; j < maxNumOfFields; j++)
+        {
+            FieldValueTuple t(field(j), value(j));
+            fields.push_back(t);
+        }
+        p.set(key, fields);
+    }
+
+  /* Prepare consumer */
+    ConsumerStateTable c(&db, tableName);
+    Select cs;
+    Selectable *selectcs;
+    cs.addSelectable(&c);
+
+    /* First pop operation */
+    {
+        int ret = cs.select(&selectcs);
+        EXPECT_EQ(ret, Select::OBJECT);
+        KeyOpFieldsValuesTuple kco;
+        c.pop(kco);
+        EXPECT_EQ(kfvKey(kco), key);
+        EXPECT_EQ(kfvOp(kco), "SET");
+
+        auto fvs = kfvFieldsValues(kco);
+        EXPECT_EQ(fvs.size(), (unsigned int)maxNumOfFields);
+
+        map<string, string> mm;
+        for (auto fv: fvs)
+        {
+            mm[fvField(fv)] = fvValue(fv);
+        }
+
+        for (int j = 0; j < maxNumOfFields; j ++)
+        {
+            EXPECT_EQ(mm[field(j)], value(j));
+        }
+    }
+
+    /* Del operation and second set operation will be merged */
+
+    /* Del operation */
+    p.del(key);
+
+    /* Second set operation */
+    {
+        vector<FieldValueTuple> fields;
+        for (int j = 0; j < maxNumOfFields * 2; j += 2)
+        {
+            FieldValueTuple t(field(j), value(j));
+            fields.push_back(t);
+        }
+        p.set(key, fields);
+    }
+
+    /* Second pop operation */
+    {
+        int ret = cs.select(&selectcs);
+        EXPECT_EQ(ret, Select::OBJECT);
+        KeyOpFieldsValuesTuple kco;
+        c.pop(kco);
+        EXPECT_EQ(kfvKey(kco), key);
+        EXPECT_EQ(kfvOp(kco), "SET");
+
+        auto fvs = kfvFieldsValues(kco);
+
+        /* size of fvs should be maxNumOfFields, no "field 1" left from first set*/
+        EXPECT_EQ(fvs.size(), (unsigned int)maxNumOfFields);
+
+        map<string, string> mm;
+        for (auto fv: fvs)
+        {
+            mm[fvField(fv)] = fvValue(fv);
+        }
+
+        for (int j = 0; j < maxNumOfFields * 2; j += 2)
+        {
+            EXPECT_EQ(mm[field(j)], value(j));
+        }
+    }
+
+    /* Get data directly from table in redis DB*/
+    Table t(&db, tableName);
+    vector<FieldValueTuple> values;
+    t.get(key, values);
+    /* size of values should be maxNumOfFields, no "field 1" left from first set */
+    EXPECT_EQ(values.size(), (unsigned int)maxNumOfFields);
+
+    /*
+     * Third pop operation, consumer received two consectuive signals.
+     * data depleted upon first one
+     */
+    {
+        int ret = cs.select(&selectcs, 1000);
+        EXPECT_EQ(ret, Select::OBJECT);
+        KeyOpFieldsValuesTuple kco;
+        c.pop(kco);
+        EXPECT_EQ(kfvKey(kco), "");
+    }
+
+    /* Third select operation */
+    {
+        int ret = cs.select(&selectcs, 1000);
+        EXPECT_EQ(ret, Select::TIMEOUT);
+    }
+
+    /* State Queue should be empty */
+    RedisCommand keys;
+    keys.format("KEYS %s*", (c.getStateHashPrefix() + tableName).c_str());
+    RedisReply r(&db, keys, REDIS_REPLY_ARRAY);
+    auto qlen = r.getContext()->elements;
+    EXPECT_EQ(qlen, 0U);
+}
+
 TEST(ConsumerStateTable, singlethread)
 {
     clearDB();
