@@ -36,15 +36,15 @@ ProducerStateTable::ProducerStateTable(RedisPipeline *pipeline, const string &ta
 
     string luaDel =
         "redis.call('SADD', KEYS[2], ARGV[2])\n"
-        "redis.call('SADD', KEYS[2] .. '_DEL', ARGV[2])\n"
+        "redis.call('SADD', KEYS[4], ARGV[2])\n"
         "redis.call('DEL', KEYS[3])\n"
         "redis.call('PUBLISH', KEYS[1], ARGV[1])\n";
     m_shaDel = m_pipe->loadRedisScript(luaDel);
 
     string luaClear =
         "redis.call('DEL', KEYS[1])\n"
-        "redis.call('DEL', KEYS[1] .. '_DEL')\n"
-        "redis.call('DEL', KEYS[2])\n";
+        "redis.call('DEL', KEYS[2])\n"
+        "redis.call('DEL', KEYS[3])\n";
     m_shaClear = m_pipe->loadRedisScript(luaClear);
 }
 
@@ -102,12 +102,14 @@ void ProducerStateTable::del(const string &key, const string &op /*= DEL_COMMAND
     vector<string> args;
     args.emplace_back("EVALSHA");
     args.emplace_back(m_shaDel);
-    args.emplace_back("3");
+    args.emplace_back("4");
     args.emplace_back(getChannelName());
     args.emplace_back(getKeySetName());
     args.emplace_back(getStateHashPrefix() + getKeyName(key));
+    args.emplace_back(getDelKeySetName());
     args.emplace_back("G");
     args.emplace_back(key);
+    args.emplace_back("''");
     args.emplace_back("''");
 
     // Transform data structure
@@ -147,9 +149,10 @@ void ProducerStateTable::clear()
     vector<string> args;
     args.emplace_back("EVALSHA");
     args.emplace_back(m_shaClear);
-    args.emplace_back("2");
+    args.emplace_back("3");
     args.emplace_back(getKeySetName());
     args.emplace_back(getStateHashPrefix() + getTableName());
+    args.emplace_back(getDelKeySetName());
 
     // Transform data structure
     vector<const char *> args1;

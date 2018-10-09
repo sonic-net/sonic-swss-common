@@ -397,7 +397,7 @@ TEST(ConsumerStateTable, set_pop_del_set_pop_get)
         p.set(key, fields);
     }
 
-  /* Prepare consumer */
+    /* Prepare consumer */
     ConsumerStateTable c(&db, tableName);
     Select cs;
     Selectable *selectcs;
