@@ -25,7 +25,8 @@ tests_SOURCES = redis_ut.cpp                \
                 converter_ut.cpp            \
                 exec_ut.cpp                 \
                 redis_subscriber_state_ut.cpp \
-                selectable_priority.cpp
+                selectable_priority.cpp       \
+                warm_restart_ut.cpp
 
 tests_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_GTEST) $(LIBNL_CFLAGS)
 tests_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_GTEST) $(LIBNL_CFLAGS)
