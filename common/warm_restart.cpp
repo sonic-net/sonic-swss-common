@@ -13,6 +13,13 @@ const WarmStart::WarmStartStateNameMap WarmStart::warmStartStateNameMap =
     {RECONCILED,    "reconciled"}
 };
 
+const WarmStart::DataCheckStateNameMap WarmStart::dataCheckStateNameMap =
+{
+    {CHECK_IGNORED,   "ignored"},
+    {CHECK_PASSED,    "passed"},
+    {CHECK_FAILED,    "failed"}
+};
+
 WarmStart &WarmStart::getInstance(void)
 {
     static WarmStart m_warmStart;
@@ -185,6 +192,27 @@ void WarmStart::setWarmStartState(const std::string &app_name, WarmStartState st
     SWSS_LOG_NOTICE("%s warm start state changed to %s",
                     app_name.c_str(),
                     warmStartStateNameMap.at(state).c_str());
+}
+
+// Set the WarmStart data check state for a particular application.
+void WarmStart::setDataCheckState(const std::string &app_name, DataCheckStage stage, DataCheckState state)
+{
+    auto& warmStart = getInstance();
+
+    std::string stageField = "restore_check";
+
+    if (stage == STAGE_SHUTDOWN)
+    {
+        stageField = "shutdown_check";
+    }
+    warmStart.m_stateWarmRestartTable->hset(app_name,
+                                            stageField,
+                                            dataCheckStateNameMap.at(state).c_str());
+
+    SWSS_LOG_NOTICE("%s %s result %s",
+                    app_name.c_str(),
+                    stageField.c_str(),
+                    dataCheckStateNameMap.at(state).c_str());
 }
 
 }
