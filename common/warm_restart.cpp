@@ -215,4 +215,38 @@ void WarmStart::setDataCheckState(const std::string &app_name, DataCheckStage st
                     dataCheckStateNameMap.at(state).c_str());
 }
 
+WarmStart::DataCheckState WarmStart::getDataCheckState(const std::string &app_name, DataCheckStage stage)
+{
+    auto& warmStart = getInstance();
+
+    std::string stateStr;
+    std::string stageField = "restore_check";
+
+    if (stage == STAGE_SHUTDOWN)
+    {
+        stageField = "shutdown_check";
+    }
+    warmStart.m_stateWarmRestartTable->hget(app_name,
+                                            stageField,
+                                            stateStr);
+
+    DataCheckState state = CHECK_IGNORED;
+
+    for (auto it = dataCheckStateNameMap.begin(); it != dataCheckStateNameMap.end(); it++)
+    {
+        if (it->second == stateStr)
+        {
+            state = it->first;
+            break;
+        }
+    }
+
+    SWSS_LOG_NOTICE("Getting %s %s result %s",
+                    app_name.c_str(),
+                    stageField.c_str(),
+                    stateStr.c_str());
+
+    return state;
+}
+
 }

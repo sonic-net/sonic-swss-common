@@ -60,6 +60,9 @@ public:
     static void setDataCheckState(const std::string &app_name,
                                   DataCheckStage stage,
                                   DataCheckState state);
+
+    static DataCheckState getDataCheckState(const std::string &app_name,
+                                                       DataCheckStage stage);
 private:
     std::shared_ptr<swss::DBConnector>   m_stateDb;
     std::shared_ptr<swss::DBConnector>   m_cfgDb;
