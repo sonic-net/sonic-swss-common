@@ -29,15 +29,6 @@ AC_ARG_ENABLE(debug,
 esac],[debug=false])
 AM_CONDITIONAL(DEBUG, test x$debug = xtrue)
 
-AC_ARG_ENABLE(gtest,
-[  --enable-gtest       Compile with googletest flags],
-[case "${enableval}" in
-	yes) gtest=true ;;
-	no)  gtest=false ;;
-	*) AC_MSG_ERROR(bad value ${enableval} for --enable-gtest) ;;
-esac],[gtest=false])
-AM_CONDITIONAL(GTEST, test x$gtest = xtrue)
-
 AC_PATH_PROG(SWIG, [swig3.0])
 
 CFLAGS_COMMON=""

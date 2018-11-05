@@ -1,7 +1,3 @@
-SUBDIRS = common pyext
+SUBDIRS = common pyext tests
 
 ACLOCAL_AMFLAGS = -I m4
-
-if GTEST
-SUBDIRS += tests
-endif
