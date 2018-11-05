@@ -378,7 +378,7 @@ TEST(ConsumerStateTable, async_singlethread)
     }
     p.clear();
     EXPECT_EQ(p.count(), 0);
-    string objectPattern = tableName + "*";
+    string objectPattern = p.getStateHashPrefix() + tableName + "*";
     RedisReply r(&db, objectPattern.c_str(), REDIS_REPLY_STATUS);
     r.checkStatusOK();
     EXPECT_EQ(r.getContext()->elements, (size_t)0);
