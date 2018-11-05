@@ -378,6 +378,10 @@ TEST(ConsumerStateTable, async_singlethread)
     }
     p.clear();
     EXPECT_EQ(p.count(), 0);
+    string objectPattern = tableName + "*";
+    RedisReply r(&db, objectPattern.c_str(), REDIS_REPLY_STATUS);
+    r.checkStatusOK();
+    EXPECT_EQ(r.getContext()->elements, (size_t)0);
 
     ConsumerStateTable c(&db, tableName);
     Select cs;
@@ -464,7 +468,10 @@ TEST(ConsumerStateTable, async_singlethread)
     p.flush();
     p.clear();
     EXPECT_EQ(p.count(), 0);
-
+    r = RedisReply(&db, objectPattern.c_str(), REDIS_REPLY_STATUS);
+    r.checkStatusOK();
+    EXPECT_EQ(r.getContext()->elements, (size_t)0);
+ 
     int numberOfNotification = 0;
     while ((ret = cs.select(&selectcs, 1000)) == Select::OBJECT)
     {
