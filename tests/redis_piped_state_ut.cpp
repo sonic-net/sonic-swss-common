@@ -378,7 +378,7 @@ TEST(ConsumerStateTable, async_singlethread)
     }
     p.clear();
     EXPECT_EQ(p.count(), 0);
-    string queryCommand = "KEYS " + p.getStateHashPrefix() + tableName + ":*";
+    string queryCommand = "KEYS " + p.getStateHashPrefix() + tableName + p.getTableNameSeparator() + "*";
     RedisReply r(&db, queryCommand.c_str(), REDIS_REPLY_ARRAY);
     EXPECT_EQ(r.getContext()->elements, (size_t)0);
 
