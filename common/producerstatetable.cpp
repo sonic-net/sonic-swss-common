@@ -43,7 +43,10 @@ ProducerStateTable::ProducerStateTable(RedisPipeline *pipeline, const string &ta
 
     string luaClear =
         "redis.call('DEL', KEYS[1])\n"
-        "redis.call('DEL', KEYS[2])\n"
+        "local keys = redis.call('KEYS', KEYS[2] .. '*')\n"
+        "for i,k in pairs(keys) do\n"
+        "    redis.call('DEL', k)\n"
+        "end\n"
         "redis.call('DEL', KEYS[3])\n";
     m_shaClear = m_pipe->loadRedisScript(luaClear);
 }
