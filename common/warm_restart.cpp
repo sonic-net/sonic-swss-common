@@ -93,6 +93,7 @@ bool WarmStart::checkWarmStart(const std::string &app_name,
     if (value == "true")
     {
         warmStart.m_enabled = true;
+        warmStart.m_systemWarmRebootEnabled = true;
     }
 
     // Check docker level warm-restart configuration
@@ -117,6 +118,7 @@ bool WarmStart::checkWarmStart(const std::string &app_name,
         SWSS_LOG_WARN("%s doing warm start, but restore_count not found in stateDB %s table, fall back to cold start",
                 app_name.c_str(), STATE_WARM_RESTART_TABLE_NAME);
         warmStart.m_enabled = false;
+        warmStart.m_systemWarmRebootEnabled = false;
         warmStart.m_stateWarmRestartTable->hset(app_name, "restore_count", "0");
         return false;
     }
@@ -171,6 +173,13 @@ bool WarmStart::isWarmStart(void)
     auto& warmStart = getInstance();
 
     return warmStart.m_enabled;
+}
+
+bool WarmStart::isSystemWarmReboot(void)
+{
+    auto& warmStart = getInstance();
+
+    return warmStart.m_systemWarmRebootEnabled;
 }
 
 // Set the WarmStart FSM state for a particular application.

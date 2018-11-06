@@ -35,6 +35,8 @@ public:
 
     static bool isWarmStart(void);
 
+    static bool isSystemWarmReboot(void);
+
     static void setWarmStartState(const std::string &app_name,
                                   WarmStartState     state);
 
@@ -48,6 +50,7 @@ private:
     std::unique_ptr<Table>               m_cfgWarmRestartTable;
     bool                                 m_initialized;
     bool                                 m_enabled;
+    bool                                 m_systemWarmRebootEnabled;
 };
 
 }

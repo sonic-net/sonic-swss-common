@@ -50,6 +50,10 @@ TEST(WarmRestart, checkWarmStart_and_State)
     bool enabled = WarmStart::isWarmStart();
     EXPECT_FALSE(enabled);
 
+    // system warmreboot is disabled
+    bool system_enabled = WarmStart::isSystemWarmReboot();
+    EXPECT_FALSE(system_enabled);
+    
     // enable system level warm restart.
     cfgWarmRestartTable.hset("system", "enable", "true");
 
@@ -74,6 +78,9 @@ TEST(WarmRestart, checkWarmStart_and_State)
     enabled = WarmStart::isWarmStart();
     EXPECT_TRUE(enabled);
 
+    system_enabled = WarmStart::isSystemWarmReboot();
+    EXPECT_TRUE(system_enabled);
+    
     // Usually application will sync up with latest external env as to data state,
     // after that it should set the state to RECONCILED for the observation of external tools.
     WarmStart::setWarmStartState(testAppName, WarmStart::RECONCILED);
@@ -116,6 +123,9 @@ TEST(WarmRestart, checkWarmStart_and_State)
 
     enabled = WarmStart::isWarmStart();
     EXPECT_TRUE(enabled);
+
+    system_enabled = WarmStart::isSystemWarmReboot();
+    EXPECT_FALSE(system_enabled);
 }
 
 
