@@ -29,13 +29,20 @@ public:
     int64_t count();
 
     void clear();
+
+    void create_temp_view();
+
+    void apply_temp_view();
 private:
     bool m_buffered;
     bool m_pipeowned;
+    bool m_tempViewActive;
     RedisPipeline *m_pipe;
     std::string m_shaSet;
     std::string m_shaDel;
     std::string m_shaClear;
+    std::string m_shaApplyView;
+    TableDump m_tempViewState;
 };
 
 }
