@@ -80,9 +80,11 @@ void WarmStart::initialize(const std::string &app_name,
  * capable component. Typically, this function will be called during initialization of
  * SONiC modules; however, method could be invoked at any given point to verify the
  * latest state of Warm-Restart functionality and to update the restore_count value.
+ * A flag of incr_restore_cnt is used to increase the restore cnt or not. Default: true
  */
 bool WarmStart::checkWarmStart(const std::string &app_name,
-                               const std::string &docker_name)
+                               const std::string &docker_name,
+                               const bool incr_restore_cnt)
 {
     std::string value;
 
@@ -93,6 +95,7 @@ bool WarmStart::checkWarmStart(const std::string &app_name,
     if (value == "true")
     {
         warmStart.m_enabled = true;
+        warmStart.m_systemWarmRebootEnabled = true;
     }
 
     // Check docker level warm-restart configuration
@@ -117,18 +120,18 @@ bool WarmStart::checkWarmStart(const std::string &app_name,
         SWSS_LOG_WARN("%s doing warm start, but restore_count not found in stateDB %s table, fall back to cold start",
                 app_name.c_str(), STATE_WARM_RESTART_TABLE_NAME);
         warmStart.m_enabled = false;
+        warmStart.m_systemWarmRebootEnabled = false;
         warmStart.m_stateWarmRestartTable->hset(app_name, "restore_count", "0");
         return false;
     }
-    else
+
+    if (incr_restore_cnt)
     {
         restore_count = (uint32_t)stoul(value);
+        restore_count++;
+        warmStart.m_stateWarmRestartTable->hset(app_name, "restore_count",
+                                                std::to_string(restore_count));
     }
-
-    restore_count++;
-    warmStart.m_stateWarmRestartTable->hset(app_name, "restore_count",
-                                            std::to_string(restore_count));
-
     SWSS_LOG_NOTICE("%s doing warm start, restore count %d", app_name.c_str(),
                     restore_count);
 
@@ -171,6 +174,13 @@ bool WarmStart::isWarmStart(void)
     auto& warmStart = getInstance();
 
     return warmStart.m_enabled;
+}
+
+bool WarmStart::isSystemWarmRebootEnabled(void)
+{
+    auto& warmStart = getInstance();
+
+    return warmStart.m_systemWarmRebootEnabled;
 }
 
 // Set the WarmStart FSM state for a particular application.

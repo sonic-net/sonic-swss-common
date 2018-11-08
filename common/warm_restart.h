@@ -31,9 +31,12 @@ public:
                            int db_port = 6379);
 
     static bool checkWarmStart(const std::string &app_name,
-                               const std::string &docker_name = "swss");
+                               const std::string &docker_name = "swss",
+                               const bool incr_restore_cnt = true);
 
     static bool isWarmStart(void);
+
+    static bool isSystemWarmRebootEnabled(void);
 
     static void setWarmStartState(const std::string &app_name,
                                   WarmStartState     state);
@@ -48,6 +51,7 @@ private:
     std::unique_ptr<Table>               m_cfgWarmRestartTable;
     bool                                 m_initialized;
     bool                                 m_enabled;
+    bool                                 m_systemWarmRebootEnabled;
 };
 
 }
