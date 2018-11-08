@@ -51,7 +51,7 @@ TEST(WarmRestart, checkWarmStart_and_State)
     EXPECT_FALSE(enabled);
 
     // system warmreboot is disabled
-    bool system_enabled = WarmStart::isSystemWarmReboot();
+    bool system_enabled = WarmStart::isSystemWarmRebootEnabled();
     EXPECT_FALSE(system_enabled);
     
     // enable system level warm restart.
@@ -78,7 +78,7 @@ TEST(WarmRestart, checkWarmStart_and_State)
     enabled = WarmStart::isWarmStart();
     EXPECT_TRUE(enabled);
 
-    system_enabled = WarmStart::isSystemWarmReboot();
+    system_enabled = WarmStart::isSystemWarmRebootEnabled();
     EXPECT_TRUE(system_enabled);
     
     // Usually application will sync up with latest external env as to data state,
@@ -121,10 +121,17 @@ TEST(WarmRestart, checkWarmStart_and_State)
     stateWarmRestartTable.hget(testAppName, "restore_count", value);
     EXPECT_EQ(value, "1");
 
+    // Test checkWarmStart function without increment restore count
+    WarmStart::checkWarmStart(testAppName, testDockerName, false);
+
+    // Restore count should still be 1.
+    stateWarmRestartTable.hget(testAppName, "restore_count", value);
+    EXPECT_EQ(value, "1");
+    
     enabled = WarmStart::isWarmStart();
     EXPECT_TRUE(enabled);
 
-    system_enabled = WarmStart::isSystemWarmReboot();
+    system_enabled = WarmStart::isSystemWarmRebootEnabled();
     EXPECT_FALSE(system_enabled);
 }
 
