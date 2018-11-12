@@ -33,11 +33,10 @@ You can also build a debian package using:
     dpkg-buildpackage -us -uc -b
 
 ### Build with Google Test
-1. Install Google Test DEB package. ref: https://stackoverflow.com/questions/13513905/how-to-setup-googletest-as-a-shared-library-on-linux/41954177#41954177
+1. Install Google Test DEB package.
 ```
 $ sudo apt-get install cmake libgtest-dev
-$ cd /usr/src/gtest && sudo cmake . && sudo make && sudo mv libg* /usr/lib/; cd -
-$ g++ test.cpp -o test -lgtest -pthread && ./test
+$ cd /usr/src/gtest && sudo cmake . && sudo make
 ```
 2. Rebuild with Google Test
 ```
