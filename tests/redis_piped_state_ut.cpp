@@ -55,7 +55,7 @@ static inline int readNumberAtEOL(const string& str)
     istringstream is(str.substr(pos - str.begin()));
     int ret;
     is >> ret;
-    EXPECT_TRUE(is);
+    EXPECT_TRUE((bool)is);
     return ret;
 }
 
