@@ -29,18 +29,18 @@ static inline int getMaxFields(int i)
 
 static inline string key(int i)
 {
-    return string("key_") + to_string(i);
+    return string("key ") + to_string(i);
 }
 
 static inline string field(int i)
 {
-    return string("field_") + to_string(i);
+    return string("field ") + to_string(i);
 }
 
 static inline string value(int i)
 {
     if (i == 0) return string(); // emtpy
-    return string("value_") + to_string(i);
+    return string("value ") + to_string(i);
 }
 
 static inline bool IsDigit(char ch)

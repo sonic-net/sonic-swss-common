@@ -245,9 +245,19 @@ void ProducerStateTable::apply_temp_view()
         {
             needSet = true;
         }
-        if (needDel) keysToDel.emplace_back(key);
-        if (needSet) keysToSet.emplace_back(key);
-        else m_tempViewState.erase(key);                               // If exactly match, no need to sync new state to StateHash in DB
+
+        if (needDel) 
+        { 
+            keysToDel.emplace_back(key);
+        }
+        if (needSet) 
+        {
+            keysToSet.emplace_back(key);
+        }
+        else  // If exactly match, no need to sync new state to StateHash in DB 
+        {
+            m_tempViewState.erase(key);
+        }            
     }
     // Objects that do not exist currently need to be created
     for (auto const & kfvPair : m_tempViewState)
@@ -260,28 +270,7 @@ void ProducerStateTable::apply_temp_view()
     }
 
     // Assembly redis command args into a string vector
-    //
-    // Sample args format:
-    // KEYS:
-    //   SAMPLE_CHANNEL
-    //   SAMPLE_KEY_SET
-    //   SAMPLE_DEL_KEY_SET
-    //   _SAMPLE:key_0
-    //   _SAMPLE:key_1
-    // ARGV:
-    //   G   (String to be published to channel)
-    //   2   (Count of objects to set)
-    //   key_0
-    //   key_1
-    //   0   (Count of objects to del)
-    //   2   (Count of A/V pair of object 0)
-    //   attribute_0
-    //   value_0
-    //   attribute_1
-    //   value_1
-    //   1   (Count of A/V pair of object 1)
-    //   attribute_0
-    //   value_0
+    // See comment in producer_state_table_apply_view.lua for argument format
     vector<string> args;
     args.emplace_back("EVALSHA");
     args.emplace_back(m_shaApplyView);
