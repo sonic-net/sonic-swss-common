@@ -191,12 +191,21 @@ void ProducerStateTable::clear()
 
 void ProducerStateTable::create_temp_view()
 {
+    if (m_tempViewActive)
+    {
+        SWSS_LOG_WARN("create_temp_view() called for table %s when another temp view is under work, %zd objects in existing temp view will be discarded.", getTableName().c_str(), m_tempViewState.size());
+    }
     m_tempViewActive = true;
     m_tempViewState.clear(); 
 }
 
 void ProducerStateTable::apply_temp_view()
 {
+    if (!m_tempViewActive)
+    {
+        SWSS_LOG_THROW("apply_temp_view() called for table %s, however no temp view was created.", getTableName().c_str());
+    }
+
     // Drop all pending operation first
     clear();
 
@@ -205,6 +214,20 @@ void ProducerStateTable::apply_temp_view()
         Table mainTable(m_pipe, getTableName(), false);
         mainTable.dump(currentState);
     }
+
+    // Print content of current view and temp view as debug log
+    SWSS_LOG_DEBUG("View switch of table %s required.", getTableName().c_str());
+    SWSS_LOG_DEBUG("Objects in current view:");
+    for (auto const & kfvPair : currentState)
+    {
+        SWSS_LOG_DEBUG("    %s: %zd fields;", kfvPair.first.c_str(), kfvPair.second.size());
+    }
+    SWSS_LOG_DEBUG("Objects in target view:");
+    for (auto const & kfvPair : m_tempViewState)
+    {
+        SWSS_LOG_DEBUG("    %s: %zd fields;", kfvPair.first.c_str(), kfvPair.second.size());
+    }
+
 
     std::vector<std::string> keysToSet;
     std::vector<std::string> keysToDel;
@@ -300,6 +323,16 @@ void ProducerStateTable::apply_temp_view()
         }
     }
     args.insert(args.end(), argvs.begin(), argvs.end());
+
+    // Log arguments for debug
+    {
+        std::stringstream ss;
+        for (auto const & item : args)
+        {
+            ss << item << " ";
+        }
+        SWSS_LOG_DEBUG("apply_view.lua is called with following argument list: %s", ss.str().c_str());
+    }
 
     // Transform data structure
     vector<const char *> args1;
