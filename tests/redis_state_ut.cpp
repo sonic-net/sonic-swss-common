@@ -630,6 +630,56 @@ TEST(ConsumerStateTable, view_switch)
     EXPECT_EQ(r3.getReply<long long int>(), (long long int) 0);
 }
 
+TEST(ConsumerStateTable, view_switch_abnormal_sequence)
+{
+    clearDB();
+
+    // Prepare producer 
+    int index = 0;
+    string tableName = "UT_REDIS_THREAD_" + to_string(index);
+    DBConnector db(TEST_DB, "localhost", 6379, 0);
+    ProducerStateTable p(&db, tableName);
+    Table table(&db, tableName);
+
+    int numOfKeys = 20;
+    int numOfKeysNew = 10;
+    int maxNumOfFields = 2;
+
+    // Double create - only the content of second view should be applied
+    p.create_temp_view();
+    for (int i=0; i<numOfKeys; ++i)
+    {
+        vector<FieldValueTuple> fields;
+        for (int j = 0; j < maxNumOfFields; ++j)
+        {
+            FieldValueTuple t(field(j), value(j));
+            fields.push_back(t);
+        }
+        p.set(key(i), fields);
+    }
+    p.create_temp_view();
+    for (int i=0; i<numOfKeysNew; ++i)
+    {
+        vector<FieldValueTuple> fields;
+        for (int j = 0; j < maxNumOfFields; ++j)
+        {
+            FieldValueTuple t(field(j), value(j));
+            fields.push_back(t);
+        }
+        p.set(key(i), fields);
+    }
+    p.apply_temp_view();
+    EXPECT_EQ(p.count(), numOfKeysNew);
+
+    // Double apply - should throw exception
+    clearDB();
+    p.create_temp_view();
+    p.apply_temp_view();
+    EXPECT_ANY_THROW({
+        p.apply_temp_view();
+    });
+}
+
 TEST(ConsumerStateTable, view_switch_with_consumer)
 {
     clearDB();
@@ -726,6 +776,174 @@ TEST(ConsumerStateTable, view_switch_with_consumer)
     hlen.format("HLEN %s", (c.getKeyName(key(0))).c_str());
     RedisReply r6(&db, hlen, REDIS_REPLY_INTEGER);
     EXPECT_EQ(r6.getReply<long long int>(), (long long int) maxNumOfFieldsNew);
+}
+
+TEST(ConsumerStateTable, view_switch_delete_with_consumer)
+{
+    clearDB();
+    int numOfKeys = 20;
+    int maxNumOfFields = 2;
+
+    // Prepare producer 
+    int index = 0;
+    string tableName = "UT_REDIS_THREAD_" + to_string(index);
+    DBConnector db(TEST_DB, "localhost", 6379, 0);
+    ProducerStateTable p(&db, tableName);
+    Table table(&db, tableName);
+
+    // Set up previous view
+    for (int i=0; i<numOfKeys; ++i)
+    {
+        vector<FieldValueTuple> fields;
+        for (int j = 0; j < maxNumOfFields; ++j)
+        {
+            FieldValueTuple t(field(j), value(j));
+            fields.push_back(t);
+        }
+        p.set(key(i), fields);
+    }
+
+    // Set up consumer to sync state
+    ConsumerStateTable c(&db, tableName);
+    Select cs;
+    Selectable *selectcs;
+    cs.addSelectable(&c);
+    int ret;
+    do 
+    {
+        ret = cs.select(&selectcs, 1000);
+        if (ret == Select::OBJECT)
+        {
+            KeyOpFieldsValuesTuple kco;
+            c.pop(kco);
+        }
+    }
+    while (ret != Select::TIMEOUT);
+
+    // State Queue should be empty 
+    RedisCommand keys;
+    keys.format("KEYS %s*", (c.getStateHashPrefix() + tableName).c_str());
+    RedisReply r(&db, keys, REDIS_REPLY_ARRAY);
+    EXPECT_EQ(r.getContext()->elements, (size_t) 0);
+    // Verify number of objects
+    keys.format("KEYS %s:*", tableName.c_str());
+    RedisReply r2(&db, keys, REDIS_REPLY_ARRAY);
+    EXPECT_EQ(r2.getContext()->elements, (size_t) numOfKeys);
+    // Verify number of fields
+    RedisCommand hlen;
+    hlen.format("HLEN %s", (c.getKeyName(key(0))).c_str());
+    RedisReply r3(&db, hlen, REDIS_REPLY_INTEGER);
+    EXPECT_EQ(r3.getReply<long long int>(), (long long int) maxNumOfFields);
+
+    // Apply empty temp view 
+    p.create_temp_view();
+    p.apply_temp_view();
+
+    do 
+    {
+        ret = cs.select(&selectcs, 1000);
+        if (ret == Select::OBJECT)
+        {
+            KeyOpFieldsValuesTuple kco;
+            c.pop(kco);
+        }
+    }
+    while (ret != Select::TIMEOUT);
+
+    // State Queue should be empty 
+    keys.format("KEYS %s*", (c.getStateHashPrefix() + tableName).c_str());
+    RedisReply r4(&db, keys, REDIS_REPLY_ARRAY);
+    EXPECT_EQ(r4.getContext()->elements, (size_t) 0);
+    // Table should be empty
+    keys.format("KEYS %s:*", tableName.c_str());
+    RedisReply r5(&db, keys, REDIS_REPLY_ARRAY);
+    EXPECT_EQ(r5.getContext()->elements, (size_t) 0);
+}
+
+TEST(ConsumerStateTable, view_switch_delete_with_consumer_2)
+{
+    clearDB();
+    int numOfKeys = 20;
+    int maxNumOfFields = 2;
+
+    // Prepare producer 
+    int index = 0;
+    string tableName = "UT_REDIS_THREAD_" + to_string(index);
+    DBConnector db(TEST_DB, "localhost", 6379, 0);
+    ProducerStateTable p(&db, tableName);
+    Table table(&db, tableName);
+
+    // Set up consumer to sync state
+    ConsumerStateTable c(&db, tableName);
+    Select cs;
+    Selectable *selectcs;
+    cs.addSelectable(&c);
+    int ret;
+
+    // Set up initial view again
+    for (int i=0; i<numOfKeys; ++i)
+    {
+        vector<FieldValueTuple> fields;
+        for (int j = 0; j < maxNumOfFields; ++j)
+        {
+            FieldValueTuple t(field(j), value(j));
+            fields.push_back(t);
+        }
+        p.set(key(i), fields);
+    }
+    do 
+    {
+        ret = cs.select(&selectcs, 1000);
+        if (ret == Select::OBJECT)
+        {
+            KeyOpFieldsValuesTuple kco;
+            c.pop(kco);
+        }
+    }
+    while (ret != Select::TIMEOUT);
+    // State Queue should be empty 
+    RedisCommand keys;
+    keys.format("KEYS %s*", (c.getStateHashPrefix() + tableName).c_str());
+    RedisReply r6(&db, keys, REDIS_REPLY_ARRAY);
+    EXPECT_EQ(r6.getContext()->elements, (size_t) 0);
+
+    p.create_temp_view();
+    // set and del in temp view
+    for (int i=0; i<numOfKeys; ++i)
+    {
+        vector<FieldValueTuple> fields;
+        for (int j = 0; j < maxNumOfFields; ++j)
+        {
+            FieldValueTuple t(field(j), value(j));
+            fields.push_back(t);
+        }
+        p.set(key(i), fields);
+    }
+    for (int i=0; i<numOfKeys; ++i)
+    {
+        p.del(key(i));
+    }
+    p.apply_temp_view();
+
+    do 
+    {
+        ret = cs.select(&selectcs, 1000);
+        if (ret == Select::OBJECT)
+        {
+            KeyOpFieldsValuesTuple kco;
+            c.pop(kco);
+        }
+    }
+    while (ret != Select::TIMEOUT);
+
+    // State Queue should be empty 
+    keys.format("KEYS %s*", (c.getStateHashPrefix() + tableName).c_str());
+    RedisReply r7(&db, keys, REDIS_REPLY_ARRAY);
+    EXPECT_EQ(r7.getContext()->elements, (size_t) 0);
+    // Table should be empty
+    keys.format("KEYS %s:*", tableName.c_str());
+    RedisReply r8(&db, keys, REDIS_REPLY_ARRAY);
+    EXPECT_EQ(r8.getContext()->elements, (size_t) 0);
 }
 
 TEST(ConsumerStateTable, singlethread)
