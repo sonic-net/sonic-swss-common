@@ -165,7 +165,7 @@ namespace swss {
 #define CFG_VXLAN_TUNNEL_TABLE_NAME                 "VXLAN_TUNNEL"
 #define CFG_VXLAN_TUNNEL_MAP_TABLE_NAME             "VXLAN_TUNNEL_MAP"
 #define CFG_VNET_TABLE_NAME                         "VNET"
-#define CFG_VRF_TABLE_NAME                          "VRF"
+#define CFG_NEIGH_TABLE_NAME                        "NEIGH_TABLE"
 
 /***** STATE DATABASE *****/
 
