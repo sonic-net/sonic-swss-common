@@ -179,11 +179,6 @@ void Table::dump(TableDump& tableDump)
 {
     SWSS_LOG_ENTER();
 
-    // note that this function is not efficient
-    // it can take ~100ms for entire asic dump
-    // but it's not intended to be efficient
-    // since it will not be used many times
-
     static std::string luaScript = loadLuaScript("table_dump.lua");
 
     static std::string sha = m_pipe->loadRedisScript(luaScript);

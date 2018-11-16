@@ -5,6 +5,7 @@ lib_LTLIBRARIES = libswsscommon.la
 EXTRA_DIST = \
     consumer_state_table_pops.lua \
     consumer_table_pops.lua \
+    producer_state_table_apply_view.lua \
     table_dump.lua
 
 swssdir = $(datadir)/swss
