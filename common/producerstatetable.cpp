@@ -216,16 +216,16 @@ void ProducerStateTable::apply_temp_view()
     }
 
     // Print content of current view and temp view as debug log
-    SWSS_LOG_DEBUG("View switch of table %s required.", getTableName().c_str());
-    SWSS_LOG_DEBUG("Objects in current view:");
+    SWSS_LOG_INFO("View switch of table %s required.", getTableName().c_str());
+    SWSS_LOG_INFO("Objects in current view:");
     for (auto const & kfvPair : currentState)
     {
-        SWSS_LOG_DEBUG("    %s: %zd fields;", kfvPair.first.c_str(), kfvPair.second.size());
+        SWSS_LOG_INFO("    %s: %zd fields;", kfvPair.first.c_str(), kfvPair.second.size());
     }
-    SWSS_LOG_DEBUG("Objects in target view:");
+    SWSS_LOG_INFO("Objects in target view:");
     for (auto const & kfvPair : m_tempViewState)
     {
-        SWSS_LOG_DEBUG("    %s: %zd fields;", kfvPair.first.c_str(), kfvPair.second.size());
+        SWSS_LOG_INFO("    %s: %zd fields;", kfvPair.first.c_str(), kfvPair.second.size());
     }
 
 
