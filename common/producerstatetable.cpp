@@ -232,7 +232,10 @@ void ProducerStateTable::apply_temp_view()
     std::vector<std::string> keysToSet;
     std::vector<std::string> keysToDel;
 
-    // Compare based on existing objects
+    // Compare based on existing objects.
+    //     Please note that this comparation is literal not contextual - 
+    //     e.g. {nexthop: 10.1.1.1, 10.1.1.2} and {nexthop: 10.1.1.2, 10.1.1.1} will be treated as different.
+    //     Application will need to handle it, to make sure contextually identical field values also literally identical.
     for (auto const & kfvPair : currentState)
     {
         const string& key = kfvPair.first;
