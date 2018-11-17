@@ -25,13 +25,13 @@ public:
     static WarmStart &getInstance(void);
 
     static void initialize(const std::string &app_name,
-                           const std::string &docker_name = "swss",
+                           const std::string &docker_name,
                            unsigned int db_timeout = 0,
                            const std::string &db_hostname = "",
                            int db_port = 6379);
 
     static bool checkWarmStart(const std::string &app_name,
-                               const std::string &docker_name = "swss",
+                               const std::string &docker_name,
                                const bool incr_restore_cnt = true);
 
     static bool isWarmStart(void);
@@ -42,7 +42,7 @@ public:
                                   WarmStartState     state);
 
     static uint32_t getWarmStartTimer(const std::string &app_name,
-                                      const std::string &docker_name ="swss");
+                                      const std::string &docker_name);
 
 private:
     std::shared_ptr<swss::DBConnector>   m_stateDb;
