@@ -143,6 +143,13 @@ void Table::del(const string &key, const string& /* op */, const string& /*prefi
     m_pipe->push(del_key, REDIS_REPLY_INTEGER);
 }
 
+void Table::hdel(const string &key, const string &field, const string& /* op */, const string& /*prefix*/)
+{
+    RedisCommand cmd;
+    cmd.formatHDEL(getKeyName(key), field);
+    m_pipe->push(cmd, REDIS_REPLY_INTEGER);
+}
+
 void TableEntryEnumerable::getContent(vector<KeyOpFieldsValuesTuple> &tuples)
 {
     vector<string> keys;

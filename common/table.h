@@ -143,7 +143,10 @@ public:
     virtual void del(const std::string &key,
                      const std::string &op = "",
                      const std::string &prefix = EMPTY_PREFIX);
-
+    virtual void hdel(const std::string &key,
+                      const std::string &field,
+                      const std::string &op = "",
+                      const std::string &prefix = EMPTY_PREFIX);
     /* Read a value from the DB directly */
     /* Returns false if the key doesn't exists */
     virtual bool get(const std::string &key, std::vector<FieldValueTuple> &ovalues);
