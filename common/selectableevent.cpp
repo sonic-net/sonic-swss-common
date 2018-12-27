@@ -43,18 +43,25 @@ int SelectableEvent::getFd()
 void SelectableEvent::readData()
 {
     uint64_t r;
-
     ssize_t s;
+
+    uint8_t* r_ptr = reinterpret_cast<uint8_t*>(&r);
+    size_t bytes_to_read = sizeof(uint64_t);
+
     do
     {
-        s = read(m_efd, &r, sizeof(uint64_t));
+        s = read(m_efd, r_ptr, bytes_to_read);
+        if (s > 0)
+        {
+            r_ptr += s;
+            bytes_to_read -= s;
+        }
     }
-    while(s == -1 && errno == EINTR);
+    while ((s == -1 && errno == EINTR) || (bytes_to_read > 0));
 
-    if (s != sizeof(uint64_t))
+    if (s == -1)
     {
-        SWSS_LOG_THROW("SelectableEvent read failed, s:%zd errno: %s",
-                s, strerror(errno));
+        SWSS_LOG_THROW("SelectableEvent read failed, errno: %d '%s'", errno, strerror(errno));
     }
 }
 
