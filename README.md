@@ -18,7 +18,7 @@ Install build dependencies:
 
     sudo apt-get install make libtool m4 autoconf dh-exec debhelper cmake pkg-config \
                          libhiredis-dev libnl-3-dev libnl-genl-3-dev libnl-route-3-dev swig3.0 \
-                         libpython2.7-dev
+                         libpython2.7-dev libgtest-dev
 
 You can compile and install from source using:
 
@@ -31,6 +31,25 @@ You can also build a debian package using:
     ./autogen.sh
     ./configure
     dpkg-buildpackage -us -uc -b
+
+### Build with Google Test
+1. Install Google Test DEB package.
+```
+$ sudo apt-get install cmake libgtest-dev
+$ cd /usr/src/gtest && sudo cmake . && sudo make
+```
+2. Rebuild with Google Test
+```
+$ ./autogen.sh
+$ ./configure --enable-debug 'CXXFLAGS=-O0 -g'
+$ make clean
+$ GCC_COLORS=1 make
+```
+
+3. Run unit test:
+```
+tests/tests
+```
 
 ## Need Help?
 

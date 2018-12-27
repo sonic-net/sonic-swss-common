@@ -5,6 +5,7 @@ lib_LTLIBRARIES = libswsscommon.la
 EXTRA_DIST = \
     consumer_state_table_pops.lua \
     consumer_table_pops.lua \
+    producer_state_table_apply_view.lua \
     table_dump.lua
 
 swssdir = $(datadir)/swss
@@ -50,7 +51,8 @@ libswsscommon_la_SOURCES = \
     tokenize.cpp              \
     exec.cpp                  \
     subscriberstatetable.cpp  \
-    timestamp.cpp
+    timestamp.cpp             \
+    warm_restart.cpp
 
 libswsscommon_la_CXXFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CFLAGS)
 libswsscommon_la_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CPPFLAGS)

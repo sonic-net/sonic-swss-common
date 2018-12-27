@@ -1,13 +1,16 @@
 #include "notificationconsumer.h"
 
 #include <iostream>
+#include <deque>
+#include "redisapi.h"
 
 #define NOTIFICATION_SUBSCRIBE_TIMEOUT (1000)
 #define REDIS_PUBLISH_MESSAGE_INDEX (2)
 #define REDIS_PUBLISH_MESSAGE_ELEMNTS (3)
 
-swss::NotificationConsumer::NotificationConsumer(swss::DBConnector *db, const std::string &channel, int pri):
+swss::NotificationConsumer::NotificationConsumer(swss::DBConnector *db, const std::string &channel, int pri, size_t popBatchSize):
     Selectable(pri),
+    POP_BATCH_SIZE(popBatchSize),
     m_db(db),
     m_subscribe(NULL),
     m_channel(channel)
@@ -153,4 +156,50 @@ void swss::NotificationConsumer::pop(std::string &op, std::string &data, std::ve
     data = fvValue(fvt);
 
     values.erase(values.begin());
+}
+
+void swss::NotificationConsumer::pops(std::deque<KeyOpFieldsValuesTuple> &vkco)
+{
+    SWSS_LOG_ENTER();
+    std::string op;
+    std::string data;
+    std::vector<FieldValueTuple> values;
+
+    vkco.clear();
+    while(!m_queue.empty())
+    {
+        while(!m_queue.empty())
+        {
+            pop(op, data, values);
+            vkco.emplace_back(data, op, values);
+        }
+
+        // Too many popped, let's return to prevent DoS attach
+        if (vkco.size() >= POP_BATCH_SIZE)
+            return;
+
+        // Peek for more data in redis socket
+        int rc = swss::peekRedisContext(m_subscribe->getContext());
+        if (rc <= 0)
+            break;
+
+        readData();
+    }
+}
+
+int swss::NotificationConsumer::peek()
+{
+    SWSS_LOG_ENTER();
+    if (m_queue.empty())
+    {
+        // Peek for more data in redis socket
+        int rc = swss::peekRedisContext(m_subscribe->getContext());
+        if (rc <= 0)
+            return rc;
+
+        // Feed into internal queue
+        readData();
+    }
+
+    return m_queue.empty() ? 0 : 1;
 }

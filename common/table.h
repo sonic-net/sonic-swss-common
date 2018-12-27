@@ -194,13 +194,16 @@ public:
 class TableName_KeySet {
 private:
     std::string m_key;
+    std::string m_delkey;
 public:
     TableName_KeySet(const std::string &tableName)
         : m_key(tableName + "_KEY_SET")
+        , m_delkey(tableName + "_DEL_SET")
     {
     }
 
     std::string getKeySetName() const { return m_key; }
+    std::string getDelKeySetName() const { return m_delkey; }
     std::string getStateHashPrefix() const { return "_"; }
 };
 

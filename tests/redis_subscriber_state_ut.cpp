@@ -66,7 +66,7 @@ static inline int readNumberAtEOL(const string& str)
     int ret;
     is >> ret;
 
-    EXPECT_TRUE(is);
+    EXPECT_TRUE((bool)is);
 
     return ret;
 }
