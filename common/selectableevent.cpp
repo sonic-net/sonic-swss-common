@@ -57,7 +57,7 @@ void SelectableEvent::readData()
             bytes_to_read -= s;
         }
     }
-    while ((s == -1 && errno == EINTR) || (bytes_to_read > 0));
+    while ((s == -1 && errno == EINTR) || (s != -1 && bytes_to_read > 0));
 
     if (s == -1)
     {
