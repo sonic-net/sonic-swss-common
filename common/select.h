@@ -6,7 +6,6 @@
 #include <queue>
 #include <unordered_map>
 #include <set>
-#include <limits>
 #include <hiredis/hiredis.h>
 #include "selectable.h"
 
@@ -33,7 +32,7 @@ public:
         TIMEOUT = 2,
     };
 
-    int select(Selectable **c, unsigned int timeout = std::numeric_limits<unsigned int>::max());
+    int select(Selectable **c, int timeout = -1);
     bool isQueueEmpty();
 private:
     struct cmp
