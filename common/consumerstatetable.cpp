@@ -63,8 +63,8 @@ void ConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const st
     auto ctx0 = r.getContext();
     vkco.clear();
 
-    // Check whether keyset is empty, if not, signal ourself to process again.
-    // This is to handle the case where number of keys in keyset is more than POP_BATCH_SIZE
+    // Check whether the keyset is empty, if not, signal ourselves to process again.
+    // This is to handle the case where the number of keys in keyset is more than POP_BATCH_SIZE
     // Note there is possibility of false positive since this call is not atomic with consumer_state_table_pops.lua
     // Putting publish call inside consumer_state_table_pops.lua doesn't seem to work.
     command.format(

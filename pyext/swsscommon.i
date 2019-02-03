@@ -67,12 +67,12 @@
 %apply std::string& OUTPUT {std::string &op};
 %apply std::vector<std::pair<std::string, std::string>>& OUTPUT {std::vector<std::pair<std::string, std::string>> &fvs};
 %include "consumertablebase.h"
+%include "consumerstatetable.h"
 %clear std::string &key;
 %clear std::string &op;
 %clear std::vector<std::pair<std::string, std::string>> &fvs;
 
 %include "consumertable.h"
-%include "consumerstatetable.h"
 %include "subscriberstatetable.h"
 
 %apply std::string& OUTPUT {std::string &op};
