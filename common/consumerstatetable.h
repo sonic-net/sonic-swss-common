@@ -20,7 +20,6 @@ public:
 
 private:
     std::string m_multiPublish;
-    std::string m_scardPublish;
 };
 
 }
