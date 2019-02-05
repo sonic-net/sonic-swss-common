@@ -30,20 +30,20 @@ ProducerStateTable::ProducerStateTable(RedisPipeline *pipeline, const string &ta
     // num in luaSet and luaDel means number of elements that were added to the key set,
     // not including all the elements already present into the set.
     string luaSet =
-        "local num = redis.call('SADD', KEYS[2], ARGV[2])\n"
+        "local added = redis.call('SADD', KEYS[2], ARGV[2])\n"
         "for i = 0, #KEYS - 3 do\n"
         "    redis.call('HSET', KEYS[3 + i], ARGV[3 + i * 2], ARGV[4 + i * 2])\n"
         "end\n"
-        " if num > 0 then \n"
+        " if added > 0 then \n"
         "    redis.call('PUBLISH', KEYS[1], ARGV[1])\n"
         "end\n";
     m_shaSet = m_pipe->loadRedisScript(luaSet);
 
     string luaDel =
-        "local num = redis.call('SADD', KEYS[2], ARGV[2])\n"
+        "local added = redis.call('SADD', KEYS[2], ARGV[2])\n"
         "redis.call('SADD', KEYS[4], ARGV[2])\n"
         "redis.call('DEL', KEYS[3])\n"
-        "if num > 0 then \n"
+        "if added > 0 then \n"
         "    redis.call('PUBLISH', KEYS[1], ARGV[1])\n"
         "end\n";
     m_shaDel = m_pipe->loadRedisScript(luaDel);
