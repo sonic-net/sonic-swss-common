@@ -483,8 +483,8 @@ TEST(ConsumerStateTable, async_singlethread)
     }
     EXPECT_EQ(p.count(), 0);
 
-    // ConsumerStateTable got all the notifications though no real data available.
-    // EXPECT_EQ(NUMBER_OF_OPS, numberOfNotification);
+    // ConsumerStateTable got less notifications than number of operations.
+    EXPECT_GT(NUMBER_OF_OPS, numberOfNotification);
     EXPECT_EQ(ret, Select::TIMEOUT);
 
     cout << "Done. Waiting for all job to finish " << NUMBER_OF_OPS << " jobs." << endl;

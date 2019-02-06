@@ -898,8 +898,6 @@ TEST(ConsumerStateTable, view_switch_delete_with_consumer_2)
         {
             KeyOpFieldsValuesTuple kco;
             c.pop(kco);
-            // std::deque<KeyOpFieldsValuesTuple> vkco;
-            // c.pops(vkco);
         }
     }
     while (ret != Select::TIMEOUT);
@@ -934,8 +932,6 @@ TEST(ConsumerStateTable, view_switch_delete_with_consumer_2)
         {
             KeyOpFieldsValuesTuple kco;
             c.pop(kco);
-            // std::deque<KeyOpFieldsValuesTuple> vkco;
-            // c.pops(vkco);
         }
     }
     while (ret != Select::TIMEOUT);
