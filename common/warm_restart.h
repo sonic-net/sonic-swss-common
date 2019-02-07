@@ -47,6 +47,7 @@ public:
 private:
     std::shared_ptr<swss::DBConnector>   m_stateDb;
     std::shared_ptr<swss::DBConnector>   m_cfgDb;
+    std::unique_ptr<Table>               m_stateWarmRestartEnableTable;
     std::unique_ptr<Table>               m_stateWarmRestartTable;
     std::unique_ptr<Table>               m_cfgWarmRestartTable;
     bool                                 m_initialized;
