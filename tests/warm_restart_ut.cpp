@@ -15,6 +15,7 @@ TEST(WarmRestart, checkWarmStart_and_State)
 {
     DBConnector stateDb(STATE_DB, "localhost", 6379, 0);
     Table stateWarmRestartTable(&stateDb, STATE_WARM_RESTART_TABLE_NAME);
+    Table stateWarmRestartEnableTable(&stateDb, STATE_WARM_RESTART_ENABLE_TABLE_NAME);
 
     DBConnector configDb(CONFIG_DB, "localhost", 6379, 0);
     Table cfgWarmRestartTable(&configDb, CFG_WARM_RESTART_TABLE_NAME);
@@ -55,7 +56,7 @@ TEST(WarmRestart, checkWarmStart_and_State)
     EXPECT_FALSE(system_enabled);
     
     // enable system level warm restart.
-    cfgWarmRestartTable.hset("system", "enable", "true");
+    stateWarmRestartEnableTable.hset("system", "enable", "true");
 
     // Do checkWarmStart for TestAPP running in TestDocker again.
 
@@ -108,9 +109,9 @@ TEST(WarmRestart, checkWarmStart_and_State)
 
 
     // disable system level warm restart.
-    cfgWarmRestartTable.hset("system", "enable", "false");
+    stateWarmRestartEnableTable.hset("system", "enable", "false");
     // Enable docker level warm restart.
-    cfgWarmRestartTable.hset(testDockerName, "enable", "true");
+    stateWarmRestartEnableTable.hset(testDockerName, "enable", "true");
 
     // Note, this is for unit testing only. checkWarmStart() is supposed to be
     // called only at the very start of a process, or when the re-initialization of

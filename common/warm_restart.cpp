@@ -51,6 +51,8 @@ void WarmStart::initialize(const std::string &app_name,
             std::make_shared<swss::DBConnector>(CONFIG_DB, db_hostname, db_port, db_timeout);
     }
 
+    warmStart.m_stateWarmRestartEnableTable =
+            std::unique_ptr<Table>(new Table(warmStart.m_stateDb.get(), STATE_WARM_RESTART_ENABLE_TABLE_NAME));
     warmStart.m_stateWarmRestartTable =
             std::unique_ptr<Table>(new Table(warmStart.m_stateDb.get(), STATE_WARM_RESTART_TABLE_NAME));
     warmStart.m_cfgWarmRestartTable =
@@ -91,7 +93,7 @@ bool WarmStart::checkWarmStart(const std::string &app_name,
     auto& warmStart = getInstance();
 
     // Check system level warm-restart config first
-    warmStart.m_cfgWarmRestartTable->hget("system", "enable", value);
+    warmStart.m_stateWarmRestartEnableTable->hget("system", "enable", value);
     if (value == "true")
     {
         warmStart.m_enabled = true;
@@ -99,7 +101,7 @@ bool WarmStart::checkWarmStart(const std::string &app_name,
     }
 
     // Check docker level warm-restart configuration
-    warmStart.m_cfgWarmRestartTable->hget(docker_name, "enable", value);
+    warmStart.m_stateWarmRestartEnableTable->hget(docker_name, "enable", value);
     if (value == "true")
     {
         warmStart.m_enabled = true;
