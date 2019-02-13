@@ -46,7 +46,9 @@ for i = n, 1, -3 do
            st = st + 2
        end
 
-   elseif op ~= 'flush' and op ~= 'flushresponse' and op ~= 'get' and op ~= 'getresponse' and op ~= 'notify' then
+   elseif op == 'set' or op == 'create' or op == 'remove' or op == 'DEL'  then
+   -- put entries into REDIS hash only when operations aare this types
+   -- in case of delete command, remove entries
        local keyname = KEYS[2] .. ':' .. key
        if key == '' then
            keyname = KEYS[2]
@@ -62,6 +64,21 @@ for i = n, 1, -3 do
                st = st + 2
            end
        end
+   elseif op == 'flush' or
+       op == 'flushresponse' or
+       op == 'get' or
+       op == 'getresponse' or
+       op == 'notify' or
+       op == 'get_stats' then
+
+    -- do not modify db entries when spotted those commands, they are used to
+    -- trigger actions or get data synchronously from database
+    -- also force to allow only those commands, so when new command will be
+    -- added it will force programmer to support this command also here in
+    -- right way
+   else
+    -- notify redis that this command is not supported and require handling
+       error("unsupported operation command: " .. op .. ", FIXME")
    end
 end
 
