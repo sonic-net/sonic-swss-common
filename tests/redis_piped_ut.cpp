@@ -424,7 +424,7 @@ TEST(ProducerConsumer, piped_Prefix)
     FieldValueTuple t("f", "v");
     values.push_back(t);
 
-    p.set("key", values, "op", "prefix_");
+    p.set("key", values, "set", "prefix_");
     p.flush();
 
     ConsumerTable c(&db, tableName);
@@ -437,7 +437,7 @@ TEST(ProducerConsumer, piped_Prefix)
     auto vs = kfvFieldsValues(kco);
 
     EXPECT_EQ(key, "key");
-    EXPECT_EQ(op, "op");
+    EXPECT_EQ(op, "set");
     EXPECT_EQ(fvField(vs[0]), "f");
     EXPECT_EQ(fvValue(vs[0]), "v");
 }
