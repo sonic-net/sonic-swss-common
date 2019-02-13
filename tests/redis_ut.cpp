@@ -609,7 +609,7 @@ TEST(ProducerConsumer, Prefix)
     FieldValueTuple t("f", "v");
     values.push_back(t);
 
-    p.set("key", values, "op", "prefix_");
+    p.set("key", values, "set", "prefix_");
 
     ConsumerTable c(&db, tableName);
 
@@ -621,7 +621,7 @@ TEST(ProducerConsumer, Prefix)
     auto vs = kfvFieldsValues(kco);
 
     EXPECT_EQ(key, "key");
-    EXPECT_EQ(op, "op");
+    EXPECT_EQ(op, "set");
     EXPECT_EQ(fvField(vs[0]), "f");
     EXPECT_EQ(fvValue(vs[0]), "v");
 }
@@ -638,7 +638,7 @@ TEST(ProducerConsumer, Pop)
     FieldValueTuple t("f", "v");
     values.push_back(t);
 
-    p.set("key", values, "op", "prefix_");
+    p.set("key", values, "set", "prefix_");
 
     ConsumerTable c(&db, tableName);
 
@@ -649,7 +649,7 @@ TEST(ProducerConsumer, Pop)
     c.pop(key, op, fvs, "prefix_");
 
     EXPECT_EQ(key, "key");
-    EXPECT_EQ(op, "op");
+    EXPECT_EQ(op, "set");
     EXPECT_EQ(fvField(fvs[0]), "f");
     EXPECT_EQ(fvValue(fvs[0]), "v");
 }
@@ -665,12 +665,12 @@ TEST(ProducerConsumer, Pop2)
 
     FieldValueTuple t("f", "v");
     values.push_back(t);
-    p.set("key", values, "op", "prefix_");
+    p.set("key", values, "set", "prefix_");
 
     FieldValueTuple t2("f2", "v2");
     values.clear();
     values.push_back(t2);
-    p.set("key", values, "op", "prefix_");
+    p.set("key", values, "set", "prefix_");
 
     ConsumerTable c(&db, tableName);
 
@@ -681,14 +681,14 @@ TEST(ProducerConsumer, Pop2)
     c.pop(key, op, fvs, "prefix_");
 
     EXPECT_EQ(key, "key");
-    EXPECT_EQ(op, "op");
+    EXPECT_EQ(op, "set");
     EXPECT_EQ(fvField(fvs[0]), "f");
     EXPECT_EQ(fvValue(fvs[0]), "v");
 
     c.pop(key, op, fvs, "prefix_");
 
     EXPECT_EQ(key, "key");
-    EXPECT_EQ(op, "op");
+    EXPECT_EQ(op, "set");
     EXPECT_EQ(fvField(fvs[0]), "f2");
     EXPECT_EQ(fvValue(fvs[0]), "v2");
 }
