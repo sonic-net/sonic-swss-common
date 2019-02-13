@@ -52,7 +52,7 @@ for i = n, 1, -3 do
        op == 'create' or
        op == 'remove' or
        op == 'DEL' then
-   -- put entries into REDIS hash only when operations aare this types
+   -- put entries into REDIS hash only when operations are this types
    -- in case of delete command, remove entries
        local keyname = KEYS[2] .. ':' .. key
        if key == '' then
