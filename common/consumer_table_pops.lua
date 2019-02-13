@@ -46,7 +46,12 @@ for i = n, 1, -3 do
            st = st + 2
        end
 
-   elseif op == 'set' or op == 'create' or op == 'remove' or op == 'DEL'  then
+   elseif
+       op == 'set' or
+       op == 'SET' or
+       op == 'create' or
+       op == 'remove' or
+       op == 'DEL' then
    -- put entries into REDIS hash only when operations aare this types
    -- in case of delete command, remove entries
        local keyname = KEYS[2] .. ':' .. key
@@ -64,7 +69,8 @@ for i = n, 1, -3 do
                st = st + 2
            end
        end
-   elseif op == 'flush' or
+   elseif
+       op == 'flush' or
        op == 'flushresponse' or
        op == 'get' or
        op == 'getresponse' or
