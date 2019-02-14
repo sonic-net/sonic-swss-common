@@ -15,6 +15,7 @@ TEST(WarmRestart, checkWarmStart_and_State)
 {
     DBConnector stateDb(STATE_DB, "localhost", 6379, 0);
     Table stateWarmRestartTable(&stateDb, STATE_WARM_RESTART_TABLE_NAME);
+    Table stateWarmRestartEnableTable(&stateDb, STATE_WARM_RESTART_ENABLE_TABLE_NAME);
 
     DBConnector configDb(CONFIG_DB, "localhost", 6379, 0);
     Table cfgWarmRestartTable(&configDb, CFG_WARM_RESTART_TABLE_NAME);
@@ -50,8 +51,12 @@ TEST(WarmRestart, checkWarmStart_and_State)
     bool enabled = WarmStart::isWarmStart();
     EXPECT_FALSE(enabled);
 
+    // system warmreboot is disabled
+    bool system_enabled = WarmStart::isSystemWarmRebootEnabled();
+    EXPECT_FALSE(system_enabled);
+    
     // enable system level warm restart.
-    cfgWarmRestartTable.hset("system", "enable", "true");
+    stateWarmRestartEnableTable.hset("system", "enable", "true");
 
     // Do checkWarmStart for TestAPP running in TestDocker again.
 
@@ -74,6 +79,9 @@ TEST(WarmRestart, checkWarmStart_and_State)
     enabled = WarmStart::isWarmStart();
     EXPECT_TRUE(enabled);
 
+    system_enabled = WarmStart::isSystemWarmRebootEnabled();
+    EXPECT_TRUE(system_enabled);
+    
     // Usually application will sync up with latest external env as to data state,
     // after that it should set the state to RECONCILED for the observation of external tools.
     WarmStart::setWarmStartState(testAppName, WarmStart::RECONCILED);
@@ -101,9 +109,9 @@ TEST(WarmRestart, checkWarmStart_and_State)
 
 
     // disable system level warm restart.
-    cfgWarmRestartTable.hset("system", "enable", "false");
+    stateWarmRestartEnableTable.hset("system", "enable", "false");
     // Enable docker level warm restart.
-    cfgWarmRestartTable.hset(testDockerName, "enable", "true");
+    stateWarmRestartEnableTable.hset(testDockerName, "enable", "true");
 
     // Note, this is for unit testing only. checkWarmStart() is supposed to be
     // called only at the very start of a process, or when the re-initialization of
@@ -114,8 +122,18 @@ TEST(WarmRestart, checkWarmStart_and_State)
     stateWarmRestartTable.hget(testAppName, "restore_count", value);
     EXPECT_EQ(value, "1");
 
+    // Test checkWarmStart function without increment restore count
+    WarmStart::checkWarmStart(testAppName, testDockerName, false);
+
+    // Restore count should still be 1.
+    stateWarmRestartTable.hget(testAppName, "restore_count", value);
+    EXPECT_EQ(value, "1");
+    
     enabled = WarmStart::isWarmStart();
     EXPECT_TRUE(enabled);
+
+    system_enabled = WarmStart::isSystemWarmRebootEnabled();
+    EXPECT_FALSE(system_enabled);
 }
 
 

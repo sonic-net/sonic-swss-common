@@ -26,20 +26,12 @@ include /usr/share/dpkg/default.mk
 #override_dh_auto_configure:
 #	dh_auto_configure -- \
 #	-DCMAKE_LIBRARY_PATH=$(DEB_HOST_MULTIARCH)
-override_dh_auto_configure:
-	bash -c 'mkdir -p googletest/build && cd $$_  && cmake ..'
-	dh_auto_configure -- --enable-gtest
-
-override_dh_auto_build:
-	cd googletest/build && cmake --build .; cd -
-	dh_auto_build
 
 override_dh_auto_install:
 	dh_auto_install
 
 override_dh_clean:
 	dh_clean
-	rm -rf googletest/build
 	rm -f pyext/swsscommon.py pyext/swsscommon_wrap.cpp
 
 override_dh_strip:

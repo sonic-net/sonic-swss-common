@@ -41,21 +41,24 @@ public:
     static WarmStart &getInstance(void);
 
     static void initialize(const std::string &app_name,
-                           const std::string &docker_name = "swss",
+                           const std::string &docker_name,
                            unsigned int db_timeout = 0,
                            const std::string &db_hostname = "",
                            int db_port = 6379);
 
     static bool checkWarmStart(const std::string &app_name,
-                               const std::string &docker_name = "swss");
+                               const std::string &docker_name,
+                               const bool incr_restore_cnt = true);
 
     static bool isWarmStart(void);
+
+    static bool isSystemWarmRebootEnabled(void);
 
     static void setWarmStartState(const std::string &app_name,
                                   WarmStartState     state);
 
     static uint32_t getWarmStartTimer(const std::string &app_name,
-                                      const std::string &docker_name ="swss");
+                                      const std::string &docker_name);
 
     static void setDataCheckState(const std::string &app_name,
                                   DataCheckStage stage,
@@ -66,10 +69,12 @@ public:
 private:
     std::shared_ptr<swss::DBConnector>   m_stateDb;
     std::shared_ptr<swss::DBConnector>   m_cfgDb;
+    std::unique_ptr<Table>               m_stateWarmRestartEnableTable;
     std::unique_ptr<Table>               m_stateWarmRestartTable;
     std::unique_ptr<Table>               m_cfgWarmRestartTable;
     bool                                 m_initialized;
     bool                                 m_enabled;
+    bool                                 m_systemWarmRebootEnabled;
 };
 
 }

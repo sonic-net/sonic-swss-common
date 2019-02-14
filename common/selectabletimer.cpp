@@ -86,7 +86,8 @@ void SelectableTimer::readData()
 
     if (s != sizeof(uint64_t))
     {
-        SWSS_LOG_THROW("read failed, errno: %s", strerror(errno));
+        SWSS_LOG_THROW("SelectableTimer read failed, s:%zd errno: %s",
+                s, strerror(errno));
     }
 }
 

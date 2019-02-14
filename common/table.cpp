@@ -143,6 +143,13 @@ void Table::del(const string &key, const string& /* op */, const string& /*prefi
     m_pipe->push(del_key, REDIS_REPLY_INTEGER);
 }
 
+void Table::hdel(const string &key, const string &field, const string& /* op */, const string& /*prefix*/)
+{
+    RedisCommand cmd;
+    cmd.formatHDEL(getKeyName(key), field);
+    m_pipe->push(cmd, REDIS_REPLY_INTEGER);
+}
+
 void TableEntryEnumerable::getContent(vector<KeyOpFieldsValuesTuple> &tuples)
 {
     vector<string> keys;
@@ -178,11 +185,6 @@ void Table::getKeys(vector<string> &keys)
 void Table::dump(TableDump& tableDump)
 {
     SWSS_LOG_ENTER();
-
-    // note that this function is not efficient
-    // it can take ~100ms for entire asic dump
-    // but it's not intended to be efficient
-    // since it will not be used many times
 
     static std::string luaScript = loadLuaScript("table_dump.lua");
 

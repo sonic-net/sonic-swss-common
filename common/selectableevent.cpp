@@ -53,9 +53,8 @@ void SelectableEvent::readData()
 
     if (s != sizeof(uint64_t))
     {
-        SWSS_LOG_ERROR("read failed, errno: %s", strerror(errno));
-
-        throw std::runtime_error("read failed");
+        SWSS_LOG_THROW("SelectableEvent read failed, s:%zd errno: %s",
+                s, strerror(errno));
     }
 }
 

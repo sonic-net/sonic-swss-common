@@ -55,7 +55,7 @@ static inline int readNumberAtEOL(const string& str)
     istringstream is(str.substr(pos - str.begin()));
     int ret;
     is >> ret;
-    EXPECT_TRUE(is);
+    EXPECT_TRUE((bool)is);
     return ret;
 }
 
@@ -378,6 +378,9 @@ TEST(ConsumerStateTable, async_singlethread)
     }
     p.clear();
     EXPECT_EQ(p.count(), 0);
+    string queryCommand = "KEYS " + p.getStateHashPrefix() + tableName + p.getTableNameSeparator() + "*";
+    RedisReply r(&db, queryCommand.c_str(), REDIS_REPLY_ARRAY);
+    EXPECT_EQ(r.getContext()->elements, (size_t)0);
 
     ConsumerStateTable c(&db, tableName);
     Select cs;
@@ -464,7 +467,9 @@ TEST(ConsumerStateTable, async_singlethread)
     p.flush();
     p.clear();
     EXPECT_EQ(p.count(), 0);
-
+    RedisReply r2(&db, queryCommand.c_str(), REDIS_REPLY_ARRAY);
+    EXPECT_EQ(r2.getContext()->elements, (size_t)0);
+ 
     int numberOfNotification = 0;
     while ((ret = cs.select(&selectcs, 1000)) == Select::OBJECT)
     {
