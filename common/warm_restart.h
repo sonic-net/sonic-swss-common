@@ -12,15 +12,31 @@ namespace swss {
 class WarmStart
 {
 public:
-	enum WarmStartState
-	{
-	    INITIALIZED,
-	    RESTORED,
-	    RECONCILED,
-	};
+    enum WarmStartState
+    {
+        INITIALIZED,
+        RESTORED,
+        RECONCILED,
+    };
+
+    enum DataCheckState
+    {
+        CHECK_IGNORED,
+        CHECK_PASSED,
+        CHECK_FAILED,
+    };
+
+    enum DataCheckStage
+    {
+        STAGE_SHUTDOWN,
+        STAGE_RESTORE,
+    };
 
     typedef std::map<WarmStartState, std::string>  WarmStartStateNameMap;
     static const WarmStartStateNameMap warmStartStateNameMap;
+
+    typedef std::map<DataCheckState, std::string>  DataCheckStateNameMap;
+    static const DataCheckStateNameMap dataCheckStateNameMap;
 
     static WarmStart &getInstance(void);
 
@@ -44,6 +60,12 @@ public:
     static uint32_t getWarmStartTimer(const std::string &app_name,
                                       const std::string &docker_name);
 
+    static void setDataCheckState(const std::string &app_name,
+                                  DataCheckStage stage,
+                                  DataCheckState state);
+
+    static DataCheckState getDataCheckState(const std::string &app_name,
+                                                       DataCheckStage stage);
 private:
     std::shared_ptr<swss::DBConnector>   m_stateDb;
     std::shared_ptr<swss::DBConnector>   m_cfgDb;
