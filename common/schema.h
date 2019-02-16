@@ -13,6 +13,7 @@ namespace swss {
 #define PFC_WD_DB       5
 #define FLEX_COUNTER_DB 5
 #define STATE_DB        6
+#define SNMP_OVERLAY_DB 7
 
 /***** APPLICATION DATABASE *****/
 
