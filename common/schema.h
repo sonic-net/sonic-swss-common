@@ -26,7 +26,6 @@ namespace swss {
 #define APP_NEIGH_TABLE_NAME            "NEIGH_TABLE"
 #define APP_ROUTE_TABLE_NAME            "ROUTE_TABLE"
 #define APP_TUNNEL_DECAP_TABLE_NAME     "TUNNEL_DECAP_TABLE"
-#define APP_MIRROR_SESSION_TABLE_NAME   "MIRROR_SESSION"
 #define APP_FDB_TABLE_NAME              "FDB_TABLE"
 #define APP_PFC_WD_TABLE_NAME           "PFC_WD_TABLE"
 #define APP_SWITCH_TABLE_NAME           "SWITCH_TABLE"
@@ -184,7 +183,7 @@ namespace swss {
 #define STATE_VRF_TABLE_NAME                        "VRF_TABLE"
 #define STATE_MGMT_PORT_TABLE_NAME                  "MGMT_PORT_TABLE"
 #define STATE_NEIGH_RESTORE_TABLE_NAME              "NEIGH_RESTORE_TABLE"
-
+#define STATE_MIRROR_SESSION_TABLE_NAME             "MIRROR_SESSION"
 /***** MISC *****/
 
 #define IPV4_NAME "IPv4"
