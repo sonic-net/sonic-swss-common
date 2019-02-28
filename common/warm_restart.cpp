@@ -13,6 +13,13 @@ const WarmStart::WarmStartStateNameMap WarmStart::warmStartStateNameMap =
     {RECONCILED,    "reconciled"}
 };
 
+const WarmStart::DataCheckStateNameMap WarmStart::dataCheckStateNameMap =
+{
+    {CHECK_IGNORED,   "ignored"},
+    {CHECK_PASSED,    "passed"},
+    {CHECK_FAILED,    "failed"}
+};
+
 WarmStart &WarmStart::getInstance(void)
 {
     static WarmStart m_warmStart;
@@ -51,6 +58,8 @@ void WarmStart::initialize(const std::string &app_name,
             std::make_shared<swss::DBConnector>(CONFIG_DB, db_hostname, db_port, db_timeout);
     }
 
+    warmStart.m_stateWarmRestartEnableTable =
+            std::unique_ptr<Table>(new Table(warmStart.m_stateDb.get(), STATE_WARM_RESTART_ENABLE_TABLE_NAME));
     warmStart.m_stateWarmRestartTable =
             std::unique_ptr<Table>(new Table(warmStart.m_stateDb.get(), STATE_WARM_RESTART_TABLE_NAME));
     warmStart.m_cfgWarmRestartTable =
@@ -91,7 +100,7 @@ bool WarmStart::checkWarmStart(const std::string &app_name,
     auto& warmStart = getInstance();
 
     // Check system level warm-restart config first
-    warmStart.m_cfgWarmRestartTable->hget("system", "enable", value);
+    warmStart.m_stateWarmRestartEnableTable->hget("system", "enable", value);
     if (value == "true")
     {
         warmStart.m_enabled = true;
@@ -99,7 +108,7 @@ bool WarmStart::checkWarmStart(const std::string &app_name,
     }
 
     // Check docker level warm-restart configuration
-    warmStart.m_cfgWarmRestartTable->hget(docker_name, "enable", value);
+    warmStart.m_stateWarmRestartEnableTable->hget(docker_name, "enable", value);
     if (value == "true")
     {
         warmStart.m_enabled = true;
@@ -195,6 +204,61 @@ void WarmStart::setWarmStartState(const std::string &app_name, WarmStartState st
     SWSS_LOG_NOTICE("%s warm start state changed to %s",
                     app_name.c_str(),
                     warmStartStateNameMap.at(state).c_str());
+}
+
+// Set the WarmStart data check state for a particular application.
+void WarmStart::setDataCheckState(const std::string &app_name, DataCheckStage stage, DataCheckState state)
+{
+    auto& warmStart = getInstance();
+
+    std::string stageField = "restore_check";
+
+    if (stage == STAGE_SHUTDOWN)
+    {
+        stageField = "shutdown_check";
+    }
+    warmStart.m_stateWarmRestartTable->hset(app_name,
+                                            stageField,
+                                            dataCheckStateNameMap.at(state).c_str());
+
+    SWSS_LOG_NOTICE("%s %s result %s",
+                    app_name.c_str(),
+                    stageField.c_str(),
+                    dataCheckStateNameMap.at(state).c_str());
+}
+
+WarmStart::DataCheckState WarmStart::getDataCheckState(const std::string &app_name, DataCheckStage stage)
+{
+    auto& warmStart = getInstance();
+
+    std::string stateStr;
+    std::string stageField = "restore_check";
+
+    if (stage == STAGE_SHUTDOWN)
+    {
+        stageField = "shutdown_check";
+    }
+    warmStart.m_stateWarmRestartTable->hget(app_name,
+                                            stageField,
+                                            stateStr);
+
+    DataCheckState state = CHECK_IGNORED;
+
+    for (auto it = dataCheckStateNameMap.begin(); it != dataCheckStateNameMap.end(); it++)
+    {
+        if (it->second == stateStr)
+        {
+            state = it->first;
+            break;
+        }
+    }
+
+    SWSS_LOG_NOTICE("Getting %s %s result %s",
+                    app_name.c_str(),
+                    stageField.c_str(),
+                    stateStr.c_str());
+
+    return state;
 }
 
 }

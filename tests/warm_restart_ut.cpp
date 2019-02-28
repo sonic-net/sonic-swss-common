@@ -15,6 +15,7 @@ TEST(WarmRestart, checkWarmStart_and_State)
 {
     DBConnector stateDb(STATE_DB, "localhost", 6379, 0);
     Table stateWarmRestartTable(&stateDb, STATE_WARM_RESTART_TABLE_NAME);
+    Table stateWarmRestartEnableTable(&stateDb, STATE_WARM_RESTART_ENABLE_TABLE_NAME);
 
     DBConnector configDb(CONFIG_DB, "localhost", 6379, 0);
     Table cfgWarmRestartTable(&configDb, CFG_WARM_RESTART_TABLE_NAME);
@@ -55,7 +56,7 @@ TEST(WarmRestart, checkWarmStart_and_State)
     EXPECT_FALSE(system_enabled);
     
     // enable system level warm restart.
-    cfgWarmRestartTable.hset("system", "enable", "true");
+    stateWarmRestartEnableTable.hset("system", "enable", "true");
 
     // Do checkWarmStart for TestAPP running in TestDocker again.
 
@@ -108,9 +109,9 @@ TEST(WarmRestart, checkWarmStart_and_State)
 
 
     // disable system level warm restart.
-    cfgWarmRestartTable.hset("system", "enable", "false");
+    stateWarmRestartEnableTable.hset("system", "enable", "false");
     // Enable docker level warm restart.
-    cfgWarmRestartTable.hset(testDockerName, "enable", "true");
+    stateWarmRestartEnableTable.hset(testDockerName, "enable", "true");
 
     // Note, this is for unit testing only. checkWarmStart() is supposed to be
     // called only at the very start of a process, or when the re-initialization of
@@ -157,4 +158,80 @@ TEST(WarmRestart, getWarmStartTimer)
     timer = WarmStart::getWarmStartTimer(testAppName, testDockerName);
 
     EXPECT_EQ(timer, 5000u);
+}
+
+TEST(WarmRestart, set_get_DataCheckState)
+{
+    DBConnector stateDb(STATE_DB, "localhost", 6379, 0);
+    Table stateWarmRestartTable(&stateDb, STATE_WARM_RESTART_TABLE_NAME);
+
+    //Clean up warm restart state for testAppName
+    stateWarmRestartTable.del(testAppName);
+
+    //Initialize WarmStart class for TestApp
+    WarmStart::initialize(testAppName, testDockerName, 0, "localhost", 6379);
+
+    WarmStart::DataCheckState state;
+    // basic state set check for shutdown stage
+    string value;
+    bool ret = stateWarmRestartTable.hget(testAppName, "shutdown_check", value);
+    EXPECT_FALSE(ret);
+    EXPECT_EQ(value, "");
+    state = WarmStart::getDataCheckState(testAppName, WarmStart::STAGE_SHUTDOWN);
+    EXPECT_EQ(state, WarmStart::CHECK_IGNORED);
+
+
+    WarmStart::setDataCheckState(testAppName, WarmStart::STAGE_SHUTDOWN, WarmStart::CHECK_IGNORED);
+    ret = stateWarmRestartTable.hget(testAppName, "shutdown_check", value);
+    EXPECT_TRUE(ret);
+    EXPECT_EQ(value, "ignored");
+    state = WarmStart::getDataCheckState(testAppName, WarmStart::STAGE_SHUTDOWN);
+    EXPECT_EQ(state, WarmStart::CHECK_IGNORED);
+
+
+    WarmStart::setDataCheckState(testAppName, WarmStart::STAGE_SHUTDOWN, WarmStart::CHECK_PASSED);
+    ret = stateWarmRestartTable.hget(testAppName, "shutdown_check", value);
+    EXPECT_TRUE(ret);
+    EXPECT_EQ(value, "passed");
+    state = WarmStart::getDataCheckState(testAppName, WarmStart::STAGE_SHUTDOWN);
+    EXPECT_EQ(state, WarmStart::CHECK_PASSED);
+
+
+    WarmStart::setDataCheckState(testAppName, WarmStart::STAGE_SHUTDOWN, WarmStart::CHECK_FAILED);
+
+    ret = stateWarmRestartTable.hget(testAppName, "shutdown_check", value);
+    EXPECT_TRUE(ret);
+    EXPECT_EQ(value, "failed");
+    state = WarmStart::getDataCheckState(testAppName, WarmStart::STAGE_SHUTDOWN);
+    EXPECT_EQ(state, WarmStart::CHECK_FAILED);
+
+
+    // basic state set check for restore stage
+    ret = stateWarmRestartTable.hget(testAppName, "restore_check", value);
+    EXPECT_FALSE(ret);
+    EXPECT_EQ(value, "");
+    state = WarmStart::getDataCheckState(testAppName, WarmStart::STAGE_RESTORE);
+    EXPECT_EQ(state, WarmStart::CHECK_IGNORED);
+
+    WarmStart::setDataCheckState(testAppName, WarmStart::STAGE_RESTORE, WarmStart::CHECK_IGNORED);
+    ret = stateWarmRestartTable.hget(testAppName, "restore_check", value);
+    EXPECT_TRUE(ret);
+    EXPECT_EQ(value, "ignored");
+    state = WarmStart::getDataCheckState(testAppName, WarmStart::STAGE_RESTORE);
+    EXPECT_EQ(state, WarmStart::CHECK_IGNORED);
+
+    WarmStart::setDataCheckState(testAppName, WarmStart::STAGE_RESTORE, WarmStart::CHECK_PASSED);
+    ret = stateWarmRestartTable.hget(testAppName, "restore_check", value);
+    EXPECT_TRUE(ret);
+    EXPECT_EQ(value, "passed");
+    state = WarmStart::getDataCheckState(testAppName, WarmStart::STAGE_RESTORE);
+    EXPECT_EQ(state, WarmStart::CHECK_PASSED);
+
+
+    WarmStart::setDataCheckState(testAppName, WarmStart::STAGE_RESTORE, WarmStart::CHECK_FAILED);
+    ret = stateWarmRestartTable.hget(testAppName, "restore_check", value);
+    EXPECT_TRUE(ret);
+    EXPECT_EQ(value, "failed");
+    state = WarmStart::getDataCheckState(testAppName, WarmStart::STAGE_RESTORE);
+    EXPECT_EQ(state, WarmStart::CHECK_FAILED);
 }

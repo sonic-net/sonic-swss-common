@@ -25,6 +25,7 @@
 %include <std_vector.i>
 %include <std_pair.i>
 %include <typemaps.i>
+%include <stdint.i>
 
 %template(FieldValuePair) std::pair<std::string, std::string>;
 %template(FieldValuePairs) std::vector<std::pair<std::string, std::string>>;
