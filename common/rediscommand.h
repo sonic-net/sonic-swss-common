@@ -44,6 +44,9 @@ public:
     /* Format HDEL key field command */
     void formatHDEL(const std::string& key, const std::string& field);
 
+    /* Format HDEL key multiple fields command */
+    void formatHDEL(const std::string& key, const std::vector<std::string>& fields);
+
     const char *c_str() const;
 
     size_t length() const;
