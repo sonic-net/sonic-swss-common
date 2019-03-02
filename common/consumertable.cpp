@@ -57,6 +57,7 @@ void ConsumerTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, const string &pref
     // if the set is empty, return an empty kco object
     if (r.getContext()->type == REDIS_REPLY_NIL)
     {
+        discard(1);
         return;
     }
 
@@ -91,6 +92,7 @@ void ConsumerTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, const string &pref
             values.push_back(e);
         }
     }
+    discard(vkco.size());
 }
 
 }

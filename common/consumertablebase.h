@@ -1,5 +1,6 @@
 #pragma once
 
+#include <deque>
 #include "table.h"
 #include "selectable.h"
 
@@ -21,6 +22,13 @@ public:
     void pop(std::string &key, std::string &op, std::vector<FieldValueTuple> &fvs, const std::string &prefix = EMPTY_PREFIX);
 
     bool empty() const { return m_buffer.empty(); };
+
+    bool hasData() override;
+
+    bool hasCachedData() override;
+
+    void updateAfterRead() override;
+
 protected:
 
     std::deque<KeyOpFieldsValuesTuple> m_buffer;

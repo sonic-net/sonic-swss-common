@@ -27,7 +27,12 @@ void RedisSelect::readData()
     freeReplyObject(reply);
     m_queueLength++;
 
-    reply = nullptr;
+    readRemainingData();
+}
+
+void RedisSelect::readRemainingData()
+{
+    redisReply *reply = nullptr;
     int status;
     do
     {
@@ -64,6 +69,25 @@ bool RedisSelect::initializedWithData()
 void RedisSelect::updateAfterRead()
 {
     m_queueLength--;
+}
+
+void RedisSelect::discard(long long int n)
+{
+    readRemainingData();
+
+    if (n <= 0)
+        n = 1;
+
+    if (n > m_queueLength)
+    {
+        n -= m_queueLength;
+        m_queueLength = 0;
+    }
+    else
+    {
+        m_queueLength -= n;
+        n = 0;
+    }
 }
 
 /* Create a new redisContext, SELECT DB and SUBSCRIBE */

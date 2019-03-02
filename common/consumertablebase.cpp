@@ -43,4 +43,18 @@ void ConsumerTableBase::pop(std::string &key, std::string &op, std::vector<Field
     m_buffer.pop_front();
 }
 
+bool ConsumerTableBase::hasData()
+{
+    return RedisSelect::hasData() || !m_buffer.empty();
+}
+
+bool ConsumerTableBase::hasCachedData()
+{
+    return true;
+}
+
+void ConsumerTableBase::updateAfterRead()
+{
+}
+
 }

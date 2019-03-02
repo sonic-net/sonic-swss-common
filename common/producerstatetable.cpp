@@ -34,7 +34,7 @@ ProducerStateTable::ProducerStateTable(RedisPipeline *pipeline, const string &ta
         "for i = 0, #KEYS - 3 do\n"
         "    redis.call('HSET', KEYS[3 + i], ARGV[3 + i * 2], ARGV[4 + i * 2])\n"
         "end\n"
-        " if added > 0 then \n"
+        "if added > 0 then \n"
         "    redis.call('PUBLISH', KEYS[1], ARGV[1])\n"
         "end\n";
     m_shaSet = m_pipe->loadRedisScript(luaSet);
