@@ -63,6 +63,19 @@ void RedisCommand::formatHDEL(const std::string& key, const std::string& field)
     return format("HDEL %s %s", key.c_str(), field.c_str());
 }
 
+/* Format HDEL key multiple fields command */
+void RedisCommand::formatHDEL(const std::string& key, const std::vector<std::string>& fields)
+{
+    if (fields.empty()) throw std::invalid_argument("empty values");
+
+    std::vector<const char *> args = {"HDEL", key.c_str()};
+    for (const std::string &f : fields)
+    {
+        args.push_back(f.c_str());
+    }
+    formatArgv(static_cast<int>(args.size()), args.data(), NULL);
+}
+
 const char *RedisCommand::c_str() const
 {
     return temp;
