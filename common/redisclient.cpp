@@ -41,6 +41,14 @@ int64_t RedisClient::hdel(const string &key, const string &field)
     return r.getContext()->integer;
 }
 
+int64_t RedisClient::hdel(const std::string &key, const std::vector<std::string> &fields)
+{
+    RedisCommand shdel;
+    shdel.formatHDEL(key, fields);
+    RedisReply r(m_db, shdel, REDIS_REPLY_INTEGER);
+    return r.getContext()->integer;
+}
+
 void RedisClient::hset(const string &key, const string &field, const string &value)
 {
     RedisCommand shset;
