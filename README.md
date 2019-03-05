@@ -46,7 +46,13 @@ $ make clean
 $ GCC_COLORS=1 make
 ```
 
-3. Run unit test:
+3. Start redis server if not yet:
+```
+sudo sed -i 's/notify-keyspace-events ""/notify-keyspace-events AKE/' /etc/redis/redis.conf
+sudo service redis-server start
+```
+
+4. Run unit test:
 ```
 tests/tests
 ```

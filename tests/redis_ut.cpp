@@ -331,13 +331,37 @@ TEST(DBConnector, RedisClient)
         cout << endl;
     }
 
-    cout << "- Step 4. DEL" << endl;
+    cout << "- Step 4. HDEL single field" << endl;
+    cout << "Delete field_2 under key [a]" << endl;
+    int64_t rval = redic.hdel(key_1, "field_2");
+    EXPECT_EQ(rval, 1);
+
+    auto fvs = redic.hgetall(key_1);
+    EXPECT_EQ(fvs.size(), 2);
+    for (auto fv: fvs)
+    {
+        string value_1 = "1", value_3 = "3";
+        cout << " " << fvField(fv) << ":" << fvValue(fv) << flush;
+        if (fvField(fv) == "field_1")
+        {
+            EXPECT_EQ(fvValue(fv), value_1);
+        }
+        if (fvField(fv) == "field_3")
+        {
+            EXPECT_EQ(fvValue(fv), value_3);
+        }
+
+        ASSERT_FALSE(fvField(fv) == "2");
+    }
+    cout << endl;
+
+    cout << "- Step 5. DEL" << endl;
     cout << "Delete key [a]" << endl;
     redic.del(key_1);
 
-    cout << "- Step 5. GET" << endl;
+    cout << "- Step 6. GET" << endl;
     cout << "Get key [a] and key [b]" << endl;
-    auto fvs = redic.hgetall(key_1);
+    fvs = redic.hgetall(key_1);
     EXPECT_TRUE(fvs.empty());
     fvs = redic.hgetall(key_2);
 
@@ -357,7 +381,28 @@ TEST(DBConnector, RedisClient)
     }
     cout << endl;
 
-    cout << "- Step 6. DEL and GET_TABLE_CONTENT" << endl;
+    cout << "- Step 7. HDEL multiple fields" << endl;
+    cout << "Delete field_2, field_3 under key [b]" << endl;
+    rval = redic.hdel(key_2, vector<string>({"field_2", "field_3"}));
+    EXPECT_EQ(rval, 2);
+
+    fvs = redic.hgetall(key_2);
+    EXPECT_EQ(fvs.size(), 1);
+    for (auto fv: fvs)
+    {
+        string value_1 = "1";
+        cout << " " << fvField(fv) << ":" << fvValue(fv) << flush;
+        if (fvField(fv) == "field_1")
+        {
+            EXPECT_EQ(fvValue(fv), value_1);
+        }
+
+        ASSERT_FALSE(fvField(fv) == "field_2");
+        ASSERT_FALSE(fvField(fv) == "field_3");
+    }
+    cout << endl;
+
+    cout << "- Step 8. DEL and GET_TABLE_CONTENT" << endl;
     cout << "Delete key [b]" << endl;
     redic.del(key_2);
     fvs = redic.hgetall(key_2);
@@ -609,7 +654,7 @@ TEST(ProducerConsumer, Prefix)
     FieldValueTuple t("f", "v");
     values.push_back(t);
 
-    p.set("key", values, "op", "prefix_");
+    p.set("key", values, "set", "prefix_");
 
     ConsumerTable c(&db, tableName);
 
@@ -621,7 +666,7 @@ TEST(ProducerConsumer, Prefix)
     auto vs = kfvFieldsValues(kco);
 
     EXPECT_EQ(key, "key");
-    EXPECT_EQ(op, "op");
+    EXPECT_EQ(op, "set");
     EXPECT_EQ(fvField(vs[0]), "f");
     EXPECT_EQ(fvValue(vs[0]), "v");
 }
@@ -638,7 +683,7 @@ TEST(ProducerConsumer, Pop)
     FieldValueTuple t("f", "v");
     values.push_back(t);
 
-    p.set("key", values, "op", "prefix_");
+    p.set("key", values, "set", "prefix_");
 
     ConsumerTable c(&db, tableName);
 
@@ -649,7 +694,7 @@ TEST(ProducerConsumer, Pop)
     c.pop(key, op, fvs, "prefix_");
 
     EXPECT_EQ(key, "key");
-    EXPECT_EQ(op, "op");
+    EXPECT_EQ(op, "set");
     EXPECT_EQ(fvField(fvs[0]), "f");
     EXPECT_EQ(fvValue(fvs[0]), "v");
 }
@@ -665,12 +710,12 @@ TEST(ProducerConsumer, Pop2)
 
     FieldValueTuple t("f", "v");
     values.push_back(t);
-    p.set("key", values, "op", "prefix_");
+    p.set("key", values, "set", "prefix_");
 
     FieldValueTuple t2("f2", "v2");
     values.clear();
     values.push_back(t2);
-    p.set("key", values, "op", "prefix_");
+    p.set("key", values, "set", "prefix_");
 
     ConsumerTable c(&db, tableName);
 
@@ -681,14 +726,14 @@ TEST(ProducerConsumer, Pop2)
     c.pop(key, op, fvs, "prefix_");
 
     EXPECT_EQ(key, "key");
-    EXPECT_EQ(op, "op");
+    EXPECT_EQ(op, "set");
     EXPECT_EQ(fvField(fvs[0]), "f");
     EXPECT_EQ(fvValue(fvs[0]), "v");
 
     c.pop(key, op, fvs, "prefix_");
 
     EXPECT_EQ(key, "key");
-    EXPECT_EQ(op, "op");
+    EXPECT_EQ(op, "set");
     EXPECT_EQ(fvField(fvs[0]), "f2");
     EXPECT_EQ(fvValue(fvs[0]), "v2");
 }

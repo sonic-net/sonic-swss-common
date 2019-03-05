@@ -135,15 +135,13 @@ int Select::poll_descriptors(Selectable **c, unsigned int timeout)
     return Select::TIMEOUT;
 }
 
-int Select::select(Selectable **c, unsigned int timeout)
+int Select::select(Selectable **c, int timeout)
 {
     SWSS_LOG_ENTER();
 
     int ret;
 
     *c = NULL;
-    if (timeout == numeric_limits<unsigned int>::max())
-        timeout = -1;
 
     /* check if we have some data */
     ret = poll_descriptors(c, 0);
