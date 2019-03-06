@@ -40,6 +40,7 @@ public:
 
     int getFd() override;
     void readData() override;
+    bool hasData() override;
     bool hasCachedData() override;
     const size_t POP_BATCH_SIZE;
 
