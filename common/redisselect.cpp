@@ -46,6 +46,11 @@ void RedisSelect::readData()
     }
 }
 
+bool RedisSelect::hasData()
+{
+    return m_queueLength > 0;
+}
+
 bool RedisSelect::hasCachedData()
 {
     return m_queueLength > 1;
