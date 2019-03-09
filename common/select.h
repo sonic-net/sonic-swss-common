@@ -33,7 +33,7 @@ public:
     };
 
     int select(Selectable **c, int timeout = -1);
-    bool isQueueEmpty();
+
 private:
     struct cmp
     {
