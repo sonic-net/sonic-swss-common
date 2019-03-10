@@ -32,7 +32,7 @@ ConsumerTable::ConsumerTable(DBConnector *db, const string &tableName, int popBa
 
     RedisReply r(dequeueReply());
     long long int len = r.getReply<long long int>();
-    //Key, Value and OP are in one list, they are processed in one shot
+    // Key, Value and OP are in one list, they are processed in one shot
     setQueueLength(len/3);
 }
 
@@ -57,6 +57,8 @@ void ConsumerTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, const string &pref
     // if the set is empty, return an empty kco object
     if (r.getContext()->type == REDIS_REPLY_NIL)
     {
+        // Discard one message in channel, even if there is nothing to pop
+        // This may be the case that producer called clear()
         discard(1);
         return;
     }
@@ -92,6 +94,7 @@ void ConsumerTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, const string &pref
             values.push_back(e);
         }
     }
+    // Discard messages in channel, one per kco
     discard(vkco.size());
 }
 

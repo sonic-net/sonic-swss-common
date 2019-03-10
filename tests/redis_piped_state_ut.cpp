@@ -624,7 +624,7 @@ TEST(ConsumerStateTable, async_set_set_pops)
     Selectable *selectcs;
     cs.addSelectable(&c);
 
-    /* First pop operation */
+    /* First pops operation will be two kco */
     {
         int ret = cs.select(&selectcs);
         EXPECT_EQ(ret, Select::OBJECT);
@@ -633,7 +633,7 @@ TEST(ConsumerStateTable, async_set_set_pops)
         EXPECT_EQ(vkco.size(), 2L);
     }
 
-    /* Second select operation */
+    /* Second select operation will timeout since no kco or channel message left */
     {
         int ret = cs.select(&selectcs, 1000);
         EXPECT_EQ(ret, Select::TIMEOUT);

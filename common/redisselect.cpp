@@ -30,6 +30,7 @@ void RedisSelect::readData()
     readRemainingData();
 }
 
+/* Read remaining messages in Redis buffer nonblockingly */
 void RedisSelect::readRemainingData()
 {
     redisReply *reply = nullptr;
@@ -71,20 +72,30 @@ void RedisSelect::updateAfterRead()
     m_queueLength--;
 }
 
+/* Discard messages in the channel */
 void RedisSelect::discard(long long int n)
 {
     readRemainingData();
 
+    /*
+     * We will discard at least one message, to prevent any mistakenly infinite loop
+     * in the select-pop(s) pattern
+     */
     if (n <= 0)
         n = 1;
 
     if (n > m_queueLength)
     {
+        /* If we have less messages, discard them all
+         * This is no big harm since all the late messages will be selected and nothing popped
+         * when the channel is not completely busy.
+         */
         n -= m_queueLength;
         m_queueLength = 0;
     }
     else
     {
+        /* Otherwise discard as requested by n */
         m_queueLength -= n;
         n = 0;
     }
