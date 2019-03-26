@@ -36,7 +36,9 @@ namespace swss {
 #define APP_VNET_TABLE_NAME             "VNET_TABLE"
 #define APP_VNET_RT_TABLE_NAME          "VNET_ROUTE_TABLE"
 #define APP_VNET_RT_TUNNEL_TABLE_NAME   "VNET_ROUTE_TUNNEL_TABLE"
-#define APP_VXLAN_VRF_TABLE_NAME        "VXLAN_TUNNEL_MAP"
+#define APP_VXLAN_VRF_TABLE_NAME        "VXLAN_VRF_TABLE"
+#define APP_VXLAN_TUNNEL_MAP_TABLE_NAME "VXLAN_TUNNEL_MAP_TABLE"
+#define APP_VXLAN_TUNNEL_TABLE_NAME     "VXLAN_TUNNEL_TABLE"
 
 /***** TO BE REMOVED *****/
 
@@ -184,6 +186,7 @@ namespace swss {
 #define STATE_VRF_TABLE_NAME                        "VRF_TABLE"
 #define STATE_MGMT_PORT_TABLE_NAME                  "MGMT_PORT_TABLE"
 #define STATE_NEIGH_RESTORE_TABLE_NAME              "NEIGH_RESTORE_TABLE"
+#define STATE_VXLAN_TABLE_NAME                      "VXLAN_TABLE"
 
 /***** MISC *****/
 
