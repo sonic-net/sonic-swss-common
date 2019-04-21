@@ -81,6 +81,11 @@ void SubscriberStateTable::readData()
     }
 }
 
+bool SubscriberStateTable::hasData()
+{
+    return m_buffer.size() > 0 || m_keyspace_event_buffer.size() > 0;
+}
+
 bool SubscriberStateTable::hasCachedData()
 {
     return m_buffer.size() > 1 || m_keyspace_event_buffer.size() > 1;

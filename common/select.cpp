@@ -110,16 +110,21 @@ int Select::poll_descriptors(Selectable **c, unsigned int timeout)
         m_ready.insert(sel);
     }
 
-    if (!m_ready.empty())
+    while (!m_ready.empty())
     {
         auto sel = *m_ready.begin();
-
-        *c = sel;
 
         m_ready.erase(sel);
         // we must update clock only when the selector out of the m_ready
         // otherwise we break invariant of the m_ready
         sel->updateLastUsedTime();
+
+        if (!sel->hasData())
+        {
+            continue;
+        }
+
+        *c = sel;
 
         if (sel->hasCachedData())
         {

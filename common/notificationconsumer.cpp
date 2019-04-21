@@ -102,6 +102,11 @@ void swss::NotificationConsumer::readData()
     }
 }
 
+bool swss::NotificationConsumer::hasData()
+{
+    return m_queue.size() > 0;
+}
+
 bool swss::NotificationConsumer::hasCachedData()
 {
     return m_queue.size() > 1;

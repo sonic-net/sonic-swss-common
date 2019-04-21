@@ -23,6 +23,19 @@ public:
     /* Read all data from the fd assicaited with Selectable */
     virtual void readData() = 0;
 
+    /*
+       true if Selectable has data in it for immediate read
+       This method is intended to be implemented in subclasses of Selectable
+       which also implement the hasCachedData() method
+       it's possible to have a case, when an application read all cached data after a signal,
+       and we have a Selectable with no data in the m_ready queue (Select class).
+       The class without hasCachedData never is going to be in m_ready state without the data
+    */
+    virtual bool hasData()
+    {
+        return true;
+    }
+
     /* true if Selectable has data in its cache */
     virtual bool hasCachedData()
     {
