@@ -90,14 +90,12 @@ void RedisSelect::discard(long long int n)
          * This is no big harm since all the late messages will be selected and nothing popped
          * when the channel is not completely busy.
          */
-        n -= m_queueLength;
         m_queueLength = 0;
     }
     else
     {
         /* Otherwise discard as requested by n */
         m_queueLength -= n;
-        n = 0;
     }
 }
 
