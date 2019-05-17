@@ -181,6 +181,7 @@ namespace swss {
 #define STATE_VRF_TABLE_NAME                        "VRF_TABLE"
 #define STATE_MGMT_PORT_TABLE_NAME                  "MGMT_PORT_TABLE"
 #define STATE_NEIGH_RESTORE_TABLE_NAME              "NEIGH_RESTORE_TABLE"
+#define STATE_MIRROR_SESSION_TABLE_NAME             "MIRROR_SESSION_TABLE"
 
 /***** MISC *****/
 
