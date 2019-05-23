@@ -178,8 +178,8 @@ namespace swss {
 #define CFG_VNET_TABLE_NAME                         "VNET"
 #define CFG_NEIGH_TABLE_NAME                        "NEIGH"
 
-#define CFG_VNET_RT_TABLE_NAME			    "VNET_ROUTE"
-#define CFG_VNET_RT_TUNNEL_TABLE_NAME		    "VNET_ROUTE_TUNNEL"
+#define CFG_VNET_RT_TABLE_NAME                      "VNET_ROUTE"
+#define CFG_VNET_RT_TUNNEL_TABLE_NAME               "VNET_ROUTE_TUNNEL"
 
 /***** STATE DATABASE *****/
 
