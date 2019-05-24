@@ -161,6 +161,7 @@ namespace swss {
 #define CFG_PORT_QOS_MAP_TABLE_NAME                 "PORT_QOS_MAP"
 #define CFG_WRED_PROFILE_TABLE_NAME                 "WRED_PROFILE"
 #define CFG_QUEUE_TABLE_NAME                        "QUEUE"
+#define CFG_DOT1P_TO_TC_MAP_TABLE_NAME              "DOT1P_TO_TC_MAP"
 
 #define CFG_BUFFER_POOL_TABLE_NAME                  "BUFFER_POOL"
 #define CFG_BUFFER_PROFILE_TABLE_NAME               "BUFFER_PROFILE"
