@@ -85,3 +85,7 @@
 
 %include "notificationproducer.h"
 %include "warm_restart.h"
+
+%typemap(out) int64_t {
+  $result = PyInt_FromLong($1);
+}
