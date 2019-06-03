@@ -77,7 +77,8 @@ public:
     enum AddrScope {
         GLOBAL_SCOPE,
         LINK_SCOPE,
-        HOST_SCOPE
+        HOST_SCOPE,
+        MCAST_SCOPE
     };
 
     IpAddress::AddrScope getAddrScope() const;
