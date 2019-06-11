@@ -46,7 +46,7 @@ private:
                 return false;
 
             /* if the priorities are equal */
-            /* use Selectable which was selected later */
+            /* use Selectable which was selected earlier */
             if (a->getLastUsedTime() < b->getLastUsedTime())
                 return true;
             else if (a->getLastUsedTime() > b->getLastUsedTime())
