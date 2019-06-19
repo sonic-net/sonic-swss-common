@@ -17,8 +17,7 @@
 
 namespace swss {
 
-void
-err_exit(const char *fn, int ln, int e, const char *fmt, ...)
+void err_exit(const char *fn, int ln, int e, const char *fmt, ...)
 {
     va_list ap;
     char buff[1024];
