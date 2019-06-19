@@ -86,7 +86,7 @@ void SelectableTimer::readData()
 
     ASSERT(s == sizeof(uint64_t), "Failed to read timerfd. s=%ld", s)
 
-    // s = count of timer events happened since last read.
+    // r = count of timer events happened since last read.
 }
 
 }
