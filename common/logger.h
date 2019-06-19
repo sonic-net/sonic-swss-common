@@ -23,6 +23,21 @@ namespace swss {
 
 #define SWSS_LOG_THROW(MSG, ...)       swss::Logger::getInstance().wthrow(swss::Logger::SWSS_ERROR,  ":- %s: " MSG, __FUNCTION__, ##__VA_ARGS__)
 
+extern void err_exit(const char *fn, int ln, int e, const char *fmt, ...)
+#ifdef __GNUC__
+        __attribute__ ((format (printf, 4, 5)))
+        __attribute__ ((noreturn))
+#endif
+        ;
+
+
+#define ASSERT(x, fmt, args...)                             \
+    if (!(x)) {                                             \
+        int _e = errno;                                     \
+        err_exit(__FUNCTION__, __LINE__, _e, fmt, ##args);  \
+    }
+
+
 class Logger
 {
 public:
