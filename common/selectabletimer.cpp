@@ -74,23 +74,19 @@ int SelectableTimer::getFd()
 
 void SelectableTimer::readData()
 {
-    uint64_t r;
+    uint64_t r = UINT64_MAX;
 
     ssize_t s;
+    errno = 0;
     do
     {
-        // Read the timefd so it will be reset
         s = read(m_tfd, &r, sizeof(uint64_t));
     }
     while(s == -1 && errno == EINTR);
 
-    if (s != sizeof(uint64_t))
-    {
-        SWSS_LOG_THROW("SelectableTimer read failed, s:%zd errno: %s",
-                s, strerror(errno));
-    }
-}
+    ABORT_IF_NOT(s == sizeof(uint64_t), "Failed to read timerfd. s=%ld", s)
 
-// FIXME: if timer events are read slower than timer frequency we will lost time events
+    // r = count of timer events happened since last read.
+}
 
 }
