@@ -74,7 +74,7 @@ int SelectableTimer::getFd()
 
 void SelectableTimer::readData()
 {
-    uint64_t r = UINTPTR_MAX;
+    uint64_t r = UINT64_MAX;
 
     ssize_t s;
     errno = 0;
