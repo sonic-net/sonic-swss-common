@@ -44,6 +44,8 @@ TEST(IpAddress, getAddrScope)
     IpAddress ip5("169.253.1.1");
     IpAddress ip6("169.255.1.1");
     IpAddress ip7("127.0.0.1");
+    IpAddress ip8("224.0.0.1");
+    IpAddress ip9("239.255.255.255");
 
     // IPv6 prefixes
     IpAddress ip11("2001:4898:f0:f153:357c:77b2:49c9:627c");
@@ -54,6 +56,8 @@ TEST(IpAddress, getAddrScope)
     IpAddress ip16("febf:1::1");
     IpAddress ip17("fec0:1::1");
     IpAddress ip18("::1");
+    IpAddress ip19("ff00::1");
+    IpAddress ip20("ffff:1::1");
 
     EXPECT_EQ(IpAddress::AddrScope::GLOBAL_SCOPE, ip1.getAddrScope());
     EXPECT_EQ(IpAddress::AddrScope::GLOBAL_SCOPE, ip2.getAddrScope());
@@ -62,6 +66,8 @@ TEST(IpAddress, getAddrScope)
     EXPECT_EQ(IpAddress::AddrScope::GLOBAL_SCOPE, ip5.getAddrScope());
     EXPECT_EQ(IpAddress::AddrScope::GLOBAL_SCOPE, ip6.getAddrScope());
     EXPECT_EQ(IpAddress::AddrScope::HOST_SCOPE,   ip7.getAddrScope());
+    EXPECT_EQ(IpAddress::AddrScope::MCAST_SCOPE,  ip8.getAddrScope());
+    EXPECT_EQ(IpAddress::AddrScope::MCAST_SCOPE,  ip9.getAddrScope());
 
     EXPECT_EQ(IpAddress::AddrScope::GLOBAL_SCOPE, ip11.getAddrScope());
     EXPECT_EQ(IpAddress::AddrScope::LINK_SCOPE,   ip12.getAddrScope());
@@ -71,4 +77,6 @@ TEST(IpAddress, getAddrScope)
     EXPECT_EQ(IpAddress::AddrScope::LINK_SCOPE,   ip16.getAddrScope());
     EXPECT_EQ(IpAddress::AddrScope::GLOBAL_SCOPE, ip17.getAddrScope());
     EXPECT_EQ(IpAddress::AddrScope::HOST_SCOPE,   ip18.getAddrScope());
+    EXPECT_EQ(IpAddress::AddrScope::MCAST_SCOPE,  ip19.getAddrScope());
+    EXPECT_EQ(IpAddress::AddrScope::MCAST_SCOPE,  ip20.getAddrScope());
 }
