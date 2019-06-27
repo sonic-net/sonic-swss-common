@@ -34,6 +34,23 @@ TEST(IpAddresses, contains)
     EXPECT_FALSE(ips.contains(ips_2));
 }
 
+TEST(IpAddress, isZero)
+{
+    IpAddress ip1 = IpAddress();
+    IpAddress ip2 = IpAddress(0);
+    IpAddress ip3 = IpAddress("0.0.0.0");
+    IpAddress ip4 = IpAddress("::");
+    IpAddress ip5 = IpAddress("192.168.0.0");
+    IpAddress ip6 = IpAddress("fe00::1");
+
+    EXPECT_FALSE(ip1.isZero());
+    EXPECT_TRUE(ip2.isZero());
+    EXPECT_TRUE(ip3.isZero());
+    EXPECT_TRUE(ip4.isZero());
+    EXPECT_FALSE(ip5.isZero());
+    EXPECT_FALSE(ip6.isZero());
+}
+
 TEST(IpAddress, getAddrScope)
 {
     // IPv4 prefixes
