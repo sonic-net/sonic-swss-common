@@ -40,6 +40,7 @@ Licensed under the MIT License <http://opensource.org/licenses/MIT>.
     #pragma GCC diagnostic ignored "-Wfloat-equal"
     #pragma GCC diagnostic ignored "-Wconversion"
     #pragma GCC diagnostic ignored "-Wswitch-default"
+    #pragma GCC diagnostic ignored "-Wshadow"
 #endif
 
 /*!
