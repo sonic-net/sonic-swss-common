@@ -197,7 +197,6 @@ namespace swss {
 #define STATE_NEIGH_RESTORE_TABLE_NAME              "NEIGH_RESTORE_TABLE"
 #define STATE_MIRROR_SESSION_TABLE_NAME             "MIRROR_SESSION_TABLE"
 #define STATE_VXLAN_TABLE_NAME                      "VXLAN_TABLE"
-#define STATE_MIRROR_SESSION_TABLE_NAME             "MIRROR_SESSION_TABLE"
 #define STATE_BGP_TABLE_NAME                        "BGP_STATE_TABLE"
 
 /***** MISC *****/
