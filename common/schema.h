@@ -161,6 +161,8 @@ namespace swss {
 #define CFG_BUFFER_PORT_INGRESS_PROFILE_LIST_NAME   "BUFFER_PORT_INGRESS_PROFILE_LIST"
 #define CFG_BUFFER_PORT_EGRESS_PROFILE_LIST_NAME    "BUFFER_PORT_EGRESS_PROFILE_LIST"
 
+#define CFG_POLICER_TABLE_NAME                      "POLICER"
+
 #define CFG_WARM_RESTART_TABLE_NAME                 "WARM_RESTART"
 
 #define CFG_VXLAN_TUNNEL_TABLE_NAME                 "VXLAN_TUNNEL"
@@ -170,6 +172,7 @@ namespace swss {
 
 /***** STATE DATABASE *****/
 
+#define STATE_SWITCH_CAPABILITY_TABLE_NAME          "SWITCH_CAPABILITY_TABLE"
 #define STATE_PORT_TABLE_NAME                       "PORT_TABLE"
 #define STATE_LAG_TABLE_NAME                        "LAG_TABLE"
 #define STATE_VLAN_TABLE_NAME                       "VLAN_TABLE"
@@ -181,6 +184,7 @@ namespace swss {
 #define STATE_VRF_TABLE_NAME                        "VRF_TABLE"
 #define STATE_MGMT_PORT_TABLE_NAME                  "MGMT_PORT_TABLE"
 #define STATE_NEIGH_RESTORE_TABLE_NAME              "NEIGH_RESTORE_TABLE"
+#define STATE_MIRROR_SESSION_TABLE_NAME             "MIRROR_SESSION_TABLE"
 
 /***** MISC *****/
 
