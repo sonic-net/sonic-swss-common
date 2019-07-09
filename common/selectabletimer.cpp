@@ -107,6 +107,11 @@ void SelectableTimer::readData()
     ABORT_IF_NOT((s == sizeof(uint64_t)) || ((s == 0) && (errno == 0)),
             "Failed to read timerfd. s=%ld", s)
 
+    if (s != sizeof(uint64_t)) {
+        SWSS_LOG_ERROR("Benign failure to read from timerfd return=%d error=%s",
+                s, strerror(errno));
+    }
+
     // r = count of timer events happened since last read.
 }
 
