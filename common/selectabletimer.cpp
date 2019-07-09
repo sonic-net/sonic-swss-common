@@ -86,7 +86,7 @@ void SelectableTimer::readData()
 
     /*
      * By right or most likely s = 8 here.
-     * Else in failure case, s = -1 with errno != 0, b
+     * Else in failure case, s = -1 with errno != 0
      * But due to a (HW influenced) Kernel bug, it could be s=0 & errno=0
      *
      * This bug has been observed in S6100 only.
@@ -104,8 +104,8 @@ void SelectableTimer::readData()
      *  
      *  The behavior of read returning 0, with errno=0 is an unexpected behavior.
      */
-    ABORT_IF_NOT((s == sizeof(uint64_t)) || ((s == 0) && (errno == 0)),
-            "Failed to read timerfd. s=%ld", s)
+    ABORT_IF_NOT((s == sizeof(uint64_t)) || (s == 0),
+            "Failed to read timerfd. s=%ld", s);
 
     if (s != sizeof(uint64_t)) {
         SWSS_LOG_ERROR("Benign failure to read from timerfd return=%zd Expect: %zd",
