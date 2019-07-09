@@ -108,7 +108,7 @@ void SelectableTimer::readData()
             "Failed to read timerfd. s=%ld", s)
 
     if (s != sizeof(uint64_t)) {
-        SWSS_LOG_ERROR("Benign failure to read from timerfd return=%zd Expect: %d",
+        SWSS_LOG_ERROR("Benign failure to read from timerfd return=%zd Expect: %zd",
                     s, sizeof(uint64_t));
     }
 
