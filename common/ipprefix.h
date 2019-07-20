@@ -96,6 +96,14 @@ public:
         return (m_mask == 0);
     }
 
+    inline bool isFullMask() const
+    {
+        if (m_ip.isV4())
+            return (m_mask == 32);
+        else
+            return (m_mask == 128);
+    }
+
     inline bool isAddressInSubnet(const IpAddress& addr) const
     {
         if (m_ip.getIp().family != addr.getIp().family)
