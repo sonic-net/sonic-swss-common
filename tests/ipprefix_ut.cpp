@@ -144,3 +144,34 @@ TEST(IpPrefix, getSubnet)
     EXPECT_EQ("2001:4898:f0::/45", prefix9.getSubnet().to_string());
     EXPECT_EQ("2001:4898:f0:f153:357c:77b2:49c9:627c/128", prefix10.getSubnet().to_string());
 }
+
+TEST(IpPrefix, maskLen)
+{
+    IpPrefix prefix1("0.0.0.0/0");
+    IpPrefix prefix2("1.1.1.1/24");
+    IpPrefix prefix3("1.1.1.1/32");
+    IpPrefix prefix4("::/0");
+    IpPrefix prefix5("2001:4898:f0:f153:357c:77b2:49c9:627c/64");
+    IpPrefix prefix6("2001:4898:f0:f153:357c:77b2:49c9:627c/128");
+
+    EXPECT_TRUE(prefix1.isDefaultRoute());
+    EXPECT_FALSE(prefix2.isDefaultRoute());
+    EXPECT_FALSE(prefix3.isDefaultRoute());
+    EXPECT_TRUE(prefix4.isDefaultRoute());
+    EXPECT_FALSE(prefix5.isDefaultRoute());
+    EXPECT_FALSE(prefix6.isDefaultRoute());
+
+    EXPECT_FALSE(prefix1.isFullMask());
+    EXPECT_FALSE(prefix2.isFullMask());
+    EXPECT_TRUE(prefix3.isFullMask());
+    EXPECT_FALSE(prefix4.isFullMask());
+    EXPECT_FALSE(prefix5.isFullMask());
+    EXPECT_TRUE(prefix6.isFullMask());
+
+    EXPECT_EQ(0, prefix1.getMaskLength());
+    EXPECT_EQ(24, prefix2.getMaskLength());
+    EXPECT_EQ(32, prefix3.getMaskLength());
+    EXPECT_EQ(0, prefix4.getMaskLength());
+    EXPECT_EQ(64, prefix5.getMaskLength());
+    EXPECT_EQ(128, prefix6.getMaskLength());
+}

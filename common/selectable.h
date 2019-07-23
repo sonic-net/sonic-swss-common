@@ -53,7 +53,7 @@ public:
     {
     }
 
-    int getPri() const
+    virtual int getPri() const
     {
         return m_priority;
     }

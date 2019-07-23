@@ -75,7 +75,8 @@ for i = n, 1, -3 do
        op == 'get' or
        op == 'getresponse' or
        op == 'notify' or
-       op == 'get_stats' then
+       op == 'get_stats' or
+       op == 'clear_stats' then
 
     -- do not modify db entries when spotted those commands, they are used to
     -- trigger actions or get data synchronously from database
