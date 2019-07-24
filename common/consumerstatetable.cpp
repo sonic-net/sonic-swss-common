@@ -28,6 +28,12 @@ ConsumerStateTable::ConsumerStateTable(DBConnector *db, const std::string &table
 
     RedisReply r(dequeueReply());
     setQueueLength(r.getReply<long long int>());
+
+    std::string luaMultiPublish =
+        "for i = 1, KEYS[2] do\n"
+        "    redis.call('PUBLISH', KEYS[1], ARGV[1])\n"
+        "end\n";
+    m_multiPublish = loadRedisScript(m_db, luaMultiPublish);
 }
 
 void ConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const std::string& /*prefix*/)
@@ -38,13 +44,14 @@ void ConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const st
 
     RedisCommand command;
     command.format(
-        "EVALSHA %s 3 %s %s: %s %d %s",
+        "EVALSHA %s 3 %s %s: %s %d %s %s",
         sha.c_str(),
         getKeySetName().c_str(),
         getTableName().c_str(),
         getDelKeySetName().c_str(),
         POP_BATCH_SIZE,
-        getStateHashPrefix().c_str());
+        getStateHashPrefix().c_str(),
+        getChannelName().c_str());
 
     RedisReply r(m_db, command);
     auto ctx0 = r.getContext();
@@ -89,6 +96,30 @@ void ConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const st
         {
             kfvOp(kco) = SET_COMMAND;
         }
+    }
+}
+
+void ConsumerStateTable::pop(KeyOpFieldsValuesTuple &kco, const std::string &prefix)
+{
+    pop(kfvKey(kco), kfvOp(kco), kfvFieldsValues(kco), prefix);
+}
+
+void ConsumerStateTable::pop(std::string &key, std::string &op, std::vector<FieldValueTuple> &fvs, const std::string &prefix)
+{
+    bool emptyBuff = m_buffer.empty();
+    ConsumerTableBase::pop(key, op, fvs, prefix);
+
+    // This is to generate notification to user of pop call, since user expect one notification per key.
+    if (emptyBuff && !m_buffer.empty())
+    {
+        RedisCommand command;
+        command.format(
+            "EVALSHA %s 2 %s %d %s ",
+            m_multiPublish.c_str(),
+            getChannelName().c_str(),
+            m_buffer.size(),
+            "G");
+        RedisReply r(m_db, command);
     }
 }
 

@@ -480,7 +480,6 @@ TEST(ConsumerStateTable, set_pop_del_set_pop_get)
      * Third pop operation, consumer received two consectuive signals.
      * data depleted upon first one
      */
-    /*
     {
         int ret = cs.select(&selectcs, 1000);
         EXPECT_EQ(ret, Select::OBJECT);
@@ -488,14 +487,6 @@ TEST(ConsumerStateTable, set_pop_del_set_pop_get)
         c.pop(kco);
         EXPECT_EQ(kfvKey(kco), "");
     }
-    */
-
-    /*
-     * With the optimization in ProducerStateTable set/del operation,
-     * if there is pending operations on the same key, producer won't publish
-     * redundant notification again.
-     * So the check above was commented out.
-     */
 
     /* Third select operation */
     {
@@ -954,6 +945,57 @@ TEST(ConsumerStateTable, view_switch_delete_with_consumer_2)
     RedisReply r8(&db, keys, REDIS_REPLY_ARRAY);
     EXPECT_EQ(r8.getContext()->elements, (size_t) 0);
 }
+
+TEST(ConsumerStateTable, consumerBeforeProducer)
+{
+    clearDB();
+
+    int index = 0;
+    string tableName = "UT_REDIS_THREAD_" + to_string(index);
+    DBConnector db(TEST_DB, "localhost", 6379, 0);
+    // Set popBatchSize to 100.
+    // Conumer will get one notification only, but it should be able to
+    // read all the data via multiple batch pop.
+    ConsumerStateTable c(&db, tableName, 100);
+    ProducerStateTable p(&db, tableName);
+
+    for (int i = 0; i < NUMBER_OF_OPS; i++)
+    {
+        vector<FieldValueTuple> fields;
+        int maxNumOfFields = getMaxFields(i);
+        for (int j = 0; j < maxNumOfFields; j++)
+        {
+            FieldValueTuple t(field(j), value(j));
+            fields.push_back(t);
+        }
+        if ((i % 100) == 0)
+            cout << "+" << flush;
+
+        p.set(key(i), fields);
+    }
+
+    Select cs;
+    Selectable *selectcs;
+    int ret, i = 0;
+    KeyOpFieldsValuesTuple kco;
+
+    cs.addSelectable(&c);
+    int numberOfKeysSet = 0;
+    while ((ret = cs.select(&selectcs, 1000)) == Select::OBJECT)
+    {
+        c.pop(kco);
+        EXPECT_EQ(kfvOp(kco), "SET");
+        numberOfKeysSet++;
+        validateFields(kfvKey(kco), kfvFieldsValues(kco));
+
+        if ((i++ % 100) == 0)
+            cout << "-" << flush;
+    }
+    EXPECT_EQ(numberOfKeysSet, NUMBER_OF_OPS);
+
+    cout << endl << "Done." << endl;
+}
+
 
 TEST(ConsumerStateTable, singlethread)
 {

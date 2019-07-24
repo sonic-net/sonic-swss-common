@@ -20,4 +20,12 @@ for i = 1, n do
    -- Clean up the key in temporary state table
    redis.call('DEL', stateprefix..tablename..key)
 end
+
+-- Check whether the keyset is empty, if not, signal ourselves to process again.
+-- This is to handle the case where the number of keys in keyset is more than POP_BATCH_SIZE
+local num = redis.call('SCARD', KEYS[1])
+if num > 0 then
+   redis.call('PUBLISH', ARGV[3], 'G')
+end
+
 return ret

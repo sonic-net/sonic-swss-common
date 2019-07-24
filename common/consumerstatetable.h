@@ -14,6 +14,12 @@ public:
 
     /* Get multiple pop elements */
     void pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const std::string &prefix = EMPTY_PREFIX);
+
+    void pop(KeyOpFieldsValuesTuple &kco, const std::string &prefix = EMPTY_PREFIX) override;
+    void pop(std::string &key, std::string &op, std::vector<FieldValueTuple> &fvs, const std::string &prefix = EMPTY_PREFIX) override;
+
+private:
+    std::string m_multiPublish;
 };
 
 }
