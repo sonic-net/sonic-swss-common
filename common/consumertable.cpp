@@ -80,7 +80,7 @@ void ConsumerTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, const string &pref
         {
             if (i+1 >= ctx->elements)
             {
-                SWSS_LOG_ERROR("invalid number of elements in returned table: %lu >= %lu", i+1, ctx->elements);
+                SWSS_LOG_ERROR("invalid number of elements in returned table: %zu >= %zu", i+1, ctx->elements);
                 throw runtime_error("invalid number of elements in returned table");
             }
 

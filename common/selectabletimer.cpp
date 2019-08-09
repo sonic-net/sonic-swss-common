@@ -105,7 +105,7 @@ void SelectableTimer::readData()
          *  
          *  The behavior of read returning 0, with errno=0 is an unexpected behavior.
          */
-        ABORT_IF_NOT(s == 0, "Failed to read timerfd. s=%ld", s);
+        ABORT_IF_NOT(s == 0, "Failed to read timerfd. s=%zd", s);
 
         SWSS_LOG_ERROR("Benign failure to read from timerfd return=%zd Expect: %zd",
                         s, sizeof(uint64_t));

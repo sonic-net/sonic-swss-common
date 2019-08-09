@@ -111,7 +111,7 @@ static inline std::set<std::string> runRedisScript(DBConnector &db, const std::s
         {
             for (size_t i = 0; i < ctx->elements; i++)
             {
-                SWSS_LOG_DEBUG("Got element %lu %s", i, ctx->element[i]->str);
+                SWSS_LOG_DEBUG("Got element %zu %s", i, ctx->element[i]->str);
                 ret.emplace(ctx->element[i]->str);
             }
         }

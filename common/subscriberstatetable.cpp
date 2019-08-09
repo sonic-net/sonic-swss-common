@@ -117,7 +117,7 @@ void SubscriberStateTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, const strin
         /* Expecting 4 elements for each keyspace pmessage notification */
         if (n != 4)
         {
-            SWSS_LOG_ERROR("invalid number of elements %lu for pmessage of %s", n, m_keyspace.c_str());
+            SWSS_LOG_ERROR("invalid number of elements %zu for pmessage of %s", n, m_keyspace.c_str());
             continue;
         }
         /* The second element should be the original pattern matched */
