@@ -1,5 +1,8 @@
 %module swsscommon
 
+%define NO_RET_TYPE
+%enddef
+
 %{
 #include "schema.h"
 #include "dbconnector.h"
@@ -19,6 +22,7 @@
 #include "notificationconsumer.h"
 #include "notificationproducer.h"
 #include "warm_restart.h"
+#include "debugframework.h"
 %}
 
 %include <std_string.i>
@@ -85,3 +89,4 @@
 
 %include "notificationproducer.h"
 %include "warm_restart.h"
+%include "debugframework.h"
