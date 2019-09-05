@@ -81,35 +81,27 @@ void SelectableTimer::readData()
     do
     {
         s = read(m_tfd, &r, sizeof(uint64_t));
+        if ((s == 0) && (errno == 0)) {
+            /*
+             * s == 0 is expected only for non-blocking fd, in which
+             * case errno should be EAGAIN.
+             *
+             * Due to a kernel bug, exposed only in S6100 HW platform,
+             * this could be true.
+             *
+             * In this case, the timer is fired, but not adanced, hence
+             * another read is expected to fix it per DELL.
+             *
+             * Log an error and continue to read.
+             *
+             */
+            SWSS_LOG_ERROR("Benign failure to read from timerfd return=0 && errno=0. Expect: return=%zd",
+                    sizeof(uint64_t));
+        }
     }
-    while(s == -1 && errno == EINTR);
+    while((s == -1 && errno == EINTR) || ((s == 0) && (errno == 0)));
 
-    if (s != sizeof(uint64_t)) {
-        /*
-         * By right or most likely s = 8 here.
-         * Else in failure case, s = -1 with errno != 0
-         * But due to a (HW influenced) Kernel bug, it could be s=0 & errno=0
-         *
-         * This bug has been observed in S6100 only.
-         * The bug incidence is pretty seldom.
-         *
-         * A short note on kernel bug:
-         *  timerfd_read, upon asserting that underlying hrtimer has triggered once,
-         *  calls hrtimer_forward_now, to get total count of expiries since timer start
-         *  to now, as read gets called asynchronously at a time later than the time
-         *  point of trigger.
-         *  The hrtimer_forward_now is expected to return >= 1, as it is certain
-         *  that one trigger/expiry is confirmed to have occurred.
-         *  But in the buggy case, the hrtimer_forward_now returned 0, that results
-         *  in read call to return 0.
-         *  
-         *  The behavior of read returning 0, with errno=0 is an unexpected behavior.
-         */
-        ABORT_IF_NOT(s == 0, "Failed to read timerfd. s=%zd", s);
-
-        SWSS_LOG_ERROR("Benign failure to read from timerfd return=%zd Expect: %zd",
-                        s, sizeof(uint64_t));
-    }
+    ABORT_IF_NOT(s == sizeof(uint64_t), "Failed to read timerfd. s=%zd", s);
 
     // r = count of timer events happened since last read.
 }
