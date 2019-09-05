@@ -89,7 +89,7 @@ void SelectableTimer::readData()
              * Due to a kernel bug, exposed only in S6100 HW platform,
              * we could see s == 0 and errno == 0.
              *
-             * In this case, the timer is fired, but not adanced, hence
+             * In this case, the timer is fired, but not advanced, hence
              * another read is expected to fix it per DELL.
              *
              * Log an error and continue to read.
