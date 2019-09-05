@@ -15,6 +15,8 @@ namespace swss {
 #define STATE_DB        6
 #define SNMP_OVERLAY_DB 7
 
+#define  DB_CONFIG_FILE "/var/run/redis/sonic-db/database_config.json"
+
 /***** APPLICATION DATABASE *****/
 
 #define APP_PORT_TABLE_NAME               "PORT_TABLE"
