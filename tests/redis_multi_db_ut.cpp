@@ -13,7 +13,7 @@ using json = nlohmann::json;
 TEST(DBConnector, multi_db_test)
 {
 
-    string file = "./redis_multi_db_ut_config/database_config.json";
+    string file = "./tests/redis_multi_db_ut_config/database_config.json";
     // default config file should not be found
     cout<<"Default : load init db config file, isInit = "<<RedisConfig::isInit()<<endl;
     EXPECT_EQ(RedisConfig::isInit(), false);
