@@ -105,6 +105,7 @@ namespace swss {
 #define PG_COUNTER_ID_LIST              "PG_COUNTER_ID_LIST"
 #define PG_ATTR_ID_LIST                 "PG_ATTR_ID_LIST"
 #define RIF_COUNTER_ID_LIST             "RIF_COUNTER_ID_LIST"
+#define SWITCH_COUNTER_ID_LIST          "SWITCH_COUNTER_ID_LIST"
 #define PLUGIN_TABLE                    "PLUGIN_TABLE"
 #define LUA_PLUGIN_TYPE                 "LUA_PLUGIN_TYPE"
 #define SAI_OBJECT_TYPE                 "SAI_OBJECT_TYPE"
@@ -191,6 +192,9 @@ namespace swss {
 #define CFG_PASS_THROUGH_ROUTE_TABLE_NAME           "PASS_THROUGH_ROUTE_TABLE"
 #define CFG_SFLOW_TABLE_NAME                        "SFLOW"
 #define CFG_SFLOW_SESSION_TABLE_NAME                "SFLOW_SESSION"
+
+#define CFG_DEBUG_COUNTER_TABLE_NAME                "DEBUG_COUNTER"
+#define CFG_DEBUG_COUNTER_DROP_REASON_TABLE_NAME    "DEBUG_COUNTER_DROP_REASON"
 
 /***** STATE DATABASE *****/
 
