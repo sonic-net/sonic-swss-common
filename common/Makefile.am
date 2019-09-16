@@ -44,6 +44,7 @@ libswsscommon_la_SOURCES = \
     macaddress.cpp            \
     netdispatcher.cpp         \
     netlink.cpp               \
+    nfnetlink.cpp             \
     notificationconsumer.cpp  \
     notificationproducer.cpp  \
     linkcache.cpp             \
