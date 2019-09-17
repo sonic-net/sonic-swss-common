@@ -72,38 +72,22 @@ int SelectableTimer::getFd()
     return m_tfd;
 }
 
-void SelectableTimer::readData()
+int SelectableTimer::readData()
 {
-    uint64_t r = UINT64_MAX;
+    uint64_t r = 0;
 
     ssize_t s;
     errno = 0;
     do
     {
         s = read(m_tfd, &r, sizeof(uint64_t));
-        if ((s == 0) && (errno == 0)) {
-            /*
-             * s == 0 is expected only for non-blocking fd, in which
-             * case errno should be EAGAIN.
-             *
-             * Due to a kernel bug, exposed only in S6100 HW platform,
-             * we could see s == 0 and errno == 0.
-             *
-             * In this case, the timer is fired, but not advanced, hence
-             * another read is expected to fix it per DELL.
-             *
-             * Log an error and continue to read.
-             *
-             */
-            SWSS_LOG_ERROR("Benign failure to read from timerfd return=0 && errno=0. Expect: return=%zd",
-                    sizeof(uint64_t));
-        }
     }
-    while((s == -1 && errno == EINTR) || ((s == 0) && (errno == 0)));
+    while(s == -1 && errno == EINTR);
 
-    ABORT_IF_NOT(s == sizeof(uint64_t), "Failed to read timerfd. s=%zd", s);
+    ABORT_IF_NOT((s == 0) || (s == sizeof(uint64_t), "Failed to read timerfd. s=%zd", s);
 
     // r = count of timer events happened since last read.
+    return r;
 }
 
 }
