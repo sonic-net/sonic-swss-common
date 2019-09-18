@@ -72,22 +72,22 @@ int SelectableTimer::getFd()
     return m_tfd;
 }
 
-int SelectableTimer::readData()
+uint64_t SelectableTimer::readData()
 {
-    uint64_t r = 0;
+    uint64_t cnt = 0;
 
-    ssize_t s;
+    ssize_t ret;
     errno = 0;
     do
     {
-        s = read(m_tfd, &r, sizeof(uint64_t));
+        ret = read(m_tfd, &cnt, sizeof(uint64_t));
     }
-    while(s == -1 && errno == EINTR);
+    while(ret == -1 && errno == EINTR);
 
-    ABORT_IF_NOT((s == 0) || (s == sizeof(uint64_t), "Failed to read timerfd. s=%zd", s);
+    ABORT_IF_NOT((ret == 0) || (ret == sizeof(uint64_t), "Failed to read timerfd. ret=%zd", ret);
 
-    // r = count of timer events happened since last read.
-    return r;
+    // cnt = count of timer events happened since last read.
+    return cnt;
 }
 
 }

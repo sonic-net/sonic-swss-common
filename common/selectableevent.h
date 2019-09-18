@@ -18,7 +18,7 @@ public:
     void notify();
 
     int getFd() override;
-    void readData() override;
+    uint64_t readData() override;
 
 private:
     int m_efd;

@@ -19,7 +19,7 @@ public:
     void setInterval(const timespec& interval);
 
     int getFd() override;
-    int readData() override;
+    uint64_t readData() override;
 
 private:
     int m_tfd;
