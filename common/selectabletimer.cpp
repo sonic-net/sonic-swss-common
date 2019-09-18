@@ -84,7 +84,7 @@ uint64_t SelectableTimer::readData()
     }
     while(ret == -1 && errno == EINTR);
 
-    ABORT_IF_NOT((ret == 0) || (ret == sizeof(uint64_t), "Failed to read timerfd. ret=%zd", ret);
+    ABORT_IF_NOT((ret == 0) || (ret == sizeof(uint64_t)), "Failed to read timerfd. ret=%zd", ret);
 
     // cnt = count of timer events happened since last read.
     return cnt;
