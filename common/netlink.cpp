@@ -76,7 +76,7 @@ int NetLink::getFd()
     return nl_socket_get_fd(m_socket);
 }
 
-void NetLink::readData()
+uint64_t NetLink::readData()
 {
     int err;
 
@@ -95,6 +95,7 @@ void NetLink::readData()
         else
             SWSS_LOG_ERROR("netlink reports an error=%d on reading a netlink socket", err);
     }
+    return 0;
 }
 
 int NetLink::onNetlinkMsg(struct nl_msg *msg, void *arg)

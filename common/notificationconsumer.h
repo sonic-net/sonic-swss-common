@@ -39,7 +39,7 @@ public:
     ~NotificationConsumer() override;
 
     int getFd() override;
-    void readData() override;
+    uint64_t readData() override;
     bool hasCachedData() override;
     const size_t POP_BATCH_SIZE;
 
