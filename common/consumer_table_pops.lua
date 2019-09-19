@@ -23,7 +23,7 @@ for i = n, 1, -3 do
    end
    table.insert(rets, ret)
 
-   if op == 'bulkset' or op == 'bulkcreate' then
+   if op == 'bulkset' or op == 'bulkcreate' or op == 'bulkremove' then
 
 -- key is "OBJECT_TYPE:num", extract object type from key
        key = key:sub(1, string.find(key, ':') - 1)
@@ -35,12 +35,16 @@ for i = n, 1, -3 do
 -- keyname is ASIC_STATE : OBJECT_TYPE : OBJECT_ID
            local keyname = KEYS[2] .. ':' .. key .. ':' .. field
 
+           if op == 'bulkremove' then
+               redis.call('DEL', keyname)
+           else
 -- value can be multiple a=v|a=v|... we need to split using gmatch
-           local vars = ret[st+1]
-           for value in string.gmatch(vars,'([^|]+)') do
-               local attr = value:sub(1, string.find(value, '=') - 1)
-               local val = value.sub(value, string.find(value, '=') + 1)
-               redis.call('HSET', keyname, attr, val)
+               local vars = ret[st+1]
+               for value in string.gmatch(vars,'([^|]+)') do
+                   local attr = value:sub(1, string.find(value, '=') - 1)
+                   local val = value.sub(value, string.find(value, '=') + 1)
+                   redis.call('HSET', keyname, attr, val)
+               end
            end
 
            st = st + 2
