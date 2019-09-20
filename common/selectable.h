@@ -21,7 +21,7 @@ public:
     virtual int getFd() = 0;
 
     /* Read all data from the fd assicaited with Selectable */
-    virtual void readData() = 0;
+    virtual uint64_t readData() = 0;
 
     /* true if Selectable has data in its cache */
     virtual bool hasCachedData()

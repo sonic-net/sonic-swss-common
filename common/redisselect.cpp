@@ -17,7 +17,7 @@ int RedisSelect::getFd()
     return m_subscribe->getContext()->fd;
 }
 
-void RedisSelect::readData()
+uint64_t RedisSelect::readData()
 {
     redisReply *reply = nullptr;
 
@@ -44,6 +44,7 @@ void RedisSelect::readData()
     {
         throw std::runtime_error("Unable to read redis reply");
     }
+    return 0;
 }
 
 bool RedisSelect::hasCachedData()

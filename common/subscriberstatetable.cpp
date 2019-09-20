@@ -42,7 +42,7 @@ SubscriberStateTable::SubscriberStateTable(DBConnector *db, const string &tableN
     }
 }
 
-void SubscriberStateTable::readData()
+uint64_t SubscriberStateTable::readData()
 {
     redisReply *reply = nullptr;
 
@@ -79,6 +79,7 @@ void SubscriberStateTable::readData()
     {
         throw std::runtime_error("Unable to read redis reply");
     }
+    return 0;
 }
 
 bool SubscriberStateTable::hasCachedData()

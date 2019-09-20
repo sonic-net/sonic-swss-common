@@ -17,7 +17,7 @@ public:
     void pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const std::string &prefix = EMPTY_PREFIX);
 
     /* Read keyspace event from redis */
-    void readData() override;
+    uint64_t readData() override;
     bool hasCachedData() override;
     bool initializedWithData() override
     {
