@@ -97,6 +97,7 @@ namespace swss {
 #define PFC_WD_POLL_MSECS               100
 #define FLEX_COUNTER_TABLE              "FLEX_COUNTER_TABLE"
 #define PORT_COUNTER_ID_LIST            "PORT_COUNTER_ID_LIST"
+#define PORT_DEBUG_COUNTER_ID_LIST      "PORT_DEBUG_COUNTER_ID_LIST"
 #define QUEUE_COUNTER_ID_LIST           "QUEUE_COUNTER_ID_LIST"
 #define QUEUE_ATTR_ID_LIST              "QUEUE_ATTR_ID_LIST"
 #define BUFFER_POOL_COUNTER_ID_LIST     "BUFFER_POOL_COUNTER_ID_LIST"
@@ -107,7 +108,7 @@ namespace swss {
 #define PG_COUNTER_ID_LIST              "PG_COUNTER_ID_LIST"
 #define PG_ATTR_ID_LIST                 "PG_ATTR_ID_LIST"
 #define RIF_COUNTER_ID_LIST             "RIF_COUNTER_ID_LIST"
-#define SWITCH_COUNTER_ID_LIST          "SWITCH_COUNTER_ID_LIST"
+#define SWITCH_DEBUG_COUNTER_ID_LIST    "SWITCH_DEBUG_COUNTER_ID_LIST"
 #define PLUGIN_TABLE                    "PLUGIN_TABLE"
 #define LUA_PLUGIN_TYPE                 "LUA_PLUGIN_TYPE"
 #define SAI_OBJECT_TYPE                 "SAI_OBJECT_TYPE"
@@ -215,6 +216,7 @@ namespace swss {
 #define STATE_MIRROR_SESSION_TABLE_NAME             "MIRROR_SESSION_TABLE"
 #define STATE_VXLAN_TABLE_NAME                      "VXLAN_TABLE"
 #define STATE_BGP_TABLE_NAME                        "BGP_STATE_TABLE"
+#define STATE_DEBUG_COUNTER_CAPABILITIES_NAME       "DEBUG_COUNTER_CAPABILITIES"
 
 /***** MISC *****/
 
