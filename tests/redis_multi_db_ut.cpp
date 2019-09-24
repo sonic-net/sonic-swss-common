@@ -12,38 +12,48 @@ using json = nlohmann::json;
 
 TEST(DBConnector, multi_db_test)
 {
-
     string file = "./tests/redis_multi_db_ut_config/database_config.json";
-    // default config file should not be found
-    cout<<"Default : load init db config file, isInit = "<<RedisConfig::isInit()<<endl;
-    EXPECT_EQ(RedisConfig::isInit(), false);
-    // update with local config file, should be found
-    RedisConfig::updateDBConfigFile(file);
-    cout<<"Update : load local db config file, isInit = "<<RedisConfig::isInit()<<endl;
-    EXPECT_EQ(RedisConfig::isInit(), true);
+    // by default , init should be false
+    cout<<"Default : isInit = "<<SonicDBConfig::isInit()<<endl;
+    EXPECT_EQ(SonicDBConfig::isInit(), false);
+    // load local config file, init should be true
+    SonicDBConfig::initialize(file);
+    cout<<"INIT : load local db config file, isInit = "<<SonicDBConfig::isInit()<<endl;
+    EXPECT_EQ(SonicDBConfig::isInit(), true);
 
     // parse config file
     ifstream i(file);
-    if (i.good()) {
+    if (i.good())
+    {
         json j;
         i >> j;
-        unordered_map<string, pair<string, int>> m_redis_info;
-        for(auto it = j["INSTANCES"].begin(); it!= j["INSTANCES"].end(); it++) {
+        unordered_map<string, pair<string, pair<string, int>>> m_inst_info;
+        for (auto it = j["INSTANCES"].begin(); it!= j["INSTANCES"].end(); it++)
+        {
            string instName = it.key();
-           string sockPath = it.value().at("socket");
+           string socket = it.value().at("unix_socket_path");
+           string hostname = it.value().at("hostname");
            int port = it.value().at("port");
-           m_redis_info[instName] = {sockPath, port};
+           m_inst_info[instName] = {socket, {hostname, port}};
         }
 
-        for(auto it = j["DATABASES"].begin(); it!= j["DATABASES"].end(); it++) {
+        for (auto it = j["DATABASES"].begin(); it!= j["DATABASES"].end(); it++)
+        {
+           string dbName = it.key();
            string instName = it.value().at("instance");
            int dbId = it.value().at("id");
-           cout<<"JSON file # dbid: "<<dbId<<" ,socket: "<<m_redis_info[instName].first<<" .port: "<<m_redis_info[instName].second<<endl;
-           cout<<"API get   # dbid: "<<dbId<<" ,socket: "<<RedisConfig::getDbsock(dbId)<<" .port: "<<RedisConfig::getDbport(dbId)<<endl;
+           cout<<"testing "<<dbName<<endl;
+           cout<<instName<<"#"<<dbId<<"#"<<m_inst_info[instName].first<<"#"<<m_inst_info[instName].second.first<<"#"<<m_inst_info[instName].second.second<<endl;
+           // dbInst info matches between get api and context in json file
+           EXPECT_EQ(instName, SonicDBConfig::getDbInst(dbName));
+           // dbId info matches between get api and context in json file
+           EXPECT_EQ(dbId, SonicDBConfig::getDbId(dbName));
            // socket info matches between get api and context in json file
-           EXPECT_EQ(m_redis_info[instName].first, RedisConfig::getDbsock(dbId));
+           EXPECT_EQ(m_inst_info[instName].first, SonicDBConfig::getDbSock(dbName));
+           // hostname info matches between get api and context in json file
+           EXPECT_EQ(m_inst_info[instName].second.first, SonicDBConfig::getDbHostname(dbName));
            // port info matches between get api and context in json file
-           EXPECT_EQ(m_redis_info[instName].second, RedisConfig::getDbport(dbId));
+           EXPECT_EQ(m_inst_info[instName].second.second, SonicDBConfig::getDbPort(dbName));
         }
     }
 }

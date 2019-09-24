@@ -107,7 +107,7 @@ int main(int argc, char **argv)
         }
     }
 
-    DBConnector db(LOGLEVEL_DB, 0);
+    DBConnector db("LOGLEVEL_DB", 0);
     RedisClient redisClient(&db);
     auto keys = redisClient.keys("*");
     for (auto& key : keys)

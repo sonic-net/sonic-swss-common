@@ -1,24 +1,29 @@
 {
     "INSTANCES": {
         "redis":{
+            "hostname" : "127.0.0.1",
             "port": 6379,
-            "socket": "/var/run/redis/redis.sock"
+            "unix_socket_path": "/var/run/redis/redis.sock"
         },
         "redis1":{
+            "hostname" : "127.0.0.1",
             "port": 6380,
-            "socket": "/var/run/redis/redis1.sock"
+            "unix_socket_path": "/var/run/redis/redis1.sock"
         },
         "redis2":{
+            "hostname" : "127.0.0.1",
             "port": 6381,
-            "socket": "/var/run/redis/redis2.sock"
+            "unix_socket_path": "/var/run/redis/redis2.sock"
         },
         "redis3":{
+            "hostname" : "127.0.0.1",
             "port": 6382,
-            "socket": "/var/run/redis/redis3.sock"
+            "unix_socket_path": "/var/run/redis/redis3.sock"
         },
         "redis4":{
+            "hostname" : "127.0.0.1",
             "port": 6383,
-            "socket": "/var/run/redis/redis4.sock"
+            "unix_socket_path": "/var/run/redis/redis4.sock"
         }
     },
     "DATABASES" : {
