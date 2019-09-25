@@ -45,6 +45,10 @@ void SonicDBConfig::initialize(const string &file)
             }
             m_init = true;
         }
+        catch (domain_error& e)
+        {
+            throw runtime_error("key doesn't exist in json object, NULL value has no iterator >> " + string(e.what()));
+        }
         catch (exception &e)
         {
             throw runtime_error("Sonic database config file syntax error >> " + string(e.what()));
