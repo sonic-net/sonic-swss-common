@@ -42,7 +42,7 @@ Table::Table(RedisPipeline *pipeline, const string &tableName, bool buffered)
     , m_pipe(pipeline)
 {
     std::string luaScript = loadLuaScript("table_dump.lua");
-    m_shaPop = pipeline->loadRedisScript(luaScript);
+    m_shaDump = pipeline->loadRedisScript(luaScript);
 }
 
 Table::~Table()
@@ -192,7 +192,7 @@ void Table::dump(TableDump& tableDump)
 
     RedisCommand command;
     command.format("EVALSHA %s 1 %s ''",
-            m_shaPop.c_str(),
+            m_shaDump.c_str(),
             getTableName().c_str());
 
     RedisReply r = m_pipe->push(command, REDIS_REPLY_STRING);
