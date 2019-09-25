@@ -18,6 +18,9 @@ ConsumerTable::ConsumerTable(DBConnector *db, const string &tableName, int popBa
     : ConsumerTableBase(db, tableName, popBatchSize, pri)
     , TableName_KeyValueOpQueues(tableName)
 {
+    std::string luaScript = loadLuaScript("consumer_table_pops.lua");
+    m_shaPop = loadRedisScript(db, luaScript);
+
     for (;;)
     {
         RedisReply watch(m_db, string("WATCH ") + getKeyValueOpQueueTableName(), REDIS_REPLY_STATUS);
@@ -38,13 +41,10 @@ ConsumerTable::ConsumerTable(DBConnector *db, const string &tableName, int popBa
 
 void ConsumerTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, const string &prefix)
 {
-    static std::string luaScript = loadLuaScript("consumer_table_pops.lua");
-
-    static string sha = loadRedisScript(m_db, luaScript);
     RedisCommand command;
     command.format(
         "EVALSHA %s 2 %s %s %d ''",
-        sha.c_str(),
+        m_shaPop.c_str(),
         getKeyValueOpQueueTableName().c_str(),
         (prefix+getTableName()).c_str(),
         POP_BATCH_SIZE);
