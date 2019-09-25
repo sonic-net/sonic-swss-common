@@ -23,60 +23,67 @@ void SonicDBConfig::initialize(const string &file)
     ifstream i(file);
     if (i.good())
     {
-        json j;
-        i >> j;
-        for (auto it = j["INSTANCES"].begin(); it!= j["INSTANCES"].end(); it++)
+        try
         {
-           string instName = it.key();
-           string socket = it.value().at("unix_socket_path");
-           string hostname = it.value().at("hostname");
-           int port = it.value().at("port");
-           m_inst_info[instName] = {socket, {hostname, port}};
-        }
+            json j;
+            i >> j;
+            for (auto it = j["INSTANCES"].begin(); it!= j["INSTANCES"].end(); it++)
+            {
+               string instName = it.key();
+               string socket = it.value().at("unix_socket_path");
+               string hostname = it.value().at("hostname");
+               int port = it.value().at("port");
+               m_inst_info[instName] = {socket, {hostname, port}};
+            }
 
-        for (auto it = j["DATABASES"].begin(); it!= j["DATABASES"].end(); it++)
-        {
-           string dbName = it.key();
-           string instName = it.value().at("instance");
-           int dbId = it.value().at("id");
-           m_db_info[dbName] = {instName, dbId};
+            for (auto it = j["DATABASES"].begin(); it!= j["DATABASES"].end(); it++)
+            {
+               string dbName = it.key();
+               string instName = it.value().at("instance");
+               int dbId = it.value().at("id");
+               m_db_info[dbName] = {instName, dbId};
+            }
+            m_init = true;
         }
-        m_init = true;
+        catch (exception &e)
+        {
+            throw runtime_error("Sonic database config file syntax error >> " + string(e.what()));
+        }
     }
 }
 
 string SonicDBConfig::getDbInst(const string &dbName)
 {
     if (!m_init)
-        initialize(DEFAULT_SONIC_DB_CONFIG_FILE);
+        initialize();
     return m_db_info[dbName].first;
 }
 
 int SonicDBConfig::getDbId(const string &dbName)
 {
     if (!m_init)
-        initialize(DEFAULT_SONIC_DB_CONFIG_FILE);
+        initialize();
     return m_db_info[dbName].second;
 }
 
 string SonicDBConfig::getDbSock(const string &dbName)
 {
     if (!m_init)
-        initialize(DEFAULT_SONIC_DB_CONFIG_FILE);
+        initialize();
     return m_inst_info[getDbInst(dbName)].first;
 }
 
 string SonicDBConfig::getDbHostname(const string &dbName)
 {
     if (!m_init)
-        initialize(DEFAULT_SONIC_DB_CONFIG_FILE);
+        initialize();
     return m_inst_info[getDbInst(dbName)].second.first;
 }
 
 int SonicDBConfig::getDbPort(const string &dbName)
 {
     if (!m_init)
-        initialize(DEFAULT_SONIC_DB_CONFIG_FILE);
+        initialize();
     return m_inst_info[getDbInst(dbName)].second.second;
 }
 

@@ -13,7 +13,7 @@ namespace swss {
 class SonicDBConfig
 {
 public:
-    static void initialize(const std::string &file);
+    static void initialize(const std::string &file = DEFAULT_SONIC_DB_CONFIG_FILE);
     static std::string getDbInst(const std::string &dbName);
     static int getDbId(const std::string &dbName);
     static std::string getDbSock(const std::string &dbName);
