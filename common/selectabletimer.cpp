@@ -15,7 +15,7 @@ SelectableTimer::SelectableTimer(const timespec& interval, int pri)
     : Selectable(pri), m_zero({{0, 0}, {0, 0}})
 {
     // Create the timer
-    m_tfd = timerfd_create(CLOCK_REALTIME, 0);
+    m_tfd = timerfd_create(CLOCK_MONOTONIC, 0);
     if (m_tfd == -1)
     {
         SWSS_LOG_THROW("failed to create timerfd, errno: %s", strerror(errno));
@@ -72,25 +72,22 @@ int SelectableTimer::getFd()
     return m_tfd;
 }
 
-void SelectableTimer::readData()
+uint64_t SelectableTimer::readData()
 {
-    uint64_t r;
+    uint64_t cnt = 0;
 
-    ssize_t s;
+    ssize_t ret;
+    errno = 0;
     do
     {
-        // Read the timefd so it will be reset
-        s = read(m_tfd, &r, sizeof(uint64_t));
+        ret = read(m_tfd, &cnt, sizeof(uint64_t));
     }
-    while(s == -1 && errno == EINTR);
+    while(ret == -1 && errno == EINTR);
 
-    if (s != sizeof(uint64_t))
-    {
-        SWSS_LOG_THROW("SelectableTimer read failed, s:%zd errno: %s",
-                s, strerror(errno));
-    }
+    ABORT_IF_NOT((ret == 0) || (ret == sizeof(uint64_t)), "Failed to read timerfd. ret=%zd", ret);
+
+    // cnt = count of timer events happened since last read.
+    return cnt;
 }
-
-// FIXME: if timer events are read slower than timer frequency we will lost time events
 
 }

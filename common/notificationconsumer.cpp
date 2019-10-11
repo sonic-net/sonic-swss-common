@@ -65,7 +65,7 @@ int swss::NotificationConsumer::getFd()
     return m_subscribe->getContext()->fd;
 }
 
-void swss::NotificationConsumer::readData()
+uint64_t swss::NotificationConsumer::readData()
 {
     SWSS_LOG_ENTER();
 
@@ -100,6 +100,7 @@ void swss::NotificationConsumer::readData()
     {
         throw std::runtime_error("Unable to read redis reply");
     }
+    return 0;
 }
 
 bool swss::NotificationConsumer::hasData()

@@ -17,6 +17,21 @@
 
 namespace swss {
 
+void err_exit(const char *fn, int ln, int e, const char *fmt, ...)
+{
+    va_list ap;
+    char buff[1024];
+    size_t len;
+
+    va_start(ap, fmt);
+    snprintf(buff, sizeof(buff), "%s::%d err(%d/%s): ", fn, ln, e, strerror(e));
+    len = strlen(buff);
+    vsnprintf(buff+len, sizeof(buff)-len, fmt, ap);
+    va_end(ap);
+    SWSS_LOG_ERROR("Aborting: %s", buff);
+    abort();
+}
+
 Logger::~Logger() {
     if (m_settingThread) {
         m_settingThread->detach();

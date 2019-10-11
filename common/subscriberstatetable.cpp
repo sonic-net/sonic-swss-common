@@ -42,7 +42,7 @@ SubscriberStateTable::SubscriberStateTable(DBConnector *db, const string &tableN
     }
 }
 
-void SubscriberStateTable::readData()
+uint64_t SubscriberStateTable::readData()
 {
     redisReply *reply = nullptr;
 
@@ -79,6 +79,7 @@ void SubscriberStateTable::readData()
     {
         throw std::runtime_error("Unable to read redis reply");
     }
+    return 0;
 }
 
 bool SubscriberStateTable::hasData()
@@ -117,7 +118,7 @@ void SubscriberStateTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, const strin
         /* Expecting 4 elements for each keyspace pmessage notification */
         if (n != 4)
         {
-            SWSS_LOG_ERROR("invalid number of elements %lu for pmessage of %s", n, m_keyspace.c_str());
+            SWSS_LOG_ERROR("invalid number of elements %zu for pmessage of %s", n, m_keyspace.c_str());
             continue;
         }
         /* The second element should be the original pattern matched */

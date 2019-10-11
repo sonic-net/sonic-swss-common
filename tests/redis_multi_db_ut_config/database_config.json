@@ -1,0 +1,68 @@
+{
+    "INSTANCES": {
+        "redis":{
+            "hostname" : "127.0.0.1",
+            "port": 6379,
+            "unix_socket_path": "/var/run/redis/redis.sock"
+        },
+        "redis1":{
+            "hostname" : "127.0.0.1",
+            "port": 6380,
+            "unix_socket_path": "/var/run/redis/redis1.sock"
+        },
+        "redis2":{
+            "hostname" : "127.0.0.1",
+            "port": 6381,
+            "unix_socket_path": "/var/run/redis/redis2.sock"
+        },
+        "redis3":{
+            "hostname" : "127.0.0.1",
+            "port": 6382,
+            "unix_socket_path": "/var/run/redis/redis3.sock"
+        },
+        "redis4":{
+            "hostname" : "127.0.0.1",
+            "port": 6383,
+            "unix_socket_path": "/var/run/redis/redis4.sock"
+        }
+    },
+    "DATABASES" : {
+        "APPL_DB" : {
+            "id" : 0,
+            "instance" : "redis"
+        },
+        "ASIC_DB" : {
+            "id" : 1,
+            "instance" : "redis1"
+        },
+        "COUNTERS_DB" : {
+            "id" : 2,
+            "instance" : "redis1"
+        },
+        "LOGLEVEL_DB" : {
+            "id" : 3,
+            "instance" : "redis2"
+        },
+        "CONFIG_DB" : {
+            "id" : 4,
+            "instance" : "redis2"
+        },
+        "PFC_WD_DB" : {
+            "id" : 5,
+            "instance" : "redis3"
+        },
+        "FLEX_COUNTER_DB" : {
+            "id" : 5,
+            "instance" : "redis3"
+        },
+        "STATE_DB" : {
+            "id" : 6,
+            "instance" : "redis4"
+        },
+        "SNMP_OVERLAY_DB" : {
+            "id" : 7,
+            "instance" : "redis4"
+        }
+    },
+    "VERSION" : "1.0"
+}
