@@ -17,7 +17,7 @@ public:
     void dumpRequest(int getCommand);
 
     int getFd() override;
-    void readData() override;
+    uint64_t readData() override;
 
     void updateConnTrackEntry(struct nfnl_ct *ct);
     void deleteConnTrackEntry(struct nfnl_ct *ct);
