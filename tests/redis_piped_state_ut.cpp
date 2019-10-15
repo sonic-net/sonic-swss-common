@@ -469,7 +469,7 @@ TEST(ConsumerStateTable, async_singlethread)
     EXPECT_EQ(p.count(), 0);
     RedisReply r2(&db, queryCommand.c_str(), REDIS_REPLY_ARRAY);
     EXPECT_EQ(r2.getContext()->elements, (size_t)0);
- 
+
     int numberOfNotification = 0;
     while ((ret = cs.select(&selectcs, 1000)) == Select::OBJECT)
     {
@@ -581,3 +581,61 @@ TEST(ConsumerStateTable, async_multitable)
     cout << endl << "Done." << endl;
 }
 
+TEST(ConsumerStateTable, async_set_set_pops)
+{
+    clearDB();
+
+    /* Prepare producer */
+    int index = 0;
+    string tableName = "UT_REDIS_THREAD_" + to_string(index);
+    DBConnector db(TEST_DB, "localhost", 6379, 0);
+    RedisPipeline pipeline(&db);
+    ProducerStateTable p(&pipeline, tableName, true);
+    string key1 = "TheKey1";
+    string key2 = "TheKey2";
+    int maxNumOfFields = 2;
+
+    /* First set operation */
+    {
+        vector<FieldValueTuple> fields;
+        for (int j = 0; j < maxNumOfFields; j++)
+        {
+            FieldValueTuple t(field(j), value(j));
+            fields.push_back(t);
+        }
+        p.set(key1, fields);
+    }
+
+    /* Second set operation */
+    {
+        vector<FieldValueTuple> fields;
+        for (int j = maxNumOfFields; j < maxNumOfFields * 2; j++)
+        {
+            FieldValueTuple t(field(j), value(j));
+            fields.push_back(t);
+        }
+        p.set(key2, fields);
+    }
+    p.flush();
+
+    /* Prepare consumer */
+    ConsumerStateTable c(&db, tableName);
+    Select cs;
+    Selectable *selectcs;
+    cs.addSelectable(&c);
+
+    /* First pops operation will be two kco */
+    {
+        int ret = cs.select(&selectcs);
+        EXPECT_EQ(ret, Select::OBJECT);
+        std::deque<KeyOpFieldsValuesTuple> vkco;
+        c.pops(vkco);
+        EXPECT_EQ(vkco.size(), 2L);
+    }
+
+    /* Second select operation will timeout since no kco or channel message left */
+    {
+        int ret = cs.select(&selectcs, 1000);
+        EXPECT_EQ(ret, Select::TIMEOUT);
+    }
+}

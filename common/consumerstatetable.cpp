@@ -53,6 +53,9 @@ void ConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const st
     // if the set is empty, return an empty kco object
     if (ctx0->type == REDIS_REPLY_NIL)
     {
+        // Discard one message in channel, even if there is nothing to pop
+        // This may be the case that producer called clear()
+        discard(1);
         return;
     }
 
@@ -90,6 +93,8 @@ void ConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const st
             kfvOp(kco) = SET_COMMAND;
         }
     }
+    // Discard messages in channel, one per kco
+    discard(vkco.size());
 }
 
 }

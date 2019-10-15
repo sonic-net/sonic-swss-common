@@ -162,9 +162,5 @@ int Select::select(Selectable **c, int timeout)
 
 }
 
-bool Select::isQueueEmpty()
-{
-    return m_ready.empty();
-}
-
 };
+

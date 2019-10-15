@@ -43,4 +43,22 @@ void ConsumerTableBase::pop(std::string &key, std::string &op, std::vector<Field
     m_buffer.pop_front();
 }
 
+bool ConsumerTableBase::hasData()
+{
+    return RedisSelect::hasData() || !m_buffer.empty();
+}
+
+// hasCachedData is depreciated, and this is a safe placeholder
+// We will use hasData() to indicate that there is pending data
+// ref: Select::selecat() implementation
+bool ConsumerTableBase::hasCachedData()
+{
+    return true;
+}
+
+// Override with an empty body, and subclasses will explicitly discard messages in the channel
+void ConsumerTableBase::updateAfterRead()
+{
+}
+
 }

@@ -32,6 +32,11 @@ public:
 protected:
     std::unique_ptr<DBConnector> m_subscribe;
     long long int m_queueLength;
+
+    void discard(long long int n);
+
+private:
+    void readRemainingData();
 };
 
 }
