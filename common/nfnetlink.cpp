@@ -166,7 +166,7 @@ int NfNetlink::getFd()
     return nl_socket_get_fd(m_socket);
 }
 
-void NfNetlink::readData()
+uint64_t NfNetlink::readData()
 {
     int err;
 
