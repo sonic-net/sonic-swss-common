@@ -185,6 +185,7 @@ uint64_t NfNetlink::readData()
         else
             SWSS_LOG_ERROR("netlink reports an error=%d on reading a netfilter netlink socket", err);
     }
+    return 0;
 }
 
 int NfNetlink::onNetlinkMsg(struct nl_msg *msg, void *arg)
