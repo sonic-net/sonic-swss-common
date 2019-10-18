@@ -58,7 +58,16 @@ NfNetlink::~NfNetlink()
     }
 }
 
-void NfNetlink::registerRecvCallbacks(void)
+bool NfNetlink::setSockBufSize(uint32_t sockBufSize)
+{
+    if (nl_socket_set_buffer_size(m_socket, sockBufSize, 0) < 0)
+    {
+        return false;
+    }
+    return true;
+}
+
+void NfNetlink::registerRecvCallbacks()
 {
 #ifdef NETFILTER_UNIT_TEST
     nl_socket_modify_cb(m_socket, NL_CB_MSG_IN, NL_CB_CUSTOM, onNetlinkRcv, this);
@@ -72,93 +81,39 @@ void NfNetlink::registerGroup(int nfnlGroup)
     int err = nl_socket_add_membership(m_socket, nfnlGroup);
     if (err < 0)
     {
-        SWSS_LOG_ERROR("Unable to register to netfilter group %d: %s", nfnlGroup,
+        SWSS_LOG_THROW("Unable to register to netfilter group %d: %s", nfnlGroup,
                        nl_geterror(err));
-        throw system_error(make_error_code(errc::address_not_available),
-                           "Unable to register to netfilter group");
     }
 }
+
 void NfNetlink::dumpRequest(int getCommand)
 {
     int err = nfnl_ct_dump_request(m_socket);
     if (err < 0)
     {
-        SWSS_LOG_ERROR("Unable to request netfilter conntrack dump: %s",
+        SWSS_LOG_THROW("Unable to request netfilter conntrack dump: %s",
                        nl_geterror(err));
-        throw system_error(make_error_code(errc::address_not_available),
-                           "Unable to request netfilter conntrack dump");
     }
 }
 
-void NfNetlink::updateConnTrackEntry(struct nfnl_ct *ct)
+bool NfNetlink::updateConnTrackEntry(struct nfnl_ct *ct)
 {
     if (nfnl_ct_add(m_socket, ct, NLM_F_REPLACE) < 0)
     {
         SWSS_LOG_ERROR("Failed to update conntrack object in the kernel");
+        return false;
     }
+    return true;
 }
 
-void NfNetlink::deleteConnTrackEntry(struct nfnl_ct *ct)
+bool NfNetlink::deleteConnTrackEntry(struct nfnl_ct *ct)
 {
     if (nfnl_ct_del(m_socket, ct, 0) < 0)
     {
         SWSS_LOG_ERROR("Failed to delete conntrack object in the kernel");
+        return false;
     }
-}
-
-struct nfnl_ct *NfNetlink::getCtObject(const IpAddress &sourceIpAddr)
-{
-    struct nfnl_ct *ct = nfnl_ct_alloc();
-    struct nl_addr *orig_src_ip;
-
-    if (! ct)
-    {
-        SWSS_LOG_ERROR("Unable to allocate memory for conntrack object");
-        return NULL;
-    }
-
-    nfnl_ct_set_family(ct, AF_INET);
-    if (nl_addr_parse(sourceIpAddr.to_string().c_str(), AF_INET, &orig_src_ip) == 0)
-    {
-        nfnl_ct_set_src(ct, 0, orig_src_ip);
-    }
-    else
-    {
-        SWSS_LOG_ERROR("Failed to parse orig src ip into conntrack object");
-        nfnl_ct_put(ct);
-        return NULL;
-    }
-
-    return ct;
-}
-
-struct nfnl_ct *NfNetlink::getCtObject(uint8_t protoType, const IpAddress &sourceIpAddr, uint16_t srcPort)
-{
-    struct nfnl_ct *ct = nfnl_ct_alloc();
-    struct nl_addr *orig_src_ip; 
-
-    if (! ct)
-    {
-        SWSS_LOG_ERROR("Unable to allocate memory for conntrack object");
-        return NULL;
-    }
-
-    nfnl_ct_set_family(ct, AF_INET);
-    nfnl_ct_set_proto(ct, protoType);
-
-    if (nl_addr_parse(sourceIpAddr.to_string().c_str(), AF_INET, &orig_src_ip) == 0)
-    {
-        nfnl_ct_set_src(ct, 0, orig_src_ip);
-    }
-    else
-    {
-        SWSS_LOG_ERROR("Failed to parse orig src ip into conntrack object");
-        nfnl_ct_put(ct);
-        return NULL;
-    }
-    nfnl_ct_set_src_port(ct, 0, srcPort);
-
-    return ct;
+    return true;
 }
 
 int NfNetlink::getFd()

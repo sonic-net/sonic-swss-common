@@ -12,21 +12,21 @@ public:
     NfNetlink(int pri = 0);
     ~NfNetlink() override;
 
-    void registerRecvCallbacks(void);
+    void registerRecvCallbacks();
+    bool setSockBufSize(uint32_t sockBufSize);
     void registerGroup(int nfnlGroup);
     void dumpRequest(int getCommand);
 
     int getFd() override;
     uint64_t readData() override;
 
-    void updateConnTrackEntry(struct nfnl_ct *ct);
-    void deleteConnTrackEntry(struct nfnl_ct *ct);
+    bool updateConnTrackEntry(struct nfnl_ct *ct);
+    bool deleteConnTrackEntry(struct nfnl_ct *ct);
 
 private:
-    struct nfnl_ct *getCtObject(const IpAddress &sourceIpAddr);
-    struct nfnl_ct *getCtObject(uint8_t protoType, const IpAddress &sourceIpAddr, uint16_t srcPort);
-
+#ifdef NETFILTER_UNIT_TEST
     static int onNetlinkRcv(struct nl_msg *msg, void *arg);
+#endif
     static int onNetlinkMsg(struct nl_msg *msg, void *arg);
 
     FILE *nfPktsLogFile;
