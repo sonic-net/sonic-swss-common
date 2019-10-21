@@ -15,7 +15,7 @@ public:
     RedisSelect(int pri = 0);
 
     int getFd() override;
-    void readData() override;
+    uint64_t readData() override;
     bool hasData() override;
     bool hasCachedData() override;
     bool initializedWithData() override;
