@@ -142,6 +142,7 @@ namespace swss {
 #define CFG_LAG_MEMBER_TABLE_NAME  "PORTCHANNEL_MEMBER"
 #define CFG_VLAN_TABLE_NAME        "VLAN"
 #define CFG_VLAN_MEMBER_TABLE_NAME "VLAN_MEMBER"
+#define CFG_FDB_TABLE_NAME         "FDB"
 #define CFG_SWITCH_TABLE_NAME      "SWITCH"
 #define CFG_VRF_TABLE_NAME         "VRF"
 #define CFG_CRM_TABLE_NAME         "CRM"
