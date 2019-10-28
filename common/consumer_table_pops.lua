@@ -82,7 +82,9 @@ for i = n, 1, -3 do
        op == 'get_stats' or
        op == 'clear_stats' or
        op == 'attr_enum_values_capability_query' or
-       op == 'attr_enum_values_capability_response' then
+       op == 'attr_enum_values_capability_response' or
+       op == 'object_type_get_availability_query' or
+       op == 'object_type_get_availability_response' then
 
     -- do not modify db entries when spotted those commands, they are used to
     -- trigger actions or get data synchronously from database
