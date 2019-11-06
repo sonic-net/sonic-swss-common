@@ -16,38 +16,35 @@
 #include "notificationconsumer.h"
 #include "notificationproducer.h"
 
-#define ACTIONS_CONFIG_FILE "/etc/sonic/dbgFm.ini"
 #define ALL_COMPONENTS  "all"
 #define ASSERT_FILE "/var/log/assert_btrace.log"
 
 namespace swss {
 
 
-Debugframework &Debugframework::getInstance()
+DebugFramework &DebugFramework::getInstance()
 {
-    static Debugframework m_debugframework;
+    static DebugFramework m_debugframework;
     return m_debugframework;
 }
 
-Debugframework::Debugframework() {
-    // Read .ini configuration file to init
+DebugFramework::DebugFramework() {
     DBConnector db(CONFIG_DB, DBConnector::DEFAULT_UNIXSOCKET, 0);
     m_configParams = std::unique_ptr<Table>(new Table(&db, APP_DEBUGFM_CONFIG_TABLE_NAME));
-
 }
 
-Debugframework::~Debugframework() {
-    //m_registeredComps.clear();
-    //m_configParams.clear();
+DebugFramework::~DebugFramework() {
 }
 
-void Debugframework::linkWithFrameworkNoThread(std::string &componentName)
+void DebugFramework::linkWithFrameworkNoThread(const std::string &componentName)
 {
+    SWSS_LOG_ENTER();
     updateRegisteredComponents(componentName);
 }
 
-void Debugframework::linkWithFramework(std::string &componentName, const DumpInfoFunc funcPtr)
+void DebugFramework::linkWithFramework(const std::string &componentName, const DumpInfoFunc funcPtr)
 {
+    SWSS_LOG_ENTER();
     if (funcPtr == NULL)
     {
         /* log error and return */
@@ -59,12 +56,11 @@ void Debugframework::linkWithFramework(std::string &componentName, const DumpInf
     updateRegisteredComponents(componentName);
     
     // Now create a thread and let the rest be handled there
-    std::thread t(Debugframework::runnableThread, componentName, funcPtr);
+    std::thread t(DebugFramework::runnableThread, componentName, funcPtr);
     t.detach();
-
 }
 
-void Debugframework::updateRegisteredComponents(std::string &component)
+void DebugFramework::updateRegisteredComponents(const std::string &component)
 {
     DBConnector db(APPL_DB, DBConnector::DEFAULT_UNIXSOCKET, 0);
 
@@ -74,8 +70,9 @@ void Debugframework::updateRegisteredComponents(std::string &component)
     table.set(component, fieldValues);
 }
 
-NO_RET_TYPE void Debugframework::runnableThread(std::string componentName, const DumpInfoFunc funcPtr)
+NO_RET_TYPE void DebugFramework::runnableThread(const std::string componentName, const DumpInfoFunc funcPtr)
 {
+    SWSS_LOG_ENTER();
     Select s;
     DBConnector dumpDb(APPL_DB, DBConnector::DEFAULT_UNIXSOCKET, 0);
     DBConnector doneDb(APPL_DB, DBConnector::DEFAULT_UNIXSOCKET, 0);
@@ -103,29 +100,30 @@ NO_RET_TYPE void Debugframework::runnableThread(std::string componentName, const
 
             for (auto entry: entries)
             {
-               std::string key = kfvKey(entry);
-               if (key == componentName)
-               {
-                   try{
-                       (*funcPtr)(componentName, entry);
-                   }catch(...){
-                       throw "Registered dump routine returned error";
-                   }
+                std::string key = kfvKey(entry);
+                if (key == componentName)
+                {
+                    FieldValueTuple fvResp("RESPONSE", "SUCCESS");
+                    try{
+                        (*funcPtr)(componentName, entry);
+                    }catch(...){
+                        throw "Registered dump routine returned error";
+                        fvResp.second = "FAILURE";
+                    }
 
-                   /* Inform done with same key */
-                   FieldValueTuple fvResp("RESPONSE", "SUCCESS");
-                   std::vector<FieldValueTuple>fieldValues = { fvResp };
-                   p.send(componentName, componentName, fieldValues);
-               }
+                    /* Inform done with same key */
+                    std::vector<FieldValueTuple>fieldValues = { fvResp };
+                    p.send(componentName, componentName, fieldValues);
+                }
             }
         }
-
     }  // end while loop
 }
 
-void Debugframework::invokeTrigger(std::string componentName, std::string argList)
+void DebugFramework::invokeTrigger(const std::string componentName, std::string argList)
 {
-    SWSS_LOG_DEBUG("Debugframework invokeTrigger called for %s with args %s", componentName.c_str(), argList.c_str());
+    SWSS_LOG_ENTER();
+    SWSS_LOG_DEBUG("DebugFramework invokeTrigger called for %s with args %s", componentName.c_str(), argList.c_str());
 
     auto& dbgfm = getInstance();
 
@@ -171,8 +169,9 @@ void Debugframework::invokeTrigger(std::string componentName, std::string argLis
     relayTrigger(componentName, kco);
 }
 
-void Debugframework::relayTrigger(std::string &componentName, KeyOpFieldsValuesTuple args)
+void DebugFramework::relayTrigger(const std::string &componentName, KeyOpFieldsValuesTuple args)
 {
+    SWSS_LOG_ENTER();
     DBConnector db(APPL_DB, DBConnector::DEFAULT_UNIXSOCKET, 0);
     Table table(&db, APP_DEBUG_RCOMPONENT_TABLE_NAME);
 
@@ -187,7 +186,7 @@ void Debugframework::relayTrigger(std::string &componentName, KeyOpFieldsValuesT
     {
         for (const auto &key: keys)
         {
-            SWSS_LOG_DEBUG("Debugframework sending notification for %s", key.c_str());
+            SWSS_LOG_DEBUG("DebugFramework sending notification for %s", key.c_str());
             producer.send(key, key, kfvFieldsValues(args));
         }
     }
@@ -197,20 +196,20 @@ void Debugframework::relayTrigger(std::string &componentName, KeyOpFieldsValuesT
         {
             if (componentName == key)
             {
-                SWSS_LOG_DEBUG("Debugframework sending notification for %s", key.c_str());
+                SWSS_LOG_DEBUG("DebugFramework sending notification for %s", key.c_str());
                 producer.send(key, key, kfvFieldsValues(args));
                 break;
             }
         }
     }
     // Now create a thread and wait for done notifications
-    std::thread t(Debugframework::listenDoneEvents, componentName);
+    std::thread t(DebugFramework::listenDoneEvents, componentName);
     t.detach();
-
 }
 
-void Debugframework::listenDoneEvents(std::string componentName)
+void DebugFramework::listenDoneEvents(const std::string componentName)
 {
+    SWSS_LOG_ENTER();
     Select sel;
     DBConnector db(APPL_DB, DBConnector::DEFAULT_UNIXSOCKET, 0);
     Table table(&db, APP_DEBUG_RCOMPONENT_TABLE_NAME);
@@ -261,7 +260,7 @@ void Debugframework::listenDoneEvents(std::string componentName)
             std::string op, data;
             doneIndication.pop(op, data, entries);
 
-            SWSS_LOG_DEBUG("Debugframework done indication  from %s", data.c_str());
+            SWSS_LOG_DEBUG("DebugFramework done indication  from %s", data.c_str());
 
             for (unsigned i = 0; i != components.size(); ++i)
             {
@@ -275,15 +274,15 @@ void Debugframework::listenDoneEvents(std::string componentName)
     } // end while
     
     //trigger the post action
-    SWSS_LOG_DEBUG("Debugframework triggered post action script");
+    SWSS_LOG_DEBUG("DebugFramework triggered post action script");
 
     //performPost(); TBD 
 }
 
-void Debugframework::dumpBegin(std::string &component)
+void DebugFramework::dumpBegin(const std::string &component)
 {
     auto& dbgfm = getInstance();
-    Debugframework::TargetLocation t = dbgfm.getTarget();
+    DebugFramework::TargetLocation t = dbgfm.getTarget();
 
     if (t == SWSS_FILE)
     {
@@ -303,10 +302,10 @@ void Debugframework::dumpBegin(std::string &component)
     }
 }
 
-void Debugframework::dumpEnd(std::string &component)
+void DebugFramework::dumpEnd(const std::string &component)
 {
     auto& dbgfm = getInstance();
-    Debugframework::TargetLocation t = dbgfm.getTarget();
+    DebugFramework::TargetLocation t = dbgfm.getTarget();
     
     if (t == SWSS_FILE)
     {
@@ -322,7 +321,7 @@ void Debugframework::dumpEnd(std::string &component)
     return;
 }
 
-void Debugframework::dumpWrite(std::string &component, const char *fmt, ...)
+void DebugFramework::dumpWrite(const std::string &component, const char *fmt, ...)
 {
     auto& dbgfm = getInstance();
     
@@ -345,12 +344,12 @@ void Debugframework::dumpWrite(std::string &component, const char *fmt, ...)
         if (itr != dbgfm.m_compFds.end())
         {
             f = itr->second;
-            *f << buffer << "\n";
+            *f << buffer << std::endl;
         }
     }
 }
 
-Debugframework::TargetLocation Debugframework::getTarget()
+DebugFramework::TargetLocation DebugFramework::getTarget()
 {
     std::string key("TARGET"), val;
     m_configParams->hget(key, key, val);
@@ -360,13 +359,13 @@ Debugframework::TargetLocation Debugframework::getTarget()
         return SWSS_FILE;
 }
 
-void Debugframework::setTarget(std::string &val)
+void DebugFramework::setTarget(const std::string &val)
 {
     std::string key("TARGET");
     m_configParams->hset(key, key, val);
 }
 
-Debugframework::PostAction Debugframework::getPostAction()
+DebugFramework::PostAction DebugFramework::getPostAction()
 {
     std::string key("ACTION"), val;
     m_configParams->hget(key, key, val);
@@ -376,20 +375,20 @@ Debugframework::PostAction Debugframework::getPostAction()
         return COMPRESS;
 }
 
-void Debugframework::setPostAction(std::string &val)
+void DebugFramework::setPostAction(const std::string &val)
 {
     std::string key("ACTION");
     m_configParams->hset(key, key, val);
 }
 
-void Debugframework::setAssertAction(std::string val)
+void DebugFramework::setAssertAction(const std::string val)
 {
     auto& dbgfm = getInstance();
     std::string key("ASSERTACT");
     dbgfm.m_configParams->hset(key, key, val);
 }
 
-Debugframework::AssertAction Debugframework::getAssertAction()
+DebugFramework::AssertAction DebugFramework::getAssertAction()
 {
     std::string key("ASSERTACT"), val;
     m_configParams->hget(key, key, val);
@@ -403,8 +402,9 @@ Debugframework::AssertAction Debugframework::getAssertAction()
         return ABORT;
 }
 
-void Debugframework::custom_assert(bool exp, AssertAction act, const char *func, const unsigned line)
+void DebugFramework::customAssert(bool exp, AssertAction act, const char *func, const unsigned line)
 {
+    SWSS_LOG_ENTER();
     auto& dbgfm = getInstance();
     if (exp)
     {
@@ -449,7 +449,6 @@ void Debugframework::custom_assert(bool exp, AssertAction act, const char *func,
             }
             break;
     } // end switch
-
 }
 
 }
