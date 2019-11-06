@@ -72,6 +72,11 @@ public:
                );
     }
 
+    inline bool operator!=(const IpAddress &o) const
+    {
+        return (! (*this == o) );
+    }
+
     std::string to_string() const;
 
     enum AddrScope {
