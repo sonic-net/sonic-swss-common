@@ -16,7 +16,7 @@ public:
     void dumpRequest(int rtmGetCommand);
 
     int getFd() override;
-    void readData() override;
+    uint64_t readData() override;
 
 private:
     static int onNetlinkMsg(struct nl_msg *msg, void *arg);

@@ -72,46 +72,22 @@ int SelectableTimer::getFd()
     return m_tfd;
 }
 
-void SelectableTimer::readData()
+uint64_t SelectableTimer::readData()
 {
-    uint64_t r = UINT64_MAX;
+    uint64_t cnt = 0;
 
-    ssize_t s;
+    ssize_t ret;
     errno = 0;
     do
     {
-        s = read(m_tfd, &r, sizeof(uint64_t));
+        ret = read(m_tfd, &cnt, sizeof(uint64_t));
     }
-    while(s == -1 && errno == EINTR);
+    while(ret == -1 && errno == EINTR);
 
-    if (s != sizeof(uint64_t)) {
-        /*
-         * By right or most likely s = 8 here.
-         * Else in failure case, s = -1 with errno != 0
-         * But due to a (HW influenced) Kernel bug, it could be s=0 & errno=0
-         *
-         * This bug has been observed in S6100 only.
-         * The bug incidence is pretty seldom.
-         *
-         * A short note on kernel bug:
-         *  timerfd_read, upon asserting that underlying hrtimer has triggered once,
-         *  calls hrtimer_forward_now, to get total count of expiries since timer start
-         *  to now, as read gets called asynchronously at a time later than the time
-         *  point of trigger.
-         *  The hrtimer_forward_now is expected to return >= 1, as it is certain
-         *  that one trigger/expiry is confirmed to have occurred.
-         *  But in the buggy case, the hrtimer_forward_now returned 0, that results
-         *  in read call to return 0.
-         *  
-         *  The behavior of read returning 0, with errno=0 is an unexpected behavior.
-         */
-        ABORT_IF_NOT(s == 0, "Failed to read timerfd. s=%zd", s);
+    ABORT_IF_NOT((ret == 0) || (ret == sizeof(uint64_t)), "Failed to read timerfd. ret=%zd", ret);
 
-        SWSS_LOG_ERROR("Benign failure to read from timerfd return=%zd Expect: %zd",
-                        s, sizeof(uint64_t));
-    }
-
-    // r = count of timer events happened since last read.
+    // cnt = count of timer events happened since last read.
+    return cnt;
 }
 
 }

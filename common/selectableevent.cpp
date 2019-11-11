@@ -40,7 +40,7 @@ int SelectableEvent::getFd()
     return m_efd;
 }
 
-void SelectableEvent::readData()
+uint64_t SelectableEvent::readData()
 {
     uint64_t r;
 
@@ -56,6 +56,7 @@ void SelectableEvent::readData()
         SWSS_LOG_THROW("SelectableEvent read failed, s:%zd errno: %s",
                 s, strerror(errno));
     }
+    return 0;
 }
 
 void SelectableEvent::notify()
