@@ -18,6 +18,7 @@
 
 #define ALL_COMPONENTS  "all"
 #define ASSERT_FILE "/var/log/assert_btrace.log"
+#define BTRACE_BUF_SIZE 100
 
 namespace swss {
 
@@ -70,7 +71,7 @@ void DebugFramework::updateRegisteredComponents(const std::string &component)
     table.set(component, fieldValues);
 }
 
-NO_RET_TYPE void DebugFramework::runnableThread(const std::string componentName, const DumpInfoFunc funcPtr)
+NO_RET_TYPE void DebugFramework::runnableThread(const std::string &componentName, const DumpInfoFunc funcPtr)
 {
     SWSS_LOG_ENTER();
     Select s;
@@ -107,8 +108,12 @@ NO_RET_TYPE void DebugFramework::runnableThread(const std::string componentName,
                     try{
                         (*funcPtr)(componentName, entry);
                     }catch(...){
-                        throw "Registered dump routine returned error";
+                        SWSS_LOG_ERROR("%s dump routine failed.", componentName.c_str());
                         fvResp.second = "FAILURE";
+                        std::vector<FieldValueTuple>fieldValues = { fvResp };
+                        p.send(componentName, componentName, fieldValues);
+
+                        throw "Registered dump routine returned error";
                     }
 
                     /* Inform done with same key */
@@ -120,7 +125,7 @@ NO_RET_TYPE void DebugFramework::runnableThread(const std::string componentName,
     }  // end while loop
 }
 
-void DebugFramework::invokeTrigger(const std::string componentName, std::string argList)
+void DebugFramework::invokeTrigger(const std::string &componentName, std::string argList)
 {
     SWSS_LOG_ENTER();
     SWSS_LOG_DEBUG("DebugFramework invokeTrigger called for %s with args %s", componentName.c_str(), argList.c_str());
@@ -207,7 +212,7 @@ void DebugFramework::relayTrigger(const std::string &componentName, KeyOpFieldsV
     t.detach();
 }
 
-void DebugFramework::listenDoneEvents(const std::string componentName)
+void DebugFramework::listenDoneEvents(const std::string &componentName)
 {
     SWSS_LOG_ENTER();
     Select sel;
@@ -435,8 +440,7 @@ void DebugFramework::customAssert(bool exp, AssertAction act, const char *func, 
         case BTRACE:
             {
                 std::FILE *fp = fopen(ASSERT_FILE, "w");
-#define SIZE 100
-                void * buffer[SIZE];
+                void * buffer[BTRACE_BUF_SIZE];
                 const int calls = backtrace(buffer, sizeof(buffer) / sizeof(void *));
                 backtrace_symbols_fd(buffer, calls, fileno(fp));
             }

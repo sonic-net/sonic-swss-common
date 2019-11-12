@@ -46,7 +46,7 @@ public:
     /* This function will create FieldValueTuples and publish to Redis 
      * args: comma seperated strings opaque to framework passed to components
      */
-    static void invokeTrigger(const std::string componentName, std::string args);  
+    static void invokeTrigger(const std::string &componentName, std::string args);  
 
     void dumpBegin(const std::string &component);
     void dumpEnd(const std::string &component);
@@ -73,7 +73,7 @@ private:
     DebugFramework(const DebugFramework&);
     DebugFramework &operator=(const DebugFramework&);
 
-    static void listenDoneEvents(const std::string componentName);
+    static void listenDoneEvents(const std::string &componentName);
     static void relayTrigger(const std::string &componentName, KeyOpFieldsValuesTuple args);  
     static void updateRegisteredComponents(const std::string &component);
 
@@ -104,7 +104,7 @@ private:
 #ifndef NO_RET_TYPE
 #define NO_RET_TYPE [[noreturn]]
 #endif
-    NO_RET_TYPE static void runnableThread(const std::string componentName, const DumpInfoFunc funcPtr);   
+    NO_RET_TYPE static void runnableThread(const std::string &componentName, const DumpInfoFunc funcPtr);   
 
     AssertAction getAssertAction();
 };
