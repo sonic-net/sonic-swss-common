@@ -1,3 +1,4 @@
 usr/lib/*/lib*.so.*
 usr/share/swss/*.lua
+usr/share/swss/*.json
 usr/bin/swssloglevel

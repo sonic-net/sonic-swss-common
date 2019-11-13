@@ -1,0 +1,10 @@
+#!/bin/bash
+# This `DEBIAN/postinst` script is run post-installation
+DST_PATH="/var/run/redis/sonic-db"
+DST_FILE="database_config.json"
+SRC_PATH="/usr/share/swss"
+# if there is no $DST_FILE, it is for testing, it is needed to copy one default $DST_FILE
+if [ ! -e $DST_PATH/$DST_FILE ]; then
+    mkdir -p $DST_PATH
+    cp $SRC_PATH/$DST_FILE $DST_PATH/$DST_FILE
+fi
