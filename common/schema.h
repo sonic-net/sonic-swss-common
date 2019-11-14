@@ -45,14 +45,6 @@ namespace swss {
 #define APP_SFLOW_SESSION_TABLE_NAME      "SFLOW_SESSION_TABLE"
 #define APP_SFLOW_SAMPLE_RATE_TABLE_NAME  "SFLOW_SAMPLE_RATE_TABLE"
 
-#define APP_STP_VLAN_TABLE_NAME             "STP_VLAN_TABLE"
-#define APP_STP_VLAN_PORT_TABLE_NAME        "STP_VLAN_PORT_TABLE"
-#define APP_STP_VLAN_INSTANCE_TABLE_NAME    "STP_VLAN_INSTANCE_TABLE"
-#define APP_STP_PORT_TABLE_NAME             "STP_PORT_TABLE"
-#define APP_STP_PORT_STATE_TABLE_NAME       "STP_PORT_STATE_TABLE"
-#define APP_STP_FASTAGEING_FLUSH_TABLE_NAME "STP_FASTAGEING_FLUSH_TABLE"
-#define APP_STP_BPDU_GUARD_TABLE_NAME       "STP_BPDU_GUARD_TABLE"
-
 #define APP_NAT_TABLE_NAME              "NAT_TABLE"
 #define APP_NAPT_TABLE_NAME             "NAPT_TABLE"
 #define APP_NAT_TWICE_TABLE_NAME        "NAT_TWICE_TABLE"
@@ -228,11 +220,6 @@ namespace swss {
 #define CFG_SFLOW_TABLE_NAME                        "SFLOW"
 #define CFG_SFLOW_SESSION_TABLE_NAME                "SFLOW_SESSION"
 
-#define CFG_STP_GLOBAL_TABLE_NAME               "STP"
-#define CFG_STP_VLAN_TABLE_NAME                 "STP_VLAN"
-#define CFG_STP_VLAN_PORT_TABLE_NAME            "STP_VLAN_PORT"
-#define CFG_STP_PORT_TABLE_NAME                 "STP_PORT"
-
 #define CFG_DEBUG_COUNTER_TABLE_NAME                "DEBUG_COUNTER"
 #define CFG_DEBUG_COUNTER_DROP_REASON_TABLE_NAME    "DEBUG_COUNTER_DROP_REASON"
 
@@ -242,10 +229,10 @@ namespace swss {
 #define CFG_NAT_BINDINGS_TABLE_NAME                 "NAT_BINDINGS"
 #define CFG_NAT_GLOBAL_TABLE_NAME                   "NAT_GLOBAL"
 
-#define CFG_STP_GLOBAL_TABLE_NAME               "STP"
-#define CFG_STP_VLAN_TABLE_NAME                 "STP_VLAN"
-#define CFG_STP_VLAN_PORT_TABLE_NAME            "STP_VLAN_PORT"
-#define CFG_STP_PORT_TABLE_NAME                 "STP_PORT"
+#define CFG_STP_GLOBAL_TABLE_NAME                   "STP"
+#define CFG_STP_VLAN_TABLE_NAME                     "STP_VLAN"
+#define CFG_STP_VLAN_PORT_TABLE_NAME                "STP_VLAN_PORT"
+#define CFG_STP_PORT_TABLE_NAME                     "STP_PORT"
 
 /***** STATE DATABASE *****/
 
