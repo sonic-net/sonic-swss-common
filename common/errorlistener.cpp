@@ -1,5 +1,6 @@
 /*
- * Copyright 2019 Broadcom Inc.
+ * Copyright 2019 Broadcom.  The term Broadcom refers to Broadcom Inc. and/or
+ * its subsidiaries.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -62,8 +63,11 @@ namespace swss {
         json j = json::parse(data);
 
         // Filter the error notifications that the caller is not interested in.
-        if (!(((m_errorFlags & ERR_NOTIFY_POSITIVE_ACK) && (j["rc"] == "SWSS_RC_SUCCESS")) ||
-                    ((m_errorFlags & ERR_NOTIFY_FAIL) && (j["rc"] != "SWSS_RC_SUCCESS"))))
+        if ((j["rc"] == "SWSS_RC_SUCCESS") && !(m_errorFlags & ERR_NOTIFY_POSITIVE_ACK))
+        {
+            return -1;
+        }
+        if ((j["rc"] != "SWSS_RC_SUCCESS") && !(m_errorFlags & ERR_NOTIFY_FAIL))
         {
             return -1;
         }

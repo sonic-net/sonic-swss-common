@@ -1,5 +1,6 @@
 /*
- * Copyright 2019 Broadcom Inc.
+ * Copyright 2019 Broadcom.  The term Broadcom refers to Broadcom Inc. and/or
+ * its subsidiaries.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,6 +39,7 @@ namespace swss {
                 SWSS_RC_IN_USE,
                 SWSS_RC_NOT_IMPLEMENTED,
                 SWSS_RC_FAILURE,
+                SWSS_RC_INVALID_OBJECT_ID,
                 SWSS_RC_UNKNOWN
             };
 
@@ -47,7 +49,6 @@ namespace swss {
             static const SwssStrToRCMap m_swssStrToRC;
             static const SaiToSwssRCMap m_saiToSwssRC;
 
-            static ErrorMap &getInstance();
             static std::string getSwssRCStr(const std::string &saiRCStr);
             static SwssRC getSwssRC(const std::string &swssRCStr);
             static std::string getSaiRCStr(SwssRC rc);

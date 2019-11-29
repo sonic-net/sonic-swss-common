@@ -1,5 +1,6 @@
 /*
- * Copyright 2019 Broadcom Inc.
+ * Copyright 2019 Broadcom.  The term Broadcom refers to Broadcom Inc. and/or
+ * its subsidiaries.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +21,7 @@
 #include "notificationconsumer.h"
 #include "selectable.h"
 #include "table.h"
-#include <dbconnector.h>
+#include "dbconnector.h"
 
 // Error notifications of interest to the error listener
 typedef enum
@@ -39,10 +40,10 @@ namespace swss {
 
             static std::string getErrorChannelName(std::string& appTableName)
             {
-                std::string errorChnl = "ERROR_";
-                errorChnl += appTableName + "_CHANNEL";
+                std::string errorChannel = "ERROR_";
+                errorChannel += appTableName + "_CHANNEL";
 
-                return errorChnl;
+                return errorChannel;
             }
 
             int getFd() { return m_errorNotificationConsumer->getFd(); }

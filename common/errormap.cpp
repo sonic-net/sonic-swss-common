@@ -1,5 +1,6 @@
 /*
- * Copyright 2019 Broadcom Inc.
+ * Copyright 2019 Broadcom.  The term Broadcom refers to Broadcom Inc. and/or
+ * its subsidiaries.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,16 +24,17 @@ namespace swss {
     ErrorMap::~ErrorMap() { }
 
     const ErrorMap::SwssStrToRCMap ErrorMap::m_swssStrToRC = {
-        { std::make_pair("SWSS_RC_SUCCESS",             SWSS_RC_SUCCESS)         },
-        { std::make_pair("SWSS_RC_INVALID_PARAM",       SWSS_RC_INVALID_PARAM)   },
-        { std::make_pair("SWSS_RC_UNAVAIL",             SWSS_RC_UNAVAIL)         },
-        { std::make_pair("SWSS_RC_NOT_FOUND",           SWSS_RC_NOT_FOUND)       },
-        { std::make_pair("SWSS_RC_NO_MEMORY",           SWSS_RC_NO_MEMORY)       },
-        { std::make_pair("SWSS_RC_EXISTS",              SWSS_RC_EXISTS)          },
-        { std::make_pair("SWSS_RC_TABLE_FULL",          SWSS_RC_TABLE_FULL)      },
-        { std::make_pair("SWSS_RC_IN_USE",              SWSS_RC_IN_USE)          },
-        { std::make_pair("SWSS_RC_NOT_IMPLEMENTED",     SWSS_RC_NOT_IMPLEMENTED) },
-        { std::make_pair("SWSS_RC_FAILURE",             SWSS_RC_FAILURE)         }
+        { std::make_pair("SWSS_RC_SUCCESS",             SWSS_RC_SUCCESS)          },
+        { std::make_pair("SWSS_RC_INVALID_PARAM",       SWSS_RC_INVALID_PARAM)    },
+        { std::make_pair("SWSS_RC_UNAVAIL",             SWSS_RC_UNAVAIL)          },
+        { std::make_pair("SWSS_RC_NOT_FOUND",           SWSS_RC_NOT_FOUND)        },
+        { std::make_pair("SWSS_RC_NO_MEMORY",           SWSS_RC_NO_MEMORY)        },
+        { std::make_pair("SWSS_RC_EXISTS",              SWSS_RC_EXISTS)           },
+        { std::make_pair("SWSS_RC_TABLE_FULL",          SWSS_RC_TABLE_FULL)       },
+        { std::make_pair("SWSS_RC_IN_USE",              SWSS_RC_IN_USE)           },
+        { std::make_pair("SWSS_RC_NOT_IMPLEMENTED",     SWSS_RC_NOT_IMPLEMENTED)  },
+        { std::make_pair("SWSS_RC_FAILURE",             SWSS_RC_FAILURE)          },
+        { std::make_pair("SWSS_RC_INVALID_OBJECT_ID",   SWSS_RC_INVALID_OBJECT_ID)}
     };
 
     const ErrorMap::SaiToSwssRCMap ErrorMap::m_saiToSwssRC = {
@@ -45,14 +47,9 @@ namespace swss {
         { "SAI_STATUS_TABLE_FULL",          "SWSS_RC_TABLE_FULL"        },
         { "SAI_STATUS_OBJECT_IN_USE",       "SWSS_RC_IN_USE"            },
         { "SAI_STATUS_NOT_IMPLEMENTED",     "SWSS_RC_NOT_IMPLEMENTED"   },
-        { "SAI_STATUS_FAILURE",             "SWSS_RC_FAILURE"           }
+        { "SAI_STATUS_FAILURE",             "SWSS_RC_FAILURE"           },
+        { "SAI_STATUS_INVALID_OBJECT_ID",   "SWSS_RC_INVALID_OBJECT_ID" }
     };
-
-    ErrorMap &ErrorMap::getInstance()
-    {
-        static ErrorMap m_errorMap;
-        return m_errorMap;
-    }
 
     std::string ErrorMap::getSwssRCStr(const std::string &saiRCStr)
     {
