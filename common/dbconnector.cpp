@@ -53,6 +53,8 @@ void SonicDBConfig::initialize(const string &file)
         {
             throw runtime_error("Sonic database config file syntax error >> " + string(e.what()));
         }
+    } else {
+        throw runtime_error("Sonic database config file doesn't exist at " + string(DEFAULT_SONIC_DB_CONFIG_FILE));
     }
 }
 
@@ -60,35 +62,35 @@ string SonicDBConfig::getDbInst(const string &dbName)
 {
     if (!m_init)
         initialize();
-    return m_db_info[dbName].first;
+    return m_db_info.at(dbName).first;
 }
 
 int SonicDBConfig::getDbId(const string &dbName)
 {
     if (!m_init)
         initialize();
-    return m_db_info[dbName].second;
+    return m_db_info.at(dbName).second;
 }
 
 string SonicDBConfig::getDbSock(const string &dbName)
 {
     if (!m_init)
         initialize();
-    return m_inst_info[getDbInst(dbName)].first;
+    return m_inst_info.at(getDbInst(dbName)).first;
 }
 
 string SonicDBConfig::getDbHostname(const string &dbName)
 {
     if (!m_init)
         initialize();
-    return m_inst_info[getDbInst(dbName)].second.first;
+    return m_inst_info.at(getDbInst(dbName)).second.first;
 }
 
 int SonicDBConfig::getDbPort(const string &dbName)
 {
     if (!m_init)
         initialize();
-    return m_inst_info[getDbInst(dbName)].second.second;
+    return m_inst_info.at(getDbInst(dbName)).second.second;
 }
 
 constexpr const char *SonicDBConfig::DEFAULT_SONIC_DB_CONFIG_FILE;
