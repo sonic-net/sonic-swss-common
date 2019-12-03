@@ -53,7 +53,9 @@ void SonicDBConfig::initialize(const string &file)
         {
             throw runtime_error("Sonic database config file syntax error >> " + string(e.what()));
         }
-    } else {
+    }
+    else
+    {
         throw runtime_error("Sonic database config file doesn't exist at " + file);
     }
 }
