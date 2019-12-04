@@ -13,18 +13,18 @@ using json = nlohmann::json;
 TEST(DBConnector, multi_db_test)
 {
     string file = "./tests/redis_multi_db_ut_config/database_config.json";
-    string nonexist_file = "./tests/redis_multi_db_ut_config/database_config_noexist.json";
+    string nonexisting_file = "./tests/redis_multi_db_ut_config/database_config_nonexisting.json";
 
     // by default , init should be false
     cout<<"Default : isInit = "<<SonicDBConfig::isInit()<<endl;
     EXPECT_FALSE(SonicDBConfig::isInit());
 
 
-    // load nonesist config file, should throw exception with file NO exist
+    // load nonexisting file, should throw exception with NO file existing
     try
     {
-        cout<<"INIT: loading nonexist db config file"<<endl;
-        SonicDBConfig::initialize(nonexist_file);
+        cout<<"INIT: loading nonexisting db config file"<<endl;
+        SonicDBConfig::initialize(nonexisting_file);
     }
     catch (exception &e)
     {
