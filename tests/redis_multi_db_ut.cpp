@@ -34,7 +34,7 @@ TEST(DBConnector, multi_db_test)
 
     // load local config file, init should be true
     SonicDBConfig::initialize(file);
-    cout<<"INIT : load local db config file, isInit = "<<SonicDBConfig::isInit()<<endl;
+    cout<<"INIT: load local db config file, isInit = "<<SonicDBConfig::isInit()<<endl;
     EXPECT_TRUE(SonicDBConfig::isInit());
 
     // load local config file again, should throw exception with init already done
