@@ -6,6 +6,7 @@
 #include <system_error>
 #include <fstream>
 #include "json.hpp"
+#include "logger.h"
 
 #include "common/dbconnector.h"
 #include "common/redisreply.h"
@@ -17,8 +18,14 @@ namespace swss {
 
 void SonicDBConfig::initialize(const string &file)
 {
+
+    SWSS_LOG_ENTER();
+
     if (m_init)
+    {
+        SWSS_LOG_ERROR("SonicDBConfig already initialized");
         throw runtime_error("SonicDBConfig already initialized");
+    }
 
     ifstream i(file);
     if (i.good())
@@ -47,12 +54,19 @@ void SonicDBConfig::initialize(const string &file)
         }
         catch (domain_error& e)
         {
+            SWSS_LOG_ERROR("key doesn't exist in json object, NULL value has no iterator >> %s\n", e.what());
             throw runtime_error("key doesn't exist in json object, NULL value has no iterator >> " + string(e.what()));
         }
         catch (exception &e)
         {
+            SWSS_LOG_ERROR("Sonic database config file syntax error >> %s\n", e.what());
             throw runtime_error("Sonic database config file syntax error >> " + string(e.what()));
         }
+    }
+    else
+    {
+        SWSS_LOG_ERROR("Sonic database config file doesn't exist at %s\n", file.c_str());
+        throw runtime_error("Sonic database config file doesn't exist at " + file);
     }
 }
 
@@ -60,35 +74,35 @@ string SonicDBConfig::getDbInst(const string &dbName)
 {
     if (!m_init)
         initialize();
-    return m_db_info[dbName].first;
+    return m_db_info.at(dbName).first;
 }
 
 int SonicDBConfig::getDbId(const string &dbName)
 {
     if (!m_init)
         initialize();
-    return m_db_info[dbName].second;
+    return m_db_info.at(dbName).second;
 }
 
 string SonicDBConfig::getDbSock(const string &dbName)
 {
     if (!m_init)
         initialize();
-    return m_inst_info[getDbInst(dbName)].first;
+    return m_inst_info.at(getDbInst(dbName)).first;
 }
 
 string SonicDBConfig::getDbHostname(const string &dbName)
 {
     if (!m_init)
         initialize();
-    return m_inst_info[getDbInst(dbName)].second.first;
+    return m_inst_info.at(getDbInst(dbName)).second.first;
 }
 
 int SonicDBConfig::getDbPort(const string &dbName)
 {
     if (!m_init)
         initialize();
-    return m_inst_info[getDbInst(dbName)].second.second;
+    return m_inst_info.at(getDbInst(dbName)).second.second;
 }
 
 constexpr const char *SonicDBConfig::DEFAULT_SONIC_DB_CONFIG_FILE;
