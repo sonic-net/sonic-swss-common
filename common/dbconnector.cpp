@@ -6,6 +6,7 @@
 #include <system_error>
 #include <fstream>
 #include "json.hpp"
+#include "logger.h"
 
 #include "common/dbconnector.h"
 #include "common/redisreply.h"
@@ -17,8 +18,14 @@ namespace swss {
 
 void SonicDBConfig::initialize(const string &file)
 {
+
+    SWSS_LOG_ENTER();
+
     if (m_init)
+    {
+        SWSS_LOG_ERROR("SonicDBConfig already initialized");
         throw runtime_error("SonicDBConfig already initialized");
+    }
 
     ifstream i(file);
     if (i.good())
@@ -47,15 +54,18 @@ void SonicDBConfig::initialize(const string &file)
         }
         catch (domain_error& e)
         {
+            SWSS_LOG_ERROR("key doesn't exist in json object, NULL value has no iterator >> %s\n", e.what());
             throw runtime_error("key doesn't exist in json object, NULL value has no iterator >> " + string(e.what()));
         }
         catch (exception &e)
         {
+            SWSS_LOG_ERROR("Sonic database config file syntax error >> %s\n", e.what());
             throw runtime_error("Sonic database config file syntax error >> " + string(e.what()));
         }
     }
     else
     {
+        SWSS_LOG_ERROR("Sonic database config file doesn't exist at %s\n", file.c_str());
         throw runtime_error("Sonic database config file doesn't exist at " + file);
     }
 }

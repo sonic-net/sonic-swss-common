@@ -13,13 +13,56 @@ using json = nlohmann::json;
 TEST(DBConnector, multi_db_test)
 {
     string file = "./tests/redis_multi_db_ut_config/database_config.json";
+    string nonexist_file = "./tests/redis_multi_db_ut_config/database_config_noexist.json";
+
     // by default , init should be false
     cout<<"Default : isInit = "<<SonicDBConfig::isInit()<<endl;
-    EXPECT_EQ(SonicDBConfig::isInit(), false);
+    EXPECT_FALSE(SonicDBConfig::isInit());
+
+
+    // load nonesist config file, should throw exception with file NO exist
+    try
+    {
+        cout<<"INIT: loading nonexist db config file"<<endl;
+        SonicDBConfig::initialize(nonexist_file);
+    }
+    catch (exception &e)
+    {
+        EXPECT_TRUE(strstr(e.what(), "Sonic database config file doesn't exist"));
+    }
+    EXPECT_FALSE(SonicDBConfig::isInit());
+
     // load local config file, init should be true
     SonicDBConfig::initialize(file);
     cout<<"INIT : load local db config file, isInit = "<<SonicDBConfig::isInit()<<endl;
-    EXPECT_EQ(SonicDBConfig::isInit(), true);
+    EXPECT_TRUE(SonicDBConfig::isInit());
+
+    // load local config file again, should throw exception with init already done
+    try
+    {
+        cout<<"INIT: loading local config file again"<<endl;
+        SonicDBConfig::initialize(file);
+    }
+    catch (exception &e)
+    {
+        EXPECT_TRUE(strstr(e.what(), "SonicDBConfig already initialized"));
+    }
+
+    //Invalid DB name input
+    cout<<"GET: invalid dbname input for getDbInst()"<<endl;
+    EXPECT_THROW(SonicDBConfig::getDbInst("INVALID_DBNAME"), out_of_range);
+
+    cout<<"GET: invalid dbname input for getDbId()"<<endl;
+    EXPECT_THROW(SonicDBConfig::getDbId("INVALID_DBNAME"), out_of_range);
+
+    cout<<"GET: invalid dbname input for getDbSock()"<<endl;
+    EXPECT_THROW(SonicDBConfig::getDbSock("INVALID_DBNAME"), out_of_range);
+
+    cout<<"GET: invalid dbname input for getDbHostname()"<<endl;
+    EXPECT_THROW(SonicDBConfig::getDbHostname("INVALID_DBNAME"), out_of_range);
+
+    cout<<"GET: invalid dbname input for getDbPort()"<<endl;
+    EXPECT_THROW(SonicDBConfig::getDbPort("INVALID_DBNAME"), out_of_range);
 
     // parse config file
     ifstream i(file);
