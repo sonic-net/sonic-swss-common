@@ -7,7 +7,8 @@ EXTRA_DIST = \
     consumer_table_pops.lua \
     producer_state_table_apply_view.lua \
     table_dump.lua \
-    fdb_flush.lua
+    fdb_flush.lua \
+    database_config.json
 
 swssdir = $(datadir)/swss
 
