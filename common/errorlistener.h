@@ -24,7 +24,7 @@
 #include "dbconnector.h"
 
 // Error notifications of interest to the error listener
-typedef enum
+typedef enum _error_notify_flags_t
 {
     ERR_NOTIFY_FAIL = 1,
     ERR_NOTIFY_POSITIVE_ACK
@@ -36,16 +36,7 @@ namespace swss {
     {
         public:
             ErrorListener(std::string appTableName, int errFlags);
-            ~ErrorListener();
-
-            static std::string getErrorChannelName(std::string& appTableName)
-            {
-                std::string errorChannel = "ERROR_";
-                errorChannel += appTableName + "_CHANNEL";
-
-                return errorChannel;
-            }
-
+            std::string getErrorChannelName(std::string& appTableName);
             int getFd() { return m_errorNotificationConsumer->getFd(); }
             uint64_t readData() { return m_errorNotificationConsumer->readData(); }
             bool hasData() { return m_errorNotificationConsumer->hasData(); }
@@ -55,8 +46,8 @@ namespace swss {
             int getError(std::string &key, std::string &opCode, std::vector<swss::FieldValueTuple> &attrs);
 
         private:
-            swss::NotificationConsumer  *m_errorNotificationConsumer;
-            DBConnector                 *m_errorNotificationsDb;
+            std::unique_ptr<swss::NotificationConsumer> m_errorNotificationConsumer;
+            std::unique_ptr<swss::DBConnector> m_errorNotificationsDb;
             int                          m_errorFlags;
             std::string                  m_errorChannelName;
     };

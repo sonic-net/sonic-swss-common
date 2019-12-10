@@ -21,8 +21,6 @@
 
 namespace swss {
 
-    ErrorMap::~ErrorMap() { }
-
     const ErrorMap::SwssStrToRCMap ErrorMap::m_swssStrToRC = {
         { std::make_pair("SWSS_RC_SUCCESS",             SWSS_RC_SUCCESS)          },
         { std::make_pair("SWSS_RC_INVALID_PARAM",       SWSS_RC_INVALID_PARAM)    },
@@ -51,6 +49,16 @@ namespace swss {
         { "SAI_STATUS_INVALID_OBJECT_ID",   "SWSS_RC_INVALID_OBJECT_ID" }
     };
 
+    /**
+     * Function Description:
+     *    @brief Get SWSS return code from SAI return code
+     *
+     * Arguments:
+     *    @param[in] saiRCStr    - SAI return code
+     *
+     * Return Values:
+     *    @return string,  SWSS return code
+     */
     std::string ErrorMap::getSwssRCStr(const std::string &saiRCStr)
     {
         std::string swssRCStr;
@@ -67,6 +75,16 @@ namespace swss {
         return swssRCStr;
     }
 
+    /**
+     * Function Description:
+     *    @brief Get SWSS return code from SWSS return code string
+     *
+     * Arguments:
+     *    @param[in] swssRCStr    - SWSS return code string
+     *
+     * Return Values:
+     *    @return SwssRC,  SWSS return code
+     */
     ErrorMap::SwssRC ErrorMap::getSwssRC(const std::string &swssRCStr)
     {
         for (auto &elem : m_swssStrToRC)
@@ -83,6 +101,16 @@ namespace swss {
         return SWSS_RC_UNKNOWN;
     }
 
+    /**
+     * Function Description:
+     *    @brief Get SWSS return code string from SWSS return code
+     *
+     * Arguments:
+     *    @param[in] rc    - SWSS return code
+     *
+     * Return Values:
+     *    @return string,  SWSS return code string
+     */
     std::string ErrorMap::getSaiRCStr(SwssRC rc)
     {
         for (auto &elem : m_swssStrToRC)

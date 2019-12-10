@@ -52,10 +52,6 @@ namespace swss {
             static std::string getSwssRCStr(const std::string &saiRCStr);
             static SwssRC getSwssRC(const std::string &swssRCStr);
             static std::string getSaiRCStr(SwssRC rc);
-
-        private:
-            ErrorMap() = default;
-            ~ErrorMap();
     };
 
 }
