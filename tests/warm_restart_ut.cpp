@@ -13,11 +13,11 @@ static const string testDockerName = "TestDocker";
 
 TEST(WarmRestart, checkWarmStart_and_State)
 {
-    DBConnector stateDb(STATE_DB, "localhost", 6379, 0);
+    DBConnector stateDb("STATE_DB", 0, true);
     Table stateWarmRestartTable(&stateDb, STATE_WARM_RESTART_TABLE_NAME);
     Table stateWarmRestartEnableTable(&stateDb, STATE_WARM_RESTART_ENABLE_TABLE_NAME);
 
-    DBConnector configDb(CONFIG_DB, "localhost", 6379, 0);
+    DBConnector configDb("CONFIG_DB", 0, true);
     Table cfgWarmRestartTable(&configDb, CFG_WARM_RESTART_TABLE_NAME);
 
     //Clean up warm restart state for testAppName and warm restart config for testDockerName
@@ -26,7 +26,7 @@ TEST(WarmRestart, checkWarmStart_and_State)
 
 
     //Initialize WarmStart class for TestApp
-    WarmStart::initialize(testAppName, testDockerName, 0, "localhost", 6379);
+    WarmStart::initialize(testAppName, testDockerName, 0, true);
 
     // Application is supposed to set the warm start state explicitly based on
     // its progress of state restore.
@@ -140,11 +140,11 @@ TEST(WarmRestart, checkWarmStart_and_State)
 
 TEST(WarmRestart, getWarmStartTimer)
 {
-    DBConnector configDb(CONFIG_DB, "localhost", 6379, 0);
+    DBConnector configDb("CONFIG_DB", 0, true);
     Table cfgWarmRestartTable(&configDb, CFG_WARM_RESTART_TABLE_NAME);
 
     //Initialize WarmStart class for TestApp
-    WarmStart::initialize(testAppName, testDockerName, 0, "localhost", 6379);
+    WarmStart::initialize(testAppName, testDockerName, 0, true);
 
     uint32_t timer;
     // By default, no default warm start timer exists in configDB for any application
@@ -162,14 +162,14 @@ TEST(WarmRestart, getWarmStartTimer)
 
 TEST(WarmRestart, set_get_DataCheckState)
 {
-    DBConnector stateDb(STATE_DB, "localhost", 6379, 0);
+    DBConnector stateDb("STATE_DB", 0, true);
     Table stateWarmRestartTable(&stateDb, STATE_WARM_RESTART_TABLE_NAME);
 
     //Clean up warm restart state for testAppName
     stateWarmRestartTable.del(testAppName);
 
     //Initialize WarmStart class for TestApp
-    WarmStart::initialize(testAppName, testDockerName, 0, "localhost", 6379);
+    WarmStart::initialize(testAppName, testDockerName, 0, true);
 
     WarmStart::DataCheckState state;
     // basic state set check for shutdown stage

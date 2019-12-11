@@ -15,7 +15,6 @@
 using namespace std;
 using namespace swss;
 
-#define TEST_DB             (15) // Default Redis config supports 16 databases, max DB ID is 15
 #define NUMBER_OF_THREADS   (64) // Spawning more than 256 threads causes libc++ to except
 #define NUMBER_OF_OPS     (1000)
 #define MAX_FIELDS_DIV      (30) // Testing up to 30 fields objects
@@ -73,7 +72,7 @@ static void validateFields(const string& key, const vector<FieldValueTuple>& f)
 static void producerWorker(int index)
 {
     string tableName = "UT_REDIS_THREAD_" + to_string(index);
-    DBConnector db(TEST_DB, "localhost", 6379, 0);
+    DBConnector db("TEST_DB", 0, true);
     RedisPipeline pipeline(&db);
     ProducerTable p(&pipeline, tableName, true);
 
@@ -102,7 +101,7 @@ static void producerWorker(int index)
 static void consumerWorker(int index)
 {
     string tableName = "UT_REDIS_THREAD_" + to_string(index);
-    DBConnector db(TEST_DB, "localhost", 6379, 0);
+    DBConnector db("TEST_DB", 0, true);
     ConsumerTable c(&db, tableName);
     Select cs;
     Selectable *selectcs;
@@ -137,7 +136,7 @@ static void consumerWorker(int index)
 
 static void clearDB()
 {
-    DBConnector db(TEST_DB, "localhost", 6379, 0);
+    DBConnector db("TEST_DB", 0, true);
     RedisReply r(&db, "FLUSHALL", REDIS_REPLY_STATUS);
     r.checkStatusOK();
 }
@@ -171,7 +170,7 @@ TEST(DBConnector, piped_test)
 
 TEST(DBConnector, piped_multitable)
 {
-    DBConnector db(TEST_DB, "localhost", 6379, 0);
+    DBConnector db("TEST_DB", 0, true);
     ConsumerTable *consumers[NUMBER_OF_THREADS];
     thread *producerThreads[NUMBER_OF_THREADS];
     KeyOpFieldsValuesTuple kco;
@@ -235,7 +234,7 @@ static void notificationProducer()
 {
     sleep(1);
 
-    DBConnector db(TEST_DB, "localhost", 6379, 0);
+    DBConnector db("TEST_DB", 0, true);
     NotificationProducer np(&db, "UT_REDIS_CHANNEL");
 
     vector<FieldValueTuple> values;
@@ -248,7 +247,7 @@ static void notificationProducer()
 
 TEST(DBConnector, piped_notifications)
 {
-    DBConnector db(TEST_DB, "localhost", 6379, 0);
+    DBConnector db("TEST_DB", 0, true);
     NotificationConsumer nc(&db, "UT_REDIS_CHANNEL");
     Select s;
     s.addSelectable(&nc);
@@ -322,7 +321,7 @@ TEST(DBConnector, piped_selectableevent)
 TEST(Table, piped_test)
 {
     string tableName = "TABLE_UT_TEST";
-    DBConnector db(TEST_DB, "localhost", 6379, 0);
+    DBConnector db("TEST_DB", 0, true);
     RedisPipeline pipeline(&db);
     Table t(&pipeline, tableName, true);
 
@@ -415,7 +414,7 @@ TEST(ProducerConsumer, piped_Prefix)
 {
     string tableName = "tableName";
 
-    DBConnector db(TEST_DB, "localhost", 6379, 0);
+    DBConnector db("TEST_DB", 0, true);
     RedisPipeline pipeline(&db);
     ProducerTable p(&pipeline, tableName, true);
 

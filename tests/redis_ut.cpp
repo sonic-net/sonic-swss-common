@@ -17,7 +17,6 @@
 using namespace std;
 using namespace swss;
 
-#define TEST_DB             (15) // Default Redis config supports 16 databases, max DB ID is 15
 #define NUMBER_OF_THREADS   (64) // Spawning more than 256 threads causes libc++ to except
 #define NUMBER_OF_OPS     (1000)
 #define MAX_FIELDS_DIV      (30) // Testing up to 30 fields objects
@@ -75,7 +74,7 @@ void validateFields(const string& key, const vector<FieldValueTuple>& f)
 void producerWorker(int index)
 {
     string tableName = "UT_REDIS_THREAD_" + to_string(index);
-    DBConnector db(TEST_DB, "localhost", 6379, 0);
+    DBConnector db("TEST_DB", 0, true);
     ProducerTable p(&db, tableName);
 
     for (int i = 0; i < NUMBER_OF_OPS; i++)
@@ -103,7 +102,7 @@ void producerWorker(int index)
 void consumerWorker(int index)
 {
     string tableName = "UT_REDIS_THREAD_" + to_string(index);
-    DBConnector db(TEST_DB, "localhost", 6379, 0);
+    DBConnector db("TEST_DB", 0, true);
     ConsumerTable c(&db, tableName);
     Select cs;
     Selectable *selectcs;
@@ -138,14 +137,14 @@ void consumerWorker(int index)
 
 void clearDB()
 {
-    DBConnector db(TEST_DB, "localhost", 6379, 0);
+    DBConnector db("TEST_DB", 0, true);
     RedisReply r(&db, "FLUSHALL", REDIS_REPLY_STATUS);
     r.checkStatusOK();
 }
 
 void TableBasicTest(string tableName)
 {
-    DBConnector db(TEST_DB, "localhost", 6379, 0);
+    DBConnector db("TEST_DB", 0, true);
 
     Table t(&db, tableName);
 
@@ -272,7 +271,7 @@ void TableBasicTest(string tableName)
 
 TEST(DBConnector, RedisClient)
 {
-    DBConnector db(TEST_DB, "localhost", 6379, 0);
+    DBConnector db("TEST_DB", 0, true);
 
     RedisClient redic(&db);
 
@@ -441,7 +440,7 @@ TEST(DBConnector, test)
 
 TEST(DBConnector, multitable)
 {
-    DBConnector db(TEST_DB, "localhost", 6379, 0);
+    DBConnector db("TEST_DB", 0, true);
     ConsumerTable *consumers[NUMBER_OF_THREADS];
     thread *producerThreads[NUMBER_OF_THREADS];
     KeyOpFieldsValuesTuple kco;
@@ -505,7 +504,7 @@ void notificationProducer()
 {
     sleep(1);
 
-    DBConnector db(TEST_DB, "localhost", 6379, 0);
+    DBConnector db("TEST_DB", 0, true);
     NotificationProducer np(&db, "UT_REDIS_CHANNEL");
 
     vector<FieldValueTuple> values;
@@ -518,7 +517,7 @@ void notificationProducer()
 
 TEST(DBConnector, notifications)
 {
-    DBConnector db(TEST_DB, "localhost", 6379, 0);
+    DBConnector db("TEST_DB", 0, true);
     NotificationConsumer nc(&db, "UT_REDIS_CHANNEL");
     Select s;
     s.addSelectable(&nc);
@@ -646,7 +645,7 @@ TEST(ProducerConsumer, Prefix)
 {
     std::string tableName = "tableName";
 
-    DBConnector db(TEST_DB, "localhost", 6379, 0);
+    DBConnector db("TEST_DB", 0, true);
     ProducerTable p(&db, tableName);
 
     std::vector<FieldValueTuple> values;
@@ -675,7 +674,7 @@ TEST(ProducerConsumer, Pop)
 {
     std::string tableName = "tableName";
 
-    DBConnector db(TEST_DB, "localhost", 6379, 0);
+    DBConnector db("TEST_DB", 0, true);
     ProducerTable p(&db, tableName);
 
     std::vector<FieldValueTuple> values;
@@ -703,7 +702,7 @@ TEST(ProducerConsumer, Pop2)
 {
     std::string tableName = "tableName";
 
-    DBConnector db(TEST_DB, "localhost", 6379, 0);
+    DBConnector db("TEST_DB", 0, true);
     ProducerTable p(&db, tableName);
 
     std::vector<FieldValueTuple> values;
@@ -742,7 +741,7 @@ TEST(ProducerConsumer, PopEmpty)
 {
     std::string tableName = "tableName";
 
-    DBConnector db(TEST_DB, "localhost", 6379, 0);
+    DBConnector db("TEST_DB", 0, true);
 
     ConsumerTable c(&db, tableName);
 
@@ -762,7 +761,7 @@ TEST(ProducerConsumer, ConsumerSelectWithInitData)
     clearDB();
 
     string tableName = "tableName";
-    DBConnector db(TEST_DB, "localhost", 6379, 0);
+    DBConnector db("TEST_DB", 0, true);
     ProducerTable p(&db, tableName);
 
     for (int i = 0; i < NUMBER_OF_OPS; i++)

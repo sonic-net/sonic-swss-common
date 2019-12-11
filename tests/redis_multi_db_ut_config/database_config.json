@@ -29,39 +29,53 @@
     "DATABASES" : {
         "APPL_DB" : {
             "id" : 0,
+            "separator": ":",
             "instance" : "redis"
         },
         "ASIC_DB" : {
             "id" : 1,
-            "instance" : "redis1"
+            "separator": ":",
+            "instance" : "redis"
         },
         "COUNTERS_DB" : {
             "id" : 2,
-            "instance" : "redis1"
+            "separator": ":",
+            "instance" : "redis"
         },
         "LOGLEVEL_DB" : {
             "id" : 3,
-            "instance" : "redis2"
+            "separator": ":",
+            "instance" : "redis"
         },
         "CONFIG_DB" : {
             "id" : 4,
-            "instance" : "redis2"
+            "separator": "|",
+            "instance" : "redis"
         },
         "PFC_WD_DB" : {
             "id" : 5,
-            "instance" : "redis3"
+            "separator": ":",
+            "instance" : "redis"
         },
         "FLEX_COUNTER_DB" : {
             "id" : 5,
-            "instance" : "redis3"
+            "separator": ":",
+            "instance" : "redis"
         },
         "STATE_DB" : {
             "id" : 6,
-            "instance" : "redis4"
+            "separator": "|",
+            "instance" : "redis"
         },
         "SNMP_OVERLAY_DB" : {
             "id" : 7,
-            "instance" : "redis4"
+            "separator": "|",
+            "instance" : "redis"
+        },
+        "TEST_DB" : {
+            "id" : 15,
+            "separator": ":",
+            "instance" : "redis"
         }
     },
     "VERSION" : "1.0"
