@@ -26,7 +26,8 @@
 // Error notifications of interest to the error listener
 typedef enum _error_notify_flags_t
 {
-    ERR_NOTIFY_FAIL = 1,
+    ERR_NOTIFY_NONE,
+    ERR_NOTIFY_FAIL,
     ERR_NOTIFY_POSITIVE_ACK
 } error_notify_flags_t;
 
