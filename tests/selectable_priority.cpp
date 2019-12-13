@@ -14,7 +14,6 @@ using namespace std;
 using namespace swss;
 
 
-#define TEST_VIEW            (7)
 #define DEFAULT_POP_BATCH_SIZE (10)
 
 
@@ -22,7 +21,7 @@ TEST(Priority, default_pri_values)
 {
     std::string tableName = "tableName";
 
-    DBConnector db(TEST_VIEW, "localhost", 6379, 0);
+    DBConnector db("TEST_DB", 0, true);
 
     timespec interval = { .tv_sec = 1, .tv_nsec = 0 };
 
@@ -49,7 +48,7 @@ TEST(Priority, set_pri_values)
 {
     std::string tableName = "tableName";
 
-    DBConnector db(TEST_VIEW, "localhost", 6379, 0);
+    DBConnector db("TEST_DB", 0, true);
 
     timespec interval = { .tv_sec = 1, .tv_nsec = 0 };
 

@@ -12,14 +12,11 @@
 using namespace std;
 using namespace swss;
 
-#define TEST_DB             (15) // Default Redis config supports 16 databases, max DB ID is 15
 #define NUMBER_OF_THREADS   (64) // Spawning more than 256 threads causes libc++ to except
 #define NUMBER_OF_OPS     (1000)
 #define MAX_FIELDS_DIV      (30) // Testing up to 30 fields objects
 #define PRINT_SKIP          (10) // Print + for Producer and - for Subscriber for every 100 ops
 
-static const string dbhost = "localhost";
-static const int dbport = 6379;
 static const string testTableName = "UT_REDIS_TABLE";
 static const string testTableName2 = "UT_REDIS_TABLE2";
 
@@ -88,14 +85,14 @@ static inline void validateFields(const string& key, const vector<FieldValueTupl
 
 static inline void clearDB()
 {
-    DBConnector db(TEST_DB, dbhost, dbport, 0);
+    DBConnector db("TEST_DB", 0, true);
     RedisReply r(&db, "FLUSHALL", REDIS_REPLY_STATUS);
     r.checkStatusOK();
 }
 
 static void producerWorker(int index)
 {
-    DBConnector db(TEST_DB, dbhost, dbport, 0);
+    DBConnector db("TEST_DB", 0, true);
     Table p(&db, testTableName);
 
     for (int i = 0; i < NUMBER_OF_OPS; i++)
@@ -125,7 +122,7 @@ static void producerWorker(int index)
 
 static void subscriberWorker(int index, int *status)
 {
-    DBConnector db(TEST_DB, dbhost, dbport, 0);
+    DBConnector db("TEST_DB", 0, true);
     SubscriberStateTable c(&db, testTableName);
     Select cs;
     Selectable *selectcs;
@@ -178,7 +175,7 @@ TEST(SubscriberStateTable, set)
 
     /* Prepare producer */
     int index = 0;
-    DBConnector db(TEST_DB, dbhost, dbport, 0);
+    DBConnector db("TEST_DB", 0, true);
     Table p(&db, testTableName);
     string key = "TheKey";
     int maxNumOfFields = 2;
@@ -231,7 +228,7 @@ TEST(SubscriberStateTable, pops_intial)
 
     /* Prepare producer */
     int index = 0;
-    DBConnector db(TEST_DB, dbhost, dbport, 0);
+    DBConnector db("TEST_DB", 0, true);
     Table p(&db, testTableName);
     string key = "TheKey";
     int maxNumOfFields = 2;
@@ -287,7 +284,7 @@ TEST(SubscriberStateTable, del)
 
     /* Prepare producer */
     int index = 0;
-    DBConnector db(TEST_DB, dbhost, dbport, 0);
+    DBConnector db("TEST_DB", 0, true);
     Table p(&db, testTableName);
     string key = "TheKey";
     int maxNumOfFields = 2;
@@ -338,7 +335,7 @@ TEST(SubscriberStateTable, table_state)
 
     /* Prepare producer */
     int index = 0;
-    DBConnector db(TEST_DB, dbhost, dbport, 0);
+    DBConnector db("TEST_DB", 0, true);
     Table p(&db, testTableName);
 
     for (int i = 0; i < NUMBER_OF_OPS; i++)
@@ -440,7 +437,7 @@ TEST(SubscriberStateTable, cachedData)
     int index = 0;
     int maxNumOfFields = 2;
 
-    DBConnector db(TEST_DB, dbhost, dbport, 0);
+    DBConnector db("TEST_DB", 0, true);
     Table p(&db, testTableName);
     string key1 = "TheKey1";
     /* Set operation */

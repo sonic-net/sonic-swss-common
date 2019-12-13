@@ -9,39 +9,15 @@ using namespace std;
 using namespace swss;
 using json = nlohmann::json;
 
+extern string existing_file;
 
 TEST(DBConnector, multi_db_test)
 {
-    string file = "./tests/redis_multi_db_ut_config/database_config.json";
-    string nonexisting_file = "./tests/redis_multi_db_ut_config/database_config_nonexisting.json";
-
-    // by default , init should be false
-    cout<<"Default : isInit = "<<SonicDBConfig::isInit()<<endl;
-    EXPECT_FALSE(SonicDBConfig::isInit());
-
-
-    // load nonexisting file, should throw exception with NO file existing
-    try
-    {
-        cout<<"INIT: loading nonexisting db config file"<<endl;
-        SonicDBConfig::initialize(nonexisting_file);
-    }
-    catch (exception &e)
-    {
-        EXPECT_TRUE(strstr(e.what(), "Sonic database config file doesn't exist"));
-    }
-    EXPECT_FALSE(SonicDBConfig::isInit());
-
-    // load local config file, init should be true
-    SonicDBConfig::initialize(file);
-    cout<<"INIT: load local db config file, isInit = "<<SonicDBConfig::isInit()<<endl;
-    EXPECT_TRUE(SonicDBConfig::isInit());
-
     // load local config file again, should throw exception with init already done
     try
     {
         cout<<"INIT: loading local config file again"<<endl;
-        SonicDBConfig::initialize(file);
+        SonicDBConfig::initialize(existing_file);
     }
     catch (exception &e)
     {
@@ -65,7 +41,7 @@ TEST(DBConnector, multi_db_test)
     EXPECT_THROW(SonicDBConfig::getDbPort("INVALID_DBNAME"), out_of_range);
 
     // parse config file
-    ifstream i(file);
+    ifstream i(existing_file);
     if (i.good())
     {
         json j;

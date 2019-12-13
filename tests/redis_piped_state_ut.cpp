@@ -16,7 +16,7 @@
 using namespace std;
 using namespace swss;
 
-#define TEST_DB           APPL_DB // Need to test against a DB which uses a colon table name separator due to hardcoding in consumer_table_pops.lua
+#define TEST_DB           "APPL_DB" // Need to test against a DB which uses a colon table name separator due to hardcoding in consumer_table_pops.lua
 #define NUMBER_OF_THREADS    (64) // Spawning more than 256 threads causes libc++ to except
 #define NUMBER_OF_OPS      (1000)
 #define MAX_FIELDS_DIV       (30) // Testing up to 30 fields objects
@@ -76,7 +76,7 @@ static inline void validateFields(const string& key, const vector<FieldValueTupl
 static void producerWorker(int index)
 {
     string tableName = "UT_REDIS_THREAD_" + to_string(index);
-    DBConnector db(TEST_DB, "localhost", 6379, 0);
+    DBConnector db(TEST_DB, 0, true);
     RedisPipeline pipeline(&db);
     ProducerStateTable p(&pipeline, tableName, true);
 
@@ -104,7 +104,7 @@ static void producerWorker(int index)
 static void consumerWorker(int index)
 {
     string tableName = "UT_REDIS_THREAD_" + to_string(index);
-    DBConnector db(TEST_DB, "localhost", 6379, 0);
+    DBConnector db(TEST_DB, 0, true);
     ConsumerStateTable c(&db, tableName);
     Select cs;
     Selectable *selectcs;
@@ -139,7 +139,7 @@ static void consumerWorker(int index)
 
 static inline void clearDB()
 {
-    DBConnector db(TEST_DB, "localhost", 6379, 0);
+    DBConnector db(TEST_DB, 0, true);
     RedisReply r(&db, "FLUSHALL", REDIS_REPLY_STATUS);
     r.checkStatusOK();
 }
@@ -151,7 +151,7 @@ TEST(ConsumerStateTable, async_double_set)
     /* Prepare producer */
     int index = 0;
     string tableName = "UT_REDIS_THREAD_" + to_string(index);
-    DBConnector db(TEST_DB, "localhost", 6379, 0);
+    DBConnector db(TEST_DB, 0, true);
     RedisPipeline pipeline(&db);
     ProducerStateTable p(&pipeline, tableName, true);
     string key = "TheKey";
@@ -228,7 +228,7 @@ TEST(ConsumerStateTable, async_set_del)
     /* Prepare producer */
     int index = 0;
     string tableName = "UT_REDIS_THREAD_" + to_string(index);
-    DBConnector db(TEST_DB, "localhost", 6379, 0);
+    DBConnector db(TEST_DB, 0, true);
     RedisPipeline pipeline(&db);
     ProducerStateTable p(&pipeline, tableName, true);
     string key = "TheKey";
@@ -282,7 +282,7 @@ TEST(ConsumerStateTable, async_set_del_set)
     /* Prepare producer */
     int index = 0;
     string tableName = "UT_REDIS_THREAD_" + to_string(index);
-    DBConnector db(TEST_DB, "localhost", 6379, 0);
+    DBConnector db(TEST_DB, 0, true);
     RedisPipeline pipeline(&db);
     ProducerStateTable p(&pipeline, tableName, true);
     string key = "TheKey";
@@ -357,7 +357,7 @@ TEST(ConsumerStateTable, async_singlethread)
 
     int index = 0;
     string tableName = "UT_REDIS_THREAD_" + to_string(index);
-    DBConnector db(TEST_DB, "localhost", 6379, 0);
+    DBConnector db(TEST_DB, 0, true);
     RedisPipeline pipeline(&db);
     ProducerStateTable p(&pipeline, tableName, true);
 
@@ -521,7 +521,7 @@ TEST(ConsumerStateTable, async_test)
 
 TEST(ConsumerStateTable, async_multitable)
 {
-    DBConnector db(TEST_DB, "localhost", 6379, 0);
+    DBConnector db(TEST_DB, 0, true);
     ConsumerStateTable *consumers[NUMBER_OF_THREADS];
     thread *producerThreads[NUMBER_OF_THREADS];
     KeyOpFieldsValuesTuple kco;
