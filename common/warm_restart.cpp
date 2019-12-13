@@ -32,8 +32,7 @@ WarmStart &WarmStart::getInstance(void)
 void WarmStart::initialize(const std::string &app_name,
                            const std::string &docker_name,
                            unsigned int db_timeout,
-                           const std::string &db_hostname,
-                           int db_port)
+                           bool isTcpConn)
 {
     auto& warmStart = getInstance();
 
@@ -43,20 +42,10 @@ void WarmStart::initialize(const std::string &app_name,
     }
 
     /* Use unix socket for db connection by default */
-    if(db_hostname.empty())
-    {
-        warmStart.m_stateDb =
-            std::make_shared<swss::DBConnector>(STATE_DB, swss::DBConnector::DEFAULT_UNIXSOCKET, db_timeout);
-        warmStart.m_cfgDb =
-            std::make_shared<swss::DBConnector>(CONFIG_DB, swss::DBConnector::DEFAULT_UNIXSOCKET, db_timeout);
-    }
-    else
-    {
-        warmStart.m_stateDb =
-            std::make_shared<swss::DBConnector>(STATE_DB, db_hostname, db_port, db_timeout);
-        warmStart.m_cfgDb =
-            std::make_shared<swss::DBConnector>(CONFIG_DB, db_hostname, db_port, db_timeout);
-    }
+    warmStart.m_stateDb =
+        std::make_shared<swss::DBConnector>("STATE_DB", db_timeout, isTcpConn);
+    warmStart.m_cfgDb =
+        std::make_shared<swss::DBConnector>("CONFIG_DB", db_timeout, isTcpConn);
 
     warmStart.m_stateWarmRestartEnableTable =
             std::unique_ptr<Table>(new Table(warmStart.m_stateDb.get(), STATE_WARM_RESTART_ENABLE_TABLE_NAME));
