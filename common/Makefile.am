@@ -7,12 +7,15 @@ EXTRA_DIST = \
     consumer_table_pops.lua \
     producer_state_table_apply_view.lua \
     table_dump.lua \
-    fdb_flush.lua \
-    database_config.json
+    fdb_flush.lua
+
+EXTRA_CONF_DIST = database_config.json
 
 swssdir = $(datadir)/swss
+swsscommondir = /var/run/redis/sonic-db
 
 dist_swss_DATA = $(EXTRA_DIST)
+dist_swsscommon_DATA = $(EXTRA_CONF_DIST)
 
 bin_PROGRAMS = swssloglevel
 

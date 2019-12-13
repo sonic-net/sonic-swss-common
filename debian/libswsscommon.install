@@ -1,4 +1,4 @@
 usr/lib/*/lib*.so.*
 usr/share/swss/*.lua
-usr/share/swss/*.json
+var/run/redis/sonic-db/database_config.json
 usr/bin/swssloglevel
