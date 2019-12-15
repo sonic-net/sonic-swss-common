@@ -167,4 +167,25 @@ bool Select::isQueueEmpty()
     return m_ready.empty();
 }
 
+std::string Select::resultToString(int result)
+{
+    SWSS_LOG_ENTER();
+
+    switch (result)
+    {
+        case swss::Select::OBJECT:
+            return "OBJECT";
+
+        case swss::Select::ERROR:
+            return "ERROR";
+
+        case swss::Select::TIMEOUT:
+            return "TIMEOUT";
+
+        default:
+            SWSS_LOG_WARN("unknown select result: %d", result);
+            return "UNKNOWN";
+    }
+}
+
 };
