@@ -839,3 +839,22 @@ TEST(ProducerConsumer, ConsumerSelectWithInitData)
 
     cout << endl << "Done." << endl;
 }
+
+TEST(Select, resultToString)
+{
+    auto t = Select::resultToString(Select::TIMEOUT);
+
+    ASSERT_EQ(t, "TIMEOUT");
+
+    auto o = Select::resultToString(Select::OBJECT);
+
+    ASSERT_EQ(o, "OBJECT");
+
+    auto e = Select::resultToString(Select::ERROR);
+
+    ASSERT_EQ(e, "ERROR");
+
+    auto u = Select::resultToString(5);
+
+    ASSERT_EQ(u, "UNKNOWN");
+}

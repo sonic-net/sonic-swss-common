@@ -34,6 +34,14 @@ public:
 
     int select(Selectable **c, int timeout = -1);
     bool isQueueEmpty();
+
+    /**
+     * @brief Result to string.
+     *
+     * Convert select operation result to string representation.
+     */
+    static std::string resultToString(int result);
+
 private:
     struct cmp
     {
