@@ -1,5 +1,6 @@
 #include <net/ethernet.h>
 #include <gtest/gtest.h>
+#include <stdexcept>
 #include "common/macaddress.h"
 
 using namespace swss;
