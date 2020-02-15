@@ -132,7 +132,7 @@ static void exec(
     populate();
     //print();
 
-    auto fdbFlushLuaScript = swss::loadLuaScript("./fdb_flush.v2.lua");
+    auto fdbFlushLuaScript = swss::readTextFile("./common/fdb_flush.v2.lua");
 
     auto sha = swss::loadRedisScript(&db, fdbFlushLuaScript);
 
