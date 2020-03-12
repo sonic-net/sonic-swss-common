@@ -1,29 +1,30 @@
-#ifndef __NETLINK__
-#define __NETLINK__
+#pragma once
 
-#include <linux/netlink.h>
-#include <linux/rtnetlink.h>
 #include "selectable.h"
 
-namespace swss {
+#include <netlink/netlink.h>
+#include <netlink/route/rtnl.h>
 
-class NetLink : public Selectable {
-public:
-    NetLink(int pri = 0);
-    ~NetLink() override;
+namespace swss
+{
+    class NetLink :
+        public Selectable
+    {
+        public:
 
-    void registerGroup(int rtnlGroup);
-    void dumpRequest(int rtmGetCommand);
+            NetLink(int pri = 0);
+            virtual ~NetLink();
 
-    int getFd() override;
-    uint64_t readData() override;
+            void registerGroup(int rtnlGroup);
+            void dumpRequest(int rtmGetCommand);
 
-private:
-    static int onNetlinkMsg(struct nl_msg *msg, void *arg);
+            int getFd() override;
+            uint64_t readData() override;
 
-    nl_sock *m_socket;
-};
+        private:
 
+            static int onNetlinkMsg(struct nl_msg *msg, void *arg);
+
+            struct nl_sock *m_socket;
+    };
 }
-
-#endif

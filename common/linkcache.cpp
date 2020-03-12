@@ -1,7 +1,6 @@
 #include <string.h>
 #include <errno.h>
 #include <system_error>
-#include <netlink/route/link.h>
 #include "common/logger.h"
 #include "common/linkcache.h"
 
