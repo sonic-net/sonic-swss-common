@@ -1,66 +1,54 @@
-#ifndef __NETDISPATCHER__
-#define __NETDISPATCHER__
+#pragma once
 
-#include <netlink/netlink.h>
-#include <netlink/cache.h>
-#include <netlink/utils.h>
-#include <netlink/data.h>
-#include <netlink/route/rtnl.h>
+#include "netmsg.h"
+
+#include <netlink/msg.h>
 
 #include <map>
 #include <mutex>
 
-#include "netmsg.h"
+namespace swss
+{
+    class NetDispatcher
+    {
+        public:
 
-namespace swss {
+            /** Get singlton instance. */
+            static NetDispatcher& getInstance();
 
-class NetDispatcher {
-public:
+            /**
+             * Register callback class according to message-type.
+             *
+             * Throw exception if callback is already registered.
+             */
+            void registerMessageHandler(int nlmsg_type, NetMsg *callback);
 
-    /*
-     * Get singlton instance*/
-    static NetDispatcher& getInstance();
+            /** Called by NetLink or FpmLink classes as indication of new packet arrival. */
+            void onNetlinkMessage(struct nl_msg *msg);
 
-    /*
-     * Register callback class according to message-type.
-     *
-     * Throw exception if callback is already registered.
-     */
-    void registerMessageHandler(int nlmsg_type, NetMsg *callback);
+            /**
+             * Unregister callback according to message-type.
+             *
+             * Throw exception if callback is not registered.
+             */
+            void unregisterMessageHandler(int nlmsg_type);
 
-    /*
-     * Called by NetLink or FpmLink classes as indication of new packet arrival
-     */
-    void onNetlinkMessage(struct nl_msg *msg);
+        private:
 
-    /*
-     * Unregister callback according to message-type.
-     *
-     * Throw exception if callback is not registered.
-     */
-    void unregisterMessageHandler(int nlmsg_type);
+            NetDispatcher() = default;
 
-private:
+            NetDispatcher(const NetDispatcher&) = delete;
 
-    NetDispatcher() = default;
+            NetMsg* getCallback(int nlmsg_type);
 
-    NetDispatcher(const NetDispatcher&) = delete;
+        private:
 
-    NetMsg* getCallback(int nlmsg_type);
+            /** nl_msg_parse callback API */
+            static void nlCallback(struct nl_object *obj, void *context);
 
-private:
+            std::map<int, NetMsg*> m_handlers;
 
-    /* nl_msg_parse callback API */
-    static void nlCallback(struct nl_object *obj, void *context);
-
-    std::map<int, NetMsg*> m_handlers;
-
-    /*
-     * Mutex protecting register, unregister and get callback methods.
-     */
-    std::mutex m_mutex;
-};
-
+            /** Mutex protecting register, unregister and get callback methods. */
+            std::mutex m_mutex;
+    };
 }
-
-#endif

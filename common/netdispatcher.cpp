@@ -1,6 +1,6 @@
-#include <map>
 #include "common/netdispatcher.h"
-#include "common/netmsg.h"
+
+#include <map>
 
 using namespace swss;
 

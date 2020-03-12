@@ -1,12 +1,8 @@
-#ifndef __LINKCACHE__
-#define __LINKCACHE__
+#pragma once
 
 #include <netlink/netlink.h>
-#include <netlink/cache.h>
-#include <netlink/utils.h>
-#include <netlink/data.h>
-#include <netlink/route/rtnl.h>
 #include <netlink/route/link.h>
+
 #include <string>
 
 namespace swss {
@@ -28,5 +24,3 @@ private:
 };
 
 }
-
-#endif
