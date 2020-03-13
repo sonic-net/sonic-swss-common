@@ -37,11 +37,6 @@ static void insert(
     ProducerTable producer(&db, tableName);
     ConsumerTable consumer(&db, tableName);
 
-    // "SAI_OBJECT_TYPE_FDB_ENTRY:{\"bvid\":\"oid:0x26000000000545\",\"mac\":\"4A:A8:7B:A2:37:1A\",\"switch_id\":\"oid:0x21000000000000\"}"
-    // "SAI_FDB_ENTRY_ATTR_TYPE" "SAI_FDB_ENTRY_TYPE_DYNAMIC"
-    // "SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID" "oid:0x3a000000000567"
-    // "SAI_FDB_ENTRY_ATTR_PACKET_ACTION" "SAI_PACKET_ACTION_FORWARD"
-   
     std::vector<FieldValueTuple> values;
 
     char buffer[4000];
@@ -49,8 +44,6 @@ static void insert(
     sprintf(buffer, "SAI_OBJECT_TYPE_FDB_ENTRY:{\"bvid\":\"oid:0x%lx\",\"mac\":\"00:00:00:00:00:%02X\",\"switch_id\":\"oid:0x%lx\"}", bvId, mac, switchId);
 
     std::string key = buffer;
-
-    // printf("key: %s\n", buffer);
 
     char port[1000];
 
@@ -130,7 +123,6 @@ static void exec(
     DBConnector db("TEST_DB", 0, true);
 
     populate();
-    //print();
 
     auto fdbFlushLuaScript = swss::readTextFile("./common/fdb_flush.v2.lua");
 
@@ -233,10 +225,4 @@ TEST(Fdb, flush)
     mac(2,0);
     mac(3,1);
     mac(4,0);
-
-    //insert(0x21000000000000, 0x26000000000001, 0x3a000000000001, 1, true);
-    //insert(0x21000000000000, 0x26000000000002, 0x3a000000000002, 2, false);
-    //insert(0x121000000000001, 0x126000000000003, 0x13a000000000003,  3, true);
-    //insert(0x121000000000001, 0x126000000000004, 0x13a000000000004,  4, false);
 }
-
