@@ -60,7 +60,7 @@ public:
      * Assign a name to the Redis client used for this connection
      * This is helpful when debugging Redis clients using `redis-cli client list`
      */
-    void setClientName(const string& clientName);
+    void setClientName(const std::string& clientName);
 
     std::string getClientName();
 
