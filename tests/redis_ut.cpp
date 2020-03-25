@@ -269,6 +269,27 @@ void TableBasicTest(string tableName)
     cout << "Done." << endl;
 }
 
+TEST(DBConnector, ClientName)
+{
+    DBConnector db("TEST_DB", 0, true);
+
+    RedisReply r1(&db, "CLIENT GETNAME", REDIS_REPLY_STATUS);
+    r1.checkStatus("");
+    EXPECT_EQ(db.getClientName(), "");
+
+    string client_name = "test_client_1";
+    db.setClientName(client_name);
+    RedisReply r2(&db, "CLIENT GETNAME", REDIS_REPLY_STATUS);
+    r2.checkStatus(client_name.c_str());
+    EXPECT_EQ(db.getClientName(), client_name);
+
+    client_name = "test_client_2";
+    db.setClientName(client_name);
+    RedisReply r3(&db, "CLIENT GETNAME", REDIS_REPLY_STATUS);
+    r3.checkStatus(client_name.c_str());
+    EXPECT_EQ(db.getClientName(), client_name);
+}
+
 TEST(DBConnector, RedisClient)
 {
     DBConnector db("TEST_DB", 0, true);

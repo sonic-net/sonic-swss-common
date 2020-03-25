@@ -211,4 +211,21 @@ DBConnector *DBConnector::newConnector(unsigned int timeout) const
                                timeout);
 }
 
+void DBConnector::setClientName(const string& clientName)
+{
+    string command("CLIENT SETNAME ");
+    command += clientName;
+
+    RedisReply r(this, command, REDIS_REPLY_STATUS);
+    r.checkStatusOK();
+}
+
+string DBConnector::getClientName()
+{
+    string command("CLIENT GETNAME");
+
+    RedisReply r(this, command, REDIS_REPLY_STATUS);
+    return r.getReply<std::string>();
+}
+
 }

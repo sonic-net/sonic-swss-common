@@ -69,3 +69,13 @@ def test_Notification():
     assert data == "bbb"
     assert len(cfvs) == 1
     assert cfvs[0] == ('a', 'b')
+
+def test_DBConnectorClientName():
+    CLIENT_NAME_1 = "test_python_client_1"
+    CLIENT_NAME_2 = "test_python_client_2"
+    db = swsscommon.DBConnector("APPL_DB", 0, True)
+    assert db.getClientName == ""
+    db.setClientName(CLIENT_NAME_1)
+    assert db.getClientName == CLIENT_NAME_1
+    db.setClientName(CLIENT_NAME_2)
+    assert db.getClientName == CLIENT_NAME_2
