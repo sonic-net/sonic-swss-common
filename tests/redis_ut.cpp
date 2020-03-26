@@ -269,21 +269,28 @@ void TableBasicTest(string tableName)
     cout << "Done." << endl;
 }
 
-TEST(DBConnector, ClientName)
+TEST(DBConnector, RedisClientName)
 {
     DBConnector db("TEST_DB", 0, true);
 
-    //EXPECT_EQ(db.getClientName(), "");
+    string client_name = "";
+    sleep(1);
+    EXPECT_EQ(db.getClientName(), client_name);
 
-    string client_name = "test_client_1";
+    client_name = "foo";
     db.setClientName(client_name);
     sleep(1);
-    //EXPECT_EQ(db.getClientName(), client_name);
+    EXPECT_EQ(db.getClientName(), client_name);
 
-    client_name = "test_client_2";
+    client_name = "bar";
     db.setClientName(client_name);
     sleep(1);
-    //EXPECT_EQ(db.getClientName(), client_name);
+    EXPECT_EQ(db.getClientName(), client_name);
+
+    client_name = "foobar";
+    db.setClientName(client_name);
+    sleep(1);
+    EXPECT_EQ(db.getClientName(), client_name);
 }
 
 TEST(DBConnector, RedisClient)

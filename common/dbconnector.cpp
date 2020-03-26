@@ -224,8 +224,20 @@ string DBConnector::getClientName()
 {
     string command("CLIENT GETNAME");
 
-    RedisReply r(this, command, REDIS_REPLY_STATUS);
-    return r.getReply<std::string>();
+    RedisReply r(this, command);
+
+    auto ctx = r.getContext();
+    if (ctx->type == REDIS_REPLY_STRING)
+    {
+        return r.getReply<std::string>();
+    }
+    else
+    {
+        if (ctx->type != REDIS_REPLY_NIL)
+            SWSS_LOG_ERROR("DBConnector::getClientName(): Unable to obtain client name");
+
+        return "";
+    }
 }
 
 }
