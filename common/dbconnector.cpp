@@ -234,7 +234,7 @@ string DBConnector::getClientName()
     else
     {
         if (ctx->type != REDIS_REPLY_NIL)
-            SWSS_LOG_ERROR("DBConnector::getClientName(): Unable to obtain client name");
+            SWSS_LOG_ERROR("Unable to obtain Redis client name");
 
         return "";
     }
