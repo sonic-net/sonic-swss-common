@@ -160,6 +160,8 @@ TEST(ConsumerStateTable, double_set)
     int index = 0;
     string tableName = "UT_REDIS_THREAD_" + to_string(index);
     DBConnector db(TEST_DB, 0, true);
+    EXPECT_EQ(db.getDbName(), TEST_DB);
+    EXPECT_EQ(SonicDBConfig::getSeparator(db.getDbName()), ":");
     ProducerStateTable p(&db, tableName);
     string key = "TheKey";
     int maxNumOfFields = 2;

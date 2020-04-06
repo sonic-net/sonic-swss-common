@@ -10,12 +10,21 @@
 
 namespace swss {
 
+class SonicDBInfo
+{
+public:
+    std::string instName;
+    int dbId;
+    std::string separator;
+};
+
 class SonicDBConfig
 {
 public:
     static void initialize(const std::string &file = DEFAULT_SONIC_DB_CONFIG_FILE);
     static std::string getDbInst(const std::string &dbName);
     static int getDbId(const std::string &dbName);
+    static std::string getSeparator(const std::string &dbName);
     static std::string getDbSock(const std::string &dbName);
     static std::string getDbHostname(const std::string &dbName);
     static int getDbPort(const std::string &dbName);
@@ -26,7 +35,7 @@ private:
     // { instName, { unix_socket_path, {hostname, port} } }
     static std::unordered_map<std::string, std::pair<std::string, std::pair<std::string, int>>> m_inst_info;
     // { dbName, {instName, dbId} }
-    static std::unordered_map<std::string, std::pair<std::string, int>> m_db_info;
+    static std::unordered_map<std::string, SonicDBInfo> m_db_info;
     static bool m_init;
 };
 
@@ -50,6 +59,7 @@ public:
 
     redisContext *getContext() const;
     int getDbId() const;
+    std::string getDbName() const;
 
     static void select(DBConnector *db);
 
@@ -67,6 +77,7 @@ public:
 private:
     redisContext *m_conn;
     int m_dbId;
+    std::string m_dbName;
 };
 
 }

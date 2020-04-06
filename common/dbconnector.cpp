@@ -48,7 +48,8 @@ void SonicDBConfig::initialize(const string &file)
                string dbName = it.key();
                string instName = it.value().at("instance");
                int dbId = it.value().at("id");
-               m_db_info[dbName] = {instName, dbId};
+               string separator = it.value().at("separator");
+               m_db_info[dbName] = {instName, dbId, separator};
             }
             m_init = true;
         }
@@ -74,14 +75,21 @@ string SonicDBConfig::getDbInst(const string &dbName)
 {
     if (!m_init)
         initialize();
-    return m_db_info.at(dbName).first;
+    return m_db_info.at(dbName).instName;
 }
 
 int SonicDBConfig::getDbId(const string &dbName)
 {
     if (!m_init)
         initialize();
-    return m_db_info.at(dbName).second;
+    return m_db_info.at(dbName).dbId;
+}
+
+string SonicDBConfig::getSeparator(const string &dbName)
+{
+    if (!m_init)
+        initialize();
+    return m_db_info.at(dbName).separator;
 }
 
 string SonicDBConfig::getDbSock(const string &dbName)
@@ -107,7 +115,7 @@ int SonicDBConfig::getDbPort(const string &dbName)
 
 constexpr const char *SonicDBConfig::DEFAULT_SONIC_DB_CONFIG_FILE;
 unordered_map<string, pair<string, pair<string, int>>> SonicDBConfig::m_inst_info;
-unordered_map<string, pair<string, int>> SonicDBConfig::m_db_info;
+unordered_map<string, SonicDBInfo> SonicDBConfig::m_db_info;
 bool SonicDBConfig::m_init = false;
 
 constexpr const char *DBConnector::DEFAULT_UNIXSOCKET;
@@ -161,8 +169,9 @@ DBConnector::DBConnector(int dbId, const string& unixPath, unsigned int timeout)
     select(this);
 }
 
-DBConnector::DBConnector(const string& dbName, unsigned int timeout, bool isTcpConn) :
-    m_dbId(SonicDBConfig::getDbId(dbName))
+DBConnector::DBConnector(const string& dbName, unsigned int timeout, bool isTcpConn)
+    : m_dbId(SonicDBConfig::getDbId(dbName))
+    , m_dbName(dbName)
 {
     struct timeval tv = {0, (suseconds_t)timeout * 1000};
 
@@ -198,17 +207,25 @@ int DBConnector::getDbId() const
     return m_dbId;
 }
 
+string DBConnector::getDbName() const
+{
+    return m_dbName;
+}
+
 DBConnector *DBConnector::newConnector(unsigned int timeout) const
 {
+    DBConnector *ret;
     if (getContext()->connection_type == REDIS_CONN_TCP)
-        return new DBConnector(getDbId(),
+        ret = new DBConnector(getDbId(),
                                getContext()->tcp.host,
                                getContext()->tcp.port,
                                timeout);
     else
-        return new DBConnector(getDbId(),
+        ret = new DBConnector(getDbId(),
                                getContext()->unix_sock.path,
                                timeout);
+    ret->m_dbName = m_dbName;
+    return ret;
 }
 
 void DBConnector::setClientName(const string& clientName)

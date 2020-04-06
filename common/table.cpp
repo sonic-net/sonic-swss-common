@@ -36,7 +36,7 @@ Table::Table(const DBConnector *db, const string &tableName)
 }
 
 Table::Table(RedisPipeline *pipeline, const string &tableName, bool buffered)
-    : TableBase(pipeline->getDbId(), tableName)
+    : TableBase(tableName, SonicDBConfig::getSeparator(pipeline->getDbName()))
     , m_buffered(buffered)
     , m_pipeowned(false)
     , m_pipe(pipeline)
