@@ -82,7 +82,7 @@
             "separator": ":",
             "instance" : "redis"
         },
-        "FLEX_COUNTER_DB" : {
+        "FLEX_COUNTER_DB2" : {
             "id" : 12,
             "separator": ":",
             "instance" : "redis"
