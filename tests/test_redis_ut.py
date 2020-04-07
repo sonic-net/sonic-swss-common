@@ -1,3 +1,4 @@
+import time
 from swsscommon import swsscommon
 
 def test_ProducerTable():
@@ -69,3 +70,20 @@ def test_Notification():
     assert data == "bbb"
     assert len(cfvs) == 1
     assert cfvs[0] == ('a', 'b')
+
+def test_DBConnectorRedisClientName():
+    db = swsscommon.DBConnector("APPL_DB", 0, True)
+    time.sleep(1)
+    assert db.getClientName() == ""
+    client_name = "foo"
+    db.setClientName(client_name)
+    time.sleep(1)
+    assert db.getClientName() == client_name
+    client_name = "bar"
+    db.setClientName(client_name)
+    time.sleep(1)
+    assert db.getClientName() == client_name
+    client_name = "foobar"
+    db.setClientName(client_name)
+    time.sleep(1)
+    assert db.getClientName() == client_name
