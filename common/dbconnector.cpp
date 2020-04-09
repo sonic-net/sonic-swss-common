@@ -50,6 +50,8 @@ void SonicDBConfig::initialize(const string &file)
                int dbId = it.value().at("id");
                string separator = it.value().at("separator");
                m_db_info[dbName] = {instName, dbId, separator};
+
+               m_db_separator.emplace(dbId, separator);
             }
             m_init = true;
         }
@@ -92,6 +94,31 @@ string SonicDBConfig::getSeparator(const string &dbName)
     return m_db_info.at(dbName).separator;
 }
 
+string SonicDBConfig::getSeparator(int dbId)
+{
+    if (!m_init)
+        initialize();
+    return m_db_separator.at(dbId);
+}
+
+string SonicDBConfig::getSeparator(const DBConnector* db)
+{
+    if (!db)
+    {
+        throw std::invalid_argument("db cannot be null");
+    }
+
+    string dbName = db->getDbName();
+    if (dbName.empty())
+    {
+        return getSeparator(db->getDbId());
+    }
+    else
+    {
+        return getSeparator(dbName);
+    }
+}
+
 string SonicDBConfig::getDbSock(const string &dbName)
 {
     if (!m_init)
@@ -116,6 +143,7 @@ int SonicDBConfig::getDbPort(const string &dbName)
 constexpr const char *SonicDBConfig::DEFAULT_SONIC_DB_CONFIG_FILE;
 unordered_map<string, pair<string, pair<string, int>>> SonicDBConfig::m_inst_info;
 unordered_map<string, SonicDBInfo> SonicDBConfig::m_db_info;
+unordered_map<int, string> SonicDBConfig::m_db_separator;
 bool SonicDBConfig::m_init = false;
 
 constexpr const char *DBConnector::DEFAULT_UNIXSOCKET;

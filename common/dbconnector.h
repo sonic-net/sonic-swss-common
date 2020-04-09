@@ -10,6 +10,8 @@
 
 namespace swss {
 
+class DBConnector;
+
 class SonicDBInfo
 {
 public:
@@ -25,6 +27,8 @@ public:
     static std::string getDbInst(const std::string &dbName);
     static int getDbId(const std::string &dbName);
     static std::string getSeparator(const std::string &dbName);
+    static std::string getSeparator(int dbId);
+    static std::string getSeparator(const DBConnector* db);
     static std::string getDbSock(const std::string &dbName);
     static std::string getDbHostname(const std::string &dbName);
     static int getDbPort(const std::string &dbName);
@@ -36,6 +40,8 @@ private:
     static std::unordered_map<std::string, std::pair<std::string, std::pair<std::string, int>>> m_inst_info;
     // { dbName, {instName, dbId} }
     static std::unordered_map<std::string, SonicDBInfo> m_db_info;
+    // { dbIp, separator }
+    static std::unordered_map<int, std::string> m_db_separator;
     static bool m_init;
 };
 
