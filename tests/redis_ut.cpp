@@ -144,7 +144,13 @@ void clearDB()
 
 void TableBasicTest(string tableName)
 {
+
     DBConnector db("TEST_DB", 0, true);
+    int dbId = db.getDbId();
+
+    // Test we can still use dbId to construct a DBConnector
+    DBConnector db_dup(dbId, "localhost", 6379, 0);
+    cout << "db_dup separator: " << SonicDBConfig::getSeparator(&db_dup) << endl;
 
     Table t(&db, tableName);
 

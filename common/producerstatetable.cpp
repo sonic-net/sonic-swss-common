@@ -20,7 +20,7 @@ ProducerStateTable::ProducerStateTable(DBConnector *db, const string &tableName)
 }
 
 ProducerStateTable::ProducerStateTable(RedisPipeline *pipeline, const string &tableName, bool buffered)
-    : TableBase(tableName, SonicDBConfig::getSeparator(pipeline->getDbName()))
+    : TableBase(tableName, SonicDBConfig::getSeparator(pipeline->getDBConnector()))
     , TableName_KeySet(tableName)
     , m_buffered(buffered)
     , m_pipeowned(false)
