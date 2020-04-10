@@ -109,6 +109,11 @@ public:
         return m_db->getDbName();
     }
 
+    DBConnector *getDBConnector()
+    {
+        return m_db;
+    }
+
 private:
     DBConnector *m_db;
     std::queue<int> m_expectedTypes;
