@@ -14,6 +14,7 @@ namespace swss {
 #define FLEX_COUNTER_DB 5
 #define STATE_DB        6
 #define SNMP_OVERLAY_DB 7
+#define ERROR_DB        8
 
 /***** APPLICATION DATABASE *****/
 
@@ -234,6 +235,8 @@ namespace swss {
 #define CFG_STP_VLAN_PORT_TABLE_NAME                "STP_VLAN_PORT"
 #define CFG_STP_PORT_TABLE_NAME                     "STP_PORT"
 
+#define CFG_BGP_ERROR_TABLE_NAME                    "BGP_ERROR_CFG_TABLE"
+
 /***** STATE DATABASE *****/
 
 #define STATE_SWITCH_CAPABILITY_TABLE_NAME          "SWITCH_CAPABILITY_TABLE"
@@ -274,6 +277,10 @@ namespace swss {
 #define CFG_DTEL_INT_SESSION_TABLE_NAME		"DTEL_INT_SESSION"
 #define CFG_DTEL_QUEUE_REPORT_TABLE_NAME	"DTEL_QUEUE_REPORT"
 #define CFG_DTEL_EVENT_TABLE_NAME			"DTEL_EVENT"
+
+/***** ERROR DATABASE *****/
+#define ERROR_NEIGH_TABLE_NAME            "ERROR_NEIGH_TABLE"
+#define ERROR_ROUTE_TABLE_NAME            "ERROR_ROUTE_TABLE"
 
 }
 

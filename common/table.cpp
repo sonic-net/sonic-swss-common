@@ -26,7 +26,8 @@ const TableNameSeparatorMap TableBase::tableNameSeparatorMap = {
    { CONFIG_DB,       TABLE_NAME_SEPARATOR_VBAR  },
    { PFC_WD_DB,       TABLE_NAME_SEPARATOR_COLON },
    { FLEX_COUNTER_DB, TABLE_NAME_SEPARATOR_COLON },
-   { STATE_DB,        TABLE_NAME_SEPARATOR_VBAR  }
+   { STATE_DB,        TABLE_NAME_SEPARATOR_VBAR  },
+   { ERROR_DB,        TABLE_NAME_SEPARATOR_COLON }
 };
 
 Table::Table(const DBConnector *db, const string &tableName)
