@@ -52,6 +52,8 @@ namespace swss {
 #define APP_NAT_GLOBAL_TABLE_NAME       "NAT_GLOBAL_TABLE"
 #define APP_NAPT_POOL_IP_TABLE_NAME     "NAPT_POOL_IP_TABLE"
 
+#define APP_TX_DROP_TABLE_NAME          "TX_DROP_APPL"
+
 #define APP_STP_VLAN_TABLE_NAME             "STP_VLAN_TABLE"
 #define APP_STP_VLAN_PORT_TABLE_NAME        "STP_VLAN_PORT_TABLE"
 #define APP_STP_VLAN_INSTANCE_TABLE_NAME    "STP_VLAN_INSTANCE_TABLE"
@@ -229,6 +231,8 @@ namespace swss {
 #define CFG_NAT_BINDINGS_TABLE_NAME                 "NAT_BINDINGS"
 #define CFG_NAT_GLOBAL_TABLE_NAME                   "NAT_GLOBAL"
 
+#define CFG_PORT_TX_DROP_TABLE_NAME                 "TX_DROP_CFG"
+
 #define CFG_STP_GLOBAL_TABLE_NAME                   "STP"
 #define CFG_STP_VLAN_TABLE_NAME                     "STP_VLAN"
 #define CFG_STP_VLAN_PORT_TABLE_NAME                "STP_VLAN_PORT"
@@ -254,6 +258,8 @@ namespace swss {
 #define STATE_BGP_TABLE_NAME                        "BGP_STATE_TABLE"
 #define STATE_DEBUG_COUNTER_CAPABILITIES_NAME       "DEBUG_COUNTER_CAPABILITIES"
 #define STATE_NAT_RESTORE_TABLE_NAME                "NAT_RESTORE_TABLE"
+
+#define STATE_TX_DROP_TABLE_NAME                    "TX_DROP_STATE"
 
 #define STATE_STP_TABLE_NAME                        "STP_TABLE"
 /***** MISC *****/
