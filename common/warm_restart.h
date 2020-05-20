@@ -17,6 +17,7 @@ public:
         INITIALIZED,
         RESTORED,
         RECONCILED,
+        WSUNKNOWN,
     };
 
     enum DataCheckState
@@ -55,6 +56,10 @@ public:
 
     static void setWarmStartState(const std::string &app_name,
                                   WarmStartState     state);
+
+    static void getWarmStartState(const std::string &app_name,
+                                  WarmStartState    &state);
+
 
     static uint32_t getWarmStartTimer(const std::string &app_name,
                                       const std::string &docker_name);
