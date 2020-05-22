@@ -42,8 +42,8 @@
         $result = PyList_New(1);
         PyList_SetItem($result, 0, temp);
     }
-    temp = SWIG_NewPointerObj(*$1, SWIGTYPE_p_swss__Selectable, SWIG_POINTER_OWN);
-    PyList_Append($result, temp);
+    temp = SWIG_NewPointerObj(*$1, SWIGTYPE_p_swss__Selectable, 0);
+    SWIG_Python_AppendOutput($result, temp);
 }
 %include "schema.h"
 %include "dbconnector.h"
