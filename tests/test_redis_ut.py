@@ -48,6 +48,14 @@ def test_ProducerStateTable():
     assert len(cfvs) == 1
     assert cfvs[0] == ('a', 'b')
 
+    vkco = []
+    for i in range(5):
+        vkco.append(str(i))
+    ps.delete(vkco)
+    for i in range(5):
+        (key, op, cfvs) = cs.pop()
+        assert op == "DEL"
+
 def test_Table():
     db = swsscommon.DBConnector("APPL_DB", 0, True)
     tbl = swsscommon.Table(db, "test_TABLE")
