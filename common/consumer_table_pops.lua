@@ -23,7 +23,7 @@ for i = n, 1, -3 do
    end
    table.insert(rets, ret)
 
-   if ARGV[2] == 0 then
+   if ARGV[2] == "0" then
        -- do nothing, we don't want to modify redis during pop
    elseif op == 'bulkset' or op == 'bulkcreate' or op == 'bulkremove' then
 
