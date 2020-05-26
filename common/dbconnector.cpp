@@ -27,7 +27,14 @@ void SonicDBConfig::initialize(const string &file)
         throw runtime_error("SonicDBConfig already initialized");
     }
 
-    ifstream i(file);
+    string filename = file;
+    if ( filename == "" )
+    {
+        const auto env = getenv(SONIC_DB_CONFIG_FILE_ENV_VAL);
+        filename = env ? string(env) : DEFAULT_SONIC_DB_CONFIG_FILE;
+    }
+
+    ifstream i(filename);
     if (i.good())
     {
         try
@@ -68,8 +75,8 @@ void SonicDBConfig::initialize(const string &file)
     }
     else
     {
-        SWSS_LOG_ERROR("Sonic database config file doesn't exist at %s\n", file.c_str());
-        throw runtime_error("Sonic database config file doesn't exist at " + file);
+        SWSS_LOG_ERROR("Sonic database config file doesn't exist at %s\n", filename.c_str());
+        throw runtime_error("Sonic database config file doesn't exist at " + filename);
     }
 }
 
