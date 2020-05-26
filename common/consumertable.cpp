@@ -40,8 +40,7 @@ ConsumerTable::ConsumerTable(DBConnector *db, const string &tableName, int popBa
     setQueueLength(len/3);
 }
 
-void ConsumerTable::setModifyRedis(
-        _In_ bool modify)
+void ConsumerTable::setModifyRedis(bool modify)
 {
     SWSS_LOG_ENTER();
 
