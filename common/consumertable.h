@@ -7,6 +7,7 @@
 #include <hiredis/hiredis.h>
 #include "dbconnector.h"
 #include "consumerstatetable.h"
+#include "sal.h"
 
 namespace swss {
 
@@ -18,8 +19,21 @@ public:
     /* Get multiple pop elements */
     void pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const std::string &prefix = EMPTY_PREFIX);
 
+    void setModifyRedis(
+            _In_ bool modify);
+
 private:
     std::string m_shaPop;
+
+    /**
+     * @brief Modify Redis database.
+     *
+     * If set to false, will not make changes to database durin POPs operation.
+     * This will be utilized during synchronous mode.
+     *
+     * Default is true.
+     */
+    bool m_modifyRedis;
 };
 
 }
