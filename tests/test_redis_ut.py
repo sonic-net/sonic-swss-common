@@ -1,3 +1,6 @@
+import time
+from threading import Thread
+from pympler.tracker import SummaryTracker
 from swsscommon import swsscommon
 
 def test_ProducerTable():
@@ -69,3 +72,35 @@ def test_Notification():
     assert data == "bbb"
     assert len(cfvs) == 1
     assert cfvs[0] == ('a', 'b')
+
+def test_SelectMemoryLeak():
+    N = 50000
+    def table_set(t, state):
+        fvs = swsscommon.FieldValuePairs([("status", state)])
+        t.set("123", fvs)
+
+    def generator_SelectMemoryLeak():
+        app_db = swsscommon.DBConnector("APPL_DB", 0, True)
+        t = swsscommon.Table(app_db, "TABLE")
+        for i in xrange(N/2):
+            table_set(t, "up")
+            table_set(t, "down")
+
+    tracker = SummaryTracker()
+    appl_db = swsscommon.DBConnector("APPL_DB", 0, True)
+    sel = swsscommon.Select()
+    sst = swsscommon.SubscriberStateTable(appl_db, "TABLE")
+    sel.addSelectable(sst)
+    thr = Thread(target=generator_SelectMemoryLeak)
+    thr.daemon = True
+    thr.start()
+    time.sleep(5)
+    for _ in xrange(N):
+        state, c = sel.select(1000)
+    diff = tracker.diff()
+    cases = []
+    for name, count, _ in diff:
+        if count >= N:
+            cases.append("%s - %d objects for %d repeats" % (name, count, N))
+    thr.join()
+    assert not cases
