@@ -16,8 +16,8 @@ namespace swss {
 
 ConsumerTable::ConsumerTable(DBConnector *db, const string &tableName, int popBatchSize, int pri)
     : ConsumerTableBase(db, tableName, popBatchSize, pri)
-    , TableName_KeyValueOpQueues(tableName),
-    m_modifyRedis(true)
+    , TableName_KeyValueOpQueues(tableName)
+    , m_modifyRedis(true)
 {
     std::string luaScript = loadLuaScript("consumer_table_pops.lua");
     m_shaPop = loadRedisScript(db, luaScript);

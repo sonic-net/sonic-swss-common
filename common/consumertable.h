@@ -25,7 +25,7 @@ private:
     /**
      * @brief Modify Redis database.
      *
-     * If set to false, will not make changes to database durin POPs operation.
+     * If set to false, will not make changes to database during POPs operation.
      * This will be utilized during synchronous mode.
      *
      * Default is true.
