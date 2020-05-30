@@ -786,6 +786,45 @@ TEST(ProducerConsumer, PopEmpty)
     EXPECT_EQ(fvs.size(), 0U);
 }
 
+TEST(ProducerConsumer, PopNoModify)
+{
+    clearDB();
+
+    std::string tableName = "tableName";
+
+    DBConnector db("TEST_DB", 0, true);
+    ProducerTable p(&db, tableName);
+
+    std::vector<FieldValueTuple> values;
+
+    FieldValueTuple fv("f", "v");
+    values.push_back(fv);
+
+    p.set("key", values, "set");
+
+    ConsumerTable c(&db, tableName);
+
+    c.setModifyRedis(false);
+
+    std::string key;
+    std::string op;
+    std::vector<FieldValueTuple> fvs;
+
+    c.pop(key, op, fvs); //, "prefixNoMod_");
+
+    EXPECT_EQ(key, "key");
+    EXPECT_EQ(op, "set");
+    EXPECT_EQ(fvField(fvs[0]), "f");
+    EXPECT_EQ(fvValue(fvs[0]), "v");
+
+    Table t(&db, tableName);
+
+    string value_got;
+    bool r = t.hget("key", "f", value_got);
+
+    ASSERT_FALSE(r);
+}
+
 TEST(ProducerConsumer, ConsumerSelectWithInitData)
 {
     clearDB();

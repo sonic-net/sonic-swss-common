@@ -23,7 +23,9 @@ for i = n, 1, -3 do
    end
    table.insert(rets, ret)
 
-   if op == 'bulkset' or op == 'bulkcreate' or op == 'bulkremove' then
+   if ARGV[2] == "0" then
+       -- do nothing, we don't want to modify redis during pop
+   elseif op == 'bulkset' or op == 'bulkcreate' or op == 'bulkremove' then
 
 -- key is "OBJECT_TYPE:num", extract object type from key
        key = key:sub(1, string.find(key, ':') - 1)

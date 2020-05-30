@@ -17,6 +17,7 @@ namespace swss {
 ConsumerTable::ConsumerTable(DBConnector *db, const string &tableName, int popBatchSize, int pri)
     : ConsumerTableBase(db, tableName, popBatchSize, pri)
     , TableName_KeyValueOpQueues(tableName)
+    , m_modifyRedis(true)
 {
     std::string luaScript = loadLuaScript("consumer_table_pops.lua");
     m_shaPop = loadRedisScript(db, luaScript);
@@ -39,15 +40,23 @@ ConsumerTable::ConsumerTable(DBConnector *db, const string &tableName, int popBa
     setQueueLength(len/3);
 }
 
+void ConsumerTable::setModifyRedis(bool modify)
+{
+    SWSS_LOG_ENTER();
+
+    m_modifyRedis = modify;
+}
+
 void ConsumerTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, const string &prefix)
 {
     RedisCommand command;
     command.format(
-        "EVALSHA %s 2 %s %s %d ''",
+        "EVALSHA %s 2 %s %s %d %d",
         m_shaPop.c_str(),
         getKeyValueOpQueueTableName().c_str(),
         (prefix+getTableName()).c_str(),
-        POP_BATCH_SIZE);
+        POP_BATCH_SIZE,
+        m_modifyRedis ? 1 : 0);
 
     RedisReply r(m_db, command, REDIS_REPLY_ARRAY);
 

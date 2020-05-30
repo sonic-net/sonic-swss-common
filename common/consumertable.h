@@ -18,8 +18,19 @@ public:
     /* Get multiple pop elements */
     void pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const std::string &prefix = EMPTY_PREFIX);
 
+    void setModifyRedis(bool modify);
 private:
     std::string m_shaPop;
+
+    /**
+     * @brief Modify Redis database.
+     *
+     * If set to false, will not make changes to database during POPs operation.
+     * This will be utilized during synchronous mode.
+     *
+     * Default is true.
+     */
+    bool m_modifyRedis;
 };
 
 }
