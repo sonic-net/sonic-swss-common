@@ -234,6 +234,8 @@ namespace swss {
 #define CFG_STP_VLAN_PORT_TABLE_NAME                "STP_VLAN_PORT"
 #define CFG_STP_PORT_TABLE_NAME                     "STP_PORT"
 
+#define CFG_PORT_STORM_CONTROL_TABLE_NAME           "PORT_STORM_CONTROL"
+
 /***** STATE DATABASE *****/
 
 #define STATE_SWITCH_CAPABILITY_TABLE_NAME          "SWITCH_CAPABILITY_TABLE"
