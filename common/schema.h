@@ -14,10 +14,15 @@ namespace swss {
 #define FLEX_COUNTER_DB 5
 #define STATE_DB        6
 #define SNMP_OVERLAY_DB 7
+#define ASIC_DB2        8
+#define COUNTERS_DB2    9
+#define FLEX_COUNTER_DB2    10
+#define STATE_DB2      11
 
 /***** APPLICATION DATABASE *****/
 
 #define APP_PORT_TABLE_NAME               "PORT_TABLE"
+#define APP_GEARBOX_TABLE_NAME            "GEARBOX_TABLE"
 #define APP_VLAN_TABLE_NAME               "VLAN_TABLE"
 #define APP_VLAN_MEMBER_TABLE_NAME        "VLAN_MEMBER_TABLE"
 #define APP_LAG_TABLE_NAME                "LAG_TABLE"
@@ -151,6 +156,8 @@ namespace swss {
 
 #define CFG_PORT_TABLE_NAME           "PORT"
 #define CFG_PORT_CABLE_LEN_TABLE_NAME "CABLE_LENGTH"
+
+#define CFG_GEARBOX_TABLE_NAME           "GEARBOX"
 
 #define CFG_INTF_TABLE_NAME               "INTERFACE"
 #define CFG_LOOPBACK_INTERFACE_TABLE_NAME "LOOPBACK_INTERFACE"
