@@ -135,7 +135,10 @@ int main(int argc, char **argv)
         {
             const auto redis_key = std::string(key).append(":").append(key);
             auto level = redisClient.hget(redis_key, DAEMON_LOGLEVEL);
-            std::cout << std::left << std::setw(30) << key << *level << std::endl;
+            if (nullptr == level)
+                std::cerr << std::left << std::setw(30) << key << "Unknown log level" << std::endl;
+            else
+                std::cout << std::left << std::setw(30) << key << *level << std::endl;
         }
         return (EXIT_SUCCESS);
     }
