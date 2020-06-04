@@ -37,6 +37,7 @@ typedef struct
     std::string name;
     std::string lib_name;
     std::string firmware;
+    std::string firmware_major_version;
     std::string sai_init_config_file;
     std::string config_file;
     std::string access;
