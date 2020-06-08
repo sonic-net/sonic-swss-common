@@ -113,6 +113,8 @@ namespace swss {
 #define PERSISTENT_WATERMARKS_TABLE    "PERSISTENT_WATERMARKS"
 #define USER_WATERMARKS_TABLE          "USER_WATERMARKS"
 
+#define RATES_TABLE                         "RATES"
+
 /***** LOGLEVEL DATABASE *****/
 
 #define DAEMON_TABLE_NAME "DAEMON_TABLE"
@@ -146,6 +148,7 @@ namespace swss {
 #define STATS_MODE_READ_AND_CLEAR     "STATS_MODE_READ_AND_CLEAR"
 #define QUEUE_PLUGIN_FIELD            "QUEUE_PLUGIN_LIST"
 #define PORT_PLUGIN_FIELD             "PORT_PLUGIN_LIST"
+#define RIF_PLUGIN_FIELD              "RIF_PLUGIN_LIST"
 #define PG_PLUGIN_FIELD               "PG_PLUGIN_LIST"
 #define BUFFER_POOL_PLUGIN_FIELD      "BUFFER_POOL_PLUGIN_LIST"
 #define FLEX_COUNTER_STATUS_FIELD     "FLEX_COUNTER_STATUS"
@@ -239,6 +242,8 @@ namespace swss {
 #define CFG_STP_VLAN_TABLE_NAME                     "STP_VLAN"
 #define CFG_STP_VLAN_PORT_TABLE_NAME                "STP_VLAN_PORT"
 #define CFG_STP_PORT_TABLE_NAME                     "STP_PORT"
+
+#define CFG_RATES_TABLE_NAME                        "RATES"
 
 /***** STATE DATABASE *****/
 
