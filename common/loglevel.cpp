@@ -125,6 +125,8 @@ int main(int argc, char **argv)
 
     if (print)
     {
+        int errorCount = 0;
+
         if (argc != 2)
         {
             exitWithUsage(EXIT_FAILURE, "-p option does not accept other options");
@@ -135,8 +137,20 @@ int main(int argc, char **argv)
         {
             const auto redis_key = std::string(key).append(":").append(key);
             auto level = redisClient.hget(redis_key, DAEMON_LOGLEVEL);
-            std::cout << std::left << std::setw(30) << key << *level << std::endl;
+            if (nullptr == level)
+            {
+                std::cerr << std::left << std::setw(30) << key << "Unknown log level" << std::endl;
+                errorCount ++;
+            }
+            else
+            {
+                std::cout << std::left << std::setw(30) << key << *level << std::endl;
+            }
         }
+
+        if (errorCount > 0)
+            return (EXIT_FAILURE);
+
         return (EXIT_SUCCESS);
     }
 
