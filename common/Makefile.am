@@ -53,7 +53,6 @@ libswsscommon_la_SOURCES = \
     notificationconsumer.cpp  \
     notificationproducer.cpp  \
     linkcache.cpp             \
-    gearboxutils.cpp          \
     portmap.cpp               \
     tokenize.cpp              \
     exec.cpp                  \
