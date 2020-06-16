@@ -52,26 +52,6 @@
             "separator": "|",
             "instance" : "redis"
         },
-        "ASIC_DB2" : {
-            "id" : 8,
-            "separator": "|",
-            "instance" : "redis"
-        },
-        "COUNTERS_DB2" : {
-            "id" : 9,
-            "separator": "|",
-            "instance" : "redis"
-        },
-        "FLEX_COUNTER_DB2" : {
-            "id" : 10,
-            "separator": "|",
-            "instance" : "redis"
-        },
-        "STATE_DB2" : {
-            "id" : 11,
-            "separator": "|",
-            "instance" : "redis"
-        },
         "GB_ASIC_DB" : {
             "id" : 8,
             "separator": "|",
