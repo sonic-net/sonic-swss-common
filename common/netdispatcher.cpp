@@ -23,6 +23,14 @@ void NetDispatcher::registerMessageHandler(int nlmsg_type, NetMsg *callback)
     m_handlers[nlmsg_type] = callback;
 }
 
+void NetDispatcher::registerRawMessageHandler(int nlmsg_type, NetMsg *callback)
+{
+    if (m_rawhandlers.find(nlmsg_type) != m_rawhandlers.end())
+        throw "Trying to registered on already registerd netlink message";
+
+    m_rawhandlers[nlmsg_type] = callback;
+}
+
 void NetDispatcher::unregisterMessageHandler(int nlmsg_type)
 {
     MUTEX;
@@ -51,6 +59,20 @@ NetMsg* NetDispatcher::getCallback(int nlmsg_type)
         return nullptr;
 
     return callback->second;
+}
+
+void NetDispatcher::onNetlinkMessageRaw(struct nl_msg *msg)
+{
+    struct nlmsghdr *nlmsghdr = nlmsg_hdr(msg);
+    NetMsg *reg_callback = NULL;
+    auto callback = m_rawhandlers.find(nlmsghdr->nlmsg_type);
+
+    /* Drop not registered messages */
+    if (callback == m_rawhandlers.end())
+        return;
+
+    reg_callback = (NetMsg *)callback->second;
+    reg_callback->onMsgRaw(nlmsghdr);
 }
 
 void NetDispatcher::onNetlinkMessage(struct nl_msg *msg)
