@@ -8,6 +8,10 @@
 ####################
 pyext/swsscommon.py
 pyext/swsscommon_wrap.cpp
+pyext/py2/swsscommon.py
+pyext/py2/swsscommon_wrap.cpp
+pyext/py3/swsscommon.py
+pyext/py3/swsscommon_wrap.cpp
 
 # Packaging Files #
 ###################

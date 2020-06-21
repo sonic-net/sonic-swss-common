@@ -11,6 +11,7 @@ AC_PROG_CXX
 AC_PROG_LIBTOOL
 AC_HEADER_STDC
 AM_PATH_PYTHON
+AM_PATH_PYTHON3
 
 AC_CHECK_LIB([hiredis], [redisConnect])
 PKG_CHECK_MODULES([LIBNL], [libnl-3.0 libnl-genl-3.0 libnl-route-3.0 libnl-nf-3.0])
@@ -80,6 +81,8 @@ AC_CONFIG_FILES([
     Makefile
     common/Makefile
     pyext/Makefile
+    pyext/py2/Makefile
+    pyext/py3/Makefile
     tests/Makefile
 ])
 
