@@ -6,7 +6,7 @@ pkgpy3exec_LTLIBRARIES = _swsscommon.la
 _swsscommon_la_SOURCES = swsscommon_wrap.cpp
 _swsscommon_la_CPPFLAGS = -std=c++11 -I../../common -I/usr/include/python$(PYTHON3_VERSION)
 _swsscommon_la_LDFLAGS = -module
-_swsscommon_la_LIBADD = ../../common/libswsscommon.la -lpython$(PYTHON3_VERSION)
+_swsscommon_la_LIBADD = ../../common/libswsscommon.la $(PYTHON3_BLDLIBRARY)
 
 swsscommon_wrap.cpp: $(SWIG_SOURCES)
 	$(SWIG) -Wall -c++ -python -I../../common -o $@ $<

@@ -3,6 +3,7 @@
 *.la
 *.lo
 *.o
+*.swp
 
 # Generated Source #
 ####################
@@ -25,6 +26,8 @@ debian/libswsscommon.substvars
 
 debian/libswsscommon-dev/
 debian/libswsscommon/
+debian/python-swsscommon/
+debian/python3-swsscommon/
 debian/tmp/
 
 aclocal.m4

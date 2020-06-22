@@ -102,6 +102,9 @@ AC_DEFUN([AM_PATH_PYTHON3],
     [am_cv_python3_platform=`$PYTHON3 -c "import sys; sys.stdout.write(sys.platform)"`])
   AC_SUBST([PYTHON3_PLATFORM], [$am_cv_python3_platform])
 
+  AC_CACHE_CHECK([for $am_display_PYTHON3 bldlibrary], [am_cv_python3_bldlibrary],
+    [am_cv_python3_bldlibrary=`$PYTHON3 -c "import sys; from distutils import sysconfig; sys.stdout.write(sysconfig.get_config_var('BLDLIBRARY'))"`])
+  AC_SUBST([PYTHON3_BLDLIBRARY], [$am_cv_python3_bldlibrary])
 
   dnl Set up 4 directories:
 
