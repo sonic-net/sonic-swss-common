@@ -3,11 +3,16 @@
 *.la
 *.lo
 *.o
+*.swp
 
 # Generated Source #
 ####################
 pyext/swsscommon.py
 pyext/swsscommon_wrap.cpp
+pyext/py2/swsscommon.py
+pyext/py2/swsscommon_wrap.cpp
+pyext/py3/swsscommon.py
+pyext/py3/swsscommon_wrap.cpp
 
 # Packaging Files #
 ###################
@@ -21,6 +26,8 @@ debian/libswsscommon.substvars
 
 debian/libswsscommon-dev/
 debian/libswsscommon/
+debian/python-swsscommon/
+debian/python3-swsscommon/
 debian/tmp/
 
 aclocal.m4

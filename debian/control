@@ -27,4 +27,10 @@ Package: python-swsscommon
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Pre-Depends}
 Section: libs
-Description: This package contains Switch State Service common Python library.
+Description: This package contains Switch State Service common Python2 library.
+
+Package: python3-swsscommon
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Pre-Depends}
+Section: libs
+Description: This package contains Switch State Service common Python3 library.
