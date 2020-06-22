@@ -6,6 +6,7 @@
 #include "common/redisapi.h"
 #include "common/redisclient.h"
 
+#include <inttypes.h>
 #include <iostream>
 #include <memory>
 #include <thread>
@@ -41,13 +42,13 @@ static void insert(
 
     char buffer[4000];
 
-    sprintf(buffer, "SAI_OBJECT_TYPE_FDB_ENTRY:{\"bvid\":\"oid:0x%lx\",\"mac\":\"00:00:00:00:00:%02X\",\"switch_id\":\"oid:0x%lx\"}", bvId, mac, switchId);
+    sprintf(buffer, "SAI_OBJECT_TYPE_FDB_ENTRY:{\"bvid\":\"oid:0x%" PRIx64 "\",\"mac\":\"00:00:00:00:00:%02X\",\"switch_id\":\"oid:0x%" PRIx64 "\"}", bvId, mac, switchId);
 
     std::string key = buffer;
 
     char port[1000];
 
-    sprintf(port, "oid:0x%lx", portId);
+    sprintf(port, "oid:0x%" PRIx64, portId);
 
     values.emplace_back("SAI_FDB_ENTRY_ATTR_PACKET_ACTION", "SAI_PACKET_ACTION_FORWARD");
     values.emplace_back("SAI_FDB_ENTRY_ATTR_TYPE", (isStatic ? "SAI_FDB_ENTRY_TYPE_STATIC" : "SAI_FDB_ENTRY_TYPE_DYNAMIC"));
@@ -98,7 +99,7 @@ static std::string sOid(
 {
     char buffer[100];
 
-    sprintf(buffer, "oid:0x%lx", oid);
+    sprintf(buffer, "oid:0x%" PRIx64, oid);
 
     return buffer;
 }
