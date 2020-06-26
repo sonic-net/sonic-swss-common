@@ -253,6 +253,10 @@ namespace swss {
 
 #define CFG_RATES_TABLE_NAME                        "RATES"
 
+#define CFG_FEATURE_TABLE_NAME                      "FEATURE"
+#define CFG_COPP_TRAP_TABLE_NAME                    "COPP_TRAP"
+#define CFG_COPP_GROUP_TABLE_NAME                   "COPP_GROUP"
+
 /***** STATE DATABASE *****/
 
 #define STATE_SWITCH_CAPABILITY_TABLE_NAME          "SWITCH_CAPABILITY_TABLE"
@@ -277,6 +281,9 @@ namespace swss {
 #define STATE_NAT_RESTORE_TABLE_NAME                "NAT_RESTORE_TABLE"
 
 #define STATE_STP_TABLE_NAME                        "STP_TABLE"
+
+#define STATE_COPP_GROUP_TABLE_NAME                 "COPP_GROUP_TABLE"
+#define STATE_COPP_TRAP_TABLE_NAME                  "COPP_TRAP_TABLE"
 /***** MISC *****/
 
 #define IPV4_NAME "IPv4"
