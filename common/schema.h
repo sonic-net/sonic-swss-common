@@ -253,6 +253,10 @@ namespace swss {
 
 #define CFG_RATES_TABLE_NAME                        "RATES"
 
+#define CFG_FG_NHG                                  "FG_NHG"
+#define CFG_FG_NHG_PREFIX                           "FG_NHG_PREFIX"
+#define CFG_FG_NHG_MEMBER                           "FG_NHG_MEMBER"
+
 /***** STATE DATABASE *****/
 
 #define STATE_SWITCH_CAPABILITY_TABLE_NAME          "SWITCH_CAPABILITY_TABLE"
