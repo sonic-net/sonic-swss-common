@@ -251,6 +251,8 @@ namespace swss {
 #define CFG_STP_VLAN_PORT_TABLE_NAME                "STP_VLAN_PORT"
 #define CFG_STP_PORT_TABLE_NAME                     "STP_PORT"
 
+#define CFG_PORT_STORM_CONTROL_TABLE_NAME           "PORT_STORM_CONTROL"
+
 #define CFG_RATES_TABLE_NAME                        "RATES"
 
 #define CFG_FG_NHG                                  "FG_NHG"
