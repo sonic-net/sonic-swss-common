@@ -16,6 +16,8 @@ pyext/py3/swsscommon_wrap.cpp
 
 # Packaging Files #
 ###################
+debian/.debhelper/
+debian/debhelper-build-stamp
 debian/files
 debian/libswsscommon-dev.debhelper.log
 debian/libswsscommon-dev.substvars
@@ -23,17 +25,21 @@ debian/libswsscommon.debhelper.log
 debian/libswsscommon.postinst.debhelper
 debian/libswsscommon.postrm.debhelper
 debian/libswsscommon.substvars
-
 debian/libswsscommon-dev/
+debian/libswsscommon-dbg.substvars
+debian/libswsscommon-dbg/
 debian/libswsscommon/
 debian/python-swsscommon/
+debian/python-swsscommon.substvars
 debian/python3-swsscommon/
+debian/python3-swsscommon.substvars
 debian/tmp/
 
 aclocal.m4
 config
 config.h
 config.h.in
+config.h.in~
 config.log
 config.status
 configure
@@ -43,10 +49,18 @@ stamp-h1
 **/.deps/
 **/.libs/
 **/Makefile
+m4/libtool.m4
+m4/ltoptions.m4
+m4/ltsugar.m4
+m4/ltversion.m4
+m4/lt~obsolete.m4
 
 # Executables #
 ###############
 common/swssloglevel
 tests/tests
 
+# IDE #
+#######
+.idea
 
