@@ -100,7 +100,7 @@ def test_SelectMemoryLeak():
     def generator_SelectMemoryLeak():
         app_db = swsscommon.DBConnector("APPL_DB", 0, True)
         t = swsscommon.Table(app_db, "TABLE")
-        for i in xrange(N/2):
+        for i in range(int(N/2)):
             table_set(t, "up")
             table_set(t, "down")
 
@@ -113,7 +113,7 @@ def test_SelectMemoryLeak():
     thr.daemon = True
     thr.start()
     time.sleep(5)
-    for _ in xrange(N):
+    for _ in range(N):
         state, c = sel.select(1000)
     diff = tracker.diff()
     cases = []
