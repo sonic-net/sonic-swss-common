@@ -84,7 +84,7 @@ for i = n, 1, -3 do
        op == 'get_stats' or
        op == 'clear_stats' or
        op == 'attribute_capability_query' or
-       op == 'attribute_capability_query_response' or
+       op == 'attribute_capability_response' or
        op == 'attr_enum_values_capability_query' or
        op == 'attr_enum_values_capability_response' or
        op == 'object_type_get_availability_query' or
