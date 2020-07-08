@@ -16,17 +16,11 @@ using namespace std;
 
 namespace swss {
 
-void SonicDBConfig::initialize(const string &file)
+void SonicDBConfig::parse_config(const string &file,
+                    std::unordered_map<std::string, SonicInstInfo> &inst_entry,
+                    std::unordered_map<std::string, SonicDBInfo> &db_entry,
+                    std::unordered_map<int, std::string> &separator_entry)
 {
-
-    SWSS_LOG_ENTER();
-
-    if (m_init)
-    {
-        SWSS_LOG_ERROR("SonicDBConfig already initialized");
-        throw runtime_error("SonicDBConfig already initialized");
-    }
-
     ifstream i(file);
     if (i.good())
     {
@@ -40,7 +34,7 @@ void SonicDBConfig::initialize(const string &file)
                string socket = it.value().at("unix_socket_path");
                string hostname = it.value().at("hostname");
                int port = it.value().at("port");
-               m_inst_info[instName] = {socket, {hostname, port}};
+               inst_entry[instName] = {socket, hostname, port};
             }
 
             for (auto it = j["DATABASES"].begin(); it!= j["DATABASES"].end(); it++)
@@ -49,12 +43,12 @@ void SonicDBConfig::initialize(const string &file)
                string instName = it.value().at("instance");
                int dbId = it.value().at("id");
                string separator = it.value().at("separator");
-               m_db_info[dbName] = {instName, dbId, separator};
+               db_entry[dbName] = {instName, dbId, separator};
 
-               m_db_separator.emplace(dbId, separator);
+               separator_entry.emplace(dbId, separator);
             }
-            m_init = true;
         }
+
         catch (domain_error& e)
         {
             SWSS_LOG_ERROR("key doesn't exist in json object, NULL value has no iterator >> %s\n", e.what());
@@ -73,32 +67,126 @@ void SonicDBConfig::initialize(const string &file)
     }
 }
 
-string SonicDBConfig::getDbInst(const string &dbName)
+void SonicDBConfig::initialize_global_config(const string &file)
 {
-    if (!m_init)
-        initialize();
-    return m_db_info.at(dbName).instName;
+    std::string local_file, ns_name;
+    std::unordered_map<std::string, SonicDBInfo> db_entry;
+    std::unordered_map<std::string, SonicInstInfo> inst_entry;
+    std::unordered_map<int, std::string> separator_entry;
+
+    SWSS_LOG_ENTER();
+
+    if (m_global_init)
+    {
+        SWSS_LOG_ERROR("SonicDBConfig Global config is already initialized");
+        return;
+    }
+
+    ifstream i(file);
+    if (i.good())
+    {
+        try
+        {
+            json j;
+            i >> j;
+
+            for (auto& element : j["INCLUDES"])
+            {
+                local_file.append(DEFAULT_SONIC_DB_CONFIG_DIR);
+                local_file.append(element["include"]);
+
+                if(element["namespace"].empty())
+                {
+                    ns_name = "";
+                }
+                else
+                {
+                    ns_name = element["namespace"];
+                }
+
+                parse_config(local_file, inst_entry, db_entry, separator_entry);
+                m_inst_info[ns_name] = inst_entry;
+                m_db_info[ns_name] = db_entry;
+                m_db_separator[ns_name] = separator_entry;
+
+                inst_entry.clear();
+                db_entry.clear();
+                separator_entry.clear();
+                local_file.clear();
+            }
+        }
+
+        catch (domain_error& e)
+        {
+            SWSS_LOG_ERROR("key doesn't exist in json object, NULL value has no iterator >> %s\n", e.what());
+            throw runtime_error("key doesn't exist in json object, NULL value has no iterator >> " + string(e.what()));
+        }
+        catch (exception &e)
+        {
+            SWSS_LOG_ERROR("Sonic database config file syntax error >> %s\n", e.what());
+            throw runtime_error("Sonic database config file syntax error >> " + string(e.what()));
+        }
+    }
+
+    // Set it as the global config file is already parsed and init done.
+    m_global_init = true;
 }
 
-int SonicDBConfig::getDbId(const string &dbName)
+void SonicDBConfig::initialize(const string &file, const string &nameSpace)
 {
-    if (!m_init)
-        initialize();
-    return m_db_info.at(dbName).dbId;
+    std::unordered_map<std::string, SonicDBInfo> db_entry;
+    std::unordered_map<std::string, SonicInstInfo> inst_entry;
+    std::unordered_map<int, std::string> separator_entry;
+
+    SWSS_LOG_ENTER();
+
+    if (m_init)
+    {
+        SWSS_LOG_ERROR("SonicDBConfig already initialized");
+        throw runtime_error("SonicDBConfig already initialized");
+    }
+
+    if(nameSpace.empty())
+    {
+        parse_config(file, inst_entry, db_entry, separator_entry);
+        m_inst_info[""] = inst_entry;
+        m_db_info[""] = db_entry;
+        m_db_separator[""] = separator_entry;
+    }
+    else
+        initialize_global_config();
+
+
+    // Set it as the config file is already parsed and init done.
+    m_init = true;
 }
 
-string SonicDBConfig::getSeparator(const string &dbName)
+string SonicDBConfig::getDbInst(const string &dbName, const string &nameSpace)
 {
     if (!m_init)
-        initialize();
-    return m_db_info.at(dbName).separator;
+        initialize(nameSpace);
+    return m_db_info[nameSpace].at(dbName).instName;
 }
 
-string SonicDBConfig::getSeparator(int dbId)
+int SonicDBConfig::getDbId(const string &dbName, const string &nameSpace)
 {
     if (!m_init)
-        initialize();
-    return m_db_separator.at(dbId);
+        initialize(nameSpace);
+    return m_db_info[nameSpace].at(dbName).dbId;
+}
+
+string SonicDBConfig::getSeparator(const string &dbName, const string &nameSpace)
+{
+    if (!m_init)
+        initialize(nameSpace);
+    return m_db_info[nameSpace].at(dbName).separator;
+}
+
+string SonicDBConfig::getSeparator(int dbId, const string &nameSpace)
+{
+    if (!m_init)
+        initialize(nameSpace);
+    return m_db_separator[nameSpace].at(dbId);
 }
 
 string SonicDBConfig::getSeparator(const DBConnector* db)
@@ -109,42 +197,61 @@ string SonicDBConfig::getSeparator(const DBConnector* db)
     }
 
     string dbName = db->getDbName();
+    string nameSpace = db->getNamespace();
     if (dbName.empty())
     {
-        return getSeparator(db->getDbId());
+        return getSeparator(db->getDbId(), nameSpace);
     }
     else
     {
-        return getSeparator(dbName);
+        return getSeparator(dbName, nameSpace);
     }
 }
 
-string SonicDBConfig::getDbSock(const string &dbName)
+string SonicDBConfig::getDbSock(const string &dbName, const string &nameSpace)
 {
     if (!m_init)
-        initialize();
-    return m_inst_info.at(getDbInst(dbName)).first;
+        initialize(nameSpace);
+    return m_inst_info[nameSpace].at(getDbInst(dbName)).socket;
 }
 
-string SonicDBConfig::getDbHostname(const string &dbName)
+string SonicDBConfig::getDbHostname(const string &dbName, const string &nameSpace)
 {
     if (!m_init)
-        initialize();
-    return m_inst_info.at(getDbInst(dbName)).second.first;
+        initialize(nameSpace);
+    return m_inst_info[nameSpace].at(getDbInst(dbName)).hostName;
 }
 
-int SonicDBConfig::getDbPort(const string &dbName)
+int SonicDBConfig::getDbPort(const string &dbName, const string &nameSpace)
 {
     if (!m_init)
-        initialize();
-    return m_inst_info.at(getDbInst(dbName)).second.second;
+        initialize(nameSpace);
+    return m_inst_info[nameSpace].at(getDbInst(dbName)).port;
+}
+
+vector<string> SonicDBConfig::getNamespaces()
+{
+    vector<string> list;
+
+    if (!m_global_init)
+        initialize_global_config();
+
+    for (auto it = m_inst_info.cbegin(); it != m_inst_info.cend(); ++it) {
+        if(!((it->first).empty()))
+            list.push_back(it->first);
+    }
+
+    return list;
 }
 
 constexpr const char *SonicDBConfig::DEFAULT_SONIC_DB_CONFIG_FILE;
-unordered_map<string, pair<string, pair<string, int>>> SonicDBConfig::m_inst_info;
-unordered_map<string, SonicDBInfo> SonicDBConfig::m_db_info;
-unordered_map<int, string> SonicDBConfig::m_db_separator;
+constexpr const char *SonicDBConfig::DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE;
+constexpr const char *SonicDBConfig::DEFAULT_SONIC_DB_CONFIG_DIR;
+unordered_map<string, unordered_map<string, SonicInstInfo>> SonicDBConfig::m_inst_info;
+unordered_map<string, unordered_map<string, SonicDBInfo>> SonicDBConfig::m_db_info;
+unordered_map<string, unordered_map<int, string>> SonicDBConfig::m_db_separator;
 bool SonicDBConfig::m_init = false;
+bool SonicDBConfig::m_global_init = false;
 
 constexpr const char *DBConnector::DEFAULT_UNIXSOCKET;
 
@@ -164,7 +271,8 @@ DBConnector::~DBConnector()
 
 DBConnector::DBConnector(int dbId, const string& hostname, int port,
                          unsigned int timeout) :
-    m_dbId(dbId)
+    m_dbId(dbId),
+    m_nameSpace("")
 {
     struct timeval tv = {0, (suseconds_t)timeout * 1000};
 
@@ -181,7 +289,8 @@ DBConnector::DBConnector(int dbId, const string& hostname, int port,
 }
 
 DBConnector::DBConnector(int dbId, const string& unixPath, unsigned int timeout) :
-    m_dbId(dbId)
+    m_dbId(dbId),
+    m_nameSpace("")
 {
     struct timeval tv = {0, (suseconds_t)timeout * 1000};
 
@@ -197,25 +306,26 @@ DBConnector::DBConnector(int dbId, const string& unixPath, unsigned int timeout)
     select(this);
 }
 
-DBConnector::DBConnector(const string& dbName, unsigned int timeout, bool isTcpConn)
-    : m_dbId(SonicDBConfig::getDbId(dbName))
+DBConnector::DBConnector(const string& dbName, unsigned int timeout, bool isTcpConn, const string& nameSpace)
+    : m_dbId(SonicDBConfig::getDbId(dbName, nameSpace))
     , m_dbName(dbName)
+    , m_nameSpace(nameSpace)
 {
     struct timeval tv = {0, (suseconds_t)timeout * 1000};
 
     if (timeout)
     {
         if (isTcpConn)
-            m_conn = redisConnectWithTimeout(SonicDBConfig::getDbHostname(dbName).c_str(), SonicDBConfig::getDbPort(dbName), tv);
+            m_conn = redisConnectWithTimeout(SonicDBConfig::getDbHostname(dbName, nameSpace).c_str(), SonicDBConfig::getDbPort(dbName, nameSpace), tv);
         else
-            m_conn = redisConnectUnixWithTimeout(SonicDBConfig::getDbSock(dbName).c_str(), tv);
+            m_conn = redisConnectUnixWithTimeout(SonicDBConfig::getDbSock(dbName, nameSpace).c_str(), tv);
     }
     else
     {
         if (isTcpConn)
-            m_conn = redisConnect(SonicDBConfig::getDbHostname(dbName).c_str(), SonicDBConfig::getDbPort(dbName));
+            m_conn = redisConnect(SonicDBConfig::getDbHostname(dbName, nameSpace).c_str(), SonicDBConfig::getDbPort(dbName, nameSpace));
         else
-            m_conn = redisConnectUnix(SonicDBConfig::getDbSock(dbName).c_str());
+            m_conn = redisConnectUnix(SonicDBConfig::getDbSock(dbName, nameSpace).c_str());
     }
 
     if (m_conn->err)
@@ -238,6 +348,11 @@ int DBConnector::getDbId() const
 string DBConnector::getDbName() const
 {
     return m_dbName;
+}
+
+string DBConnector::getNamespace() const
+{
+    return m_nameSpace;
 }
 
 DBConnector *DBConnector::newConnector(unsigned int timeout) const
