@@ -7,6 +7,7 @@
 #include <utility>
 
 #include <hiredis/hiredis.h>
+#define EMPTY_NAMESPACE ""
 
 namespace swss {
 
@@ -35,16 +36,16 @@ public:
                              std::unordered_map<std::string, SonicInstInfo> &inst_entry,
                              std::unordered_map<std::string, SonicDBInfo> &db_entry, 
                              std::unordered_map<int, std::string> &separator_entry);
-    static void initialize(const std::string &file = DEFAULT_SONIC_DB_CONFIG_FILE, const std::string &nameSpace = "");
+    static void initialize(const std::string &file = DEFAULT_SONIC_DB_CONFIG_FILE, const std::string &nameSpace = EMPTY_NAMESPACE);
     static void initialize_global_config(const std::string &file = DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE);
-    static std::string getDbInst(const std::string &dbName, const std::string &nameSpace = "");
-    static int getDbId(const std::string &dbName, const std::string &nameSpace = "");
-    static std::string getSeparator(const std::string &dbName, const std::string &nameSpace = "");
-    static std::string getSeparator(int dbId, const std::string &nameSpace = "");
+    static std::string getDbInst(const std::string &dbName, const std::string &nameSpace = EMPTY_NAMESPACE);
+    static int getDbId(const std::string &dbName, const std::string &nameSpace = EMPTY_NAMESPACE);
+    static std::string getSeparator(const std::string &dbName, const std::string &nameSpace = EMPTY_NAMESPACE);
+    static std::string getSeparator(int dbId, const std::string &nameSpace = EMPTY_NAMESPACE);
     static std::string getSeparator(const DBConnector* db);
-    static std::string getDbSock(const std::string &dbName, const std::string &nameSpace = "");
-    static std::string getDbHostname(const std::string &dbName, const std::string &nameSpace = "");
-    static int getDbPort(const std::string &dbName, const std::string &nameSpace = "");
+    static std::string getDbSock(const std::string &dbName, const std::string &nameSpace = EMPTY_NAMESPACE);
+    static std::string getDbHostname(const std::string &dbName, const std::string &nameSpace = EMPTY_NAMESPACE);
+    static int getDbPort(const std::string &dbName, const std::string &nameSpace = EMPTY_NAMESPACE);
     static std::vector<std::string> getNamespaces();
     static bool isInit() { return m_init; };
     static bool isGlobalInit() { return m_global_init; };
@@ -55,9 +56,9 @@ private:
     static constexpr const char *DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE = "/var/run/redis/sonic-db/database_global.json";
     // { namespace { instName, { unix_socket_path, hostname, port } } }
     static std::unordered_map<std::string, std::unordered_map<std::string, SonicInstInfo>> m_inst_info;
-    // { namespace, { dbName, {instName, dbId} } }
+    // { namespace, { dbName, {instName, dbId, separator} } }
     static std::unordered_map<std::string, std::unordered_map<std::string, SonicDBInfo>> m_db_info;
-    // { namespace, { dbIp, separator } }
+    // { namespace, { dbId, separator } }
     static std::unordered_map<std::string, std::unordered_map<int, std::string>> m_db_separator;
     static bool m_init;
     static bool m_global_init;
@@ -77,7 +78,7 @@ public:
      */
     DBConnector(int dbId, const std::string &hostname, int port, unsigned int timeout);
     DBConnector(int dbId, const std::string &unixPath, unsigned int timeout);
-    DBConnector(const std::string &dbName, unsigned int timeout, bool isTcpConn = false, const std::string &nameSpace = "");
+    DBConnector(const std::string &dbName, unsigned int timeout, bool isTcpConn = false, const std::string &nameSpace = EMPTY_NAMESPACE);
 
     ~DBConnector();
 

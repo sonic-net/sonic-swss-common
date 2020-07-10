@@ -97,7 +97,7 @@ void SonicDBConfig::initialize_global_config(const string &file)
 
                 if(element["namespace"].empty())
                 {
-                    ns_name = "";
+                    ns_name = EMPTY_NAMESPACE;
                 }
                 else
                 {
@@ -127,6 +127,11 @@ void SonicDBConfig::initialize_global_config(const string &file)
             throw runtime_error("Sonic database config file syntax error >> " + string(e.what()));
         }
     }
+    else
+    {
+        SWSS_LOG_ERROR("Sonic database global config file doesn't exist at %s\n", file.c_str());
+        throw runtime_error("Sonic database global config file doesn't exist at " + file);
+    }
 
     // Set it as the global config file is already parsed and init done.
     m_global_init = true;
@@ -146,16 +151,17 @@ void SonicDBConfig::initialize(const string &file, const string &nameSpace)
         throw runtime_error("SonicDBConfig already initialized");
     }
 
+    // namespace string is empty, use the file given as input to parse.
     if(nameSpace.empty())
     {
         parse_config(file, inst_entry, db_entry, separator_entry);
-        m_inst_info[""] = inst_entry;
-        m_db_info[""] = db_entry;
-        m_db_separator[""] = separator_entry;
+        m_inst_info[EMPTY_NAMESPACE] = inst_entry;
+        m_db_info[EMPTY_NAMESPACE] = db_entry;
+        m_db_separator[EMPTY_NAMESPACE] = separator_entry;
     }
     else
+        // namespace is not empty, use DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE.
         initialize_global_config();
-
 
     // Set it as the config file is already parsed and init done.
     m_init = true;
@@ -236,6 +242,7 @@ vector<string> SonicDBConfig::getNamespaces()
     if (!m_global_init)
         initialize_global_config();
 
+    // This API returns back non-empty namespaces.
     for (auto it = m_inst_info.cbegin(); it != m_inst_info.cend(); ++it) {
         if(!((it->first).empty()))
             list.push_back(it->first);
@@ -272,7 +279,7 @@ DBConnector::~DBConnector()
 DBConnector::DBConnector(int dbId, const string& hostname, int port,
                          unsigned int timeout) :
     m_dbId(dbId),
-    m_nameSpace("")
+    m_nameSpace(EMPTY_NAMESPACE)
 {
     struct timeval tv = {0, (suseconds_t)timeout * 1000};
 
@@ -290,7 +297,7 @@ DBConnector::DBConnector(int dbId, const string& hostname, int port,
 
 DBConnector::DBConnector(int dbId, const string& unixPath, unsigned int timeout) :
     m_dbId(dbId),
-    m_nameSpace("")
+    m_nameSpace(EMPTY_NAMESPACE)
 {
     struct timeval tv = {0, (suseconds_t)timeout * 1000};
 
