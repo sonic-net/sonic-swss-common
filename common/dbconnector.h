@@ -7,17 +7,17 @@
 #include <utility>
 
 #include <hiredis/hiredis.h>
-#define EMPTY_NAMESPACE ""
+#define EMPTY_NAMESPACE std::string()
 
 namespace swss {
 
 class DBConnector;
 
-class SonicInstInfo
+class RedisInstInfo
 {
 public:
-    std::string socket;
-    std::string hostName;
+    std::string unix_socket_path;
+    std::string hostname;
     int port;
 };
 
@@ -32,12 +32,8 @@ public:
 class SonicDBConfig
 {
 public:
-    static void parse_config(const std::string &file, 
-                             std::unordered_map<std::string, SonicInstInfo> &inst_entry,
-                             std::unordered_map<std::string, SonicDBInfo> &db_entry, 
-                             std::unordered_map<int, std::string> &separator_entry);
     static void initialize(const std::string &file = DEFAULT_SONIC_DB_CONFIG_FILE, const std::string &nameSpace = EMPTY_NAMESPACE);
-    static void initialize_global_config(const std::string &file = DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE);
+    static void initializeGlobalConfig(const std::string &file = DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE);
     static std::string getDbInst(const std::string &dbName, const std::string &nameSpace = EMPTY_NAMESPACE);
     static int getDbId(const std::string &dbName, const std::string &nameSpace = EMPTY_NAMESPACE);
     static std::string getSeparator(const std::string &dbName, const std::string &nameSpace = EMPTY_NAMESPACE);
@@ -55,13 +51,17 @@ private:
     static constexpr const char *DEFAULT_SONIC_DB_CONFIG_FILE = "/var/run/redis/sonic-db/database_config.json";
     static constexpr const char *DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE = "/var/run/redis/sonic-db/database_global.json";
     // { namespace { instName, { unix_socket_path, hostname, port } } }
-    static std::unordered_map<std::string, std::unordered_map<std::string, SonicInstInfo>> m_inst_info;
+    static std::unordered_map<std::string, std::unordered_map<std::string, RedisInstInfo>> m_inst_info;
     // { namespace, { dbName, {instName, dbId, separator} } }
     static std::unordered_map<std::string, std::unordered_map<std::string, SonicDBInfo>> m_db_info;
     // { namespace, { dbId, separator } }
     static std::unordered_map<std::string, std::unordered_map<int, std::string>> m_db_separator;
     static bool m_init;
     static bool m_global_init;
+    static void parseDatabaseConfig(const std::string &file,
+                                    std::unordered_map<std::string, RedisInstInfo> &inst_entry,
+                                    std::unordered_map<std::string, SonicDBInfo> &db_entry,
+                                    std::unordered_map<int, std::string> &separator_entry);
 };
 
 class DBConnector
@@ -104,7 +104,7 @@ private:
     redisContext *m_conn;
     int m_dbId;
     std::string m_dbName;
-    std::string m_nameSpace;
+    std::string m_namespace;
 };
 
 }
