@@ -34,7 +34,7 @@ int exec(const string &cmd, string &stdout)
     }
 
     int ret = pclose(pipe);
-    if (ret != 0)
+    if (ret == -1)
     {
         SWSS_LOG_ERROR("%s: %s", cmd.c_str(), strerror(errno));
     }
