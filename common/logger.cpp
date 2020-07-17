@@ -170,24 +170,37 @@ Logger::Priority Logger::getMinPrio()
 {
     Select select;
     DBConnector db("LOGLEVEL_DB", 0);
-    std::vector<std::shared_ptr<ConsumerStateTable>> selectables(m_settingChangeObservers.size());
-
-    for (const auto& i : m_settingChangeObservers)
-    {
-        std::shared_ptr<ConsumerStateTable> table = std::make_shared<ConsumerStateTable>(&db, i.first);
-        selectables.push_back(table);
-        select.addSelectable(table.get());
-    }
+    std::vector<std::shared_ptr<ConsumerStateTable>> selectables;
+    std::set<std::string> selectableKeys;
 
     while(true)
     {
+        if(selectableKeys.size() < m_settingChangeObservers.size())
+        {
+            for (const auto& i : m_settingChangeObservers)
+            {
+                if(selectableKeys.find(i.first) == selectableKeys.end())
+                {
+                    std::shared_ptr<ConsumerStateTable> table = std::make_shared<ConsumerStateTable>(&db, i.first);
+                    selectableKeys.insert(i.first);
+                    selectables.push_back(table);
+                    select.addSelectable(table.get());
+                }
+            }
+        }
+
         Selectable *selectable = nullptr;
 
-        int ret = select.select(&selectable);
+        int ret = select.select(&selectable, 1000);
 
         if (ret == Select::ERROR)
         {
             SWSS_LOG_NOTICE("%s select error %s", __PRETTY_FUNCTION__, strerror(errno));
+            continue;
+        }
+
+        if (ret == Select::TIMEOUT)
+        {
             continue;
         }
 
