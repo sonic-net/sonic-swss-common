@@ -170,20 +170,19 @@ Logger::Priority Logger::getMinPrio()
 {
     Select select;
     DBConnector db("LOGLEVEL_DB", 0);
-    std::vector<std::shared_ptr<ConsumerStateTable>> selectables;
-    std::set<std::string> selectableKeys;
+    std::map<std::string, std::shared_ptr<ConsumerStateTable>> selectables;
 
-    while(true)
+    while (true)
     {
-        if(selectableKeys.size() < m_settingChangeObservers.size())
+        if(selectables.size() < m_settingChangeObservers.size())
         {
             for (const auto& i : m_settingChangeObservers)
             {
-                if(selectableKeys.find(i.first) == selectableKeys.end())
+                std::string dbName = i.first;
+                if(selectables.find(dbName) == selectables.end())
                 {
-                    std::shared_ptr<ConsumerStateTable> table = std::make_shared<ConsumerStateTable>(&db, i.first);
-                    selectableKeys.insert(i.first);
-                    selectables.push_back(table);
+                    auto table = std::make_shared<ConsumerStateTable>(&db, dbName);
+                    selectables.insert(std::make_pair(dbName, table));
                     select.addSelectable(table.get());
                 }
             }
@@ -191,7 +190,8 @@ Logger::Priority Logger::getMinPrio()
 
         Selectable *selectable = nullptr;
 
-        int ret = select.select(&selectable, 1000);
+        /* TODO Resolve latency caused by timeout at initialization. */
+        int ret = select.select(&selectable, 1000); // Timeout if there is no data in 1000 ms.
 
         if (ret == Select::ERROR)
         {
@@ -201,6 +201,7 @@ Logger::Priority Logger::getMinPrio()
 
         if (ret == Select::TIMEOUT)
         {
+            SWSS_LOG_INFO("%s select timeout", __PRETTY_FUNCTION__);
             continue;
         }
 
