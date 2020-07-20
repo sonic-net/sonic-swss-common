@@ -35,7 +35,7 @@ public:
         cout<<"INIT: load local db config file, isInit = "<<SonicDBConfig::isInit()<<endl;
         EXPECT_TRUE(SonicDBConfig::isInit());
 
-        // Test the database_global.json file which is added newly.
+        // Test the database_global.json file
         // by default , global_init should be false
         cout<<"Default : isGlobalInit = "<<SonicDBConfig::isGlobalInit()<<endl;
         EXPECT_FALSE(SonicDBConfig::isGlobalInit());
@@ -44,11 +44,11 @@ public:
         try
         {
             cout<<"INIT: loading nonexisting global db config file"<<endl;
-            SonicDBConfig::initialize(global_nonexisting_file);
+            SonicDBConfig::initializeGlobalConfig(global_nonexisting_file);
         }
         catch (exception &e)
         {
-            EXPECT_TRUE(strstr(e.what(), "Sonic database global file doesn't exist"));
+            EXPECT_TRUE(strstr(e.what(), "Sonic database global config file doesn't exist"));
         }
         EXPECT_FALSE(SonicDBConfig::isGlobalInit());
 

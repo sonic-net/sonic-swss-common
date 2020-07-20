@@ -13,9 +13,9 @@ extern string global_existing_file;
 
 TEST(DBConnector, multi_ns_test)
 {
-    std::string local_file, ns_name;
-    vector<string> list;
-    vector<string> ns_list;
+    std::string local_file, dir_name, ns_name;
+    vector<string> namespaces;
+    vector<string> ns_names;
 
     // load global config file again, should throw exception with init already done
     try
@@ -34,9 +34,14 @@ TEST(DBConnector, multi_ns_test)
         json g;
         f >> g;
 
+        // Get the directory name from the file path given as input.
+        std::string::size_type pos = global_existing_file.rfind("/");
+        dir_name = global_existing_file.substr(0,pos+1);
+
         for (auto& element : g["INCLUDES"])
         {
-            local_file = element["include"];
+            local_file.append(dir_name);
+            local_file.append(element["include"]);
 
             if(element["namespace"].empty())
             {
@@ -45,11 +50,12 @@ TEST(DBConnector, multi_ns_test)
             else
             {
                 ns_name = element["namespace"];
-                list.push_back(ns_name);
+                namespaces.push_back(ns_name);
             }
 
             // parse config file
             ifstream i(local_file);
+
             if (i.good())
             {
                 json j;
@@ -83,11 +89,14 @@ TEST(DBConnector, multi_ns_test)
                    EXPECT_EQ(m_inst_info[instName].port, SonicDBConfig::getDbPort(dbName, ns_name));
                 }
             }
+             local_file.clear();
         }
     }
 
     // Get the namespaces from the database_global.json file and compare with the list we created here.
-    ns_list = SonicDBConfig::getNamespaces();
-    EXPECT_EQ(ns_list.size(), list.size());
-    EXPECT_TRUE(list == ns_list);
+    ns_names = SonicDBConfig::getNamespaces();
+    sort (namespaces.begin(), namespaces.end());
+    sort (ns_names.begin(), ns_names.end());
+    EXPECT_EQ(ns_names.size(), namespaces.size());
+    EXPECT_TRUE(namespaces == ns_names);
 }
