@@ -140,6 +140,8 @@ void SonicDBConfig::initializeGlobalConfig(const string &file)
 
     // Set it as the global config file is already parsed and init done.
     m_global_init = true;
+    // Make regular init also done
+    m_init = true;
 }
 
 void SonicDBConfig::initialize(const string &file, const string &nameSpace)
@@ -175,28 +177,28 @@ void SonicDBConfig::initialize(const string &file, const string &nameSpace)
 string SonicDBConfig::getDbInst(const string &dbName, const string &nameSpace)
 {
     if (!m_init)
-        initialize(nameSpace);
+        initialize(DEFAULT_SONIC_DB_CONFIG_FILE, nameSpace);
     return m_db_info[nameSpace].at(dbName).instName;
 }
 
 int SonicDBConfig::getDbId(const string &dbName, const string &nameSpace)
 {
     if (!m_init)
-        initialize(nameSpace);
+        initialize(DEFAULT_SONIC_DB_CONFIG_FILE, nameSpace);
     return m_db_info[nameSpace].at(dbName).dbId;
 }
 
 string SonicDBConfig::getSeparator(const string &dbName, const string &nameSpace)
 {
     if (!m_init)
-        initialize(nameSpace);
+        initialize(DEFAULT_SONIC_DB_CONFIG_FILE, nameSpace);
     return m_db_info[nameSpace].at(dbName).separator;
 }
 
 string SonicDBConfig::getSeparator(int dbId, const string &nameSpace)
 {
     if (!m_init)
-        initialize(nameSpace);
+        initialize(DEFAULT_SONIC_DB_CONFIG_FILE, nameSpace);
     return m_db_separator[nameSpace].at(dbId);
 }
 
@@ -222,21 +224,21 @@ string SonicDBConfig::getSeparator(const DBConnector* db)
 string SonicDBConfig::getDbSock(const string &dbName, const string &nameSpace)
 {
     if (!m_init)
-        initialize(nameSpace);
+        initialize(DEFAULT_SONIC_DB_CONFIG_FILE, nameSpace);
     return m_inst_info[nameSpace].at(getDbInst(dbName)).unix_socket_path;
 }
 
 string SonicDBConfig::getDbHostname(const string &dbName, const string &nameSpace)
 {
     if (!m_init)
-        initialize(nameSpace);
+        initialize(DEFAULT_SONIC_DB_CONFIG_FILE, nameSpace);
     return m_inst_info[nameSpace].at(getDbInst(dbName)).hostname;
 }
 
 int SonicDBConfig::getDbPort(const string &dbName, const string &nameSpace)
 {
     if (!m_init)
-        initialize(nameSpace);
+        initialize(DEFAULT_SONIC_DB_CONFIG_FILE, nameSpace);
     return m_inst_info[nameSpace].at(getDbInst(dbName)).port;
 }
 
@@ -369,16 +371,7 @@ string DBConnector::getNamespace() const
 DBConnector *DBConnector::newConnector(unsigned int timeout) const
 {
     DBConnector *ret;
-    if (getContext()->connection_type == REDIS_CONN_TCP)
-        ret = new DBConnector(getDbId(),
-                               getContext()->tcp.host,
-                               getContext()->tcp.port,
-                               timeout);
-    else
-        ret = new DBConnector(getDbId(),
-                               getContext()->unix_sock.path,
-                               timeout);
-    ret->m_dbName = m_dbName;
+    ret = new DBConnector(getDbName(), timeout, (getContext()->connection_type == REDIS_CONN_TCP), getNamespace());
     return ret;
 }
 
