@@ -69,7 +69,7 @@ void SonicDBConfig::parseDatabaseConfig(const string &file,
 
 void SonicDBConfig::initializeGlobalConfig(const string &file)
 {
-    std::string local_file, ns_name;
+    std::string local_file, dir_name, ns_name;
     std::unordered_map<std::string, SonicDBInfo> db_entry;
     std::unordered_map<std::string, RedisInstInfo> inst_entry;
     std::unordered_map<int, std::string> separator_entry;
@@ -82,9 +82,14 @@ void SonicDBConfig::initializeGlobalConfig(const string &file)
         return;
     }
 
+
     ifstream i(file);
     if (i.good())
     {
+        // Get the directory name from the file path given as input.
+        std::string::size_type pos = file.rfind("/");
+        dir_name = file.substr(0,pos+1);
+
         try
         {
             json j;
@@ -92,7 +97,7 @@ void SonicDBConfig::initializeGlobalConfig(const string &file)
 
             for (auto& element : j["INCLUDES"])
             {
-                local_file.append(DEFAULT_SONIC_DB_CONFIG_DIR);
+                local_file.append(dir_name);
                 local_file.append(element["include"]);
 
                 if(element["namespace"].empty())
@@ -253,7 +258,6 @@ vector<string> SonicDBConfig::getNamespaces()
 
 constexpr const char *SonicDBConfig::DEFAULT_SONIC_DB_CONFIG_FILE;
 constexpr const char *SonicDBConfig::DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE;
-constexpr const char *SonicDBConfig::DEFAULT_SONIC_DB_CONFIG_DIR;
 unordered_map<string, unordered_map<string, RedisInstInfo>> SonicDBConfig::m_inst_info;
 unordered_map<string, unordered_map<string, SonicDBInfo>> SonicDBConfig::m_db_info;
 unordered_map<string, unordered_map<int, string>> SonicDBConfig::m_db_separator;

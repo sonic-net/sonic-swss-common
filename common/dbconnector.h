@@ -47,7 +47,6 @@ public:
     static bool isGlobalInit() { return m_global_init; };
 
 private:
-    static constexpr const char *DEFAULT_SONIC_DB_CONFIG_DIR = "/var/run/redis/sonic-db/";
     static constexpr const char *DEFAULT_SONIC_DB_CONFIG_FILE = "/var/run/redis/sonic-db/database_config.json";
     static constexpr const char *DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE = "/var/run/redis/sonic-db/database_global.json";
     // { namespace { instName, { unix_socket_path, hostname, port } } }
