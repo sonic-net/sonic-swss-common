@@ -16,7 +16,7 @@ class DBConnector;
 class RedisInstInfo
 {
 public:
-    std::string unix_socket_path;
+    std::string unixSocketPath;
     std::string hostname;
     int port;
 };

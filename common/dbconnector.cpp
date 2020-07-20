@@ -225,7 +225,7 @@ string SonicDBConfig::getDbSock(const string &dbName, const string &nameSpace)
 {
     if (!m_init)
         initialize(DEFAULT_SONIC_DB_CONFIG_FILE, nameSpace);
-    return m_inst_info[nameSpace].at(getDbInst(dbName)).unix_socket_path;
+    return m_inst_info[nameSpace].at(getDbInst(dbName)).unixSocketPath;
 }
 
 string SonicDBConfig::getDbHostname(const string &dbName, const string &nameSpace)
