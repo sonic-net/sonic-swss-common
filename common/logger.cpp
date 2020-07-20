@@ -174,12 +174,12 @@ Logger::Priority Logger::getMinPrio()
 
     while (true)
     {
-        if(selectables.size() < m_settingChangeObservers.size())
+        if (selectables.size() < m_settingChangeObservers.size())
         {
             for (const auto& i : m_settingChangeObservers)
             {
                 std::string dbName = i.first;
-                if(selectables.find(dbName) == selectables.end())
+                if (selectables.find(dbName) == selectables.end())
                 {
                     auto table = std::make_shared<ConsumerStateTable>(&db, dbName);
                     selectables.insert(std::make_pair(dbName, table));
