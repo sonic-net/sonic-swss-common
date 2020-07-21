@@ -86,9 +86,14 @@ void SonicDBConfig::initializeGlobalConfig(const string &file)
     ifstream i(file);
     if (i.good())
     {
+        local_file = dir_name = std::string();
+
         // Get the directory name from the file path given as input.
         std::string::size_type pos = file.rfind("/");
-        dir_name = file.substr(0,pos+1);
+        if( pos != std::string::npos)
+        {
+            dir_name = file.substr(0,pos+1);
+        }
 
         try
         {
@@ -102,6 +107,13 @@ void SonicDBConfig::initializeGlobalConfig(const string &file)
 
                 if(element["namespace"].empty())
                 {
+                    // If database_config.json is already initlized via SonicDBConfig::initialize
+                    // skip initializing it here again.
+                    if(m_init)
+                    {
+                        local_file.clear();
+                        continue;
+                    }
                     ns_name = EMPTY_NAMESPACE;
                 }
                 else
@@ -140,6 +152,7 @@ void SonicDBConfig::initializeGlobalConfig(const string &file)
 
     // Set it as the global config file is already parsed and init done.
     m_global_init = true;
+
     // Make regular init also done
     m_init = true;
 }

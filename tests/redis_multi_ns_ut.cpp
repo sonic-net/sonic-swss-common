@@ -76,13 +76,13 @@ TEST(DBConnector, multi_ns_test)
                    string instName = it.value().at("instance");
                    int dbId = it.value().at("id");
                    cout<<"testing "<<dbName<<endl;
-                   cout<<instName<<"#"<<dbId<<"#"<<m_inst_info[instName].unix_socket_path<<"#"<<m_inst_info[instName].hostname<<"#"<<m_inst_info[instName].port<<endl;
+                   cout<<instName<<"#"<<dbId<<"#"<<m_inst_info[instName].unixSocketPath<<"#"<<m_inst_info[instName].hostname<<"#"<<m_inst_info[instName].port<<endl;
                    // dbInst info matches between get api and context in json file
                    EXPECT_EQ(instName, SonicDBConfig::getDbInst(dbName, ns_name));
                    // dbId info matches between get api and context in json file
                    EXPECT_EQ(dbId, SonicDBConfig::getDbId(dbName, ns_name));
                    // socket info matches between get api and context in json file
-                   EXPECT_EQ(m_inst_info[instName].unix_socket_path, SonicDBConfig::getDbSock(dbName, ns_name));
+                   EXPECT_EQ(m_inst_info[instName].unixSocketPath, SonicDBConfig::getDbSock(dbName, ns_name));
                    // hostname info matches between get api and context in json file
                    EXPECT_EQ(m_inst_info[instName].hostname, SonicDBConfig::getDbHostname(dbName, ns_name));
                    // port info matches between get api and context in json file
