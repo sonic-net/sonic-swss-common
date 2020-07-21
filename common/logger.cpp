@@ -178,11 +178,11 @@ Logger::Priority Logger::getMinPrio()
         {
             for (const auto& i : m_settingChangeObservers)
             {
-                std::string dbName = i.first;
+                const std::string &dbName = i.first;
                 if (selectables.find(dbName) == selectables.end())
                 {
                     auto table = std::make_shared<ConsumerStateTable>(&db, dbName);
-                    selectables.insert(std::make_pair(dbName, table));
+                    selectables.emplace(dbName, table);
                     select.addSelectable(table.get());
                 }
             }
