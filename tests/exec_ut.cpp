@@ -1,4 +1,5 @@
 #include "common/exec.h"
+#include "common/logger.h"
 #include "gtest/gtest.h"
 
 using namespace std;
@@ -28,9 +29,20 @@ TEST(EXEC, result)
 
 TEST(EXEC, error)
 {
+    Logger::setMinPrio(Logger::SWSS_DEBUG);
     string cmd = "nproc --aaall > /dev/null 2>&1";
 
     string result;
     int ret = exec(cmd, result);
     EXPECT_NE(ret, 0);
+
+    ret = exec("exit 0", result);
+    EXPECT_EQ(ret, 0);
+    ret = exec("exit 132", result);
+    EXPECT_EQ(ret, 132);
+    ret = exec("exit 255", result);
+    EXPECT_EQ(ret, 255);
+    ret = exec("exit 254", result);
+    EXPECT_EQ(ret, 254);
+    Logger::setMinPrio(Logger::SWSS_NOTICE);
 }
