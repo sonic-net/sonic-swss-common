@@ -9,10 +9,9 @@ using namespace std;
 
 namespace swss {
 
-const int buffsz = 128;
-
 int exec(const string &cmd, string &stdout)
 {
+    const int buffsz = 128;
     array<char, buffsz> buffer;
     FILE* pipe = popen(cmd.c_str(), "r");
 
@@ -39,7 +38,7 @@ int exec(const string &cmd, string &stdout)
     int status = pclose(pipe);
     if (status == -1)
     {
-        ret = -1;
+        ret = EXEC_ERROR_PCLOSE;
         SWSS_LOG_ERROR("%s: %s", cmd.c_str(), strerror(errno));
     }
     else if (WIFEXITED(status))
@@ -49,24 +48,24 @@ int exec(const string &cmd, string &stdout)
     }
     else if (WIFSIGNALED(status))
     {
-        ret = -2;
+        ret = EXEC_ERROR_SIGNALED;
         msg = "Killed with signal=" + to_string(WTERMSIG(status));
     }
     else if (WIFSTOPPED(status))
     {
-        ret = -3;
+        ret = EXEC_ERROR_STOPPED;
         msg = "Stopped with signal=" + to_string(WSTOPSIG(status));
     }
 #ifdef WIFCONTINUED     /* Not all implementations support this */
     else if (WIFCONTINUED(status))
     {
-        ret = -4;
+        ret = EXEC_ERROR_CONTINUED;
         msg = "Continued";
     }
 #endif
     else
     {
-        ret = -16;
+        ret = EXEC_ERROR_UNEXPECTED;
         msg = "Unexpected pclose ret=" + to_string(status);
     }
 

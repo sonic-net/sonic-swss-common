@@ -36,10 +36,11 @@ TEST(EXEC, error)
     int ret = exec(cmd, result);
     EXPECT_NE(ret, 0);
 
-    ret = exec("exit 0", result);
+    ret = exec("echo 'Happy exit with 0'; exit 0", result);
     EXPECT_EQ(ret, 0);
-    ret = exec("exit 132", result);
+    ret = exec("echo 'Sadly exit with 132'; exit 132", result);
     EXPECT_EQ(ret, 132);
+    EXPECT_EQ(result, "Sadly exit with 132\n");
     ret = exec("exit 255", result);
     EXPECT_EQ(ret, 255);
     ret = exec("exit 254", result);
