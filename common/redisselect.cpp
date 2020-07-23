@@ -16,7 +16,7 @@ int RedisSelect::getFd()
 {
     return m_subscribe->getContext()->fd;
 }
-int RedisSelect::getDbId()
+int RedisSelect::getDbConnectorId()
 {
     return m_subscribe->getDbId();
 }

@@ -58,7 +58,7 @@ public:
         return m_priority;
     }
 
-    virtual int getDbId()
+    virtual int getDbConnectorId()
     {
         return 0;
     }
