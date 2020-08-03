@@ -23,7 +23,7 @@ public:
 class SonicDBConfig
 {
 public:
-    static void initialize(const std::string &file = DEFAULT_SONIC_DB_CONFIG_FILE);
+    static void initialize(const std::string &file = "");
     static std::string getDbInst(const std::string &dbName);
     static int getDbId(const std::string &dbName);
     static std::string getSeparator(const std::string &dbName);
@@ -36,6 +36,7 @@ public:
 
 private:
     static constexpr const char *DEFAULT_SONIC_DB_CONFIG_FILE = "/var/run/redis/sonic-db/database_config.json";
+    static constexpr const char *SONIC_DB_CONFIG_FILE_ENV_VAL = "SONIC_DB_CONFIG_FILE";
     // { instName, { unix_socket_path, {hostname, port} } }
     static std::unordered_map<std::string, std::pair<std::string, std::pair<std::string, int>>> m_inst_info;
     // { dbName, {instName, dbId} }
