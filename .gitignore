@@ -59,8 +59,3 @@ m4/lt~obsolete.m4
 ###############
 common/swssloglevel
 tests/tests
-
-# IDE #
-#######
-.idea
-
