@@ -143,18 +143,17 @@ void SonicDBConfig::initializeGlobalConfig(const string &file)
             SWSS_LOG_ERROR("Sonic database config file syntax error >> %s\n", e.what());
             throw runtime_error("Sonic database config file syntax error >> " + string(e.what()));
         }
+
+        // Set it as the global config file is already parsed and init done.
+        m_global_init = true;
+
+        // Make regular init also done
+        m_init = true;
     }
     else
     {
-        SWSS_LOG_ERROR("Sonic database global config file doesn't exist at %s\n", file.c_str());
-        throw runtime_error("Sonic database global config file doesn't exist at " + file);
+        SWSS_LOG_ERROR("Sonic database config global file doesn't exist at %s\n", file.c_str());
     }
-
-    // Set it as the global config file is already parsed and init done.
-    m_global_init = true;
-
-    // Make regular init also done
-    m_init = true;
 }
 
 void SonicDBConfig::initialize(const string &file, const string &nameSpace)
@@ -165,32 +164,63 @@ void SonicDBConfig::initialize(const string &file, const string &nameSpace)
 
     SWSS_LOG_ENTER();
 
-    if (m_init)
-    {
-        SWSS_LOG_ERROR("SonicDBConfig already initialized");
-        throw runtime_error("SonicDBConfig already initialized");
-    }
-
     // namespace string is empty, use the file given as input to parse.
     if(nameSpace.empty())
     {
+        if (m_init)
+        {
+            SWSS_LOG_ERROR("SonicDBConfig already initialized");
+            throw runtime_error("SonicDBConfig already initialized");
+        }
+
         parseDatabaseConfig(file, inst_entry, db_entry, separator_entry);
         m_inst_info[EMPTY_NAMESPACE] = inst_entry;
         m_db_info[EMPTY_NAMESPACE] = db_entry;
         m_db_separator[EMPTY_NAMESPACE] = separator_entry;
+
+        // Set it as the config file is already parsed and init done.
+        m_init = true;
     }
     else
-        // namespace is not empty, use DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE.
-        initializeGlobalConfig();
+    {
+        // If global initialization is not done, ask user to initialize global DB Config first.
+        if (!m_global_init)
+        {
+            SWSS_LOG_ERROR("Initialize global DB config first using API SonicDBConfig::initializeGlobalConfig \n");
+            throw runtime_error("Initialize global DB config using API SonicDBConfig::initializeGlobalConfig");
+        }
+    }
+}
 
-    // Set it as the config file is already parsed and init done.
-    m_init = true;
+void SonicDBConfig::validateNamespace(const string &nameSpace)
+{
+    SWSS_LOG_ENTER();
+
+    // With valid namespace input and database_global.json is not loaded, ask user to initializeGlobalConfig first
+    if(!nameSpace.empty())
+    {
+        // If global initialization is not done, ask user to initialize global DB Config first.
+        if (!m_global_init)
+        {
+            SWSS_LOG_ERROR("Initialize global DB config first using API SonicDBConfig::initializeGlobalConfig \n");
+            throw runtime_error("Initialize global DB config using API SonicDBConfig::initializeGlobalConfig");
+        }
+
+        // Check if the namespace is valid, check if this is a key in either of this map
+        unordered_map<string, unordered_map<string, RedisInstInfo>>::const_iterator entry = m_inst_info.find(nameSpace);
+        if (entry == m_inst_info.end())
+        {
+            SWSS_LOG_ERROR("Namespace %s is not a valid namespace name in config file\n", nameSpace.c_str());
+            throw runtime_error("Namespace " + nameSpace + " is not a valid namespace name in config file");
+        }
+    }
 }
 
 string SonicDBConfig::getDbInst(const string &dbName, const string &nameSpace)
 {
     if (!m_init)
         initialize(DEFAULT_SONIC_DB_CONFIG_FILE, nameSpace);
+    validateNamespace(nameSpace);
     return m_db_info[nameSpace].at(dbName).instName;
 }
 
@@ -198,6 +228,7 @@ int SonicDBConfig::getDbId(const string &dbName, const string &nameSpace)
 {
     if (!m_init)
         initialize(DEFAULT_SONIC_DB_CONFIG_FILE, nameSpace);
+    validateNamespace(nameSpace);
     return m_db_info[nameSpace].at(dbName).dbId;
 }
 
@@ -205,6 +236,7 @@ string SonicDBConfig::getSeparator(const string &dbName, const string &nameSpace
 {
     if (!m_init)
         initialize(DEFAULT_SONIC_DB_CONFIG_FILE, nameSpace);
+    validateNamespace(nameSpace);
     return m_db_info[nameSpace].at(dbName).separator;
 }
 
@@ -212,6 +244,7 @@ string SonicDBConfig::getSeparator(int dbId, const string &nameSpace)
 {
     if (!m_init)
         initialize(DEFAULT_SONIC_DB_CONFIG_FILE, nameSpace);
+    validateNamespace(nameSpace);
     return m_db_separator[nameSpace].at(dbId);
 }
 
@@ -238,6 +271,7 @@ string SonicDBConfig::getDbSock(const string &dbName, const string &nameSpace)
 {
     if (!m_init)
         initialize(DEFAULT_SONIC_DB_CONFIG_FILE, nameSpace);
+    validateNamespace(nameSpace);
     return m_inst_info[nameSpace].at(getDbInst(dbName)).unixSocketPath;
 }
 
@@ -245,6 +279,7 @@ string SonicDBConfig::getDbHostname(const string &dbName, const string &nameSpac
 {
     if (!m_init)
         initialize(DEFAULT_SONIC_DB_CONFIG_FILE, nameSpace);
+    validateNamespace(nameSpace);
     return m_inst_info[nameSpace].at(getDbInst(dbName)).hostname;
 }
 
@@ -252,6 +287,7 @@ int SonicDBConfig::getDbPort(const string &dbName, const string &nameSpace)
 {
     if (!m_init)
         initialize(DEFAULT_SONIC_DB_CONFIG_FILE, nameSpace);
+    validateNamespace(nameSpace);
     return m_inst_info[nameSpace].at(getDbInst(dbName)).port;
 }
 
@@ -359,6 +395,12 @@ DBConnector::DBConnector(const string& dbName, unsigned int timeout, bool isTcpC
                            "Unable to connect to redis");
 
     select(this);
+}
+
+DBConnector::DBConnector(const string& dbName, unsigned int timeout, bool isTcpConn)
+    : DBConnector(dbName, timeout, isTcpConn, EMPTY_NAMESPACE)
+{
+    // Empty contructor
 }
 
 redisContext *DBConnector::getContext() const

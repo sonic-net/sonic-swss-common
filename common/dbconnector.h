@@ -34,6 +34,7 @@ class SonicDBConfig
 public:
     static void initialize(const std::string &file = DEFAULT_SONIC_DB_CONFIG_FILE, const std::string &nameSpace = EMPTY_NAMESPACE);
     static void initializeGlobalConfig(const std::string &file = DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE);
+    static void validateNamespace(const std::string &nameSpace);
     static std::string getDbInst(const std::string &dbName, const std::string &nameSpace = EMPTY_NAMESPACE);
     static int getDbId(const std::string &dbName, const std::string &nameSpace = EMPTY_NAMESPACE);
     static std::string getSeparator(const std::string &dbName, const std::string &nameSpace = EMPTY_NAMESPACE);
@@ -77,7 +78,8 @@ public:
      */
     DBConnector(int dbId, const std::string &hostname, int port, unsigned int timeout);
     DBConnector(int dbId, const std::string &unixPath, unsigned int timeout);
-    DBConnector(const std::string &dbName, unsigned int timeout, bool isTcpConn = false, const std::string &nameSpace = EMPTY_NAMESPACE);
+    DBConnector(const std::string &dbName, unsigned int timeout, bool isTcpConn = false);
+    DBConnector(const std::string &dbName, unsigned int timeout, bool isTcpConn, const std::string &nameSpace);
 
     ~DBConnector();
 

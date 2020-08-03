@@ -76,7 +76,7 @@ TEST(DBConnector, multi_ns_test)
                    string instName = it.value().at("instance");
                    int dbId = it.value().at("id");
                    cout<<"testing "<<dbName<<endl;
-                   cout<<instName<<"#"<<dbId<<"#"<<m_inst_info[instName].unixSocketPath<<"#"<<m_inst_info[instName].hostname<<"#"<<m_inst_info[instName].port<<endl;
+                   cout<<ns_name<<"#"<<dbId<<dbName<<"#"<<m_inst_info[instName].unixSocketPath<<"#"<<m_inst_info[instName].hostname<<"#"<<m_inst_info[instName].port<<endl;
                    // dbInst info matches between get api and context in json file
                    EXPECT_EQ(instName, SonicDBConfig::getDbInst(dbName, ns_name));
                    // dbId info matches between get api and context in json file
