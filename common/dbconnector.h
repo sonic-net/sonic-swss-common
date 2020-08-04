@@ -32,7 +32,7 @@ public:
 class SonicDBConfig
 {
 public:
-    static void initialize(const std::string &file = DEFAULT_SONIC_DB_CONFIG_FILE, const std::string &nameSpace = EMPTY_NAMESPACE);
+    static void initialize(const std::string &file = DEFAULT_SONIC_DB_CONFIG_FILE);
     static void initializeGlobalConfig(const std::string &file = DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE);
     static void validateNamespace(const std::string &nameSpace);
     static std::string getDbInst(const std::string &dbName, const std::string &nameSpace = EMPTY_NAMESPACE);

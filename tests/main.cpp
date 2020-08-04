@@ -8,7 +8,6 @@ using namespace swss;
 string existing_file = "./tests/redis_multi_db_ut_config/database_config.json";
 string nonexisting_file = "./tests/redis_multi_db_ut_config/database_config_nonexisting.json";
 string global_existing_file = "./tests/redis_multi_db_ut_config/database_global.json";
-string global_nonexisting_file = "./tests/redis_multi_db_ut_config/database_global_nonexisting.json";
 
 #define TEST_DB  "APPL_DB"
 #define TEST_NAMESPACE  "asic0"
@@ -55,11 +54,6 @@ public:
             EXPECT_TRUE(strstr(e.what(), "Initialize global DB config using API SonicDBConfig::initializeGlobalConfig"));
         }
 
-        // load nonexisting database_global.json file, no exception thrown, and global_init flag is still False.
-        cout<<"INIT: loading nonexisting global db config file"<<endl;
-        SonicDBConfig::initializeGlobalConfig(global_nonexisting_file);
-        EXPECT_FALSE(SonicDBConfig::isGlobalInit());
-
         // load local global file, init should be true
         SonicDBConfig::initializeGlobalConfig(global_existing_file);
         cout<<"INIT: load global db config file, isInit = "<<SonicDBConfig::isGlobalInit()<<endl;
@@ -75,6 +69,7 @@ public:
         {
             EXPECT_TRUE(strstr(e.what(), "Namespace invalid is not a valid namespace name in config file"));
         }
+
     }
 };
 
