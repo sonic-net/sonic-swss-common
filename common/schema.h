@@ -1,7 +1,9 @@
 #ifndef __SCHEMA__
 #define __SCHEMA__
 
+#ifdef __cplusplus
 namespace swss {
+#endif
 
 /***** DATABASE *****/
 
@@ -312,6 +314,8 @@ namespace swss {
 #define CFG_DTEL_QUEUE_REPORT_TABLE_NAME	"DTEL_QUEUE_REPORT"
 #define CFG_DTEL_EVENT_TABLE_NAME			"DTEL_EVENT"
 
+#ifdef __cplusplus
 }
+#endif
 
 #endif
