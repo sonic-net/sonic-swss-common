@@ -292,7 +292,7 @@ namespace swss {
 
 #define STATE_COPP_GROUP_TABLE_NAME                 "COPP_GROUP_TABLE"
 #define STATE_COPP_TRAP_TABLE_NAME                  "COPP_TRAP_TABLE"
-
+#define STATE_FG_ROUTE_TABLE_NAME                   "FG_ROUTE_TABLE"
 /***** MISC *****/
 
 #define IPV4_NAME "IPv4"
