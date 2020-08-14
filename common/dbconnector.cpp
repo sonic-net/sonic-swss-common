@@ -415,7 +415,27 @@ string DBConnector::getNamespace() const
 DBConnector *DBConnector::newConnector(unsigned int timeout) const
 {
     DBConnector *ret;
-    ret = new DBConnector(getDbName(), timeout, (getContext()->connection_type == REDIS_CONN_TCP), getNamespace());
+
+    // The DBConnector object created with the class constructors defined before Multi-DB, Multi-NS design,
+    // will have only dbId as valid, dbName is NULL.
+    if (m_dbName.empty())
+    {
+        if (getContext()->connection_type == REDIS_CONN_TCP)
+            ret = new DBConnector(getDbId(),
+                                   getContext()->tcp.host,
+                                   getContext()->tcp.port,
+                                   timeout);
+        else
+            ret = new DBConnector(getDbId(),
+                                   getContext()->unix_sock.path,
+                                   timeout);
+    }
+    else
+    {
+        ret = new DBConnector(getDbName(), timeout, (getContext()->connection_type == REDIS_CONN_TCP), getNamespace());
+    }
+
+    ret->m_dbName = m_dbName;
     return ret;
 }
 
