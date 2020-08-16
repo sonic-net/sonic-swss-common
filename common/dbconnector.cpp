@@ -417,8 +417,8 @@ DBConnector *DBConnector::newConnector(unsigned int timeout) const
     DBConnector *ret;
 
     // The DBConnector object created with the class constructors defined before Multi-DB, Multi-NS design,
-    // will have only dbId as valid, dbName is NULL.
-    if (m_dbName.empty())
+    // will have only dbId as valid. dbName, namespace is NULL. Additional checks for backward compatibility.
+    if (m_dbName.empty() || m_namespace.empty())
     {
         if (getContext()->connection_type == REDIS_CONN_TCP)
             ret = new DBConnector(getDbId(),
@@ -436,6 +436,8 @@ DBConnector *DBConnector::newConnector(unsigned int timeout) const
     }
 
     ret->m_dbName = m_dbName;
+    ret->m_namespace = m_namespace;
+
     return ret;
 }
 
