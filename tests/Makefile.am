@@ -27,7 +27,6 @@ tests_SOURCES = redis_ut.cpp                \
                 selectable_priority.cpp       \
                 warm_restart_ut.cpp         \
                 redis_multi_db_ut.cpp       \
-                redis_multi_ns_ut.cpp       \
                 main.cpp
 
 tests_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_GTEST) $(LIBNL_CFLAGS)
