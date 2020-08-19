@@ -146,18 +146,25 @@ void clearDB()
 void TableBasicTest(string tableName, bool useDbId = false)
 {
 
-    DBConnector db("TEST_DB", 0, true);
+    DBConnector *db;
+    DBConnector db1("TEST_DB", 0, true);
+
+    int dbId = db1.getDbId();
+
+    // Use dbId to construct a DBConnector
+    DBConnector db_dup(dbId, "localhost", 6379, 0);
+    cout << "db_dup separator: " << SonicDBConfig::getSeparator(&db_dup) << endl;
+
     if (useDbId)
     {
-        int dbId = db.getDbId();
-
-        // Use dbId to construct a DBConnector
-        DBConnector db_dup(dbId, "localhost", 6379, 0);
-        cout << "db_dup separator: " << SonicDBConfig::getSeparator(&db_dup) << endl;
-        db = db_dup;
+        db = &db_dup;
+    }
+    else
+    {
+        db = &db1;
     }
 
-    Table t(&db, tableName);
+    Table t(db, tableName);
 
     clearDB();
     cout << "Starting table manipulations" << endl;
