@@ -181,12 +181,12 @@ void SonicDBConfig::initialize(const string &file)
     m_init = true;
 }
 
-void SonicDBConfig::validateNamespace(const string &nameSpace)
+void SonicDBConfig::validateNamespace(const string &netns)
 {
     SWSS_LOG_ENTER();
 
     // With valid namespace input and database_global.json is not loaded, ask user to initializeGlobalConfig first
-    if(!nameSpace.empty())
+    if(!netns.empty())
     {
         // If global initialization is not done, ask user to initialize global DB Config first.
         if (!m_global_init)
@@ -196,45 +196,45 @@ void SonicDBConfig::validateNamespace(const string &nameSpace)
         }
 
         // Check if the namespace is valid, check if this is a key in either of this map
-        unordered_map<string, unordered_map<string, RedisInstInfo>>::const_iterator entry = m_inst_info.find(nameSpace);
+        unordered_map<string, unordered_map<string, RedisInstInfo>>::const_iterator entry = m_inst_info.find(netns);
         if (entry == m_inst_info.end())
         {
-            SWSS_LOG_ERROR("Namespace %s is not a valid namespace name in config file\n", nameSpace.c_str());
-            throw runtime_error("Namespace " + nameSpace + " is not a valid namespace name in config file");
+            SWSS_LOG_ERROR("Namespace %s is not a valid namespace name in config file\n", netns.c_str());
+            throw runtime_error("Namespace " + netns + " is not a valid namespace name in config file");
         }
     }
 }
 
-string SonicDBConfig::getDbInst(const string &dbName, const string &nameSpace)
+string SonicDBConfig::getDbInst(const string &dbName, const string &netns)
 {
     if (!m_init)
         initialize(DEFAULT_SONIC_DB_CONFIG_FILE);
-    validateNamespace(nameSpace);
-    return m_db_info[nameSpace].at(dbName).instName;
+    validateNamespace(netns);
+    return m_db_info[netns].at(dbName).instName;
 }
 
-int SonicDBConfig::getDbId(const string &dbName, const string &nameSpace)
+int SonicDBConfig::getDbId(const string &dbName, const string &netns)
 {
     if (!m_init)
         initialize(DEFAULT_SONIC_DB_CONFIG_FILE);
-    validateNamespace(nameSpace);
-    return m_db_info[nameSpace].at(dbName).dbId;
+    validateNamespace(netns);
+    return m_db_info[netns].at(dbName).dbId;
 }
 
-string SonicDBConfig::getSeparator(const string &dbName, const string &nameSpace)
+string SonicDBConfig::getSeparator(const string &dbName, const string &netns)
 {
     if (!m_init)
         initialize(DEFAULT_SONIC_DB_CONFIG_FILE);
-    validateNamespace(nameSpace);
-    return m_db_info[nameSpace].at(dbName).separator;
+    validateNamespace(netns);
+    return m_db_info[netns].at(dbName).separator;
 }
 
-string SonicDBConfig::getSeparator(int dbId, const string &nameSpace)
+string SonicDBConfig::getSeparator(int dbId, const string &netns)
 {
     if (!m_init)
         initialize(DEFAULT_SONIC_DB_CONFIG_FILE);
-    validateNamespace(nameSpace);
-    return m_db_separator[nameSpace].at(dbId);
+    validateNamespace(netns);
+    return m_db_separator[netns].at(dbId);
 }
 
 string SonicDBConfig::getSeparator(const DBConnector* db)
@@ -245,39 +245,39 @@ string SonicDBConfig::getSeparator(const DBConnector* db)
     }
 
     string dbName = db->getDbName();
-    string nameSpace = db->getNamespace();
+    string netns = db->getNamespace();
     if (dbName.empty())
     {
-        return getSeparator(db->getDbId(), nameSpace);
+        return getSeparator(db->getDbId(), netns);
     }
     else
     {
-        return getSeparator(dbName, nameSpace);
+        return getSeparator(dbName, netns);
     }
 }
 
-string SonicDBConfig::getDbSock(const string &dbName, const string &nameSpace)
+string SonicDBConfig::getDbSock(const string &dbName, const string &netns)
 {
     if (!m_init)
         initialize(DEFAULT_SONIC_DB_CONFIG_FILE);
-    validateNamespace(nameSpace);
-    return m_inst_info[nameSpace].at(getDbInst(dbName)).unixSocketPath;
+    validateNamespace(netns);
+    return m_inst_info[netns].at(getDbInst(dbName)).unixSocketPath;
 }
 
-string SonicDBConfig::getDbHostname(const string &dbName, const string &nameSpace)
+string SonicDBConfig::getDbHostname(const string &dbName, const string &netns)
 {
     if (!m_init)
         initialize(DEFAULT_SONIC_DB_CONFIG_FILE);
-    validateNamespace(nameSpace);
-    return m_inst_info[nameSpace].at(getDbInst(dbName)).hostname;
+    validateNamespace(netns);
+    return m_inst_info[netns].at(getDbInst(dbName)).hostname;
 }
 
-int SonicDBConfig::getDbPort(const string &dbName, const string &nameSpace)
+int SonicDBConfig::getDbPort(const string &dbName, const string &netns)
 {
     if (!m_init)
         initialize(DEFAULT_SONIC_DB_CONFIG_FILE);
-    validateNamespace(nameSpace);
-    return m_inst_info[nameSpace].at(getDbInst(dbName)).port;
+    validateNamespace(netns);
+    return m_inst_info[netns].at(getDbInst(dbName)).port;
 }
 
 vector<string> SonicDBConfig::getNamespaces()
@@ -357,26 +357,26 @@ DBConnector::DBConnector(int dbId, const string& unixPath, unsigned int timeout)
     select(this);
 }
 
-DBConnector::DBConnector(const string& dbName, unsigned int timeout, bool isTcpConn, const string& nameSpace)
-    : m_dbId(SonicDBConfig::getDbId(dbName, nameSpace))
+DBConnector::DBConnector(const string& dbName, unsigned int timeout, bool isTcpConn, const string& netns)
+    : m_dbId(SonicDBConfig::getDbId(dbName, netns))
     , m_dbName(dbName)
-    , m_namespace(nameSpace)
+    , m_namespace(netns)
 {
     struct timeval tv = {0, (suseconds_t)timeout * 1000};
 
     if (timeout)
     {
         if (isTcpConn)
-            m_conn = redisConnectWithTimeout(SonicDBConfig::getDbHostname(dbName, nameSpace).c_str(), SonicDBConfig::getDbPort(dbName, nameSpace), tv);
+            m_conn = redisConnectWithTimeout(SonicDBConfig::getDbHostname(dbName, netns).c_str(), SonicDBConfig::getDbPort(dbName, netns), tv);
         else
-            m_conn = redisConnectUnixWithTimeout(SonicDBConfig::getDbSock(dbName, nameSpace).c_str(), tv);
+            m_conn = redisConnectUnixWithTimeout(SonicDBConfig::getDbSock(dbName, netns).c_str(), tv);
     }
     else
     {
         if (isTcpConn)
-            m_conn = redisConnect(SonicDBConfig::getDbHostname(dbName, nameSpace).c_str(), SonicDBConfig::getDbPort(dbName, nameSpace));
+            m_conn = redisConnect(SonicDBConfig::getDbHostname(dbName, netns).c_str(), SonicDBConfig::getDbPort(dbName, netns));
         else
-            m_conn = redisConnectUnix(SonicDBConfig::getDbSock(dbName, nameSpace).c_str());
+            m_conn = redisConnectUnix(SonicDBConfig::getDbSock(dbName, netns).c_str());
     }
 
     if (m_conn->err)
@@ -416,24 +416,15 @@ DBConnector *DBConnector::newConnector(unsigned int timeout) const
 {
     DBConnector *ret;
 
-    // The DBConnector object created with the class constructors defined before Multi-DB, Multi-NS design,
-    // will have only dbId as valid. dbName, namespace is NULL. Additional checks for backward compatibility.
-    if (m_dbName.empty() || m_namespace.empty())
-    {
-        if (getContext()->connection_type == REDIS_CONN_TCP)
-            ret = new DBConnector(getDbId(),
-                                   getContext()->tcp.host,
-                                   getContext()->tcp.port,
-                                   timeout);
-        else
-            ret = new DBConnector(getDbId(),
-                                   getContext()->unix_sock.path,
-                                   timeout);
-    }
+    if (getContext()->connection_type == REDIS_CONN_TCP)
+        ret = new DBConnector(getDbId(),
+                               getContext()->tcp.host,
+                               getContext()->tcp.port,
+                               timeout);
     else
-    {
-        ret = new DBConnector(getDbName(), timeout, (getContext()->connection_type == REDIS_CONN_TCP), getNamespace());
-    }
+        ret = new DBConnector(getDbId(),
+                               getContext()->unix_sock.path,
+                               timeout);
 
     ret->m_dbName = m_dbName;
     ret->m_namespace = m_namespace;

@@ -34,15 +34,15 @@ class SonicDBConfig
 public:
     static void initialize(const std::string &file = DEFAULT_SONIC_DB_CONFIG_FILE);
     static void initializeGlobalConfig(const std::string &file = DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE);
-    static void validateNamespace(const std::string &nameSpace);
-    static std::string getDbInst(const std::string &dbName, const std::string &nameSpace = EMPTY_NAMESPACE);
-    static int getDbId(const std::string &dbName, const std::string &nameSpace = EMPTY_NAMESPACE);
-    static std::string getSeparator(const std::string &dbName, const std::string &nameSpace = EMPTY_NAMESPACE);
-    static std::string getSeparator(int dbId, const std::string &nameSpace = EMPTY_NAMESPACE);
+    static void validateNamespace(const std::string &netns);
+    static std::string getDbInst(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
+    static int getDbId(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
+    static std::string getSeparator(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
+    static std::string getSeparator(int dbId, const std::string &netns = EMPTY_NAMESPACE);
     static std::string getSeparator(const DBConnector* db);
-    static std::string getDbSock(const std::string &dbName, const std::string &nameSpace = EMPTY_NAMESPACE);
-    static std::string getDbHostname(const std::string &dbName, const std::string &nameSpace = EMPTY_NAMESPACE);
-    static int getDbPort(const std::string &dbName, const std::string &nameSpace = EMPTY_NAMESPACE);
+    static std::string getDbSock(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
+    static std::string getDbHostname(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
+    static int getDbPort(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
     static std::vector<std::string> getNamespaces();
     static bool isInit() { return m_init; };
     static bool isGlobalInit() { return m_global_init; };
@@ -79,7 +79,7 @@ public:
     DBConnector(int dbId, const std::string &hostname, int port, unsigned int timeout);
     DBConnector(int dbId, const std::string &unixPath, unsigned int timeout);
     DBConnector(const std::string &dbName, unsigned int timeout, bool isTcpConn = false);
-    DBConnector(const std::string &dbName, unsigned int timeout, bool isTcpConn, const std::string &nameSpace);
+    DBConnector(const std::string &dbName, unsigned int timeout, bool isTcpConn, const std::string &netns);
 
     ~DBConnector();
 
