@@ -28,6 +28,22 @@ TEST(DBConnector, multi_ns_test)
         EXPECT_TRUE(strstr(e.what(), "SonicDBConfig already initialized"));
     }
 
+    //Invalid DB name input, with the namespace input.
+    cout<<"GET: invalid dbname input for getDbInst()"<<endl;
+    EXPECT_THROW(SonicDBConfig::getDbInst("INVALID_DBNAME", EMPTY_NAMESPACE), out_of_range);
+
+    cout<<"GET: invalid dbname input for getDbId()"<<endl;
+    EXPECT_THROW(SonicDBConfig::getDbId("INVALID_DBNAME", EMPTY_NAMESPACE), out_of_range);
+
+    cout<<"GET: invalid dbname input for getDbSock()"<<endl;
+    EXPECT_THROW(SonicDBConfig::getDbSock("INVALID_DBNAME", EMPTY_NAMESPACE), out_of_range);
+
+    cout<<"GET: invalid dbname input for getDbHostname()"<<endl;
+    EXPECT_THROW(SonicDBConfig::getDbHostname("INVALID_DBNAME", EMPTY_NAMESPACE), out_of_range);
+
+    cout<<"GET: invalid dbname input for getDbPort()"<<endl;
+    EXPECT_THROW(SonicDBConfig::getDbPort("INVALID_DBNAME", EMPTY_NAMESPACE), out_of_range);
+
     ifstream f(global_existing_file);
     if (f.good())
     {

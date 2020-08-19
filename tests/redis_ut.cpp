@@ -142,15 +142,20 @@ void clearDB()
     r.checkStatusOK();
 }
 
-void TableBasicTest(string tableName)
+// Add "useDbId" to test connector objects made with dbId/dbName
+void TableBasicTest(string tableName, bool useDbId = false)
 {
 
     DBConnector db("TEST_DB", 0, true);
-    int dbId = db.getDbId();
+    if (useDbId)
+    {
+        int dbId = db.getDbId();
 
-    // Test we can still use dbId to construct a DBConnector
-    DBConnector db_dup(dbId, "localhost", 6379, 0);
-    cout << "db_dup separator: " << SonicDBConfig::getSeparator(&db_dup) << endl;
+        // Use dbId to construct a DBConnector
+        DBConnector db_dup(dbId, "localhost", 6379, 0);
+        cout << "db_dup separator: " << SonicDBConfig::getSeparator(&db_dup) << endl;
+        db = db_dup;
+    }
 
     Table t(&db, tableName);
 
@@ -656,19 +661,22 @@ TEST(DBConnector, selectabletimer)
 
 TEST(Table, basic)
 {
-    TableBasicTest("TABLE_UT_TEST");
+    TableBasicTest("TABLE_UT_TEST", true);
+    TableBasicTest("TABLE_UT_TEST", false);
 }
 
 TEST(Table, separator_in_table_name)
 {
     std::string tableName = "TABLE_UT|TEST";
 
-    TableBasicTest(tableName);
+    TableBasicTest(tableName, true);
+    TableBasicTest(tableName, false);
 }
 
 TEST(Table, table_separator_test)
 {
-    TableBasicTest("TABLE_UT_TEST");
+    TableBasicTest("TABLE_UT_TEST", true);
+    TableBasicTest("TABLE_UT_TEST", false);
 }
 
 TEST(ProducerConsumer, Prefix)
