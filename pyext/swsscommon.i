@@ -64,9 +64,11 @@ swss::RedisSelect *CastSelectableToRedisSelectObj(swss::Selectable *temp) {
 
 %apply std::vector<std::string>& OUTPUT {std::vector<std::string> &keys};
 %apply std::vector<std::pair<std::string, std::string>>& OUTPUT {std::vector<std::pair<std::string, std::string>> &ovalues};
+%apply std::string& OUTPUT {std::string &value};
 %include "table.h"
 %clear std::vector<std::string> &keys;
 %clear std::vector<std::pair<std::string, std::string>> &values;
+%clear std::string &value;
 
 %include "producertable.h"
 %include "producerstatetable.h"
