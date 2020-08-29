@@ -8,6 +8,8 @@
 #include <algorithm>
 #include "logger.h"
 #include "rediscommand.h"
+#include "redisreply.h"
+#include "dbconnector.h"
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -15,7 +17,7 @@
 
 namespace swss {
 
-static inline std::string loadRedisScript(DBConnector* db, const std::string& script)
+static inline std::string loadRedisScript(RedisConnector* db, const std::string& script)
 {
     SWSS_LOG_ENTER();
 
@@ -64,7 +66,7 @@ static inline std::string loadLuaScript(const std::string& path)
     return readTextFile("/usr/share/swss/" + path);
 }
 
-static inline std::set<std::string> runRedisScript(DBConnector &db, const std::string& sha,
+static inline std::set<std::string> runRedisScript(RedisConnector &db, const std::string& sha,
         const std::vector<std::string>& keys, const std::vector<std::string>& argv)
 {
     SWSS_LOG_ENTER();
