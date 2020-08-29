@@ -28,7 +28,7 @@ inline void guard(FUNC func, const char* command)
     }
 }
 
-RedisReply::RedisReply(DBConnector *db, const RedisCommand& command)
+RedisReply::RedisReply(RedisConnector *db, const RedisCommand& command)
 {
     int rc = redisAppendFormattedCommand(db->getContext(), command.c_str(), command.length());
     if (rc != REDIS_OK)
@@ -46,7 +46,7 @@ RedisReply::RedisReply(DBConnector *db, const RedisCommand& command)
     guard([&]{checkReply();}, command.c_str());
 }
 
-RedisReply::RedisReply(DBConnector *db, const string &command)
+RedisReply::RedisReply(RedisConnector *db, const string &command)
 {
     int rc = redisAppendCommand(db->getContext(), command.c_str());
     if (rc != REDIS_OK)
@@ -64,13 +64,13 @@ RedisReply::RedisReply(DBConnector *db, const string &command)
     guard([&]{checkReply();}, command.c_str());
 }
 
-RedisReply::RedisReply(DBConnector *db, const RedisCommand& command, int expectedType)
+RedisReply::RedisReply(RedisConnector *db, const RedisCommand& command, int expectedType)
     : RedisReply(db, command)
 {
     guard([&]{checkReplyType(expectedType);}, command.c_str());
 }
 
-RedisReply::RedisReply(DBConnector *db, const string &command, int expectedType)
+RedisReply::RedisReply(RedisConnector *db, const string &command, int expectedType)
     : RedisReply(db, command)
 {
     guard([&]{checkReplyType(expectedType);}, command.c_str());
