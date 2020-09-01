@@ -35,6 +35,12 @@
 %typemap(in, numinputs=0) swss::Selectable ** (swss::Selectable *temp) {
     $1 = &temp;
 }
+
+%inline %{
+swss::RedisSelect *CastSelectableToRedisSelectObj(swss::Selectable *temp) {
+  return dynamic_cast<swss::RedisSelect *>(temp);
+}
+%}
 %typemap(argout) swss::Selectable ** {
     PyObject* temp = NULL;
     if (!PyList_Check($result)) {
