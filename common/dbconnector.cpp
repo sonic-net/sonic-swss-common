@@ -370,18 +370,18 @@ unordered_map<string, unordered_map<int, string>> SonicDBConfig::m_db_separator;
 bool SonicDBConfig::m_init = false;
 bool SonicDBConfig::m_global_init = false;
 
-constexpr const char *RedisConnector::DEFAULT_UNIXSOCKET;
+constexpr const char *RedisContext::DEFAULT_UNIXSOCKET;
 
-RedisConnector::~RedisConnector()
+RedisContext::~RedisContext()
 {
     redisFree(m_conn);
 }
 
-RedisConnector::RedisConnector()
+RedisContext::RedisContext()
 {
 }
 
-RedisConnector::RedisConnector(const RedisConnector &other)
+RedisContext::RedisContext(const RedisContext &other)
 {
     auto octx = other.getContext();
     const char *unixPath = octx->unix_sock.path;
@@ -395,20 +395,20 @@ RedisConnector::RedisConnector(const RedisConnector &other)
     }
 }
 
-RedisConnector::RedisConnector(const string& hostname, int port,
+RedisContext::RedisContext(const string& hostname, int port,
                          unsigned int timeout)
 {
     struct timeval tv = {0, (suseconds_t)timeout * 1000};
     initContext(hostname.c_str(), port, tv);
 }
 
-RedisConnector::RedisConnector(const string& unixPath, unsigned int timeout)
+RedisContext::RedisContext(const string& unixPath, unsigned int timeout)
 {
     struct timeval tv = {0, (suseconds_t)timeout * 1000};
     initContext(unixPath.c_str(), tv);
 }
 
-void RedisConnector::initContext(const char *host, int port, const timeval& tv)
+void RedisContext::initContext(const char *host, int port, const timeval& tv)
 {
     m_conn = redisConnectWithTimeout(host, port, tv);
 
@@ -417,7 +417,7 @@ void RedisConnector::initContext(const char *host, int port, const timeval& tv)
                            "Unable to connect to redis");
 }
 
-void RedisConnector::initContext(const char *path, const timeval &tv)
+void RedisContext::initContext(const char *path, const timeval &tv)
 {
     m_conn = redisConnectUnixWithTimeout(path, tv);
 
@@ -426,17 +426,17 @@ void RedisConnector::initContext(const char *path, const timeval &tv)
                            "Unable to connect to redis (unix-socket)");
 }
 
-redisContext *RedisConnector::getContext() const
+redisContext *RedisContext::getContext() const
 {
     return m_conn;
 }
 
-void RedisConnector::setContext(redisContext *conn)
+void RedisContext::setContext(redisContext *ctx)
 {
-    m_conn = conn;
+    m_conn = ctx;
 }
 
-void RedisConnector::setClientName(const string& clientName)
+void RedisContext::setClientName(const string& clientName)
 {
     string command("CLIENT SETNAME ");
     command += clientName;
@@ -445,7 +445,7 @@ void RedisConnector::setClientName(const string& clientName)
     r.checkStatusOK();
 }
 
-string RedisConnector::getClientName()
+string RedisContext::getClientName()
 {
     string command("CLIENT GETNAME");
 
@@ -476,7 +476,7 @@ void DBConnector::select(DBConnector *db)
 
 DBConnector::DBConnector(int dbId, const string& hostname, int port,
                          unsigned int timeout) :
-    RedisConnector(hostname, port, timeout),
+    RedisContext(hostname, port, timeout),
     m_dbId(dbId),
     m_namespace(EMPTY_NAMESPACE)
 {
@@ -484,7 +484,7 @@ DBConnector::DBConnector(int dbId, const string& hostname, int port,
 }
 
 DBConnector::DBConnector(int dbId, const string& unixPath, unsigned int timeout) :
-    RedisConnector(unixPath, timeout),
+    RedisContext(unixPath, timeout),
     m_dbId(dbId),
     m_namespace(EMPTY_NAMESPACE)
 {

@@ -40,8 +40,8 @@ public:
      * Send a new command to redis and wait for reply
      * No reply type specified.
      */
-    RedisReply(RedisConnector *db, const RedisCommand& command);
-    RedisReply(RedisConnector *db, const std::string &command);
+    RedisReply(RedisContext *ctx, const RedisCommand& command);
+    RedisReply(RedisContext *ctx, const std::string &command);
     /*
      * Send a new command to redis and waits for reply
      * The reply must be one of REDIS_REPLY_* format (e.g. REDIS_REPLY_STATUS,
@@ -49,8 +49,8 @@ public:
      * isFormatted - Set to true if the command is already formatted in redis
      *               protocol
      */
-    RedisReply(RedisConnector *db, const RedisCommand& command, int expectedType);
-    RedisReply(RedisConnector *db, const std::string &command, int expectedType);
+    RedisReply(RedisContext *ctx, const RedisCommand& command, int expectedType);
+    RedisReply(RedisContext *ctx, const std::string &command, int expectedType);
 
     /* auto_ptr for native structue (Free the memory on destructor) */
     RedisReply(redisReply *reply);

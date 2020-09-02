@@ -69,7 +69,7 @@ private:
     static RedisInstInfo& getRedisInfo(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
 };
 
-class RedisConnector
+class RedisContext
 {
 public:
     static constexpr const char *DEFAULT_UNIXSOCKET = "/var/run/redis/redis.sock";
@@ -81,11 +81,11 @@ public:
      * Timeout - The time in milisecond until exception is been thrown. For
      *           infinite wait, set this value to 0
      */
-    RedisConnector(const std::string &hostname, int port, unsigned int timeout);
-    RedisConnector(const std::string &unixPath, unsigned int timeout);
-    RedisConnector(const RedisConnector &other);
+    RedisContext(const std::string &hostname, int port, unsigned int timeout);
+    RedisContext(const std::string &unixPath, unsigned int timeout);
+    RedisContext(const RedisContext &other);
 
-    ~RedisConnector();
+    ~RedisContext();
 
     redisContext *getContext() const;
 
@@ -132,16 +132,16 @@ public:
     std::shared_ptr<std::string> blpop(const std::string &list, int timeout);
 
 protected:
-    RedisConnector();
+    RedisContext();
     void initContext(const char *host, int port, const timeval& tv);
     void initContext(const char *path, const timeval &tv);
-    void setContext(redisContext *conn);
+    void setContext(redisContext *ctx);
 
 private:
     redisContext *m_conn;
 };
 
-class DBConnector : public RedisConnector
+class DBConnector : public RedisContext
 {
 public:
     static constexpr const char *DEFAULT_UNIXSOCKET = "/var/run/redis/redis.sock";
