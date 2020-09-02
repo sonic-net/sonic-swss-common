@@ -58,16 +58,6 @@ public:
         return m_priority;
     }
 
-    virtual int getDbConnectorId()
-    {
-        return 0;
-    }
-
-    virtual std::string getDbNamespace()
-    {
-        return std::string();
-    }
-
 private:
 
     friend class Select;
