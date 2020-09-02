@@ -35,6 +35,7 @@
 %typemap(in, numinputs=0) swss::Selectable ** (swss::Selectable *temp) {
     $1 = &temp;
 }
+
 %typemap(argout) swss::Selectable ** {
     PyObject* temp = NULL;
     if (!PyList_Check($result)) {
@@ -45,6 +46,13 @@
     temp = SWIG_NewPointerObj(*$1, SWIGTYPE_p_swss__Selectable, 0);
     SWIG_Python_AppendOutput($result, temp);
 }
+
+%inline %{
+swss::RedisSelect *CastSelectableToRedisSelectObj(swss::Selectable *temp) {
+  return dynamic_cast<swss::RedisSelect *>(temp);
+}
+%}
+
 %include "schema.h"
 %include "dbconnector.h"
 %include "selectable.h"
