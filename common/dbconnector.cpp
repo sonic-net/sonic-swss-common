@@ -396,8 +396,7 @@ RedisConnector::RedisConnector(const RedisConnector &other)
 }
 
 RedisConnector::RedisConnector(const string& hostname, int port,
-                         unsigned int timeout) :
-    m_namespace(EMPTY_NAMESPACE)
+                         unsigned int timeout)
 {
     struct timeval tv = {0, (suseconds_t)timeout * 1000};
     initContext(hostname.c_str(), port, tv);
@@ -435,16 +434,6 @@ redisContext *RedisConnector::getContext() const
 void RedisConnector::setContext(redisContext *conn)
 {
     m_conn = conn;
-}
-
-string RedisConnector::getNamespace() const
-{
-    return m_namespace;
-}
-
-void RedisConnector::setNamespace(const string& netns)
-{
-    m_namespace = netns;
 }
 
 void RedisConnector::setClientName(const string& clientName)
@@ -488,14 +477,16 @@ void DBConnector::select(DBConnector *db)
 DBConnector::DBConnector(int dbId, const string& hostname, int port,
                          unsigned int timeout) :
     RedisConnector(hostname, port, timeout),
-    m_dbId(dbId)
+    m_dbId(dbId),
+    m_namespace(EMPTY_NAMESPACE)
 {
     select(this);
 }
 
 DBConnector::DBConnector(int dbId, const string& unixPath, unsigned int timeout) :
     RedisConnector(unixPath, timeout),
-    m_dbId(dbId)
+    m_dbId(dbId),
+    m_namespace(EMPTY_NAMESPACE)
 {
     select(this);
 }
@@ -503,6 +494,7 @@ DBConnector::DBConnector(int dbId, const string& unixPath, unsigned int timeout)
 DBConnector::DBConnector(const string& dbName, unsigned int timeout, bool isTcpConn, const string& netns)
     : m_dbId(SonicDBConfig::getDbId(dbName, netns))
     , m_dbName(dbName)
+    , m_namespace(netns)
 {
     struct timeval tv = {0, (suseconds_t)timeout * 1000};
 
@@ -515,7 +507,6 @@ DBConnector::DBConnector(const string& dbName, unsigned int timeout, bool isTcpC
         initContext(SonicDBConfig::getDbSock(dbName, netns).c_str(), tv);
     }
 
-    setNamespace(netns);
     select(this);
 }
 
@@ -533,6 +524,16 @@ int DBConnector::getDbId() const
 string DBConnector::getDbName() const
 {
     return m_dbName;
+}
+
+void DBConnector::setNamespace(const string& netns)
+{
+    m_namespace = netns;
+}
+
+string DBConnector::getNamespace() const
+{
+    return m_namespace;
 }
 
 DBConnector *DBConnector::newConnector(unsigned int timeout) const

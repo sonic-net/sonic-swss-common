@@ -88,7 +88,6 @@ public:
     ~RedisConnector();
 
     redisContext *getContext() const;
-    std::string getNamespace() const;
 
     /*
      * Assign a name to the Redis client used for this connection
@@ -137,11 +136,9 @@ protected:
     void initContext(const char *host, int port, const timeval& tv);
     void initContext(const char *path, const timeval &tv);
     void setContext(redisContext *conn);
-    void setNamespace(const std::string &netns);
 
 private:
     redisContext *m_conn;
-    std::string m_namespace;
 };
 
 class DBConnector : public RedisConnector
@@ -163,6 +160,7 @@ public:
 
     int getDbId() const;
     std::string getDbName() const;
+    std::string getNamespace() const;
 
     static void select(DBConnector *db);
 
@@ -170,8 +168,11 @@ public:
     DBConnector *newConnector(unsigned int timeout) const;
 
 private:
+    void setNamespace(const std::string &netns);
+
     int m_dbId;
     std::string m_dbName;
+    std::string m_namespace;
 };
 
 template<typename OutputIterator>
