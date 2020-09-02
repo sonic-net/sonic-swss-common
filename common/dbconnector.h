@@ -83,6 +83,7 @@ public:
      */
     RedisConnector(const std::string &hostname, int port, unsigned int timeout);
     RedisConnector(const std::string &unixPath, unsigned int timeout);
+    RedisConnector(const RedisConnector &other);
 
     ~RedisConnector();
 
@@ -133,6 +134,8 @@ public:
 
 protected:
     RedisConnector();
+    void initContext(const char *host, int port, const timeval& tv);
+    void initContext(const char *path, const timeval &tv);
     void setContext(redisContext *conn);
     void setNamespace(const std::string &netns);
 

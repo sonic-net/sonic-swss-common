@@ -381,30 +381,46 @@ RedisConnector::RedisConnector()
 {
 }
 
+RedisConnector::RedisConnector(const RedisConnector &other)
+{
+    auto octx = other.getContext();
+    const char *unixPath = octx->unix_sock.path;
+    if (unixPath)
+    {
+        initContext(unixPath, *octx->timeout);
+    }
+    else
+    {
+        initContext(octx->tcp.host, octx->tcp.port, *octx->timeout);
+    }
+}
+
 RedisConnector::RedisConnector(const string& hostname, int port,
                          unsigned int timeout) :
     m_namespace(EMPTY_NAMESPACE)
 {
     struct timeval tv = {0, (suseconds_t)timeout * 1000};
+    initContext(hostname.c_str(), port, tv);
+}
 
-    if (timeout)
-        m_conn = redisConnectWithTimeout(hostname.c_str(), port, tv);
-    else
-        m_conn = redisConnect(hostname.c_str(), port);
+RedisConnector::RedisConnector(const string& unixPath, unsigned int timeout)
+{
+    struct timeval tv = {0, (suseconds_t)timeout * 1000};
+    initContext(unixPath.c_str(), tv);
+}
+
+void RedisConnector::initContext(const char *host, int port, const timeval& tv)
+{
+    m_conn = redisConnectWithTimeout(host, port, tv);
 
     if (m_conn->err)
         throw system_error(make_error_code(errc::address_not_available),
                            "Unable to connect to redis");
 }
 
-RedisConnector::RedisConnector(const string& unixPath, unsigned int timeout)
+void RedisConnector::initContext(const char *path, const timeval &tv)
 {
-    struct timeval tv = {0, (suseconds_t)timeout * 1000};
-
-    if (timeout)
-        m_conn = redisConnectUnixWithTimeout(unixPath.c_str(), tv);
-    else
-        m_conn = redisConnectUnix(unixPath.c_str());
+    m_conn = redisConnectUnixWithTimeout(path, tv);
 
     if (m_conn->err)
         throw system_error(make_error_code(errc::address_not_available),
