@@ -506,26 +506,15 @@ DBConnector::DBConnector(const string& dbName, unsigned int timeout, bool isTcpC
 {
     struct timeval tv = {0, (suseconds_t)timeout * 1000};
 
-    redisContext *conn;
-    if (timeout)
+    if (isTcpConn)
     {
-        if (isTcpConn)
-            conn = redisConnectWithTimeout(SonicDBConfig::getDbHostname(dbName, netns).c_str(), SonicDBConfig::getDbPort(dbName, netns), tv);
-        else
-            conn = redisConnectUnixWithTimeout(SonicDBConfig::getDbSock(dbName, netns).c_str(), tv);
+        initContext(SonicDBConfig::getDbHostname(dbName, netns).c_str(), SonicDBConfig::getDbPort(dbName, netns), tv);
     }
     else
     {
-        if (isTcpConn)
-            conn = redisConnect(SonicDBConfig::getDbHostname(dbName, netns).c_str(), SonicDBConfig::getDbPort(dbName, netns));
-        else
-            conn = redisConnectUnix(SonicDBConfig::getDbSock(dbName, netns).c_str());
+        initContext(SonicDBConfig::getDbSock(dbName, netns).c_str(), tv);
     }
 
-    if (conn->err)
-        throw system_error(make_error_code(errc::address_not_available),
-                           "Unable to connect to redis");
-    setContext(conn);
     setNamespace(netns);
     select(this);
 }
