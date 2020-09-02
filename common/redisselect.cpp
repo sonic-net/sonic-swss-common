@@ -16,14 +16,10 @@ int RedisSelect::getFd()
 {
     return m_subscribe->getContext()->fd;
 }
-int RedisSelect::getDbConnectorId()
-{
-    return m_subscribe->getDbId();
-}
 
-std::string RedisSelect::getDbNamespace()
+const DBConnector* RedisSelect::getDbConnector() const
 {
-    return m_subscribe->getNamespace();
+    return m_subscribe.get();
 }
 
 uint64_t RedisSelect::readData()

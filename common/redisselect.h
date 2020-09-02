@@ -20,8 +20,7 @@ public:
     bool hasCachedData() override;
     bool initializedWithData() override;
     void updateAfterRead() override;
-    int getDbConnectorId();
-    std::string getDbNamespace();
+    const DBConnector* getDbConnector() const;
 
     /* Create a new redisContext, SELECT DB and SUBSCRIBE */
     void subscribe(DBConnector* db, const std::string &channelName);
