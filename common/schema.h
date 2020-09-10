@@ -272,6 +272,8 @@ namespace swss {
 
 #define CFG_SYSTEM_PORT_TABLE_NAME                  "SYSTEM_PORT"
 
+#define VOQ_SYSTEM_INTERFACE_TABLE_NAME             "SYSTEM_INTERFACE"
+
 /***** STATE DATABASE *****/
 
 #define STATE_SWITCH_CAPABILITY_TABLE_NAME          "SWITCH_CAPABILITY_TABLE"
