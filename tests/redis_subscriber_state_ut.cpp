@@ -229,7 +229,6 @@ TEST(SubscriberStateTable, set2_pop1_set1_pop1)
     /* Prepare producer */
     DBConnector db("TEST_DB", 0, true);
     Table p(&db, testTableName);
-    //string key = "TheKey";
     int maxNumOfFields = 2;
 
     /* Prepare subscriber */
@@ -259,11 +258,6 @@ TEST(SubscriberStateTable, set2_pop1_set1_pop1)
         KeyOpFieldsValuesTuple kco;
         c.pop(kco);
 
-        // std::deque<KeyOpFieldsValuesTuple> vkco;
-        // c.pops(vkco);
-        // printf("vkco.size(): %zu\n", vkco.size());
-        // EXPECT_EQ(vkco.size(), 3);
-        // kco = vkco[0];
         EXPECT_EQ(kfvKey(kco), key(index, 0));
         EXPECT_EQ(kfvOp(kco), "SET");
 
@@ -322,6 +316,7 @@ TEST(SubscriberStateTable, set2_pop1_set1_pop1)
     /* Pop 3rd */
     index = 2;
     {
+        // Note: the code before this commit will hang at below select()
         int ret = cs.select(&selectcs);
         EXPECT_EQ(ret, Select::OBJECT);
         KeyOpFieldsValuesTuple kco;
