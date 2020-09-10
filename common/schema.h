@@ -271,6 +271,7 @@ namespace swss {
 #define CFG_FG_NHG_MEMBER                           "FG_NHG_MEMBER"
 
 #define CFG_SYSTEM_PORT_TABLE_NAME                  "SYSTEM_PORT"
+#define CFG_VOQ_INBAND_INTERFACE_TABLE_NAME         "VOQ_INBAND_INTERFACE"
 
 #define VOQ_SYSTEM_INTERFACE_TABLE_NAME             "SYSTEM_INTERFACE"
 
