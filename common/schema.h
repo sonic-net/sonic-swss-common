@@ -72,6 +72,8 @@ namespace swss {
 #define APP_STP_FASTAGEING_FLUSH_TABLE_NAME "STP_FASTAGEING_FLUSH_TABLE"
 #define APP_STP_BPDU_GUARD_TABLE_NAME       "STP_BPDU_GUARD_TABLE"
 
+#define APP_SYSTEM_PORT_TABLE_NAME          "SYSTEM_PORT_TABLE"
+
 /***** TO BE REMOVED *****/
 
 #define APP_TC_TO_QUEUE_MAP_TABLE_NAME  "TC_TO_QUEUE_MAP_TABLE"
@@ -267,6 +269,8 @@ namespace swss {
 #define CFG_FG_NHG                                  "FG_NHG"
 #define CFG_FG_NHG_PREFIX                           "FG_NHG_PREFIX"
 #define CFG_FG_NHG_MEMBER                           "FG_NHG_MEMBER"
+
+#define CFG_SYSTEM_PORT_TABLE_NAME                  "SYSTEM_PORT"
 
 /***** STATE DATABASE *****/
 
