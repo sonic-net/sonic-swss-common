@@ -19,6 +19,7 @@ namespace swss {
 #define GB_ASIC_DB      8
 #define GB_COUNTERS_DB  9
 #define GB_FLEX_COUNTER_DB  10
+#define GLOBAL_APP_DB   11
 
 /***** APPLICATION DATABASE *****/
 
