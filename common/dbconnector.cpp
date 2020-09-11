@@ -256,9 +256,9 @@ RedisInstInfo& SonicDBConfig::getRedisInfo(const std::string &dbName, const std:
         SWSS_LOG_ERROR("%s", msg.c_str());
         throw out_of_range(msg);
     }
-    auto& infos = foundNetns->second;
-    auto foundRedis = infos.find(getDbInst(dbName));
-    if (foundRedis == infos.end())
+    auto& redisInfos = foundNetns->second;
+    auto foundRedis = redisInfos.find(getDbInst(dbName, netns));
+    if (foundRedis == redisInfos.end())
     {
         string msg = "Failed to find the Redis instance for " + dbName + " database in " + netns + " namespace";
         SWSS_LOG_ERROR("%s", msg.c_str());
@@ -286,6 +286,14 @@ string SonicDBConfig::getSeparator(int dbId, const string &netns)
 {
     if (!m_init)
         initialize(DEFAULT_SONIC_DB_CONFIG_FILE);
+
+    if (!netns.empty())
+    {
+        if (!m_global_init)
+        {
+            SWSS_LOG_THROW("Initialize global DB config using API SonicDBConfig::initializeGlobalConfig");
+        }
+    }
     auto foundNetns = m_db_separator.find(netns);
     if (foundNetns == m_db_separator.end())
     {
