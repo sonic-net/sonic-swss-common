@@ -474,6 +474,14 @@ void DBConnector::select(DBConnector *db)
     r.checkStatusOK();
 }
 
+DBConnector::DBConnector(int dbId, const RedisContext& ctx)
+    : RedisContext(ctx)
+    , m_dbId(dbId)
+    , m_namespace(EMPTY_NAMESPACE)
+{
+    select(this);
+}
+
 DBConnector::DBConnector(int dbId, const string& hostname, int port,
                          unsigned int timeout) :
     RedisContext(hostname, port, timeout),
