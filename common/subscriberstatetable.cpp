@@ -84,7 +84,7 @@ uint64_t SubscriberStateTable::readData()
 
 bool SubscriberStateTable::hasCachedData()
 {
-    return m_buffer.size() > 1 || m_keyspace_event_buffer.size() > 1;
+    return m_buffer.size() + m_keyspace_event_buffer.size() > 1;
 }
 
 void SubscriberStateTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, const string& /*prefix*/)
