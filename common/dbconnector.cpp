@@ -784,3 +784,8 @@ string DBConnector::getClientName()
 }
 
 }
+
+
+/////////////////// TEST code, do not checkin
+#include "common/dbinterface.h"
+
