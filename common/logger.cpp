@@ -92,14 +92,13 @@ void Logger::linkToDbWithOutput(const std::string &dbName, const PriorityChangeN
     // Initialize internal DB with observer
     logger.m_settingChangeObservers.insert(std::make_pair(dbName, std::make_pair(prioNotify, outputNotify)));
     DBConnector db("LOGLEVEL_DB", 0);
-    RedisClient redisClient(&db);
-    auto keys = redisClient.keys("*");
+    auto keys = db.keys("*");
 
     std::string key = dbName + ":" + dbName;
     std::string prio, output;
     bool doUpdate = false;
-    auto prioPtr = redisClient.hget(key, DAEMON_LOGLEVEL);
-    auto outputPtr = redisClient.hget(key, DAEMON_LOGOUTPUT);
+    auto prioPtr = db.hget(key, DAEMON_LOGLEVEL);
+    auto outputPtr = db.hget(key, DAEMON_LOGOUTPUT);
 
     if ( prioPtr == nullptr )
     {
