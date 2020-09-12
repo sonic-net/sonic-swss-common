@@ -62,6 +62,8 @@ private:
                                     std::unordered_map<std::string, RedisInstInfo> &inst_entry,
                                     std::unordered_map<std::string, SonicDBInfo> &db_entry,
                                     std::unordered_map<int, std::string> &separator_entry);
+    static SonicDBInfo& getDbInfo(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
+    static RedisInstInfo& getRedisInfo(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
 };
 
 class DBConnector

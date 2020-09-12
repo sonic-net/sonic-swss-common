@@ -191,50 +191,125 @@ void SonicDBConfig::validateNamespace(const string &netns)
         // If global initialization is not done, ask user to initialize global DB Config first.
         if (!m_global_init)
         {
-            SWSS_LOG_ERROR("Initialize global DB config first using API SonicDBConfig::initializeGlobalConfig \n");
-            throw runtime_error("Initialize global DB config using API SonicDBConfig::initializeGlobalConfig");
+            SWSS_LOG_THROW("Initialize global DB config using API SonicDBConfig::initializeGlobalConfig");
         }
 
         // Check if the namespace is valid, check if this is a key in either of this map
         unordered_map<string, unordered_map<string, RedisInstInfo>>::const_iterator entry = m_inst_info.find(netns);
         if (entry == m_inst_info.end())
         {
-            SWSS_LOG_ERROR("Namespace %s is not a valid namespace name in config file\n", netns.c_str());
-            throw runtime_error("Namespace " + netns + " is not a valid namespace name in config file");
+            SWSS_LOG_THROW("Namespace %s is not a valid namespace name in config file", netns.c_str());
         }
     }
 }
 
-string SonicDBConfig::getDbInst(const string &dbName, const string &netns)
+SonicDBInfo& SonicDBConfig::getDbInfo(const std::string &dbName, const std::string &netns)
 {
+    SWSS_LOG_ENTER();
+
     if (!m_init)
         initialize(DEFAULT_SONIC_DB_CONFIG_FILE);
-    validateNamespace(netns);
-    return m_db_info[netns].at(dbName).instName;
+
+    if (!netns.empty())
+    {
+        if (!m_global_init)
+        {
+            SWSS_LOG_THROW("Initialize global DB config using API SonicDBConfig::initializeGlobalConfig");
+        }
+    }
+    auto foundNetns = m_db_info.find(netns);
+    if (foundNetns == m_db_info.end())
+    {
+        string msg = "Namespace " + netns + " is not a valid namespace name in config file";
+        SWSS_LOG_ERROR("%s", msg.c_str());
+        throw out_of_range(msg);
+    }
+    auto& infos = foundNetns->second;
+    auto foundDb = infos.find(dbName);
+    if (foundDb == infos.end())
+    {
+        string msg = "Failed to find " + dbName + " database in " + netns + " namespace";
+        SWSS_LOG_ERROR("%s", msg.c_str());
+        throw out_of_range(msg);
+    }
+    return foundDb->second;
+}
+
+RedisInstInfo& SonicDBConfig::getRedisInfo(const std::string &dbName, const std::string &netns)
+{
+    SWSS_LOG_ENTER();
+
+    if (!m_init)
+        initialize(DEFAULT_SONIC_DB_CONFIG_FILE);
+
+    if (!netns.empty())
+    {
+        if (!m_global_init)
+        {
+            SWSS_LOG_THROW("Initialize global DB config using API SonicDBConfig::initializeGlobalConfig");
+        }
+    }
+    auto foundNetns = m_inst_info.find(netns);
+    if (foundNetns == m_inst_info.end())
+    {
+        string msg = "Namespace " + netns + " is not a valid namespace name in Redis instances in config file";
+        SWSS_LOG_ERROR("%s", msg.c_str());
+        throw out_of_range(msg);
+    }
+    auto& redisInfos = foundNetns->second;
+    auto foundRedis = redisInfos.find(getDbInst(dbName, netns));
+    if (foundRedis == redisInfos.end())
+    {
+        string msg = "Failed to find the Redis instance for " + dbName + " database in " + netns + " namespace";
+        SWSS_LOG_ERROR("%s", msg.c_str());
+        throw out_of_range(msg);
+    }
+    return foundRedis->second;
+}
+
+string SonicDBConfig::getDbInst(const string &dbName, const string &netns)
+{
+    return getDbInfo(dbName, netns).instName;
 }
 
 int SonicDBConfig::getDbId(const string &dbName, const string &netns)
 {
-    if (!m_init)
-        initialize(DEFAULT_SONIC_DB_CONFIG_FILE);
-    validateNamespace(netns);
-    return m_db_info[netns].at(dbName).dbId;
+    return getDbInfo(dbName, netns).dbId;
 }
 
 string SonicDBConfig::getSeparator(const string &dbName, const string &netns)
 {
-    if (!m_init)
-        initialize(DEFAULT_SONIC_DB_CONFIG_FILE);
-    validateNamespace(netns);
-    return m_db_info[netns].at(dbName).separator;
+    return getDbInfo(dbName, netns).separator;
 }
 
 string SonicDBConfig::getSeparator(int dbId, const string &netns)
 {
     if (!m_init)
         initialize(DEFAULT_SONIC_DB_CONFIG_FILE);
-    validateNamespace(netns);
-    return m_db_separator[netns].at(dbId);
+
+    if (!netns.empty())
+    {
+        if (!m_global_init)
+        {
+            SWSS_LOG_THROW("Initialize global DB config using API SonicDBConfig::initializeGlobalConfig");
+        }
+    }
+    auto foundNetns = m_db_separator.find(netns);
+    if (foundNetns == m_db_separator.end())
+    {
+        string msg = "Namespace " + netns + " is not a valid namespace name in config file";
+        SWSS_LOG_ERROR("%s", msg.c_str());
+        throw out_of_range(msg);
+    }
+    auto seps = foundNetns->second;
+    auto foundDb = seps.find(dbId);
+    if (foundDb == seps.end())
+    {
+        string msg = "Failed to find " + to_string(dbId) + " database in " + netns + " namespace";
+        SWSS_LOG_ERROR("%s", msg.c_str());
+        throw out_of_range(msg);
+    }
+    return foundDb->second;
 }
 
 string SonicDBConfig::getSeparator(const DBConnector* db)
@@ -258,26 +333,17 @@ string SonicDBConfig::getSeparator(const DBConnector* db)
 
 string SonicDBConfig::getDbSock(const string &dbName, const string &netns)
 {
-    if (!m_init)
-        initialize(DEFAULT_SONIC_DB_CONFIG_FILE);
-    validateNamespace(netns);
-    return m_inst_info[netns].at(getDbInst(dbName)).unixSocketPath;
+    return getRedisInfo(dbName, netns).unixSocketPath;
 }
 
 string SonicDBConfig::getDbHostname(const string &dbName, const string &netns)
 {
-    if (!m_init)
-        initialize(DEFAULT_SONIC_DB_CONFIG_FILE);
-    validateNamespace(netns);
-    return m_inst_info[netns].at(getDbInst(dbName)).hostname;
+    return getRedisInfo(dbName, netns).hostname;
 }
 
 int SonicDBConfig::getDbPort(const string &dbName, const string &netns)
 {
-    if (!m_init)
-        initialize(DEFAULT_SONIC_DB_CONFIG_FILE);
-    validateNamespace(netns);
-    return m_inst_info[netns].at(getDbInst(dbName)).port;
+    return getRedisInfo(dbName, netns).port;
 }
 
 vector<string> SonicDBConfig::getNamespaces()
