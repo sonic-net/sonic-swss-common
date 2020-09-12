@@ -3,10 +3,11 @@
 
 #include <hiredis/hiredis.h>
 #include <stdexcept>
-#include "dbconnector.h"
 #include "rediscommand.h"
 
 namespace swss {
+
+class DBConnector;
 
 class RedisReply
 {

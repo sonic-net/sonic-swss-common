@@ -39,13 +39,9 @@ class RedisClient
 
         std::vector<std::string> keys(const std::string &key);
 
-        std::vector<std::string> hkeys(const std::string &key);
-
         void set(const std::string &key, const std::string &value);
 
         void hset(const std::string &key, const std::string &field, const std::string &value);
-
-        void mset(const std::unordered_map<std::string, std::string> &map);
 
         template<typename InputIterator>
         void hmset(const std::string &key, InputIterator start, InputIterator stop);
@@ -53,10 +49,6 @@ class RedisClient
         std::shared_ptr<std::string> get(const std::string &key);
 
         std::shared_ptr<std::string> hget(const std::string &key, const std::string &field);
-
-        std::vector<std::shared_ptr<std::string>> mget(const std::vector<std::string> &keys);
-
-        std::vector<std::shared_ptr<std::string>> hmget(const std::string &key, const std::vector<std::string> &fields);
 
         int64_t incr(const std::string &key);
 

@@ -527,4 +527,165 @@ string DBConnector::getClientName()
     }
 }
 
+int64_t DBConnector::del(const string &key)
+{
+    RedisCommand sdel;
+    sdel.format("DEL %s", key.c_str());
+    RedisReply r(this, sdel, REDIS_REPLY_INTEGER);
+    return r.getContext()->integer;
+}
+
+bool DBConnector::exists(const string &key)
+{
+    RedisCommand rexists;
+    if (key.find_first_of(" \t") != string::npos)
+    {
+        SWSS_LOG_ERROR("EXISTS failed, invalid space or tab in single key: %s", key.c_str());
+        throw runtime_error("EXISTS failed, invalid space or tab in single key");
+    }
+    rexists.format("EXISTS %s", key.c_str());
+    RedisReply r(this, rexists, REDIS_REPLY_INTEGER);
+    return (r.getContext()->integer > 0);
+}
+
+int64_t DBConnector::hdel(const string &key, const string &field)
+{
+    RedisCommand shdel;
+    shdel.format("HDEL %s %s", key.c_str(), field.c_str());
+    RedisReply r(this, shdel, REDIS_REPLY_INTEGER);
+    return r.getContext()->integer;
+}
+
+int64_t DBConnector::hdel(const std::string &key, const std::vector<std::string> &fields)
+{
+    RedisCommand shdel;
+    shdel.formatHDEL(key, fields);
+    RedisReply r(this, shdel, REDIS_REPLY_INTEGER);
+    return r.getContext()->integer;
+}
+
+void DBConnector::hset(const string &key, const string &field, const string &value)
+{
+    RedisCommand shset;
+    shset.format("HSET %s %s %s", key.c_str(), field.c_str(), value.c_str());
+    RedisReply r(this, shset, REDIS_REPLY_INTEGER);
+}
+
+void DBConnector::set(const string &key, const string &value)
+{
+    RedisCommand sset;
+    sset.format("SET %s %s", key.c_str(), value.c_str());
+    RedisReply r(this, sset, REDIS_REPLY_STATUS);
+}
+
+unordered_map<string, string> DBConnector::hgetall(const string &key)
+{
+    unordered_map<string, string> map;
+    hgetall(key, std::inserter(map, map.end()));
+    return map;
+}
+
+vector<string> DBConnector::keys(const string &key)
+{
+    RedisCommand skeys;
+    skeys.format("KEYS %s", key.c_str());
+    RedisReply r(this, skeys, REDIS_REPLY_ARRAY);
+
+    auto ctx = r.getContext();
+
+    vector<string> list;
+    for (unsigned int i = 0; i < ctx->elements; i++)
+        list.emplace_back(ctx->element[i]->str);
+
+    return list;
+}
+
+int64_t DBConnector::incr(const string &key)
+{
+    RedisCommand sincr;
+    sincr.format("INCR %s", key.c_str());
+    RedisReply r(this, sincr, REDIS_REPLY_INTEGER);
+    return r.getContext()->integer;
+}
+
+int64_t DBConnector::decr(const string &key)
+{
+    RedisCommand sdecr;
+    sdecr.format("DECR %s", key.c_str());
+    RedisReply r(this, sdecr, REDIS_REPLY_INTEGER);
+    return r.getContext()->integer;
+}
+
+shared_ptr<string> DBConnector::get(const string &key)
+{
+    RedisCommand sget;
+    sget.format("GET %s", key.c_str());
+    RedisReply r(this, sget);
+    auto reply = r.getContext();
+
+    if (reply->type == REDIS_REPLY_NIL)
+    {
+        return shared_ptr<string>(NULL);
+    }
+
+    if (reply->type == REDIS_REPLY_STRING)
+    {
+        shared_ptr<string> ptr(new string(reply->str));
+        return ptr;
+    }
+
+    throw runtime_error("GET failed, memory exception");
+}
+
+shared_ptr<string> DBConnector::hget(const string &key, const string &field)
+{
+    RedisCommand shget;
+    shget.format("HGET %s %s", key.c_str(), field.c_str());
+    RedisReply r(this, shget);
+    auto reply = r.getContext();
+
+    if (reply->type == REDIS_REPLY_NIL)
+    {
+        return shared_ptr<string>(NULL);
+    }
+
+    if (reply->type == REDIS_REPLY_STRING)
+    {
+        shared_ptr<string> ptr(new string(reply->str));
+        return ptr;
+    }
+
+    SWSS_LOG_ERROR("HGET failed, reply-type: %d, %s: %s", reply->type, key.c_str(), field.c_str());
+    throw runtime_error("HGET failed, unexpected reply type, memory exception");
+}
+
+int64_t DBConnector::rpush(const string &list, const string &item)
+{
+    RedisCommand srpush;
+    srpush.format("RPUSH %s %s", list.c_str(), item.c_str());
+    RedisReply r(this, srpush, REDIS_REPLY_INTEGER);
+    return r.getContext()->integer;
+}
+
+shared_ptr<string> DBConnector::blpop(const string &list, int timeout)
+{
+    RedisCommand sblpop;
+    sblpop.format("BLPOP %s %d", list.c_str(), timeout);
+    RedisReply r(this, sblpop);
+    auto reply = r.getContext();
+
+    if (reply->type == REDIS_REPLY_NIL)
+    {
+        return shared_ptr<string>(NULL);
+    }
+
+    if (reply->type == REDIS_REPLY_STRING)
+    {
+        shared_ptr<string> ptr(new string(reply->str));
+        return ptr;
+    }
+
+    throw runtime_error("GET failed, memory exception");
+}
+
 }
