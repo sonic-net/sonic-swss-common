@@ -230,7 +230,7 @@ TEST(SubscriberStateTable, set2_pop1_set1_pop1)
     clearDB();
 
     /* Prepare producer */
-    DBConnector db("TEST_DB", 0, true);
+    DBConnector db(TEST_DB, dbhost, dbport, 0);
     Table p(&db, testTableName);
     int maxNumOfFields = 2;
 
