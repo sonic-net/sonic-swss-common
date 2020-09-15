@@ -10,13 +10,13 @@ namespace swss {
 
 class DBConnector;
 
-class RedisResponseError : public std::runtime_error
+class RedisError : public std::runtime_error
 {
     int m_err;
     std::string m_errstr;
     mutable std::string m_message;
 public:
-    RedisResponseError(const std::string& arg, redisContext *ctx)
+    RedisError(const std::string& arg, redisContext *ctx)
         : std::runtime_error(arg)
         , m_err(ctx->err)
         , m_errstr(ctx->errstr)
