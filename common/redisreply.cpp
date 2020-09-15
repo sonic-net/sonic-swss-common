@@ -33,7 +33,9 @@ RedisReply::RedisReply(DBConnector *db, const RedisCommand& command)
     int rc = redisAppendFormattedCommand(db->getContext(), command.c_str(), command.length());
     if (rc != REDIS_OK)
     {
-        throw RedisError("Failed to redisAppendFormattedCommand with " + string(command.c_str()), db->getContext());
+        // The only reason of error is REDIS_ERR_OOM (Out of memory)
+        // ref: https://github.com/redis/hiredis/blob/master/hiredis.c
+        throw bad_alloc();
     }
 
     rc = redisGetReply(db->getContext(), (void**)&m_reply);
@@ -49,7 +51,9 @@ RedisReply::RedisReply(DBConnector *db, const string &command)
     int rc = redisAppendCommand(db->getContext(), command.c_str());
     if (rc != REDIS_OK)
     {
-        throw RedisError("Failed to redisAppendFormattedCommand with " + command, db->getContext());
+        // The only reason of error is REDIS_ERR_OOM (Out of memory)
+        // ref: https://github.com/redis/hiredis/blob/master/hiredis.c
+        throw bad_alloc();
     }
 
     rc = redisGetReply(db->getContext(), (void**)&m_reply);
