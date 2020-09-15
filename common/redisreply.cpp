@@ -30,15 +30,33 @@ inline void guard(FUNC func, const char* command)
 
 RedisReply::RedisReply(DBConnector *db, const RedisCommand& command)
 {
-    redisAppendFormattedCommand(db->getContext(), command.c_str(), command.length());
-    redisGetReply(db->getContext(), (void**)&m_reply);
+    int rc = redisAppendFormattedCommand(db->getContext(), command.c_str(), command.length());
+    if (rc != REDIS_OK)
+    {
+        throw RedisResponseError("Failed to redisAppendFormattedCommand with " + string(command.c_str()), db->getContext());
+    }
+
+    rc = redisGetReply(db->getContext(), (void**)&m_reply);
+    if (rc != REDIS_OK)
+    {
+        throw RedisResponseError("Failed to redisGetReply with " + string(command.c_str()), db->getContext());
+    }
     guard([&]{checkReply();}, command.c_str());
 }
 
 RedisReply::RedisReply(DBConnector *db, const string &command)
 {
-    redisAppendCommand(db->getContext(), command.c_str());
-    redisGetReply(db->getContext(), (void**)&m_reply);
+    int rc = redisAppendCommand(db->getContext(), command.c_str());
+    if (rc != REDIS_OK)
+    {
+        throw RedisResponseError("Failed to redisAppendFormattedCommand with " + command, db->getContext());
+    }
+
+    rc = redisGetReply(db->getContext(), (void**)&m_reply);
+    if (rc != REDIS_OK)
+    {
+        throw RedisResponseError("Failed to redisGetReply with " + command, db->getContext());
+    }
     guard([&]{checkReply();}, command.c_str());
 }
 
