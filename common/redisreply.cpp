@@ -7,6 +7,7 @@
 
 #include "common/logger.h"
 #include "common/redisreply.h"
+#include "common/dbconnector.h"
 #include "common/rediscommand.h"
 
 using namespace std;

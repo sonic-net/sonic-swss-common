@@ -33,7 +33,6 @@ libswsscommon_la_SOURCES = \
     json.cpp                  \
     producertable.cpp         \
     producerstatetable.cpp    \
-    redisclient.cpp           \
     rediscommand.cpp          \
     redistran.cpp             \
     redisselect.cpp           \

@@ -315,8 +315,6 @@ TEST(DBConnector, RedisClient)
 {
     DBConnector db("TEST_DB", 0, true);
 
-    RedisClient redic(&db);
-
     clearDB();
     cout << "Starting table manipulations" << endl;
 
@@ -335,11 +333,11 @@ TEST(DBConnector, RedisClient)
     cout << "Set key [a] field_1:1 field_2:2 field_3:3" << endl;
     cout << "Set key [b] field_1:1 field_2:2 field_3:3" << endl;
 
-    redic.hmset(key_1, values.begin(), values.end());
-    redic.hmset(key_2, values.begin(), values.end());
+    db.hmset(key_1, values.begin(), values.end());
+    db.hmset(key_2, values.begin(), values.end());
 
     cout << "- Step 2. GET_TABLE_KEYS" << endl;
-    auto keys = redic.keys("*");
+    auto keys = db.keys("*");
     EXPECT_EQ(keys.size(), (size_t)2);
 
     for (auto k : keys)
@@ -353,7 +351,7 @@ TEST(DBConnector, RedisClient)
     for (auto k : keys)
     {
         cout << "Get key [" << k << "]" << flush;
-        auto fvs = redic.hgetall(k);
+        auto fvs = db.hgetall(k);
         unsigned int size_v = 3;
         EXPECT_EQ(fvs.size(), size_v);
         for (auto fv: fvs)
@@ -374,10 +372,10 @@ TEST(DBConnector, RedisClient)
 
     cout << "- Step 4. HDEL single field" << endl;
     cout << "Delete field_2 under key [a]" << endl;
-    int64_t rval = redic.hdel(key_1, "field_2");
+    int64_t rval = db.hdel(key_1, "field_2");
     EXPECT_EQ(rval, 1);
 
-    auto fvs = redic.hgetall(key_1);
+    auto fvs = db.hgetall(key_1);
     EXPECT_EQ(fvs.size(), 2);
     for (auto fv: fvs)
     {
@@ -398,13 +396,13 @@ TEST(DBConnector, RedisClient)
 
     cout << "- Step 5. DEL" << endl;
     cout << "Delete key [a]" << endl;
-    redic.del(key_1);
+    db.del(key_1);
 
     cout << "- Step 6. GET" << endl;
     cout << "Get key [a] and key [b]" << endl;
-    fvs = redic.hgetall(key_1);
+    fvs = db.hgetall(key_1);
     EXPECT_TRUE(fvs.empty());
-    fvs = redic.hgetall(key_2);
+    fvs = db.hgetall(key_2);
 
     cout << "Get key [b]" << flush;
     for (auto fv: fvs)
@@ -424,10 +422,10 @@ TEST(DBConnector, RedisClient)
 
     cout << "- Step 7. HDEL multiple fields" << endl;
     cout << "Delete field_2, field_3 under key [b]" << endl;
-    rval = redic.hdel(key_2, vector<string>({"field_2", "field_3"}));
+    rval = db.hdel(key_2, vector<string>({"field_2", "field_3"}));
     EXPECT_EQ(rval, 2);
 
-    fvs = redic.hgetall(key_2);
+    fvs = db.hgetall(key_2);
     EXPECT_EQ(fvs.size(), 1);
     for (auto fv: fvs)
     {
@@ -445,8 +443,8 @@ TEST(DBConnector, RedisClient)
 
     cout << "- Step 8. DEL and GET_TABLE_CONTENT" << endl;
     cout << "Delete key [b]" << endl;
-    redic.del(key_2);
-    fvs = redic.hgetall(key_2);
+    db.del(key_2);
+    fvs = db.hgetall(key_2);
 
     EXPECT_TRUE(fvs.empty());
 

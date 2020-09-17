@@ -2,6 +2,7 @@
 #include <string.h>
 #include <utility>
 #include <tuple>
+#include <vector>
 
 namespace swss {
 
