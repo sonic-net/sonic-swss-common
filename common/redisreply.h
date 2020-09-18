@@ -2,12 +2,36 @@
 #define __REDISREPLY__
 
 #include <hiredis/hiredis.h>
+#include <string>
 #include <stdexcept>
 #include "rediscommand.h"
 
 namespace swss {
 
 class DBConnector;
+
+class RedisError : public std::runtime_error
+{
+    int m_err;
+    std::string m_errstr;
+    mutable std::string m_message;
+public:
+    RedisError(const std::string& arg, redisContext *ctx)
+        : std::runtime_error(arg)
+        , m_err(ctx->err)
+        , m_errstr(ctx->errstr)
+    {
+    }
+
+    const char *what() const noexcept override
+    {
+        if (m_message.empty())
+        {
+            m_message = std::string("RedisResponseError: ") + std::runtime_error::what() + ", err=" + std::to_string(m_err) + ": errstr=" + m_errstr;
+        }
+        return m_message.c_str();
+    }
+};
 
 class RedisReply
 {
