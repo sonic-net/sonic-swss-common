@@ -16,9 +16,10 @@ namespace swss {
 #define FLEX_COUNTER_DB 5
 #define STATE_DB        6
 #define SNMP_OVERLAY_DB 7
-#define GB_ASIC_DB      8
-#define GB_COUNTERS_DB  9
-#define GB_FLEX_COUNTER_DB  10
+#define RESTAPI_DB      8
+#define GB_ASIC_DB      9
+#define GB_COUNTERS_DB  10
+#define GB_FLEX_COUNTER_DB  11
 
 /***** APPLICATION DATABASE *****/
 
