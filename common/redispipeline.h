@@ -77,7 +77,11 @@ public:
         if (m_remaining == 0) return NULL;
 
         redisReply *reply;
-        redisGetReply(m_db->getContext(), (void**)&reply);
+        int rc = redisGetReply(m_db->getContext(), (void**)&reply);
+        if (rc != REDIS_OK)
+        {
+            throw RedisError("Failed to redisGetReply in RedisPipeline::pop", m_db->getContext());
+        }
         RedisReply r(reply);
         m_remaining--;
 
