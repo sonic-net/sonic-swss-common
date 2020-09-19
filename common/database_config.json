@@ -51,6 +51,11 @@
             "id" : 7,
             "separator": "|",
             "instance" : "redis"
+        },
+        "RESTAPI_DB" : {
+            "id" : 8,
+            "separator": "|",
+            "instance" : "redis"
         }
     },
     "VERSION" : "1.0"
