@@ -46,7 +46,7 @@ RedisReply::RedisReply(RedisContext *ctx, const RedisCommand& command)
     guard([&]{checkReply();}, command.c_str());
 }
 
-RedisReply::RedisReply(RedisContext *ctx, const string &command)
+RedisReply::RedisReply(RedisContext *ctx, const string& command)
 {
     int rc = redisAppendCommand(ctx->getContext(), command.c_str());
     if (rc != REDIS_OK)
@@ -70,7 +70,7 @@ RedisReply::RedisReply(RedisContext *ctx, const RedisCommand& command, int expec
     guard([&]{checkReplyType(expectedType);}, command.c_str());
 }
 
-RedisReply::RedisReply(RedisContext *ctx, const string &command, int expectedType)
+RedisReply::RedisReply(RedisContext *ctx, const string& command, int expectedType)
     : RedisReply(ctx, command)
 {
     guard([&]{checkReplyType(expectedType);}, command.c_str());

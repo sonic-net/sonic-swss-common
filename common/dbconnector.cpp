@@ -564,35 +564,6 @@ DBConnector *DBConnector::newConnector(unsigned int timeout) const
     return ret;
 }
 
-void DBConnector::setClientName(const string& clientName)
-{
-    string command("CLIENT SETNAME ");
-    command += clientName;
-
-    RedisReply r(this, command, REDIS_REPLY_STATUS);
-    r.checkStatusOK();
-}
-
-string DBConnector::getClientName()
-{
-    string command("CLIENT GETNAME");
-
-    RedisReply r(this, command);
-
-    auto ctx = r.getContext();
-    if (ctx->type == REDIS_REPLY_STRING)
-    {
-        return r.getReply<std::string>();
-    }
-    else
-    {
-        if (ctx->type != REDIS_REPLY_NIL)
-            SWSS_LOG_ERROR("Unable to obtain Redis client name");
-
-        return "";
-    }
-}
-
 int64_t DBConnector::del(const string &key)
 {
     RedisCommand sdel;
@@ -752,35 +723,6 @@ shared_ptr<string> DBConnector::blpop(const string &list, int timeout)
     }
 
     throw runtime_error("GET failed, memory exception");
-}
-
-void DBConnector::setClientName(const string& clientName)
-{
-    string command("CLIENT SETNAME ");
-    command += clientName;
-
-    RedisReply r(this, command, REDIS_REPLY_STATUS);
-    r.checkStatusOK();
-}
-
-string DBConnector::getClientName()
-{
-    string command("CLIENT GETNAME");
-
-    RedisReply r(this, command);
-
-    auto ctx = r.getContext();
-    if (ctx->type == REDIS_REPLY_STRING)
-    {
-        return r.getReply<std::string>();
-    }
-    else
-    {
-        if (ctx->type != REDIS_REPLY_NIL)
-            SWSS_LOG_ERROR("Unable to obtain Redis client name");
-
-        return "";
-    }
 }
 
 }

@@ -97,40 +97,6 @@ public:
 
     std::string getClientName();
 
-    int64_t del(const std::string &key);
-
-    bool exists(const std::string &key);
-
-    int64_t hdel(const std::string &key, const std::string &field);
-
-    int64_t hdel(const std::string &key, const std::vector<std::string> &fields);
-
-    std::unordered_map<std::string, std::string> hgetall(const std::string &key);
-
-    template <typename OutputIterator>
-    void hgetall(const std::string &key, OutputIterator result);
-
-    std::vector<std::string> keys(const std::string &key);
-
-    void set(const std::string &key, const std::string &value);
-
-    void hset(const std::string &key, const std::string &field, const std::string &value);
-
-    template<typename InputIterator>
-    void hmset(const std::string &key, InputIterator start, InputIterator stop);
-
-    std::shared_ptr<std::string> get(const std::string &key);
-
-    std::shared_ptr<std::string> hget(const std::string &key, const std::string &field);
-
-    int64_t incr(const std::string &key);
-
-    int64_t decr(const std::string &key);
-
-    int64_t rpush(const std::string &list, const std::string &item);
-
-    std::shared_ptr<std::string> blpop(const std::string &list, int timeout);
-
 protected:
     RedisContext();
     void initContext(const char *host, int port, const timeval& tv);
@@ -167,6 +133,40 @@ public:
 
     /* Create new context to DB */
     DBConnector *newConnector(unsigned int timeout) const;
+
+    int64_t del(const std::string &key);
+
+    bool exists(const std::string &key);
+
+    int64_t hdel(const std::string &key, const std::string &field);
+
+    int64_t hdel(const std::string &key, const std::vector<std::string> &fields);
+
+    std::unordered_map<std::string, std::string> hgetall(const std::string &key);
+
+    template <typename OutputIterator>
+    void hgetall(const std::string &key, OutputIterator result);
+
+    std::vector<std::string> keys(const std::string &key);
+
+    void set(const std::string &key, const std::string &value);
+
+    void hset(const std::string &key, const std::string &field, const std::string &value);
+
+    template<typename InputIterator>
+    void hmset(const std::string &key, InputIterator start, InputIterator stop);
+
+    std::shared_ptr<std::string> get(const std::string &key);
+
+    std::shared_ptr<std::string> hget(const std::string &key, const std::string &field);
+
+    int64_t incr(const std::string &key);
+
+    int64_t decr(const std::string &key);
+
+    int64_t rpush(const std::string &list, const std::string &item);
+
+    std::shared_ptr<std::string> blpop(const std::string &list, int timeout);
 
 private:
     void setNamespace(const std::string &netns);
