@@ -725,6 +725,20 @@ shared_ptr<string> DBConnector::blpop(const string &list, int timeout)
     throw runtime_error("GET failed, memory exception");
 }
 
+void DBConnector::subscribe(const std::string &pattern)
+{
+    std::string s("SUBSCRIBE ");
+    s += pattern;
+    RedisReply r(this, s, REDIS_REPLY_ARRAY);
+}
+
+void DBConnector::psubscribe(const std::string &pattern)
+{
+    std::string s("PSUBSCRIBE ");
+    s += pattern;
+    RedisReply r(this, s, REDIS_REPLY_ARRAY);
+}
+
 }
 
 

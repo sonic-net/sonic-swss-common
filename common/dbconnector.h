@@ -168,6 +168,10 @@ public:
 
     std::shared_ptr<std::string> blpop(const std::string &list, int timeout);
 
+    void subscribe(const std::string &pattern);
+
+    void psubscribe(const std::string &pattern);
+
 private:
     void setNamespace(const std::string &netns);
 
