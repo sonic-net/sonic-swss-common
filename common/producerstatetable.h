@@ -24,11 +24,6 @@ public:
                      const std::string &op = DEL_COMMAND,
                      const std::string &prefix = EMPTY_PREFIX);
 
-	virtual void hdel(const std::string &key,
-					 const std::string &field,
-					 const std::string &op = "",
-					 const std::string &prefix = EMPTY_PREFIX);
-
     void flush();
 
     int64_t count();

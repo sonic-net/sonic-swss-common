@@ -358,11 +358,4 @@ void ProducerStateTable::apply_temp_view()
     m_tempViewActive = false;
 }
 
-void ProducerStateTable::hdel(const string &key, const string &field, const string& /* op */, const string& /*prefix*/)
-{
-	RedisCommand cmd;
-	cmd.formatHDEL(getKeyName(key), field);
-	m_pipe->push(cmd, REDIS_REPLY_INTEGER);
-}
-
 }
