@@ -72,39 +72,47 @@ public:
         return value == "None" ? "" : value;
     }
 
-    std::map<std::string, std::string> get_all(int dbId, const std::string& hash)
+    std::map<std::string, std::string> get_all(int dbId, const std::string& hash, bool blocking = false)
     {
-        std::map<std::string, std::string> map;
-        m_redisClient.at(dbId).hgetall(hash, std::inserter(map, map.end()));
+        auto innerfunc = [&]
+        {
+            std::map<std::string, std::string> map;
+            m_redisClient.at(dbId).hgetall(hash, std::inserter(map, map.end()));
 
-        if (map.empty())
-        {
-            std::string message = "Key '{" + hash + "}' unavailable in database '{" + std::to_string(dbId) + "}'";
-            SWSS_LOG_WARN("%s", message.c_str());
-            throw UnavailableDataError(message, hash);
-        }
-        for (auto& i : map)
-        {
-            std::string& value = i.second;
-            if (value == "None")
+            if (map.empty())
             {
-                value = "";
+                std::string message = "Key '{" + hash + "}' unavailable in database '{" + std::to_string(dbId) + "}'";
+                SWSS_LOG_WARN("%s", message.c_str());
+                throw UnavailableDataError(message, hash);
             }
-        }
+            for (auto& i : map)
+            {
+                std::string& value = i.second;
+                if (value == "None")
+                {
+                    value = "";
+                }
+            }
 
-        return map;
+            return map;
+        };
+        return blockable(innerfunc, dbId, blocking);
     }
 
     std::vector<std::string> keys(int dbId, const std::string& pattern = "*", bool blocking = false)
     {
-        auto keys = m_redisClient.at(dbId).keys(pattern);
-        if (keys.empty())
+        auto innerfunc = [&]
         {
-            std::string message = "DB '{" + std::to_string(dbId) + "}' is empty!";
-            SWSS_LOG_WARN("%s", message.c_str());
-            throw UnavailableDataError(message, "keys");
-        }
-        return keys;
+            auto keys = m_redisClient.at(dbId).keys(pattern);
+            if (keys.empty())
+            {
+                std::string message = "DB '{" + std::to_string(dbId) + "}' is empty!";
+                SWSS_LOG_WARN("%s", message.c_str());
+                throw UnavailableDataError(message, "keys");
+            }
+            return keys;
+        };
+        return blockable(innerfunc, dbId, blocking);
     }
 
     int64_t publish(int dbId, const std::string& channel, const std::string& message)
@@ -112,50 +120,55 @@ public:
         throw std::logic_error("Not implemented");
     }
 
-    int64_t set(int dbId, const std::string& hash, const std::string& key, const std::string& value)
+    int64_t set(int dbId, const std::string& hash, const std::string& key, const std::string& value, bool blocking = false)
     {
-        m_redisClient.at(dbId).hset(hash, key, value);
-        // Return the number of fields that were added.
-        return 1;
+        auto innerfunc = [&]
+        {
+            m_redisClient.at(dbId).hset(hash, key, value);
+            // Return the number of fields that were added.
+            return 1;
+        };
+        return blockable(innerfunc, dbId, blocking);
     }
 
     DBConnector *at(int dbId);
 
 private:
-    template <typename FUNC, typename T>
-    T blockable(FUNC f, int db_id, bool blocking = false)
+    template <typename FUNC>
+    auto blockable(FUNC f, int dbId, bool blocking = false) -> decltype(f())
     {
+        typedef decltype(f()) T;
         int attempts = 0;
         for (;;)
         {
             try
             {
-                T ret_data = f(db_id);
-                _unsubscribe_keyspace_notification(db_id);
+                T ret_data = f();
+                _unsubscribe_keyspace_notification(dbId);
                 return ret_data;
             }
             catch (const UnavailableDataError& e)
             {
                 if (blocking)
                 {
-                    auto found = keyspace_notification_channels.find(db_id);
+                    auto found = keyspace_notification_channels.find(dbId);
                     if (found != keyspace_notification_channels.end())
                     {
-                        bool result = _unavailable_data_handler(db_id, e.getData());
+                        bool result = _unavailable_data_handler(dbId, e.getData());
                         if (result)
                         {
                             continue; // received updates, try to read data again
                         }
                         else
                         {
-                            _unsubscribe_keyspace_notification(db_id);
+                            _unsubscribe_keyspace_notification(dbId);
                             throw; // No updates was received. Raise exception
                         }
                     }
                     else
                     {
                         // Subscribe to updates and try it again (avoiding race condition)
-                        _subscribe_keyspace_notification(db_id);
+                        _subscribe_keyspace_notification(dbId);
                     }
                 }
                 else
@@ -170,15 +183,15 @@ private:
                 Retrying the request won't pass unless the schema itself changes. In this case, the error
                 should be attributed to the application itself. Re-raise the error.
                 */
-                SWSS_LOG_ERROR("Bad DB request [%d]", db_id);
+                SWSS_LOG_ERROR("Bad DB request [%d]", dbId);
                 throw;
             }
             catch (const RedisError&)
             {
                 // Redis connection broken and we need to retry several times
                 attempts += 1;
-                _connection_error_handler(db_id);
-                std::string msg = "DB access failure by [" + std::to_string(db_id) + + "]";
+                _connection_error_handler(dbId);
+                std::string msg = "DB access failure by [" + std::to_string(dbId) + + "]";
                 if (BLOCKING_ATTEMPT_ERROR_THRESHOLD < attempts && attempts < BLOCKING_ATTEMPT_SUPPRESSION)
                 {
                     // Repeated access failures implies the database itself is unhealthy.

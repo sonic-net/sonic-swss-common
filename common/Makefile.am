@@ -59,7 +59,7 @@ libswsscommon_la_SOURCES = \
     timestamp.cpp             \
     warm_restart.cpp
 
-libswsscommon_la_CXXFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CFLAGS)
+libswsscommon_la_CXXFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CFLAGS) -std=c++14
 libswsscommon_la_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CPPFLAGS)
 libswsscommon_la_LIBADD = -lpthread $(LIBNL_LIBS)
 
