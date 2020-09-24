@@ -119,6 +119,7 @@ public:
      * Timeout - The time in milisecond until exception is been thrown. For
      *           infinite wait, set this value to 0
      */
+    DBConnector(const DBConnector &other);
     DBConnector(int dbId, const RedisContext &ctx);
     DBConnector(int dbId, const std::string &hostname, int port, unsigned int timeout);
     DBConnector(int dbId, const std::string &unixPath, unsigned int timeout);

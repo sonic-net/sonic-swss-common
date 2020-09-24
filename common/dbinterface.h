@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <unistd.h>
 #include <stdexcept>
 
 #include "dbconnector.h"
@@ -29,7 +30,7 @@ private:
 class DBInterface : public RedisContext
 {
 public:
-    void connnect(int dbId, bool retry = true)
+    void connect(int dbId, bool retry = true)
     {
         if (retry)
         {
@@ -37,40 +38,30 @@ public:
         }
         else
         {
-            auto rc = m_dbs.emplace(std::piecewise_construct
-                    , std::forward_as_tuple(dbId)
-                    , std::forward_as_tuple(dbId, *this));
-            bool inserted = rc.second;
-            if (inserted)
-            {
-                DBConnector *db = &rc.first->second;
-                m_redisClients.emplace(std::piecewise_construct
-                        , std::forward_as_tuple(dbId)
-                        , std::forward_as_tuple(db));
-                return;
-            }
+            m_redisClient.emplace(std::piecewise_construct
+                , std::forward_as_tuple(dbId)
+                , std::forward_as_tuple(dbId, *this));
         }
     }
 
     void close(int dbId)
     {
-        m_dbs.erase(dbId);
-        m_redisClients.erase(dbId);
+        m_redisClient.erase(dbId);
     }
 
     int64_t del(int dbId, const std::string& key)
     {
-        return m_redisClients.at(dbId).del(key);
+        return m_redisClient.at(dbId).del(key);
     }
 
     bool exists(int dbId, const std::string& key)
     {
-        return m_redisClients.at(dbId).exists(key);
+        return m_redisClient.at(dbId).exists(key);
     }
 
     std::string get(int dbId, const std::string& hash, const std::string& key)
     {
-        auto pvalue = m_redisClients.at(dbId).hget(hash, key);
+        auto pvalue = m_redisClient.at(dbId).hget(hash, key);
         if (!pvalue)
         {
             std::string message = "Key '" + hash + "' field '" + key + "' unavailable in database '" + std::to_string(dbId) + "'";
@@ -84,7 +75,7 @@ public:
     std::map<std::string, std::string> get_all(int dbId, const std::string& hash)
     {
         std::map<std::string, std::string> map;
-        m_redisClients.at(dbId).hgetall(hash, std::inserter(map, map.end()));
+        m_redisClient.at(dbId).hgetall(hash, std::inserter(map, map.end()));
 
         if (map.empty())
         {
@@ -106,7 +97,7 @@ public:
 
     std::vector<std::string> keys(int dbId, const std::string& pattern = "*", bool blocking = false)
     {
-        auto keys = m_redisClients.at(dbId).keys(pattern);
+        auto keys = m_redisClient.at(dbId).keys(pattern);
         if (keys.empty())
         {
             std::string message = "DB '{" + std::to_string(dbId) + "}' is empty!";
@@ -123,7 +114,7 @@ public:
 
     int64_t set(int dbId, const std::string& hash, const std::string& key, const std::string& value)
     {
-        m_redisClients.at(dbId).hset(hash, key, value);
+        m_redisClient.at(dbId).hset(hash, key, value);
         // Return the number of fields that were added.
         return 1;
     }
@@ -201,9 +192,16 @@ private:
         }
     }
 
+    // Unsubscribe the chosent client from keyspace event notifications
     void _unsubscribe_keyspace_notification(int dbId)
     {
-        throw std::logic_error("Not implemented");
+        auto found = keyspace_notification_channels.find(dbId);
+        if (found != keyspace_notification_channels.end())
+        {
+            SWSS_LOG_DEBUG("Unsubscribe from keyspace notification");
+
+            keyspace_notification_channels.erase(found);
+        }
     }
 
     bool _unavailable_data_handler(int dbId, const char *data)
@@ -211,14 +209,23 @@ private:
         throw std::logic_error("Not implemented");
     }
 
+    // Subscribe the chosent client to keyspace event notifications
     void _subscribe_keyspace_notification(int dbId)
     {
-        throw std::logic_error("Not implemented");
+        SWSS_LOG_DEBUG("Subscribe to keyspace notification");
+        auto& client = m_redisClient.at(dbId);
+        DBConnector *pubsub = client.newConnector(0);
+        pubsub->psubscribe(KEYSPACE_PATTERN);
+        keyspace_notification_channels.emplace(std::piecewise_construct, std::forward_as_tuple(dbId), std::forward_as_tuple(pubsub));
     }
 
+    // In the event Redis is unavailable, close existing connections, and try again.
     void _connection_error_handler(int dbId)
     {
-        throw std::logic_error("Not implemented");
+        SWSS_LOG_WARN("Could not connect to Redis--waiting before trying again.");
+        close(dbId);
+        sleep(CONNECT_RETRY_WAIT_TIME);
+        connect(dbId, true);
     }
 
     static const int BLOCKING_ATTEMPT_ERROR_THRESHOLD = 10;
@@ -258,10 +265,9 @@ private:
     // ACS Redis db mainly uses hash, therefore h is selected.
     static constexpr const char *KEYSPACE_EVENTS = "KEA";
 
-    std::unordered_map<int, DBConnector> keyspace_notification_channels;
+    std::unordered_map<int, std::shared_ptr<DBConnector>> keyspace_notification_channels;
 
-    std::unordered_map<int, DBConnector> m_dbs;
-    std::unordered_map<int, RedisClient> m_redisClients;
+    std::unordered_map<int, DBConnector> m_redisClient;
 };
 
 }
