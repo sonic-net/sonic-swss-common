@@ -34,13 +34,11 @@ public:
     {
         if (retry)
         {
-            throw std::logic_error("retry not implemented");
+            _persistent_connect(dbId);
         }
         else
         {
-            m_redisClient.emplace(std::piecewise_construct
-                , std::forward_as_tuple(dbId)
-                , std::forward_as_tuple(dbId, *this));
+            _onetime_connect(dbId);
         }
     }
 
@@ -131,7 +129,10 @@ public:
         return blockable(innerfunc, dbId, blocking);
     }
 
-    DBConnector *at(int dbId);
+    DBConnector& get_redis_client(int dbId)
+    {
+        return m_redisClient.at(dbId);
+    }
 
 private:
     template <typename FUNC>
@@ -239,6 +240,32 @@ private:
         close(dbId);
         sleep(CONNECT_RETRY_WAIT_TIME);
         connect(dbId, true);
+    }
+
+    void _onetime_connect(int dbId)
+    {
+        m_redisClient.emplace(std::piecewise_construct
+            , std::forward_as_tuple(dbId)
+            , std::forward_as_tuple(dbId, *this));
+    }
+
+    // Keep reconnecting to Database 'db_id' until success
+    void _persistent_connect(int dbId)
+    {
+        for (;;)
+        {
+            try
+            {
+                _onetime_connect(dbId);
+            }
+            catch (RedisError&)
+            {
+                const int wait = CONNECT_RETRY_WAIT_TIME;
+                SWSS_LOG_WARN("Connecting to DB '%d' failed, will retry in %d s", dbId, wait);
+                close(dbId);
+                sleep(wait);
+            }
+        }
     }
 
     static const int BLOCKING_ATTEMPT_ERROR_THRESHOLD = 10;
