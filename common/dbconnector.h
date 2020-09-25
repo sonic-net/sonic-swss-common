@@ -173,6 +173,8 @@ public:
 
     void psubscribe(const std::string &pattern);
 
+    int64_t publish(const std::string &channel, const std::string &message);
+
 private:
     void setNamespace(const std::string &netns);
 

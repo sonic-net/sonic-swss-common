@@ -13,8 +13,7 @@
 
 using json = nlohmann::json;
 using namespace std;
-
-namespace swss {
+using namespace swss;
 
 void SonicDBConfig::parseDatabaseConfig(const string &file,
                     std::unordered_map<std::string, RedisInstInfo> &inst_entry,
@@ -747,9 +746,10 @@ void DBConnector::psubscribe(const std::string &pattern)
     RedisReply r(this, s, REDIS_REPLY_ARRAY);
 }
 
+int64_t DBConnector::publish(const string &channel, const string &message)
+{
+    RedisCommand publish;
+    publish.format("PUBLISH %s %s", channel.c_str(), message.c_str());
+    RedisReply r(this, publish, REDIS_REPLY_INTEGER);
+    return r.getReply<long long int>();
 }
-
-
-/////////////////// TEST code, do not checkin
-#include "common/dbinterface.h"
-
