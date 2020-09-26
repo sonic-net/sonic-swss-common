@@ -1,3 +1,5 @@
+#pragma once
+
 #include <stdint.h>
 #include <unistd.h>
 #include <stdexcept>
@@ -32,9 +34,9 @@ class DBInterface : public RedisContext
 public:
     void connect(int dbId, bool retry = true);
     void close(int dbId);
-    int64_t del(int dbId, const std::string& key);
+    int64_t del(int dbId, const std::string& key, bool blocking = false);
     bool exists(int dbId, const std::string& key);
-    std::string get(int dbId, const std::string& hash, const std::string& key);
+    std::string get(int dbId, const std::string& hash, const std::string& key, bool blocking = false);
     std::map<std::string, std::string> get_all(int dbId, const std::string& hash, bool blocking = false);
     std::vector<std::string> keys(int dbId, const std::string& pattern = "*", bool blocking = false);
     int64_t publish(int dbId, const std::string& channel, const std::string& message);

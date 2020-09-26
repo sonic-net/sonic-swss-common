@@ -23,9 +23,13 @@ void DBInterface::close(int dbId)
     m_redisClient.erase(dbId);
 }
 
-int64_t DBInterface::del(int dbId, const std::string& key)
+int64_t DBInterface::del(int dbId, const std::string& key, bool blocking)
 {
-    return m_redisClient.at(dbId).del(key);
+    auto innerfunc = [&]
+    {
+        return m_redisClient.at(dbId).del(key);
+    };
+    return blockable<int64_t>(innerfunc, dbId, blocking);
 }
 
 bool DBInterface::exists(int dbId, const std::string& key)
@@ -33,17 +37,21 @@ bool DBInterface::exists(int dbId, const std::string& key)
     return m_redisClient.at(dbId).exists(key);
 }
 
-std::string DBInterface::get(int dbId, const std::string& hash, const std::string& key)
+std::string DBInterface::get(int dbId, const std::string& hash, const std::string& key, bool blocking)
 {
-    auto pvalue = m_redisClient.at(dbId).hget(hash, key);
-    if (!pvalue)
+    auto innerfunc = [&]
     {
-        std::string message = "Key '" + hash + "' field '" + key + "' unavailable in database '" + std::to_string(dbId) + "'";
-        SWSS_LOG_WARN("%s", message.c_str());
-        throw UnavailableDataError(message, hash);
-    }
-    const std::string& value = *pvalue;
-    return value == "None" ? "" : value;
+        auto pvalue = m_redisClient.at(dbId).hget(hash, key);
+        if (!pvalue)
+        {
+            std::string message = "Key '" + hash + "' field '" + key + "' unavailable in database '" + std::to_string(dbId) + "'";
+            SWSS_LOG_WARN("%s", message.c_str());
+            throw UnavailableDataError(message, hash);
+        }
+        const std::string& value = *pvalue;
+        return value == "None" ? "" : value;
+    };
+    return blockable<std::string>(innerfunc, dbId, blocking);
 }
 
 std::map<std::string, std::string> DBInterface::get_all(int dbId, const std::string& hash, bool blocking)
