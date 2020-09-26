@@ -70,7 +70,7 @@ std::map<std::string, std::string> DBInterface::get_all(int dbId, const std::str
 
         return map;
     };
-    return blockable(innerfunc, dbId, blocking);
+    return blockable<std::map<std::string, std::string>>(innerfunc, dbId, blocking);
 }
 
 std::vector<std::string> DBInterface::keys(int dbId, const std::string& pattern, bool blocking)
@@ -86,7 +86,7 @@ std::vector<std::string> DBInterface::keys(int dbId, const std::string& pattern,
         }
         return keys;
     };
-    return blockable(innerfunc, dbId, blocking);
+    return blockable<std::vector<std::string>>(innerfunc, dbId, blocking);
 }
 
 int64_t DBInterface::publish(int dbId, const std::string& channel, const std::string& message)
@@ -102,7 +102,7 @@ int64_t DBInterface::set(int dbId, const std::string& hash, const std::string& k
         // Return the number of fields that were added.
         return 1;
     };
-    return blockable(innerfunc, dbId, blocking);
+    return blockable<int64_t>(innerfunc, dbId, blocking);
 }
 
 DBConnector& DBInterface::get_redis_client(int dbId)
@@ -110,10 +110,9 @@ DBConnector& DBInterface::get_redis_client(int dbId)
     return m_redisClient.at(dbId);
 }
 
-template <typename FUNC>
-auto DBInterface::blockable(FUNC f, int dbId, bool blocking) -> decltype(f())
+template <typename T, typename FUNC>
+T DBInterface::blockable(FUNC f, int dbId, bool blocking)
 {
-    typedef decltype(f()) T;
     int attempts = 0;
     for (;;)
     {

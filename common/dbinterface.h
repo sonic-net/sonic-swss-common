@@ -42,8 +42,8 @@ public:
     DBConnector& get_redis_client(int dbId);
 
 private:
-    template <typename FUNC>
-    auto blockable(FUNC f, int dbId, bool blocking = false) -> decltype(f());
+    template <typename T, typename FUNC>
+    T blockable(FUNC f, int dbId, bool blocking = false);
     // Unsubscribe the chosent client from keyspace event notifications
     void _unsubscribe_keyspace_notification(int dbId);
     bool _unavailable_data_handler(int dbId, const char *data);
