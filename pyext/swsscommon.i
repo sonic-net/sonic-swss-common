@@ -3,6 +3,7 @@
 %{
 #include "schema.h"
 #include "dbconnector.h"
+#include "dbinterface.h"
 #include "select.h"
 #include "selectable.h"
 #include "rediscommand.h"
@@ -95,3 +96,4 @@ swss::RedisSelect *CastSelectableToRedisSelectObj(swss::Selectable *temp) {
 
 %include "notificationproducer.h"
 %include "warm_restart.h"
+%include "dbinterface.h"
