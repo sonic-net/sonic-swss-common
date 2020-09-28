@@ -13,6 +13,7 @@
 #include "common/selectabletimer.h"
 #include "common/table.h"
 #include "common/redisclient.h"
+#include "common/dbinterface.h"
 
 using namespace std;
 using namespace swss;
@@ -309,6 +310,13 @@ TEST(DBConnector, RedisClientName)
     db.setClientName(client_name);
     sleep(1);
     EXPECT_EQ(db.getClientName(), client_name);
+}
+
+TEST(DBConnector, DBInterface)
+{
+    DBInterface dbintf;
+    dbintf.set_redis_kwargs("", "127.0.0.1", 6379);
+    dbintf.connect(15);
 }
 
 TEST(DBConnector, RedisClient)

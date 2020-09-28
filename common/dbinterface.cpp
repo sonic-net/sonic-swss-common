@@ -6,6 +6,13 @@ using namespace std;
 using namespace std::chrono;
 using namespace swss;
 
+void DBInterface::set_redis_kwargs(std::string unix_socket_path, std::string host, int port)
+{
+    m_unix_socket_path = unix_socket_path;
+    m_host = host;
+    m_port = port;
+}
+
 void DBInterface::connect(int dbId, bool retry)
 {
     if (retry)
@@ -281,9 +288,19 @@ void DBInterface::_connection_error_handler(int dbId)
 
 void DBInterface::_onetime_connect(int dbId)
 {
-    m_redisClient.emplace(std::piecewise_construct
-        , std::forward_as_tuple(dbId)
-        , std::forward_as_tuple(dbId, *this));
+    if (m_unix_socket_path.empty())
+    {
+        m_redisClient.emplace(std::piecewise_construct
+                , std::forward_as_tuple(dbId)
+                , std::forward_as_tuple(dbId, m_host, m_port, 0));
+    }
+    else
+    {
+        m_redisClient.emplace(std::piecewise_construct
+                , std::forward_as_tuple(dbId)
+                , std::forward_as_tuple(dbId, m_unix_socket_path, 0));
+    }
+
 }
 
 // Keep reconnecting to Database 'dbId' until success

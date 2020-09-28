@@ -29,7 +29,7 @@ private:
     const std::string m_data;
 };
 
-class DBInterface : public RedisContext
+class DBInterface
 {
 public:
     void connect(int dbId, bool retry = true);
@@ -42,6 +42,7 @@ public:
     int64_t publish(int dbId, const std::string& channel, const std::string& message);
     int64_t set(int dbId, const std::string& hash, const std::string& key, const std::string& value, bool blocking = false);
     DBConnector& get_redis_client(int dbId);
+    void set_redis_kwargs(std::string unix_socket_path, std::string host, int port);
 
 private:
     template <typename T, typename FUNC>
@@ -97,6 +98,10 @@ private:
     std::unordered_map<int, std::shared_ptr<DBConnector>> keyspace_notification_channels;
 
     std::unordered_map<int, DBConnector> m_redisClient;
+
+    std::string m_unix_socket_path;
+    std::string m_host = "127.0.0.1";
+    int m_port = 6379;
 };
 
 }
