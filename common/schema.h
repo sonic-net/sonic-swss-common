@@ -19,7 +19,10 @@ namespace swss {
 #define GB_ASIC_DB      8
 #define GB_COUNTERS_DB  9
 #define GB_FLEX_COUNTER_DB  10
-#define GLOBAL_APP_DB   11
+
+//For chassis app db in supervisor/control card redis in chassis systems.
+//This DB ID is not to be used in local redis.
+#define CHASSIS_APP_DB  8
 
 /***** APPLICATION DATABASE *****/
 
@@ -273,8 +276,8 @@ namespace swss {
 #define CFG_SYSTEM_PORT_TABLE_NAME                  "SYSTEM_PORT"
 #define CFG_VOQ_INBAND_INTERFACE_TABLE_NAME         "VOQ_INBAND_INTERFACE"
 
-#define VOQ_SYSTEM_INTERFACE_TABLE_NAME             "SYSTEM_INTERFACE"
-#define VOQ_SYSTEM_NEIGH_TABLE_NAME                 "SYSTEM_NEIGH"
+#define CHASSIS_APP_SYSTEM_INTERFACE_TABLE_NAME     "SYSTEM_INTERFACE"
+#define CHASSIS_APP_SYSTEM_NEIGH_TABLE_NAME         "SYSTEM_NEIGH"
 
 /***** STATE DATABASE *****/
 

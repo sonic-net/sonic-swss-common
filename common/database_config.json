@@ -5,10 +5,10 @@
             "port" : 6379,
             "unix_socket_path" : "/var/run/redis/redis.sock"
         },
-        "redis-global_db":{
-            "hostname" : "240.127.1.1",
+        "redis_chassis":{
+            "hostname" : "redis_chassis.server"
             "port" : 6380,
-            "unix_socket_path" : "/var/run/redis/redis-global_db.sock"
+            "unix_socket_path" : "/var/run/redis/redis_chassis.sock"
         }
     },
     "DATABASES" : {
@@ -72,10 +72,10 @@
             "separator": "|",
             "instance" : "redis"
         },
-        "GLOBAL_APP_DB" : {
-            "id" : 11,
-            "separator": ":",
-            "instance" : "redis-global_db"
+        "CHASSIS_APP_DB" : {
+            "id" : 8,
+            "separator": "|",
+            "instance" : "redis_chassis"
         }
     },
     "VERSION" : "1.0"
