@@ -268,6 +268,8 @@ namespace swss {
 #define CFG_FG_NHG_PREFIX                           "FG_NHG_PREFIX"
 #define CFG_FG_NHG_MEMBER                           "FG_NHG_MEMBER"
 
+#define CFG_CHASSIS_MODULE_TABLE                    "CHASSIS_MODULE"
+
 /***** STATE DATABASE *****/
 
 #define STATE_SWITCH_CAPABILITY_TABLE_NAME          "SWITCH_CAPABILITY_TABLE"
