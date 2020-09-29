@@ -84,6 +84,7 @@ public:
     RedisContext(const std::string &hostname, int port, unsigned int timeout);
     RedisContext(const std::string &unixPath, unsigned int timeout);
     RedisContext(const RedisContext &other);
+    RedisContext& operator=(const RedisContext&) = delete;
 
     ~RedisContext();
 
@@ -125,6 +126,7 @@ public:
     DBConnector(int dbId, const std::string &unixPath, unsigned int timeout);
     DBConnector(const std::string &dbName, unsigned int timeout, bool isTcpConn = false);
     DBConnector(const std::string &dbName, unsigned int timeout, bool isTcpConn, const std::string &netns);
+    DBConnector& operator=(const DBConnector&) = delete;
 
     int getDbId() const;
     std::string getDbName() const;
