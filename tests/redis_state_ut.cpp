@@ -104,7 +104,6 @@ static void consumerWorker(int index)
 {
     string tableName = "UT_REDIS_THREAD_" + to_string(index);
     DBConnector db(TEST_DB, 0, true);
-    RedisClient redisClient(&db);
     ConsumerStateTable c(&db, tableName);
     Select cs;
     Selectable *selectcs;
@@ -124,13 +123,13 @@ static void consumerWorker(int index)
 
             for (auto fv : kfvFieldsValues(kco))
             {
-                string val = *redisClient.hget(tableName + ":" + kfvKey(kco), fvField(fv));
+                string val = *db.hget(tableName + ":" + kfvKey(kco), fvField(fv));
                 EXPECT_EQ(val, fvValue(fv));
             }
         } else if (kfvOp(kco) == "DEL")
         {
             numberOfKeyDeleted++;
-            auto keys = redisClient.keys(tableName + ":" + kfvKey(kco));
+            auto keys = db.keys(tableName + ":" + kfvKey(kco));
             EXPECT_EQ(0UL, keys.size());
         }
 

@@ -30,10 +30,10 @@ void prioNotify(const string &component, const string &prioStr)
     Logger::priorityStringMap.at(prioStr);
 }
 
-void checkLoglevel(RedisClient redisClient, const string& key, const string& loglevel)
+void checkLoglevel(DBConnector& db, const string& key, const string& loglevel)
 {
     string redis_key = key + ":" + key;
-    auto level = redisClient.hget(redis_key, DAEMON_LOGLEVEL);
+    auto level = db.hget(redis_key, DAEMON_LOGLEVEL);
     EXPECT_FALSE(level == nullptr);
     if (level != nullptr)
     {
@@ -44,7 +44,6 @@ void checkLoglevel(RedisClient redisClient, const string& key, const string& log
 TEST(LOGGER, loglevel)
 {
     DBConnector db("LOGLEVEL_DB", 0);
-    RedisClient redisClient(&db);
     clearLoglevelDB();
 
     string key1 = "table1", key2 = "table2", key3 = "table3";
@@ -55,7 +54,7 @@ TEST(LOGGER, loglevel)
     sleep(1);
 
     cout << "Checking log level for table1." << endl;
-    checkLoglevel(redisClient, key1, "NOTICE");
+    checkLoglevel(db, key1, "NOTICE");
 
     cout << "Setting log level for tables." << endl;
     Logger::linkToDb(key2, prioNotify, "NOTICE");
@@ -65,9 +64,9 @@ TEST(LOGGER, loglevel)
     sleep(1);
 
     cout << "Checking log levels." << endl;
-    checkLoglevel(redisClient, key1, "DEBUG");
-    checkLoglevel(redisClient, key2, "NOTICE");
-    checkLoglevel(redisClient, key3, "INFO");
+    checkLoglevel(db, key1, "DEBUG");
+    checkLoglevel(db, key2, "NOTICE");
+    checkLoglevel(db, key3, "INFO");
 
     cout << "Done." << endl;
 }
