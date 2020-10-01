@@ -40,6 +40,16 @@ int64_t DBInterface::del(const string& dbName, const std::string& key, bool bloc
     return blockable<int64_t>(innerfunc, dbName, blocking);
 }
 
+void DBInterface::delete_all_by_pattern(const string& dbName, const string& pattern)
+{
+    auto& client = m_redisClient.at(dbName);
+    auto keys = client.keys(pattern);
+    for (auto& key: keys)
+    {
+        client.del(key);
+    }
+}
+
 bool DBInterface::exists(const string& dbName, const std::string& key)
 {
     return m_redisClient.at(dbName).exists(key);
