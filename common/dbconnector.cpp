@@ -622,6 +622,13 @@ void DBConnector::set(const string &key, const string &value)
     RedisReply r(this, sset, REDIS_REPLY_STATUS);
 }
 
+void DBConnector::config_set(const std::string &key, const std::string &value)
+{
+    RedisCommand sset;
+    sset.format("CONFIG SET %s %s", key.c_str(), value.c_str());
+    RedisReply r(this, sset, REDIS_REPLY_STATUS);
+}
+
 unordered_map<string, string> DBConnector::hgetall(const string &key)
 {
     unordered_map<string, string> map;

@@ -32,31 +32,31 @@ private:
 class DBInterface
 {
 public:
-    void connect(int dbId, bool retry = true);
-    void close(int dbId);
-    int64_t del(int dbId, const std::string& key, bool blocking = false);
-    bool exists(int dbId, const std::string& key);
-    std::string get(int dbId, const std::string& hash, const std::string& key, bool blocking = false);
-    std::map<std::string, std::string> get_all(int dbId, const std::string& hash, bool blocking = false);
-    std::vector<std::string> keys(int dbId, const std::string& pattern = "*", bool blocking = false);
-    int64_t publish(int dbId, const std::string& channel, const std::string& message);
-    int64_t set(int dbId, const std::string& hash, const std::string& key, const std::string& value, bool blocking = false);
-    DBConnector& get_redis_client(int dbId);
+    void connect(int dbId, const std::string& dbName, bool retry = true);
+    void close(const std::string& dbName);
+    int64_t del(const std::string& dbName, const std::string& key, bool blocking = false);
+    bool exists(const std::string& dbName, const std::string& key);
+    std::string get(const std::string& dbName, const std::string& hash, const std::string& key, bool blocking = false);
+    std::map<std::string, std::string> get_all(const std::string& dbName, const std::string& hash, bool blocking = false);
+    std::vector<std::string> keys(const std::string& dbName, const std::string& pattern = "*", bool blocking = false);
+    int64_t publish(const std::string& dbName, const std::string& channel, const std::string& message);
+    int64_t set(const std::string& dbName, const std::string& hash, const std::string& key, const std::string& value, bool blocking = false);
+    DBConnector& get_redis_client(const std::string& dbName);
     void set_redis_kwargs(std::string unix_socket_path, std::string host, int port);
 
 private:
     template <typename T, typename FUNC>
-    T blockable(FUNC f, int dbId, bool blocking = false);
+    T blockable(FUNC f, const std::string& dbName, bool blocking = false);
     // Unsubscribe the chosent client from keyspace event notifications
-    void _unsubscribe_keyspace_notification(int dbId);
-    bool _unavailable_data_handler(int dbId, const char *data);
+    void _unsubscribe_keyspace_notification(const std::string& dbName);
+    bool _unavailable_data_handler(const std::string& dbName, const char *data);
     // Subscribe the chosent client to keyspace event notifications
-    void _subscribe_keyspace_notification(int dbId);
+    void _subscribe_keyspace_notification(const std::string& dbName);
     // In the event Redis is unavailable, close existing connections, and try again.
-    void _connection_error_handler(int dbId);
-    void _onetime_connect(int dbId);
+    void _connection_error_handler(const std::string& dbName);
+    void _onetime_connect(int dbId, const std::string& dbName);
     // Keep reconnecting to Database 'dbId' until success
-    void _persistent_connect(int dbId);
+    void _persistent_connect(int dbId, const std::string& dbName);
 
     static const int BLOCKING_ATTEMPT_ERROR_THRESHOLD = 10;
     static const int BLOCKING_ATTEMPT_SUPPRESSION = BLOCKING_ATTEMPT_ERROR_THRESHOLD + 5;
@@ -95,9 +95,9 @@ private:
     // ACS Redis db mainly uses hash, therefore h is selected.
     static constexpr const char *KEYSPACE_EVENTS = "KEA";
 
-    std::unordered_map<int, std::shared_ptr<DBConnector>> keyspace_notification_channels;
+    std::unordered_map<std::string, std::shared_ptr<DBConnector>> keyspace_notification_channels;
 
-    std::unordered_map<int, DBConnector> m_redisClient;
+    std::unordered_map<std::string, DBConnector> m_redisClient;
 
     std::string m_unix_socket_path;
     std::string m_host = "127.0.0.1";

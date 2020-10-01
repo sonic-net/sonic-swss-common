@@ -316,7 +316,7 @@ TEST(DBConnector, DBInterface)
 {
     DBInterface dbintf;
     dbintf.set_redis_kwargs("", "127.0.0.1", 6379);
-    dbintf.connect(15);
+    dbintf.connect(15, "TEST_DB");
 }
 
 TEST(DBConnector, RedisClient)

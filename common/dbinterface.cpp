@@ -1,4 +1,5 @@
 #include <chrono>
+#include <utility>
 #include <hiredis/hiredis.h>
 #include "dbinterface.h"
 
@@ -13,64 +14,64 @@ void DBInterface::set_redis_kwargs(std::string unix_socket_path, std::string hos
     m_port = port;
 }
 
-void DBInterface::connect(int dbId, bool retry)
+void DBInterface::connect(int dbId, const std::string& dbName, bool retry)
 {
     if (retry)
     {
-        _persistent_connect(dbId);
+        _persistent_connect(dbId, dbName);
     }
     else
     {
-        _onetime_connect(dbId);
+        _onetime_connect(dbId, dbName);
     }
 }
 
-void DBInterface::close(int dbId)
+void DBInterface::close(const std::string& dbName)
 {
-    m_redisClient.erase(dbId);
+    m_redisClient.erase(dbName);
 }
 
-int64_t DBInterface::del(int dbId, const std::string& key, bool blocking)
+int64_t DBInterface::del(const string& dbName, const std::string& key, bool blocking)
 {
     auto innerfunc = [&]
     {
-        return m_redisClient.at(dbId).del(key);
+        return m_redisClient.at(dbName).del(key);
     };
-    return blockable<int64_t>(innerfunc, dbId, blocking);
+    return blockable<int64_t>(innerfunc, dbName, blocking);
 }
 
-bool DBInterface::exists(int dbId, const std::string& key)
+bool DBInterface::exists(const string& dbName, const std::string& key)
 {
-    return m_redisClient.at(dbId).exists(key);
+    return m_redisClient.at(dbName).exists(key);
 }
 
-std::string DBInterface::get(int dbId, const std::string& hash, const std::string& key, bool blocking)
+std::string DBInterface::get(const std::string& dbName, const std::string& hash, const std::string& key, bool blocking)
 {
     auto innerfunc = [&]
     {
-        auto pvalue = m_redisClient.at(dbId).hget(hash, key);
+        auto pvalue = m_redisClient.at(dbName).hget(hash, key);
         if (!pvalue)
         {
-            std::string message = "Key '" + hash + "' field '" + key + "' unavailable in database '" + std::to_string(dbId) + "'";
+            std::string message = "Key '" + hash + "' field '" + key + "' unavailable in database '" + dbName + "'";
             SWSS_LOG_WARN("%s", message.c_str());
             throw UnavailableDataError(message, hash);
         }
         const std::string& value = *pvalue;
         return value == "None" ? "" : value;
     };
-    return blockable<std::string>(innerfunc, dbId, blocking);
+    return blockable<std::string>(innerfunc, dbName, blocking);
 }
 
-std::map<std::string, std::string> DBInterface::get_all(int dbId, const std::string& hash, bool blocking)
+std::map<std::string, std::string> DBInterface::get_all(const std::string& dbName, const std::string& hash, bool blocking)
 {
     auto innerfunc = [&]
     {
         std::map<std::string, std::string> map;
-        m_redisClient.at(dbId).hgetall(hash, std::inserter(map, map.end()));
+        m_redisClient.at(dbName).hgetall(hash, std::inserter(map, map.end()));
 
         if (map.empty())
         {
-            std::string message = "Key '{" + hash + "}' unavailable in database '{" + std::to_string(dbId) + "}'";
+            std::string message = "Key '{" + hash + "}' unavailable in database '{" + dbName + "}'";
             SWSS_LOG_WARN("%s", message.c_str());
             throw UnavailableDataError(message, hash);
         }
@@ -85,48 +86,48 @@ std::map<std::string, std::string> DBInterface::get_all(int dbId, const std::str
 
         return map;
     };
-    return blockable<std::map<std::string, std::string>>(innerfunc, dbId, blocking);
+    return blockable<std::map<std::string, std::string>>(innerfunc, dbName, blocking);
 }
 
-std::vector<std::string> DBInterface::keys(int dbId, const std::string& pattern, bool blocking)
+std::vector<std::string> DBInterface::keys(const std::string& dbName, const std::string& pattern, bool blocking)
 {
     auto innerfunc = [&]
     {
-        auto keys = m_redisClient.at(dbId).keys(pattern);
+        auto keys = m_redisClient.at(dbName).keys(pattern);
         if (keys.empty())
         {
-            std::string message = "DB '{" + std::to_string(dbId) + "}' is empty!";
+            std::string message = "DB '{" + dbName + "}' is empty!";
             SWSS_LOG_WARN("%s", message.c_str());
             throw UnavailableDataError(message, "hset");
         }
         return keys;
     };
-    return blockable<std::vector<std::string>>(innerfunc, dbId, blocking);
+    return blockable<std::vector<std::string>>(innerfunc, dbName, blocking);
 }
 
-int64_t DBInterface::publish(int dbId, const std::string& channel, const std::string& message)
+int64_t DBInterface::publish(const std::string& dbName, const std::string& channel, const std::string& message)
 {
-    return m_redisClient.at(dbId).publish(channel, message);
+    return m_redisClient.at(dbName).publish(channel, message);
 }
 
-int64_t DBInterface::set(int dbId, const std::string& hash, const std::string& key, const std::string& value, bool blocking)
+int64_t DBInterface::set(const std::string& dbName, const std::string& hash, const std::string& key, const std::string& value, bool blocking)
 {
     auto innerfunc = [&]
     {
-        m_redisClient.at(dbId).hset(hash, key, value);
+        m_redisClient.at(dbName).hset(hash, key, value);
         // Return the number of fields that were added.
         return 1;
     };
-    return blockable<int64_t>(innerfunc, dbId, blocking);
+    return blockable<int64_t>(innerfunc, dbName, blocking);
 }
 
-DBConnector& DBInterface::get_redis_client(int dbId)
+DBConnector& DBInterface::get_redis_client(const std::string& dbName)
 {
-    return m_redisClient.at(dbId);
+    return m_redisClient.at(dbName);
 }
 
 template <typename T, typename FUNC>
-T DBInterface::blockable(FUNC f, int dbId, bool blocking)
+T DBInterface::blockable(FUNC f, const std::string& dbName, bool blocking)
 {
     int attempts = 0;
     for (;;)
@@ -134,31 +135,31 @@ T DBInterface::blockable(FUNC f, int dbId, bool blocking)
         try
         {
             T ret_data = f();
-            _unsubscribe_keyspace_notification(dbId);
+            _unsubscribe_keyspace_notification(dbName);
             return ret_data;
         }
         catch (const UnavailableDataError& e)
         {
             if (blocking)
             {
-                auto found = keyspace_notification_channels.find(dbId);
+                auto found = keyspace_notification_channels.find(dbName);
                 if (found != keyspace_notification_channels.end())
                 {
-                    bool result = _unavailable_data_handler(dbId, e.getData());
+                    bool result = _unavailable_data_handler(dbName, e.getData());
                     if (result)
                     {
                         continue; // received updates, try to read data again
                     }
                     else
                     {
-                        _unsubscribe_keyspace_notification(dbId);
+                        _unsubscribe_keyspace_notification(dbName);
                         throw; // No updates was received. Raise exception
                     }
                 }
                 else
                 {
                     // Subscribe to updates and try it again (avoiding race condition)
-                    _subscribe_keyspace_notification(dbId);
+                    _subscribe_keyspace_notification(dbName);
                 }
             }
             else
@@ -173,15 +174,15 @@ T DBInterface::blockable(FUNC f, int dbId, bool blocking)
             Retrying the request won't pass unless the schema itself changes. In this case, the error
             should be attributed to the application itself. Re-raise the error.
             */
-            SWSS_LOG_ERROR("Bad DB request [%d]", dbId);
+            SWSS_LOG_ERROR("Bad DB request [%s]", dbName.c_str());
             throw;
         }
         catch (const RedisError&)
         {
             // Redis connection broken and we need to retry several times
             attempts += 1;
-            _connection_error_handler(dbId);
-            std::string msg = "DB access failure by [" + std::to_string(dbId) + + "]";
+            _connection_error_handler(dbName);
+            std::string msg = "DB access failure by [" + dbName + + "]";
             if (BLOCKING_ATTEMPT_ERROR_THRESHOLD < attempts && attempts < BLOCKING_ATTEMPT_SUPPRESSION)
             {
                 // Repeated access failures implies the database itself is unhealthy.
@@ -196,9 +197,9 @@ T DBInterface::blockable(FUNC f, int dbId, bool blocking)
 }
 
 // Unsubscribe the chosent client from keyspace event notifications
-void DBInterface::_unsubscribe_keyspace_notification(int dbId)
+void DBInterface::_unsubscribe_keyspace_notification(const std::string& dbName)
 {
-    auto found = keyspace_notification_channels.find(dbId);
+    auto found = keyspace_notification_channels.find(dbName);
     if (found != keyspace_notification_channels.end())
     {
         SWSS_LOG_DEBUG("Unsubscribe from keyspace notification");
@@ -211,14 +212,14 @@ void DBInterface::_unsubscribe_keyspace_notification(int dbId)
 // Two timeouts are at work here:
 // 1. Notification timeout - how long to wait before giving up on receiving any given pub-sub message.
 // 2. Max data wait - swsssdk-specific. how long to wait for the data to populate (in absolute time)
-bool DBInterface::_unavailable_data_handler(int dbId, const char *data)
+bool DBInterface::_unavailable_data_handler(const std::string& dbName, const char *data)
 {
     auto start = system_clock::now();
-    SWSS_LOG_DEBUG("Listening on pubsub channel '%d'", dbId);
+    SWSS_LOG_DEBUG("Listening on pubsub channel '%s'", dbName.c_str());
     auto wait = duration<float>(PUB_SUB_MAXIMUM_DATA_WAIT);
     while (system_clock::now() - start < wait)
     {
-        auto& channel = keyspace_notification_channels.at(dbId);
+        auto& channel = keyspace_notification_channels.at(dbName);
         auto ctx = channel->getContext();
         redisReply *reply;
         int rc = redisGetReply(ctx, reinterpret_cast<void**>(&reply));
@@ -229,7 +230,7 @@ bool DBInterface::_unavailable_data_handler(int dbId, const char *data)
         }
         if (rc != REDIS_OK)
         {
-            throw RedisError("Failed to redisGetReply with on pubsub channel on dbId=" + to_string(dbId), ctx);
+            throw RedisError("Failed to redisGetReply with on pubsub channel on dbName=" + dbName, ctx);
         }
 
         RedisReply r(reply);
@@ -247,22 +248,22 @@ bool DBInterface::_unavailable_data_handler(int dbId, const char *data)
 
         if (strcmp(r3.str, data) == 0)
         {
-            SWSS_LOG_INFO("'%s' acquired via pub-sub dbId=%d. Unblocking...", data, dbId);
+            SWSS_LOG_INFO("'%s' acquired via pub-sub dbName=%s. Unblocking...", data, dbName.c_str());
             // Wait for a "settling" period before releasing the wait.
             sleep(DATA_RETRIEVAL_WAIT_TIME);
             return true;
         }
     }
 
-    SWSS_LOG_WARN("No notification for '%s' from '%d' received before timeout.", data, dbId);
+    SWSS_LOG_WARN("No notification for '%s' from '%s' received before timeout.", data, dbName.c_str());
     return false;
 }
 
 // Subscribe the chosent client to keyspace event notifications
-void DBInterface::_subscribe_keyspace_notification(int dbId)
+void DBInterface::_subscribe_keyspace_notification(const std::string& dbName)
 {
     SWSS_LOG_DEBUG("Subscribe to keyspace notification");
-    auto& client = m_redisClient.at(dbId);
+    auto& client = m_redisClient.at(dbName);
     DBConnector *pubsub = client.newConnector(0);
     pubsub->psubscribe(KEYSPACE_PATTERN);
 
@@ -274,50 +275,62 @@ void DBInterface::_subscribe_keyspace_notification(int dbId)
         throw RedisError("Failed to redisSetTimeout", pubsub->getContext());
     }
 
-    keyspace_notification_channels.emplace(std::piecewise_construct, std::forward_as_tuple(dbId), std::forward_as_tuple(pubsub));
+    keyspace_notification_channels.emplace(std::piecewise_construct, std::forward_as_tuple(dbName), std::forward_as_tuple(pubsub));
 }
 
 // In the event Redis is unavailable, close existing connections, and try again.
-void DBInterface::_connection_error_handler(int dbId)
+void DBInterface::_connection_error_handler(const std::string& dbName)
 {
     SWSS_LOG_WARN("Could not connect to Redis--waiting before trying again.");
-    close(dbId);
+    int dbId = get_redis_client(dbName).getDbId();
+    close(dbName);
     sleep(CONNECT_RETRY_WAIT_TIME);
-    connect(dbId, true);
+    connect(dbId, dbName, true);
 }
 
-void DBInterface::_onetime_connect(int dbId)
+void DBInterface::_onetime_connect(int dbId, const string& dbName)
 {
+    if (dbName.empty())
+    {
+        throw invalid_argument("dbName");
+    }
+
+    pair<decltype(m_redisClient.begin()), bool> rc;
     if (m_unix_socket_path.empty())
     {
-        m_redisClient.emplace(std::piecewise_construct
-                , std::forward_as_tuple(dbId)
+        rc = m_redisClient.emplace(std::piecewise_construct
+                , std::forward_as_tuple(dbName)
                 , std::forward_as_tuple(dbId, m_host, m_port, 0));
     }
     else
     {
-        m_redisClient.emplace(std::piecewise_construct
-                , std::forward_as_tuple(dbId)
+        rc = m_redisClient.emplace(std::piecewise_construct
+                , std::forward_as_tuple(dbName)
                 , std::forward_as_tuple(dbId, m_unix_socket_path, 0));
     }
-
+    bool inserted = rc.second;
+    if (inserted)
+    {
+        auto redisClient = rc.first->second;
+        redisClient.config_set("notify-keyspace-events", KEYSPACE_EVENTS);
+    }
 }
 
 // Keep reconnecting to Database 'dbId' until success
-void DBInterface::_persistent_connect(int dbId)
+void DBInterface::_persistent_connect(int dbId, const string& dbName)
 {
     for (;;)
     {
         try
         {
-            _onetime_connect(dbId);
+            _onetime_connect(dbId, dbName);
             return;
         }
         catch (RedisError&)
         {
             const int wait = CONNECT_RETRY_WAIT_TIME;
-            SWSS_LOG_WARN("Connecting to DB '%d' failed, will retry in %d s", dbId, wait);
-            close(dbId);
+            SWSS_LOG_WARN("Connecting to DB '%s(%d)' failed, will retry in %d s", dbName.c_str(), dbId, wait);
+            close(dbName);
             sleep(wait);
         }
     }

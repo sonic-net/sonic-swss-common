@@ -177,6 +177,8 @@ public:
 
     int64_t publish(const std::string &channel, const std::string &message);
 
+    void config_set(const std::string &key, const std::string &value);
+
 private:
     void setNamespace(const std::string &netns);
 
