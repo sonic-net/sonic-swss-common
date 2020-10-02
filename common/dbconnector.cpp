@@ -361,6 +361,22 @@ vector<string> SonicDBConfig::getNamespaces()
     return list;
 }
 
+std::vector<std::string> SonicDBConfig::getDbList(const std::string &netns)
+{
+    if (!m_init)
+    {
+        initialize();
+    }
+    validateNamespace(netns);
+
+    std::vector<std::string> dbNames;
+    for (auto& imap: m_db_info.at(netns))
+    {
+        dbNames.push_back(imap.first);
+    }
+    return dbNames;
+}
+
 constexpr const char *SonicDBConfig::DEFAULT_SONIC_DB_CONFIG_FILE;
 constexpr const char *SonicDBConfig::DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE;
 unordered_map<string, unordered_map<string, RedisInstInfo>> SonicDBConfig::m_inst_info;

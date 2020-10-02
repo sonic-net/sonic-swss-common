@@ -47,6 +47,7 @@ public:
     static std::string getDbHostname(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
     static int getDbPort(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
     static std::vector<std::string> getNamespaces();
+    static std::vector<std::string> getDbList(const std::string &netns = EMPTY_NAMESPACE);
     static bool isInit() { return m_init; };
     static bool isGlobalInit() { return m_global_init; };
 

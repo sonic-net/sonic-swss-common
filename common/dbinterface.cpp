@@ -99,7 +99,7 @@ std::map<std::string, std::string> DBInterface::get_all(const std::string& dbNam
     return blockable<std::map<std::string, std::string>>(innerfunc, dbName, blocking);
 }
 
-std::vector<std::string> DBInterface::keys(const std::string& dbName, const std::string& pattern, bool blocking)
+std::vector<std::string> DBInterface::keys(const std::string& dbName, const char *pattern, bool blocking)
 {
     auto innerfunc = [&]
     {

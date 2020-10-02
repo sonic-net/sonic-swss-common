@@ -40,7 +40,7 @@ public:
     bool exists(const std::string& dbName, const std::string& key);
     std::string get(const std::string& dbName, const std::string& hash, const std::string& key, bool blocking = false);
     std::map<std::string, std::string> get_all(const std::string& dbName, const std::string& hash, bool blocking = false);
-    std::vector<std::string> keys(const std::string& dbName, const std::string& pattern = "*", bool blocking = false);
+    std::vector<std::string> keys(const std::string& dbName, const char *pattern = "*", bool blocking = false);
     int64_t publish(const std::string& dbName, const std::string& channel, const std::string& message);
     int64_t set(const std::string& dbName, const std::string& hash, const std::string& key, const std::string& value, bool blocking = false);
     DBConnector& get_redis_client(const std::string& dbName);
@@ -104,6 +104,117 @@ private:
     std::string m_unix_socket_path;
     std::string m_host = "127.0.0.1";
     int m_port = 6379;
+};
+
+class SonicV2Connector
+{
+public:
+    SonicV2Connector(bool use_unix_socket_path = false, const char *netns = "")
+        : m_use_unix_socket_path(use_unix_socket_path)
+        , m_netns(netns)
+    {
+    }
+
+    void connect(const std::string& db_name, bool retry_on = true)
+    {
+        if (m_use_unix_socket_path)
+        {
+            SWSS_LOG_INFO("connec1: %s", get_db_socket(db_name).c_str());
+            dbintf.set_redis_kwargs(get_db_socket(db_name), "", 0);
+        }
+        else
+        {
+            SWSS_LOG_INFO("connec2: %s %d", get_db_hostname(db_name).c_str(), get_db_port(db_name));
+            dbintf.set_redis_kwargs("", get_db_hostname(db_name), get_db_port(db_name));
+        }
+        int db_id = get_dbid(db_name);
+        dbintf.connect(db_id, db_name, retry_on);
+    }
+
+    void close(const std::string& db_name)
+    {
+        dbintf.close(db_name);
+    }
+
+    std::vector<std::string> get_db_list()
+    {
+        return SonicDBConfig::getDbList(m_netns);
+    }
+
+    int get_dbid(const std::string& db_name)
+    {
+        return SonicDBConfig::getDbId(db_name, m_netns);
+    }
+
+    std::string get_db_separator(const std::string& db_name)
+    {
+        return SonicDBConfig::getSeparator(db_name, m_netns);
+    }
+
+    DBConnector& get_redis_client(const std::string& db_name)
+    {
+        return dbintf.get_redis_client(db_name);
+    }
+
+    int64_t publish(const std::string& db_name, const std::string& channel, const std::string& message)
+    {
+        return dbintf.publish(db_name, channel, message);
+    }
+
+    bool exists(const std::string& db_name, const std::string& key)
+    {
+        return dbintf.exists(db_name, key);
+    }
+
+    std::vector<std::string> keys(const std::string& db_name, const char *pattern="*")
+    {
+        return dbintf.keys(db_name, pattern);
+    }
+
+    std::string get(const std::string& db_name, const std::string& _hash, const std::string& key)
+    {
+        return dbintf.get(db_name, _hash, key);
+    }
+
+    std::map<std::string, std::string> get_all(const std::string& db_name, const std::string& _hash)
+    {
+        return dbintf.get_all(db_name, _hash);
+    }
+
+    int64_t set(const std::string& db_name, const std::string& _hash, const std::string& key, const std::string& val)
+    {
+        return dbintf.set(db_name, _hash, key, val);
+    }
+
+    int64_t del(const std::string& db_name, const std::string& key)
+    {
+        return dbintf.del(db_name, key);
+    }
+
+    void delete_all_by_pattern(const std::string& db_name, const std::string& pattern)
+    {
+        dbintf.delete_all_by_pattern(db_name, pattern);
+    }
+
+private:
+    std::string get_db_socket(const std::string& db_name)
+    {
+        return SonicDBConfig::getDbSock(db_name, m_netns);
+    }
+
+    std::string get_db_hostname(const std::string& db_name)
+    {
+        return SonicDBConfig::getDbHostname(db_name, m_netns);
+    }
+
+    int get_db_port(const std::string& db_name)
+    {
+        return SonicDBConfig::getDbPort(db_name, m_netns);
+    }
+
+    DBInterface dbintf;
+    bool m_use_unix_socket_path;
+    std::string m_netns;
 };
 
 }
