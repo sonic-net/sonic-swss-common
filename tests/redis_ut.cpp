@@ -317,6 +317,14 @@ TEST(DBConnector, DBInterface)
     DBInterface dbintf;
     dbintf.set_redis_kwargs("", "127.0.0.1", 6379);
     dbintf.connect(15, "TEST_DB");
+
+    SonicV2Connector db;
+    db.connect("TEST_DB");
+    db.set("TEST_DB", "key0", "field1", "value2");
+    auto fvs = db.get_all("TEST_DB", "key0");
+    auto rc = fvs.find("field1");
+    EXPECT_EQ(rc != fvs.end(), true);
+    EXPECT_EQ(rc->second, "value2");
 }
 
 TEST(DBConnector, RedisClient)
