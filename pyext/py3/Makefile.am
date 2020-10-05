@@ -9,6 +9,6 @@ _swsscommon_la_LDFLAGS = -module
 _swsscommon_la_LIBADD = ../../common/libswsscommon.la $(PYTHON3_BLDLIBRARY)
 
 swsscommon_wrap.cpp: $(SWIG_SOURCES)
-	$(SWIG) -Wall -c++ -python -I../../common -o $@ $<
+	$(SWIG) -Wall -c++ -python -keyword -I../../common -o $@ $<
 
 CLEANFILES = swsscommon_wrap.cpp
