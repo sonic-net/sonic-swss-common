@@ -14,6 +14,7 @@
 #include "common/table.h"
 #include "common/redisclient.h"
 #include "common/dbinterface.h"
+#include "common/sonicv2connector.h"
 
 using namespace std;
 using namespace swss;
