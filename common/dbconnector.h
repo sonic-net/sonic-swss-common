@@ -35,6 +35,8 @@ public:
 class SonicDBConfig
 {
 public:
+    static constexpr const char *DEFAULT_SONIC_DB_CONFIG_FILE = "/var/run/redis/sonic-db/database_config.json";
+    static constexpr const char *DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE = "/var/run/redis/sonic-db/database_global.json";
     static void initialize(const std::string &file = DEFAULT_SONIC_DB_CONFIG_FILE);
     static void initializeGlobalConfig(const std::string &file = DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE);
     static void validateNamespace(const std::string &netns);
@@ -52,8 +54,6 @@ public:
     static bool isGlobalInit() { return m_global_init; };
 
 private:
-    static constexpr const char *DEFAULT_SONIC_DB_CONFIG_FILE = "/var/run/redis/sonic-db/database_config.json";
-    static constexpr const char *DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE = "/var/run/redis/sonic-db/database_global.json";
     // { namespace { instName, { unix_socket_path, hostname, port } } }
     static std::unordered_map<std::string, std::unordered_map<std::string, RedisInstInfo>> m_inst_info;
     // { namespace, { dbName, {instName, dbId, separator} } }
