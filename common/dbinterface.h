@@ -109,11 +109,19 @@ private:
 class SonicV2Connector
 {
 public:
+#ifdef SWIG
+    %pythoncode %{
+        def __init__(self, use_unix_socket_path = False, namespace = None):
+            self.m_use_unix_socket_path = use_unix_socket_path
+            self.m_netns = namespace
+    %}
+#else
     SonicV2Connector(bool use_unix_socket_path = false, const char *netns = "")
         : m_use_unix_socket_path(use_unix_socket_path)
         , m_netns(netns)
     {
     }
+#endif
 
     void connect(const std::string& db_name, bool retry_on = true)
     {

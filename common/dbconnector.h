@@ -133,6 +133,14 @@ public:
     std::string getDbName() const;
     std::string getNamespace() const;
 
+#ifdef SWIG
+    %pythoncode %{
+        __swig_getmethods__["namespace"] = getNamespace
+        __swig_setmethods__["namespace"] = None
+        if _newclass: namespace = property(getNamespace, None)
+    %}
+#endif
+
     static void select(DBConnector *db);
 
     /* Create new context to DB */
