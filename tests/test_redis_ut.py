@@ -1,7 +1,17 @@
 import time
+import pytest
 from threading import Thread
 from pympler.tracker import SummaryTracker
 from swsscommon import swsscommon
+from swsscommon.swsscommon import DBInterface, SonicV2Connector, SonicDBConfig
+
+existing_file = "./tests/redis_multi_db_ut_config/database_config.json"
+nonexisting_file = "./tests/redis_multi_db_ut_config/database_config_nonexisting.json"
+global_existing_file = "./tests/redis_multi_db_ut_config/database_global.json"
+
+@pytest.fixture(scope="session", autouse=True)
+def prepare(request):
+    SonicDBConfig.initialize(existing_file)
 
 def test_ProducerTable():
     db = swsscommon.DBConnector("APPL_DB", 0, True)
@@ -122,3 +132,16 @@ def test_SelectMemoryLeak():
             cases.append("%s - %d objects for %d repeats" % (name, count, N))
     thr.join()
     assert not cases
+
+
+def test_DBInterface():
+    dbintf = DBInterface()
+    dbintf.set_redis_kwargs("", "127.0.0.1", 6379)
+    dbintf.connect(15, "TEST_DB")
+
+    db = SonicV2Connector()
+    db.connect("TEST_DB")
+    db.set("TEST_DB", "key0", "field1", "value2")
+    fvs = db.get_all("TEST_DB", "key0")
+    assert "field1" in fvs
+    assert fvs["field1"] == "value2"

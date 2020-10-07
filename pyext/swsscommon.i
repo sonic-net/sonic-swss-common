@@ -26,11 +26,13 @@
 %include <std_string.i>
 %include <std_vector.i>
 %include <std_pair.i>
+%include <std_map.i>
 %include <typemaps.i>
 %include <stdint.i>
 
 %template(FieldValuePair) std::pair<std::string, std::string>;
 %template(FieldValuePairs) std::vector<std::pair<std::string, std::string>>;
+%template(FieldValueMap) std::map<std::string, std::string>;
 %template(VectorString) std::vector<std::string>;
 
 %apply int *OUTPUT {int *fd};
