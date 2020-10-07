@@ -10,6 +10,11 @@ SonicV2Connector::SonicV2Connector(bool use_unix_socket_path, const char *netns)
 {
 }
 
+std::string SonicV2Connector::getNamespace() const
+{
+    return m_netns;
+}
+
 void SonicV2Connector::connect(const std::string& db_name, bool retry_on)
 {
     if (m_use_unix_socket_path)

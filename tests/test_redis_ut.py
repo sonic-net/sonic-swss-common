@@ -140,6 +140,7 @@ def test_DBInterface():
     dbintf.connect(15, "TEST_DB")
 
     db = SonicV2Connector(use_unix_socket_path=True, namespace='')
+    assert db.namespace == ''
     db.connect("TEST_DB")
     db.set("TEST_DB", "key0", "field1", "value2")
     fvs = db.get_all("TEST_DB", "key0")

@@ -13,6 +13,16 @@ class SonicV2Connector
 public:
     SonicV2Connector(bool use_unix_socket_path = false, const char *netns = "");
 
+    std::string getNamespace() const;
+
+#ifdef SWIG
+    %pythoncode %{
+        __swig_getmethods__["namespace"] = getNamespace
+        __swig_setmethods__["namespace"] = None
+        if _newclass: namespace = property(getNamespace, None)
+    %}
+#endif
+
     void connect(const std::string& db_name, bool retry_on = true);
 
     void close(const std::string& db_name);
