@@ -11,15 +11,7 @@ namespace swss
 class SonicV2Connector
 {
 public:
-#ifdef SWIG
-    %pythoncode %{
-        def __init__(self, use_unix_socket_path = False, namespace = None):
-            self.m_use_unix_socket_path = use_unix_socket_path
-            self.m_netns = namespace
-    %}
-#else
     SonicV2Connector(bool use_unix_socket_path = false, const char *netns = "");
-#endif
 
     void connect(const std::string& db_name, bool retry_on = true);
 
@@ -61,4 +53,16 @@ private:
     std::string m_netns;
 };
 
+#ifdef SWIG
+// TRICK!
+// Note: there is no easy way for SWIG to map ctor parameter netns(C++) to namespace(python),
+// so we use python patch to achieve this
+// TODO: implement it with formal SWIG syntax, which will be target language independent
+%pythoncode %{
+    _old_SonicV2Connector__init__ = SonicV2Connector.__init__
+    def _new_SonicV2Connector__init__(self, use_unix_socket_path = False, namespace = None):
+        _old_SonicV2Connector__init__(self, use_unix_socket_path = use_unix_socket_path, netns = namespace)
+    SonicV2Connector.__init__ = _new_SonicV2Connector__init__
+%}
+#endif
 }

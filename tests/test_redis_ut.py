@@ -139,7 +139,7 @@ def test_DBInterface():
     dbintf.set_redis_kwargs("", "127.0.0.1", 6379)
     dbintf.connect(15, "TEST_DB")
 
-    db = SonicV2Connector()
+    db = SonicV2Connector(use_unix_socket_path=True, namespace='')
     db.connect("TEST_DB")
     db.set("TEST_DB", "key0", "field1", "value2")
     fvs = db.get_all("TEST_DB", "key0")
