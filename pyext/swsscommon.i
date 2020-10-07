@@ -4,6 +4,7 @@
 #include "schema.h"
 #include "dbconnector.h"
 #include "dbinterface.h"
+#include "sonicv2connector.h"
 #include "select.h"
 #include "selectable.h"
 #include "rediscommand.h"
@@ -56,6 +57,7 @@ swss::RedisSelect *CastSelectableToRedisSelectObj(swss::Selectable *temp) {
 
 %include "schema.h"
 %include "dbconnector.h"
+%include "sonicv2connector.h"
 %include "selectable.h"
 %include "select.h"
 %include "rediscommand.h"
