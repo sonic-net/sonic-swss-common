@@ -19,12 +19,10 @@ void SonicV2Connector::connect(const std::string& db_name, bool retry_on)
 {
     if (m_use_unix_socket_path)
     {
-        SWSS_LOG_INFO("connec1: %s", get_db_socket(db_name).c_str());
         m_dbintf.set_redis_kwargs(get_db_socket(db_name), "", 0);
     }
     else
     {
-        SWSS_LOG_INFO("connec2: %s %d", get_db_hostname(db_name).c_str(), get_db_port(db_name));
         m_dbintf.set_redis_kwargs("", get_db_hostname(db_name), get_db_port(db_name));
     }
     int db_id = get_dbid(db_name);
