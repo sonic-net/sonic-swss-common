@@ -35,8 +35,8 @@ NetLink::NetLink(int pri) :
     }
 
     nl_socket_set_nonblocking(m_socket);
-    /* Set socket buffer size to 256KB */
-    nl_socket_set_buffer_size(m_socket, 2097152, 0);
+    /* Set socket buffer size to 3MB */
+    nl_socket_set_buffer_size(m_socket, (3*1024*1024), 0);
 }
 
 NetLink::~NetLink()
