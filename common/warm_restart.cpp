@@ -192,8 +192,10 @@ void WarmStart::getWarmStartState(const std::string &app_name, WarmStartState &s
 
     state = RECONCILED;
 
-    if(!isWarmStart())
-      return;
+    if (!isWarmStart())
+    {
+        return;
+    }
 
     warmStart.m_stateWarmRestartTable->hget(app_name, "state", statestr);
 
@@ -202,9 +204,9 @@ void WarmStart::getWarmStartState(const std::string &app_name, WarmStartState &s
      */
     state = WSUNKNOWN;
 
-    for(auto it = warmStartStateNameMap.begin(); it != warmStartStateNameMap.end(); it++)
+    for (auto it = warmStartStateNameMap.begin(); it != warmStartStateNameMap.end(); it++)
     {
-        if(it->second == statestr)
+        if (it->second == statestr)
         {
             state = it->first;
             break;
