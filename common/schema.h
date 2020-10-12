@@ -20,10 +20,7 @@ namespace swss {
 #define GB_ASIC_DB      9
 #define GB_COUNTERS_DB  10
 #define GB_FLEX_COUNTER_DB  11
-
-//For chassis app db in supervisor/control card redis in chassis systems.
-//This DB ID is not to be used in local redis.
-#define CHASSIS_APP_DB  8
+#define CHASSIS_APP_DB  12
 
 /***** APPLICATION DATABASE *****/
 

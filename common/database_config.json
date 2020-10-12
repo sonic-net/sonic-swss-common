@@ -78,7 +78,7 @@
             "instance" : "redis"
         },
         "CHASSIS_APP_DB" : {
-            "id" : 8,
+            "id" : 12,
             "separator": "|",
             "instance" : "redis_chassis"
         }
