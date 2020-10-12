@@ -29,6 +29,8 @@ libswsscommon_la_SOURCES = \
     logger.cpp                \
     redisreply.cpp            \
     dbconnector.cpp           \
+    dbinterface.cpp           \
+    sonicv2connector.cpp      \
     table.cpp                 \
     json.cpp                  \
     producertable.cpp         \

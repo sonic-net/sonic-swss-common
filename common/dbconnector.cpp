@@ -13,8 +13,7 @@
 
 using json = nlohmann::json;
 using namespace std;
-
-namespace swss {
+using namespace swss;
 
 void SonicDBConfig::parseDatabaseConfig(const string &file,
                     std::unordered_map<std::string, RedisInstInfo> &inst_entry,
@@ -362,6 +361,22 @@ vector<string> SonicDBConfig::getNamespaces()
     return list;
 }
 
+std::vector<std::string> SonicDBConfig::getDbList(const std::string &netns)
+{
+    if (!m_init)
+    {
+        initialize();
+    }
+    validateNamespace(netns);
+
+    std::vector<std::string> dbNames;
+    for (auto& imap: m_db_info.at(netns))
+    {
+        dbNames.push_back(imap.first);
+    }
+    return dbNames;
+}
+
 constexpr const char *SonicDBConfig::DEFAULT_SONIC_DB_CONFIG_FILE;
 constexpr const char *SonicDBConfig::DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE;
 unordered_map<string, unordered_map<string, RedisInstInfo>> SonicDBConfig::m_inst_info;
@@ -370,7 +385,100 @@ unordered_map<string, unordered_map<int, string>> SonicDBConfig::m_db_separator;
 bool SonicDBConfig::m_init = false;
 bool SonicDBConfig::m_global_init = false;
 
-constexpr const char *DBConnector::DEFAULT_UNIXSOCKET;
+constexpr const char *RedisContext::DEFAULT_UNIXSOCKET;
+
+RedisContext::~RedisContext()
+{
+    redisFree(m_conn);
+}
+
+RedisContext::RedisContext()
+{
+}
+
+RedisContext::RedisContext(const RedisContext &other)
+{
+    auto octx = other.getContext();
+    const char *unixPath = octx->unix_sock.path;
+    if (unixPath)
+    {
+        initContext(unixPath, *octx->timeout);
+    }
+    else
+    {
+        initContext(octx->tcp.host, octx->tcp.port, *octx->timeout);
+    }
+}
+
+RedisContext::RedisContext(const string& hostname, int port,
+                         unsigned int timeout)
+{
+    struct timeval tv = {0, (suseconds_t)timeout * 1000};
+    initContext(hostname.c_str(), port, tv);
+}
+
+RedisContext::RedisContext(const string& unixPath, unsigned int timeout)
+{
+    struct timeval tv = {0, (suseconds_t)timeout * 1000};
+    initContext(unixPath.c_str(), tv);
+}
+
+void RedisContext::initContext(const char *host, int port, const timeval& tv)
+{
+    m_conn = redisConnectWithTimeout(host, port, tv);
+
+    if (m_conn->err)
+        throw system_error(make_error_code(errc::address_not_available),
+                           "Unable to connect to redis");
+}
+
+void RedisContext::initContext(const char *path, const timeval &tv)
+{
+    m_conn = redisConnectUnixWithTimeout(path, tv);
+
+    if (m_conn->err)
+        throw system_error(make_error_code(errc::address_not_available),
+                           "Unable to connect to redis (unix-socket)");
+}
+
+redisContext *RedisContext::getContext() const
+{
+    return m_conn;
+}
+
+void RedisContext::setContext(redisContext *ctx)
+{
+    m_conn = ctx;
+}
+
+void RedisContext::setClientName(const string& clientName)
+{
+    string command("CLIENT SETNAME ");
+    command += clientName;
+
+    RedisReply r(this, command, REDIS_REPLY_STATUS);
+    r.checkStatusOK();
+}
+
+string RedisContext::getClientName()
+{
+    string command("CLIENT GETNAME");
+
+    RedisReply r(this, command);
+
+    auto ctx = r.getContext();
+    if (ctx->type == REDIS_REPLY_STRING)
+    {
+        return r.getReply<std::string>();
+    }
+    else
+    {
+        if (ctx->type != REDIS_REPLY_NIL)
+            SWSS_LOG_ERROR("Unable to obtain Redis client name");
+
+        return "";
+    }
+}
 
 void DBConnector::select(DBConnector *db)
 {
@@ -381,45 +489,36 @@ void DBConnector::select(DBConnector *db)
     r.checkStatusOK();
 }
 
-DBConnector::~DBConnector()
+DBConnector::DBConnector(const DBConnector &other)
+    : RedisContext(other)
+    , m_dbId(other.m_dbId)
+    , m_namespace(other.m_namespace)
 {
-    redisFree(m_conn);
+    select(this);
+}
+
+DBConnector::DBConnector(int dbId, const RedisContext& ctx)
+    : RedisContext(ctx)
+    , m_dbId(dbId)
+    , m_namespace(EMPTY_NAMESPACE)
+{
+    select(this);
 }
 
 DBConnector::DBConnector(int dbId, const string& hostname, int port,
                          unsigned int timeout) :
+    RedisContext(hostname, port, timeout),
     m_dbId(dbId),
     m_namespace(EMPTY_NAMESPACE)
 {
-    struct timeval tv = {0, (suseconds_t)timeout * 1000};
-
-    if (timeout)
-        m_conn = redisConnectWithTimeout(hostname.c_str(), port, tv);
-    else
-        m_conn = redisConnect(hostname.c_str(), port);
-
-    if (m_conn->err)
-        throw system_error(make_error_code(errc::address_not_available),
-                           "Unable to connect to redis");
-
     select(this);
 }
 
 DBConnector::DBConnector(int dbId, const string& unixPath, unsigned int timeout) :
+    RedisContext(unixPath, timeout),
     m_dbId(dbId),
     m_namespace(EMPTY_NAMESPACE)
 {
-    struct timeval tv = {0, (suseconds_t)timeout * 1000};
-
-    if (timeout)
-        m_conn = redisConnectUnixWithTimeout(unixPath.c_str(), tv);
-    else
-        m_conn = redisConnectUnix(unixPath.c_str());
-
-    if (m_conn->err)
-        throw system_error(make_error_code(errc::address_not_available),
-                           "Unable to connect to redis (unix-socket)");
-
     select(this);
 }
 
@@ -430,24 +529,14 @@ DBConnector::DBConnector(const string& dbName, unsigned int timeout, bool isTcpC
 {
     struct timeval tv = {0, (suseconds_t)timeout * 1000};
 
-    if (timeout)
+    if (isTcpConn)
     {
-        if (isTcpConn)
-            m_conn = redisConnectWithTimeout(SonicDBConfig::getDbHostname(dbName, netns).c_str(), SonicDBConfig::getDbPort(dbName, netns), tv);
-        else
-            m_conn = redisConnectUnixWithTimeout(SonicDBConfig::getDbSock(dbName, netns).c_str(), tv);
+        initContext(SonicDBConfig::getDbHostname(dbName, netns).c_str(), SonicDBConfig::getDbPort(dbName, netns), tv);
     }
     else
     {
-        if (isTcpConn)
-            m_conn = redisConnect(SonicDBConfig::getDbHostname(dbName, netns).c_str(), SonicDBConfig::getDbPort(dbName, netns));
-        else
-            m_conn = redisConnectUnix(SonicDBConfig::getDbSock(dbName, netns).c_str());
+        initContext(SonicDBConfig::getDbSock(dbName, netns).c_str(), tv);
     }
-
-    if (m_conn->err)
-        throw system_error(make_error_code(errc::address_not_available),
-                           "Unable to connect to redis");
 
     select(this);
 }
@@ -458,11 +547,6 @@ DBConnector::DBConnector(const string& dbName, unsigned int timeout, bool isTcpC
     // Empty contructor
 }
 
-redisContext *DBConnector::getContext() const
-{
-    return m_conn;
-}
-
 int DBConnector::getDbId() const
 {
     return m_dbId;
@@ -471,6 +555,11 @@ int DBConnector::getDbId() const
 string DBConnector::getDbName() const
 {
     return m_dbName;
+}
+
+void DBConnector::setNamespace(const string& netns)
+{
+    m_namespace = netns;
 }
 
 string DBConnector::getNamespace() const
@@ -493,38 +582,9 @@ DBConnector *DBConnector::newConnector(unsigned int timeout) const
                                timeout);
 
     ret->m_dbName = m_dbName;
-    ret->m_namespace = m_namespace;
+    ret->setNamespace(getNamespace());
 
     return ret;
-}
-
-void DBConnector::setClientName(const string& clientName)
-{
-    string command("CLIENT SETNAME ");
-    command += clientName;
-
-    RedisReply r(this, command, REDIS_REPLY_STATUS);
-    r.checkStatusOK();
-}
-
-string DBConnector::getClientName()
-{
-    string command("CLIENT GETNAME");
-
-    RedisReply r(this, command);
-
-    auto ctx = r.getContext();
-    if (ctx->type == REDIS_REPLY_STRING)
-    {
-        return r.getReply<std::string>();
-    }
-    else
-    {
-        if (ctx->type != REDIS_REPLY_NIL)
-            SWSS_LOG_ERROR("Unable to obtain Redis client name");
-
-        return "";
-    }
 }
 
 int64_t DBConnector::del(const string &key)
@@ -575,6 +635,13 @@ void DBConnector::set(const string &key, const string &value)
 {
     RedisCommand sset;
     sset.format("SET %s %s", key.c_str(), value.c_str());
+    RedisReply r(this, sset, REDIS_REPLY_STATUS);
+}
+
+void DBConnector::config_set(const std::string &key, const std::string &value)
+{
+    RedisCommand sset;
+    sset.format("CONFIG SET %s %s", key.c_str(), value.c_str());
     RedisReply r(this, sset, REDIS_REPLY_STATUS);
 }
 
@@ -688,4 +755,24 @@ shared_ptr<string> DBConnector::blpop(const string &list, int timeout)
     throw runtime_error("GET failed, memory exception");
 }
 
+void DBConnector::subscribe(const std::string &pattern)
+{
+    std::string s("SUBSCRIBE ");
+    s += pattern;
+    RedisReply r(this, s, REDIS_REPLY_ARRAY);
+}
+
+void DBConnector::psubscribe(const std::string &pattern)
+{
+    std::string s("PSUBSCRIBE ");
+    s += pattern;
+    RedisReply r(this, s, REDIS_REPLY_ARRAY);
+}
+
+int64_t DBConnector::publish(const string &channel, const string &message)
+{
+    RedisCommand publish;
+    publish.format("PUBLISH %s %s", channel.c_str(), message.c_str());
+    RedisReply r(this, publish, REDIS_REPLY_INTEGER);
+    return r.getReply<long long int>();
 }

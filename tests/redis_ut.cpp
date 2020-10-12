@@ -13,6 +13,8 @@
 #include "common/selectabletimer.h"
 #include "common/table.h"
 #include "common/redisclient.h"
+#include "common/dbinterface.h"
+#include "common/sonicv2connector.h"
 
 using namespace std;
 using namespace swss;
@@ -309,6 +311,21 @@ TEST(DBConnector, RedisClientName)
     db.setClientName(client_name);
     sleep(1);
     EXPECT_EQ(db.getClientName(), client_name);
+}
+
+TEST(DBConnector, DBInterface)
+{
+    DBInterface dbintf;
+    dbintf.set_redis_kwargs("", "127.0.0.1", 6379);
+    dbintf.connect(15, "TEST_DB");
+
+    SonicV2Connector db;
+    db.connect("TEST_DB");
+    db.set("TEST_DB", "key0", "field1", "value2");
+    auto fvs = db.get_all("TEST_DB", "key0");
+    auto rc = fvs.find("field1");
+    EXPECT_NE(rc, fvs.end());
+    EXPECT_EQ(rc->second, "value2");
 }
 
 TEST(DBConnector, RedisClient)

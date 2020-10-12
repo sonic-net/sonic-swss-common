@@ -8,6 +8,8 @@
 #include <algorithm>
 #include "logger.h"
 #include "rediscommand.h"
+#include "redisreply.h"
+#include "dbconnector.h"
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -15,13 +17,13 @@
 
 namespace swss {
 
-static inline std::string loadRedisScript(DBConnector* db, const std::string& script)
+static inline std::string loadRedisScript(RedisContext* ctx, const std::string& script)
 {
     SWSS_LOG_ENTER();
 
     RedisCommand loadcmd;
     loadcmd.format("SCRIPT LOAD %s", script.c_str());
-    RedisReply r(db, loadcmd, REDIS_REPLY_STRING);
+    RedisReply r(ctx, loadcmd, REDIS_REPLY_STRING);
 
     std::string sha = r.getReply<std::string>();
 
@@ -64,7 +66,7 @@ static inline std::string loadLuaScript(const std::string& path)
     return readTextFile("/usr/share/swss/" + path);
 }
 
-static inline std::set<std::string> runRedisScript(DBConnector &db, const std::string& sha,
+static inline std::set<std::string> runRedisScript(RedisContext &ctx, const std::string& sha,
         const std::vector<std::string>& keys, const std::vector<std::string>& argv)
 {
     SWSS_LOG_ENTER();
@@ -95,24 +97,24 @@ static inline std::set<std::string> runRedisScript(DBConnector &db, const std::s
     std::set<std::string> ret;
     try
     {
-        RedisReply r(&db, command);
-        auto ctx = r.getContext();
+        RedisReply r(&ctx, command);
+        auto reply = r.getContext();
         SWSS_LOG_DEBUG("Running lua script %s", sha.c_str());
 
-        if (ctx->type == REDIS_REPLY_NIL)
+        if (reply->type == REDIS_REPLY_NIL)
         {
-            SWSS_LOG_ERROR("Got EMPTY response type from redis %d", ctx->type);
+            SWSS_LOG_ERROR("Got EMPTY response type from redis %d", reply->type);
         }
-        else if (ctx->type != REDIS_REPLY_ARRAY)
+        else if (reply->type != REDIS_REPLY_ARRAY)
         {
-            SWSS_LOG_ERROR("Got invalid response type from redis %d", ctx->type);
+            SWSS_LOG_ERROR("Got invalid response type from redis %d", reply->type);
         }
         else
         {
-            for (size_t i = 0; i < ctx->elements; i++)
+            for (size_t i = 0; i < reply->elements; i++)
             {
-                SWSS_LOG_DEBUG("Got element %zu %s", i, ctx->element[i]->str);
-                ret.emplace(ctx->element[i]->str);
+                SWSS_LOG_DEBUG("Got element %zu %s", i, reply->element[i]->str);
+                ret.emplace(reply->element[i]->str);
             }
         }
     }
