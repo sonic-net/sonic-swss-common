@@ -6,8 +6,6 @@ from swsscommon import swsscommon
 from swsscommon.swsscommon import DBInterface, SonicV2Connector, SonicDBConfig
 
 existing_file = "./tests/redis_multi_db_ut_config/database_config.json"
-nonexisting_file = "./tests/redis_multi_db_ut_config/database_config_nonexisting.json"
-global_existing_file = "./tests/redis_multi_db_ut_config/database_global.json"
 
 @pytest.fixture(scope="session", autouse=True)
 def prepare(request):
