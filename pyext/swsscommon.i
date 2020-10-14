@@ -57,6 +57,13 @@ swss::RedisSelect *CastSelectableToRedisSelectObj(swss::Selectable *temp) {
 }
 %}
 
+%inline %{
+swss::SubscriberStateTable *CastSelectableToSubscriberTableObj(swss::Selectable *temp) {
+  return dynamic_cast<swss::SubscriberStateTable *>(temp);
+}
+%}
+
+
 %include "schema.h"
 %include "dbconnector.h"
 %include "sonicv2connector.h"
