@@ -52,10 +52,15 @@
 }
 
 %inline %{
-swss::RedisSelect *CastSelectableToRedisSelectObj(swss::Selectable *temp) {
-  return dynamic_cast<swss::RedisSelect *>(temp);
+template <typename T>
+T castSelectableObj(swss::Selectable *temp)
+{
+    return dynamic_cast<T>(temp);
 }
 %}
+
+%template(CastSelectableToRedisSelectObj) castSelectableObj<swss::RedisSelect *>;
+%template(CastSelectableToSubscriberTableObj) castSelectableObj<swss::SubscriberStateTable *>;
 
 %include "schema.h"
 %include "dbconnector.h"
