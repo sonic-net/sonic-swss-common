@@ -30,7 +30,8 @@ const TableNameSeparatorMap TableBase::tableNameSeparatorMap = {
    { RESTAPI_DB,          TABLE_NAME_SEPARATOR_VBAR  },
    { GB_ASIC_DB,          TABLE_NAME_SEPARATOR_VBAR  },
    { GB_COUNTERS_DB,      TABLE_NAME_SEPARATOR_VBAR  },
-   { GB_FLEX_COUNTER_DB,  TABLE_NAME_SEPARATOR_VBAR  }
+   { GB_FLEX_COUNTER_DB,  TABLE_NAME_SEPARATOR_VBAR  },
+   { GLOBAL_STATE_DB,     TABLE_NAME_SEPARATOR_VBAR  }
 };
 
 Table::Table(const DBConnector *db, const string &tableName)

@@ -71,6 +71,11 @@
             "id" : 11,
             "separator": "|",
             "instance" : "redis"
+        },
+        "GLOBAL_STATE_DB" : {
+            "id" : 12,
+            "separator": "|",
+            "instance" : "redis-global_db"
         }
     },
     "VERSION" : "1.0"
