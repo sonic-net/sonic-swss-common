@@ -35,6 +35,16 @@
 %template(FieldValueMap) std::map<std::string, std::string>;
 %template(VectorString) std::vector<std::string>;
 
+%pythoncode %{
+    def _FieldValueMap__get(self, key, defval):
+        if key in self:
+            return self[key]
+        else:
+            return defval
+
+    FieldValueMap.get = _FieldValueMap__get
+%}
+
 %apply int *OUTPUT {int *fd};
 %typemap(in, numinputs=0) swss::Selectable ** (swss::Selectable *temp) {
     $1 = &temp;

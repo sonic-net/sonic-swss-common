@@ -74,6 +74,9 @@ private:
         if namespace is None:
             namespace = ''
         _old_SonicV2Connector__init__(self, use_unix_socket_path = use_unix_socket_path, netns = namespace)
+
+        # Add database name attributes into SonicV2Connector instance
+        # Note: this is difficult to implement in C++
         for db_name in self.get_db_list():
             # set a database name as a constant value attribute.
             setattr(self, db_name, db_name)
