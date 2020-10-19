@@ -70,8 +70,17 @@ private:
 // TODO: implement it with formal SWIG syntax, which will be target language independent
 %pythoncode %{
     _old_SonicV2Connector__init__ = SonicV2Connector.__init__
-    def _new_SonicV2Connector__init__(self, use_unix_socket_path = False, namespace = None):
+    def _new_SonicV2Connector__init__(self, use_unix_socket_path = False, namespace = ''):
+        if namespace is None:
+            namespace = ''
         _old_SonicV2Connector__init__(self, use_unix_socket_path = use_unix_socket_path, netns = namespace)
+        for db_name in self.get_db_list():
+            # set a database name as a constant value attribute.
+            setattr(self, db_name, db_name)
+            getmethod = lambda self: db_name
+            SonicV2Connector.__swig_getmethods__[db_name] = getmethod
+            SonicV2Connector.__swig_setmethods__[db_name] = None
+
     SonicV2Connector.__init__ = _new_SonicV2Connector__init__
 %}
 #endif

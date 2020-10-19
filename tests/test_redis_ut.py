@@ -144,3 +144,10 @@ def test_DBInterface():
     fvs = db.get_all("TEST_DB", "key0")
     assert "field1" in fvs
     assert fvs["field1"] == "value2"
+    assert db.TEST_DB == 'TEST_DB'
+
+    db = SonicV2Connector(use_unix_socket_path=True, namespace=None)
+    assert db.namespace == ''
+
+    db = SonicV2Connector(use_unix_socket_path=True)
+    assert db.namespace == ''
