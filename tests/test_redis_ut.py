@@ -145,8 +145,17 @@ def test_DBInterface():
     fvs = db.get_all("TEST_DB", "key0")
     assert "field1" in fvs
     assert fvs["field1"] == "value2"
+
+    # Test dict.get()
     assert fvs.get("field1", "default") == "value2"
     assert fvs.get("nonfield", "default") == "default"
+
+    # Test dict.update()
+    other = { "field1": "value3", "field4": "value4" }
+    fvs.update(other)
+    assert len(fvs) == 2
+    assert fvs["field1"] == "value3"
+    assert fvs["field4"] == "value4"
 
     # Test blocking
     fvs = db.get_all("TEST_DB", "key0", blocking=True)
