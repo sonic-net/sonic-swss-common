@@ -138,9 +138,27 @@ def test_DBInterface():
     dbintf.connect(15, "TEST_DB")
 
     db = SonicV2Connector(use_unix_socket_path=True, namespace='')
+    assert db.TEST_DB == 'TEST_DB'
     assert db.namespace == ''
     db.connect("TEST_DB")
     db.set("TEST_DB", "key0", "field1", "value2")
     fvs = db.get_all("TEST_DB", "key0")
     assert "field1" in fvs
     assert fvs["field1"] == "value2"
+    assert fvs.get("field1", "default") == "value2"
+    assert fvs.get("nonfield", "default") == "default"
+
+    # Test blocking
+    fvs = db.get_all("TEST_DB", "key0", blocking=True)
+    assert "field1" in fvs
+    assert fvs["field1"] == "value2"
+    assert fvs.get("field1", "default") == "value2"
+    assert fvs.get("nonfield", "default") == "default"
+
+    # Test empty/none namespace
+    db = SonicV2Connector(use_unix_socket_path=True, namespace=None)
+    assert db.namespace == ''
+
+    # Test default namespace parameter
+    db = SonicV2Connector(use_unix_socket_path=True)
+    assert db.namespace == ''

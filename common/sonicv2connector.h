@@ -39,15 +39,15 @@ public:
 
     bool exists(const std::string& db_name, const std::string& key);
 
-    std::vector<std::string> keys(const std::string& db_name, const char *pattern="*");
+    std::vector<std::string> keys(const std::string& db_name, const char *pattern="*", bool blocking=false);
 
-    std::string get(const std::string& db_name, const std::string& _hash, const std::string& key);
+    std::string get(const std::string& db_name, const std::string& _hash, const std::string& key, bool blocking=false);
 
-    std::map<std::string, std::string> get_all(const std::string& db_name, const std::string& _hash);
+    std::map<std::string, std::string> get_all(const std::string& db_name, const std::string& _hash, bool blocking=false);
 
-    int64_t set(const std::string& db_name, const std::string& _hash, const std::string& key, const std::string& val);
+    int64_t set(const std::string& db_name, const std::string& _hash, const std::string& key, const std::string& val, bool blocking=false);
 
-    int64_t del(const std::string& db_name, const std::string& key);
+    int64_t del(const std::string& db_name, const std::string& key, bool blocking=false);
 
     void delete_all_by_pattern(const std::string& db_name, const std::string& pattern);
 
@@ -70,8 +70,20 @@ private:
 // TODO: implement it with formal SWIG syntax, which will be target language independent
 %pythoncode %{
     _old_SonicV2Connector__init__ = SonicV2Connector.__init__
-    def _new_SonicV2Connector__init__(self, use_unix_socket_path = False, namespace = None):
+    def _new_SonicV2Connector__init__(self, use_unix_socket_path = False, namespace = ''):
+        if namespace is None:
+            namespace = ''
         _old_SonicV2Connector__init__(self, use_unix_socket_path = use_unix_socket_path, netns = namespace)
+
+        # Add database name attributes into SonicV2Connector instance
+        # Note: this is difficult to implement in C++
+        for db_name in self.get_db_list():
+            # set a database name as a constant value attribute.
+            setattr(self, db_name, db_name)
+            getmethod = lambda self: db_name
+            SonicV2Connector.__swig_getmethods__[db_name] = getmethod
+            SonicV2Connector.__swig_setmethods__[db_name] = None
+
     SonicV2Connector.__init__ = _new_SonicV2Connector__init__
 %}
 #endif
