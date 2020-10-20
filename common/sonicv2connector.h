@@ -39,15 +39,15 @@ public:
 
     bool exists(const std::string& db_name, const std::string& key);
 
-    std::vector<std::string> keys(const std::string& db_name, const char *pattern="*");
+    std::vector<std::string> keys(const std::string& db_name, const char *pattern="*", bool blocking=false);
 
-    std::string get(const std::string& db_name, const std::string& _hash, const std::string& key);
+    std::string get(const std::string& db_name, const std::string& _hash, const std::string& key, bool blocking=false);
 
-    std::map<std::string, std::string> get_all(const std::string& db_name, const std::string& _hash);
+    std::map<std::string, std::string> get_all(const std::string& db_name, const std::string& _hash, bool blocking=false);
 
-    int64_t set(const std::string& db_name, const std::string& _hash, const std::string& key, const std::string& val);
+    int64_t set(const std::string& db_name, const std::string& _hash, const std::string& key, const std::string& val, bool blocking=false);
 
-    int64_t del(const std::string& db_name, const std::string& key);
+    int64_t del(const std::string& db_name, const std::string& key, bool blocking=false);
 
     void delete_all_by_pattern(const std::string& db_name, const std::string& pattern);
 
