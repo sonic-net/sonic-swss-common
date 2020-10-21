@@ -156,6 +156,11 @@ def test_DBInterface():
     assert len(fvs) == 2
     assert fvs["field1"] == "value3"
     assert fvs["field4"] == "value4"
+    fvs.update()
+    fvs.update(field5='value5', field6='value6')
+    assert fvs["field5"] == "value5"
+    with pytest.raises(TypeError):
+        fvs.update(fvs, fvs)
 
     # Test blocking
     fvs = db.get_all("TEST_DB", "key0", blocking=True)

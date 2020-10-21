@@ -43,14 +43,9 @@
             return defval
 
     def _FieldValueMap__update(self, *args, **kwargs):
-        if args:
-            if len(args) > 1:
-                raise TypeError("update expected at most 1 arguments, got %d" % len(args))
-            other = dict(args[0])
-            for key in other:
-                self[key] = other[key]
-        for key in kwargs:
-            self[key] = kwargs[key]
+        other = dict(*args, **kwargs)
+        for key in other:
+            self[key] = other[key]
 
     FieldValueMap.get = _FieldValueMap__get
     FieldValueMap.update = _FieldValueMap__update
