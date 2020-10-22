@@ -11,7 +11,6 @@
 #include "common/table.h"
 #include "common/producerstatetable.h"
 #include "common/consumerstatetable.h"
-#include "common/redisclient.h"
 
 using namespace std;
 using namespace swss;

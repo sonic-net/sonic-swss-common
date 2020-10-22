@@ -60,10 +60,8 @@ class RedisClient
 
     private:
         swss::DBConnector *m_db;
-};
-
-// TODO: mark above class: __attribute__ ((__deprecated__));
-// After remove all the caller code
+} __attribute__ ((__deprecated__));
+// This class is deprecated. Please use DBConnector class instead.
 
 }
 

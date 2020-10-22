@@ -12,7 +12,6 @@
 #include "common/selectableevent.h"
 #include "common/selectabletimer.h"
 #include "common/table.h"
-#include "common/redisclient.h"
 #include "common/dbinterface.h"
 #include "common/sonicv2connector.h"
 
