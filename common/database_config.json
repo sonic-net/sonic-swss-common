@@ -6,7 +6,7 @@
             "unix_socket_path" : "/var/run/redis/redis.sock"
         },
         "redis_chassis":{
-            "hostname" : "redis_chassis.server"
+            "hostname" : "redis_chassis.server",
             "port" : 6380,
             "unix_socket_path" : "/var/run/redis/redis_chassis.sock"
         }
