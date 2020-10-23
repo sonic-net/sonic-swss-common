@@ -72,10 +72,10 @@
             "separator": "|",
             "instance" : "redis"
         },
-        "GLOBAL_STATE_DB" : {
-            "id" : 12,
+        "CHASSIS_STATE_DB" : {
+            "id" : 13,
             "separator": "|",
-            "instance" : "redis-global_db"
+            "instance" : "redis_chassis"
         }
     },
     "VERSION" : "1.0"
