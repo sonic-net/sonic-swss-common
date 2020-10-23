@@ -156,7 +156,11 @@ def test_DBInterface():
     assert len(fvs) == 2
     assert fvs["field1"] == "value3"
     assert fvs["field4"] == "value4"
+    # Test dict.update() accepts no arguments, and then no update happens
     fvs.update()
+    assert len(fvs) == 2
+    assert fvs["field1"] == "value3"
+    assert fvs["field4"] == "value4"
     fvs.update(field5='value5', field6='value6')
     assert fvs["field5"] == "value5"
     with pytest.raises(TypeError):
