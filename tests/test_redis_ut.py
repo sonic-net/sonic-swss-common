@@ -145,8 +145,26 @@ def test_DBInterface():
     fvs = db.get_all("TEST_DB", "key0")
     assert "field1" in fvs
     assert fvs["field1"] == "value2"
+
+    # Test dict.get()
     assert fvs.get("field1", "default") == "value2"
     assert fvs.get("nonfield", "default") == "default"
+
+    # Test dict.update()
+    other = { "field1": "value3", "field4": "value4" }
+    fvs.update(other)
+    assert len(fvs) == 2
+    assert fvs["field1"] == "value3"
+    assert fvs["field4"] == "value4"
+    # Test dict.update() accepts no arguments, and then no update happens
+    fvs.update()
+    assert len(fvs) == 2
+    assert fvs["field1"] == "value3"
+    assert fvs["field4"] == "value4"
+    fvs.update(field5='value5', field6='value6')
+    assert fvs["field5"] == "value5"
+    with pytest.raises(TypeError):
+        fvs.update(fvs, fvs)
 
     # Test blocking
     fvs = db.get_all("TEST_DB", "key0", blocking=True)

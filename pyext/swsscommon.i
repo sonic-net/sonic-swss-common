@@ -42,7 +42,13 @@
         else:
             return defval
 
+    def _FieldValueMap__update(self, *args, **kwargs):
+        other = dict(*args, **kwargs)
+        for key in other:
+            self[key] = other[key]
+
     FieldValueMap.get = _FieldValueMap__get
+    FieldValueMap.update = _FieldValueMap__update
 %}
 
 %apply int *OUTPUT {int *fd};
