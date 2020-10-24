@@ -70,7 +70,12 @@ private:
 // TODO: implement it with formal SWIG syntax, which will be target language independent
 %pythoncode %{
     _old_SonicV2Connector__init__ = SonicV2Connector.__init__
-    def _new_SonicV2Connector__init__(self, use_unix_socket_path = False, namespace = ''):
+    def _new_SonicV2Connector__init__(self, use_unix_socket_path = False, namespace = '', **kwargs):
+        if 'host' in kwargs:
+            # Note: host argument will be ignored, same as in sonic-py-swsssdk
+            kwargs.pop('host')
+        if 'decode_responses' in kwargs and kwargs.pop('decode_responses') != True:
+            raise ValueError('decode_responses must be True if specified, False is not supported')
         if namespace is None:
             namespace = ''
         _old_SonicV2Connector__init__(self, use_unix_socket_path = use_unix_socket_path, netns = namespace)
