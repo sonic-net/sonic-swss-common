@@ -180,3 +180,16 @@ def test_DBInterface():
     # Test default namespace parameter
     db = SonicV2Connector(use_unix_socket_path=True)
     assert db.namespace == ''
+
+    # Test no exception
+    try:
+        db = SonicV2Connector(host='127.0.0.1')
+        db = SonicV2Connector(use_unix_socket_path=True, namespace='', decode_responses=True)
+        db = SonicV2Connector(use_unix_socket_path=False, decode_responses=True)
+        db = SonicV2Connector(host="127.0.0.1", decode_responses=True)
+    except:
+        assert False, 'Unexpected exception raised'
+
+    # Test exception
+    with pytest.raises(ValueError):
+        db = SonicV2Connector(decode_responses=False)
