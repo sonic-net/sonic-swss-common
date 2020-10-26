@@ -73,6 +73,7 @@ namespace swss {
 #define APP_STP_BPDU_GUARD_TABLE_NAME       "STP_BPDU_GUARD_TABLE"
 
 #define APP_MUX_CABLE_TABLE_NAME            "MUX_CABLE_TABLE"
+#define APP_HW_MUX_CABLE_TABLE_NAME         "HW_MUX_CABLE_TABLE"
 
 /***** TO BE REMOVED *****/
 
@@ -303,6 +304,7 @@ namespace swss {
 #define STATE_FG_ROUTE_TABLE_NAME                   "FG_ROUTE_TABLE"
 
 #define STATE_MUX_CABLE_TABLE_NAME                  "MUX_CABLE_TABLE"
+#define STATE_HW_MUX_CABLE_TABLE_NAME               "HW_MUX_CABLE_TABLE"
 
 /***** MISC *****/
 
