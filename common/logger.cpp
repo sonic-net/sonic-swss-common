@@ -200,7 +200,7 @@ Logger::Priority Logger::getMinPrio()
 
         if (ret == Select::TIMEOUT)
         {
-            SWSS_LOG_INFO("%s select timeout", __PRETTY_FUNCTION__);
+            SWSS_LOG_DEBUG("%s select timeout", __PRETTY_FUNCTION__);
             continue;
         }
 
