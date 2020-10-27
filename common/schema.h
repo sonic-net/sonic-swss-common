@@ -271,8 +271,11 @@ namespace swss {
 #define CFG_FG_NHG_PREFIX                           "FG_NHG_PREFIX"
 #define CFG_FG_NHG_MEMBER                           "FG_NHG_MEMBER"
 
-#define CFG_MUX_CABLE                               "MUX_CABLE"
-#define CFG_PEER_SWITCH                             "PEER_SWITCH"
+#define CFG_MUX_CABLE_TABLE_NAME                    "MUX_CABLE"
+
+#define CFG_PEER_SWITCH_TABLE_NAME                  "PEER_SWITCH"
+
+#define CFG_TUNNEL_TABLE_NAME                       "TUNNEL"
 
 /***** STATE DATABASE *****/
 
