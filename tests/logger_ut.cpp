@@ -1,5 +1,4 @@
 #include "common/dbconnector.h"
-#include "common/redisclient.h"
 #include "common/producerstatetable.h"
 #include "common/consumerstatetable.h"
 #include "common/select.h"

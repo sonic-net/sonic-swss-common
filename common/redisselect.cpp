@@ -78,23 +78,18 @@ void RedisSelect::subscribe(DBConnector* db, const std::string &channelName)
     m_subscribe.reset(db->newConnector(SUBSCRIBE_TIMEOUT));
 
     /* Send SUBSCRIBE #channel command */
-    std::string s("SUBSCRIBE ");
-    s += channelName;
-    RedisReply r(m_subscribe.get(), s, REDIS_REPLY_ARRAY);
+    m_subscribe->subscribe(channelName);
 }
 
 /* PSUBSCRIBE */
 void RedisSelect::psubscribe(DBConnector* db, const std::string &channelName)
 {
     m_subscribe.reset(db->newConnector(SUBSCRIBE_TIMEOUT));
-
     /*
      * Send PSUBSCRIBE #channel command on the
      * non-blocking subscriber DBConnector
      */
-    std::string s("PSUBSCRIBE ");
-    s += channelName;
-    RedisReply r(m_subscribe.get(), s, REDIS_REPLY_ARRAY);
+    m_subscribe->psubscribe(channelName);
 }
 
 void RedisSelect::setQueueLength(long long int queueLength)
