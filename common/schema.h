@@ -72,6 +72,9 @@ namespace swss {
 #define APP_STP_FASTAGEING_FLUSH_TABLE_NAME "STP_FASTAGEING_FLUSH_TABLE"
 #define APP_STP_BPDU_GUARD_TABLE_NAME       "STP_BPDU_GUARD_TABLE"
 
+#define APP_MUX_CABLE_TABLE_NAME            "MUX_CABLE_TABLE"
+#define APP_HW_MUX_CABLE_TABLE_NAME         "HW_MUX_CABLE_TABLE"
+
 /***** TO BE REMOVED *****/
 
 #define APP_TC_TO_QUEUE_MAP_TABLE_NAME  "TC_TO_QUEUE_MAP_TABLE"
@@ -269,6 +272,12 @@ namespace swss {
 #define CFG_FG_NHG_PREFIX                           "FG_NHG_PREFIX"
 #define CFG_FG_NHG_MEMBER                           "FG_NHG_MEMBER"
 
+#define CFG_MUX_CABLE_TABLE_NAME                    "MUX_CABLE"
+
+#define CFG_PEER_SWITCH_TABLE_NAME                  "PEER_SWITCH"
+
+#define CFG_TUNNEL_TABLE_NAME                       "TUNNEL"
+
 /***** STATE DATABASE *****/
 
 #define STATE_SWITCH_CAPABILITY_TABLE_NAME          "SWITCH_CAPABILITY_TABLE"
@@ -297,6 +306,10 @@ namespace swss {
 #define STATE_COPP_GROUP_TABLE_NAME                 "COPP_GROUP_TABLE"
 #define STATE_COPP_TRAP_TABLE_NAME                  "COPP_TRAP_TABLE"
 #define STATE_FG_ROUTE_TABLE_NAME                   "FG_ROUTE_TABLE"
+
+#define STATE_MUX_CABLE_TABLE_NAME                  "MUX_CABLE_TABLE"
+#define STATE_HW_MUX_CABLE_TABLE_NAME               "HW_MUX_CABLE_TABLE"
+
 /***** MISC *****/
 
 #define IPV4_NAME "IPv4"
