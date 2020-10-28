@@ -20,6 +20,7 @@ namespace swss {
 #define GB_ASIC_DB      9
 #define GB_COUNTERS_DB  10
 #define GB_FLEX_COUNTER_DB  11
+#define CHASSIS_APP_DB  12
 
 /***** APPLICATION DATABASE *****/
 
@@ -74,6 +75,8 @@ namespace swss {
 
 #define APP_MUX_CABLE_TABLE_NAME            "MUX_CABLE_TABLE"
 #define APP_HW_MUX_CABLE_TABLE_NAME         "HW_MUX_CABLE_TABLE"
+  
+#define APP_SYSTEM_PORT_TABLE_NAME          "SYSTEM_PORT_TABLE"
 
 /***** TO BE REMOVED *****/
 
@@ -278,6 +281,12 @@ namespace swss {
 
 #define CFG_TUNNEL_TABLE_NAME                       "TUNNEL"
 
+#define CFG_SYSTEM_PORT_TABLE_NAME                  "SYSTEM_PORT"
+#define CFG_VOQ_INBAND_INTERFACE_TABLE_NAME         "VOQ_INBAND_INTERFACE"
+
+#define CHASSIS_APP_SYSTEM_INTERFACE_TABLE_NAME     "SYSTEM_INTERFACE"
+#define CHASSIS_APP_SYSTEM_NEIGH_TABLE_NAME         "SYSTEM_NEIGH"
+
 /***** STATE DATABASE *****/
 
 #define STATE_SWITCH_CAPABILITY_TABLE_NAME          "SWITCH_CAPABILITY_TABLE"
@@ -309,6 +318,8 @@ namespace swss {
 
 #define STATE_MUX_CABLE_TABLE_NAME                  "MUX_CABLE_TABLE"
 #define STATE_HW_MUX_CABLE_TABLE_NAME               "HW_MUX_CABLE_TABLE"
+
+#define STATE_SYSTEM_NEIGH_TABLE_NAME               "SYSTEM_NEIGH_TABLE"
 
 /***** MISC *****/
 
