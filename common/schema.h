@@ -59,6 +59,7 @@ namespace swss {
 #define APP_STP_PORT_STATE_TABLE_NAME       "STP_PORT_STATE_TABLE"
 #define APP_STP_FASTAGEING_FLUSH_TABLE_NAME "STP_FASTAGEING_FLUSH_TABLE"
 #define APP_STP_BPDU_GUARD_TABLE_NAME       "STP_BPDU_GUARD_TABLE"
+#define APP_MCLAG_FDB_TABLE_NAME            "MCLAG_FDB_TABLE"
 
 /***** TO BE REMOVED *****/
 
@@ -234,6 +235,9 @@ namespace swss {
 #define CFG_STP_VLAN_PORT_TABLE_NAME                "STP_VLAN_PORT"
 #define CFG_STP_PORT_TABLE_NAME                     "STP_PORT"
 
+#define CFG_MCLAG_TABLE_NAME                        "MCLAG_DOMAIN"
+#define CFG_MCLAG_INTF_TABLE_NAME                   "MCLAG_INTERFACE"
+
 /***** STATE DATABASE *****/
 
 #define STATE_SWITCH_CAPABILITY_TABLE_NAME          "SWITCH_CAPABILITY_TABLE"
@@ -254,6 +258,9 @@ namespace swss {
 #define STATE_BGP_TABLE_NAME                        "BGP_STATE_TABLE"
 #define STATE_DEBUG_COUNTER_CAPABILITIES_NAME       "DEBUG_COUNTER_CAPABILITIES"
 #define STATE_NAT_RESTORE_TABLE_NAME                "NAT_RESTORE_TABLE"
+#define STATE_MCLAG_TABLE_NAME                      "MCLAG_TABLE"
+#define STATE_MCLAG_LOCAL_INTF_TABLE_NAME           "MCLAG_LOCAL_INTF_TABLE"
+#define STATE_MCLAG_REMOTE_INTF_TABLE_NAME          "MCLAG_REMOTE_INTF_TABLE"
 
 #define STATE_STP_TABLE_NAME                        "STP_TABLE"
 /***** MISC *****/
