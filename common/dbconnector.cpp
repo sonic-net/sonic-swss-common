@@ -77,7 +77,7 @@ void SonicDBConfig::initializeGlobalConfig(const string &file)
 
     if (m_global_init)
     {
-        SWSS_LOG_ERROR("SonicDBConfig Global config is already initialized");
+        SWSS_LOG_INFO("SonicDBConfig Global config is already initialized");
         return;
     }
 
@@ -150,7 +150,7 @@ void SonicDBConfig::initializeGlobalConfig(const string &file)
     }
     else
     {
-        SWSS_LOG_ERROR("Sonic database config global file doesn't exist at %s\n", file.c_str());
+        SWSS_LOG_INFO("Sonic database config global file doesn't exist at %s\n", file.c_str());
     }
 
     // Set it as the global config file is already parsed and init done.
