@@ -64,29 +64,29 @@ bool SonicV2Connector::exists(const std::string& db_name, const std::string& key
     return m_dbintf.exists(db_name, key);
 }
 
-std::vector<std::string> SonicV2Connector::keys(const std::string& db_name, const char *pattern, bool blocking)
+std::vector<std::string> SonicV2Connector::keys(const std::string& db_name, const char *pattern)
 {
-    return m_dbintf.keys(db_name, pattern, blocking);
+    return m_dbintf.keys(db_name, pattern);
 }
 
-std::string SonicV2Connector::get(const std::string& db_name, const std::string& _hash, const std::string& key, bool blocking)
+std::string SonicV2Connector::get(const std::string& db_name, const std::string& _hash, const std::string& key)
 {
-    return m_dbintf.get(db_name, _hash, key, blocking);
+    return m_dbintf.get(db_name, _hash, key);
 }
 
-std::map<std::string, std::string> SonicV2Connector::get_all(const std::string& db_name, const std::string& _hash, bool blocking)
+std::map<std::string, std::string> SonicV2Connector::get_all(const std::string& db_name, const std::string& _hash)
 {
-    return m_dbintf.get_all(db_name, _hash, blocking);
+    return m_dbintf.get_all(db_name, _hash);
 }
 
-int64_t SonicV2Connector::set(const std::string& db_name, const std::string& _hash, const std::string& key, const std::string& val, bool blocking)
+int64_t SonicV2Connector::set(const std::string& db_name, const std::string& _hash, const std::string& key, const std::string& val)
 {
-    return m_dbintf.set(db_name, _hash, key, val, blocking);
+    return m_dbintf.set(db_name, _hash, key, val);
 }
 
-int64_t SonicV2Connector::del(const std::string& db_name, const std::string& key, bool blocking)
+int64_t SonicV2Connector::del(const std::string& db_name, const std::string& key)
 {
-    return m_dbintf.del(db_name, key, blocking);
+    return m_dbintf.del(db_name, key);
 }
 
 void SonicV2Connector::delete_all_by_pattern(const std::string& db_name, const std::string& pattern)
