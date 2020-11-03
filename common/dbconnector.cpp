@@ -10,6 +10,7 @@
 
 #include "common/dbconnector.h"
 #include "common/redisreply.h"
+#include "common/redisapi.h"
 
 using json = nlohmann::json;
 using namespace std;
@@ -487,6 +488,9 @@ void DBConnector::select(DBConnector *db)
 
     RedisReply r(db, select, REDIS_REPLY_STATUS);
     r.checkStatusOK();
+
+    std::string luaScript = loadLuaScript("redis_multi.lua");
+    db->m_shaRedisMulti = loadRedisScript(db, luaScript);
 }
 
 DBConnector::DBConnector(const DBConnector &other)
@@ -775,4 +779,58 @@ int64_t DBConnector::publish(const string &channel, const string &message)
     publish.format("PUBLISH %s %s", channel.c_str(), message.c_str());
     RedisReply r(this, publish, REDIS_REPLY_INTEGER);
     return r.getReply<long long int>();
+}
+
+void DBConnector::hmset(const std::unordered_map<std::string, std::vector<std::pair<std::string, std::string>>>& multiHash)
+{
+    SWSS_LOG_ENTER();
+
+    json j;
+
+    // pack multi hash to json (takes bout 70 ms for 10k to construct)
+    for (const auto& kvp: multiHash)
+    {
+        json o;
+
+        for (const auto &item: kvp.second)
+        {
+            o[std::get<0>(item)] = std::get<1>(item);
+        }
+
+        j[kvp.first] = o;
+    }
+
+    std::string strJson = j.dump();
+
+    RedisCommand command;
+    command.format(
+        "EVALSHA %s 1 %s %s",
+        m_shaRedisMulti.c_str(),
+        strJson.c_str(),
+        "mhset");
+
+    RedisReply r(this, command, REDIS_REPLY_NIL);
+}
+
+void DBConnector::hdel(const std::vector<std::string>& keys)
+{
+    SWSS_LOG_ENTER();
+
+    json j = json::array();
+
+    for (const auto& key: keys)
+    {
+        j.push_back(key);
+    }
+
+    std::string strJson = j.dump();
+
+    RedisCommand command;
+    command.format(
+        "EVALSHA %s 1 %s %s",
+        m_shaRedisMulti.c_str(),
+        strJson.c_str(),
+        "mdel");
+
+    RedisReply r(this, command, REDIS_REPLY_NIL);
 }
