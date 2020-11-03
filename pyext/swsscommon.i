@@ -3,8 +3,6 @@
 %{
 #include "schema.h"
 #include "dbconnector.h"
-#include "dbinterface.h"
-#include "sonicv2connector.h"
 #include "select.h"
 #include "selectable.h"
 #include "rediscommand.h"
@@ -26,13 +24,11 @@
 %include <std_string.i>
 %include <std_vector.i>
 %include <std_pair.i>
-%include <std_map.i>
 %include <typemaps.i>
 %include <stdint.i>
 
 %template(FieldValuePair) std::pair<std::string, std::string>;
 %template(FieldValuePairs) std::vector<std::pair<std::string, std::string>>;
-%template(FieldValueMap) std::map<std::string, std::string>;
 %template(VectorString) std::vector<std::string>;
 
 %apply int *OUTPUT {int *fd};
@@ -64,7 +60,6 @@ T castSelectableObj(swss::Selectable *temp)
 
 %include "schema.h"
 %include "dbconnector.h"
-%include "sonicv2connector.h"
 %include "selectable.h"
 %include "select.h"
 %include "rediscommand.h"
@@ -74,11 +69,9 @@ T castSelectableObj(swss::Selectable *temp)
 
 %apply std::vector<std::string>& OUTPUT {std::vector<std::string> &keys};
 %apply std::vector<std::pair<std::string, std::string>>& OUTPUT {std::vector<std::pair<std::string, std::string>> &ovalues};
-%apply std::string& OUTPUT {std::string &value};
 %include "table.h"
 %clear std::vector<std::string> &keys;
 %clear std::vector<std::pair<std::string, std::string>> &values;
-%clear std::string &value;
 
 %include "producertable.h"
 %include "producerstatetable.h"
@@ -105,4 +98,3 @@ T castSelectableObj(swss::Selectable *temp)
 
 %include "notificationproducer.h"
 %include "warm_restart.h"
-%include "dbinterface.h"

@@ -1,5 +1,4 @@
 #include "redistran.h"
-#include "dbconnector.h"
 
 namespace swss {
 

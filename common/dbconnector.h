@@ -35,8 +35,6 @@ public:
 class SonicDBConfig
 {
 public:
-    static constexpr const char *DEFAULT_SONIC_DB_CONFIG_FILE = "/var/run/redis/sonic-db/database_config.json";
-    static constexpr const char *DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE = "/var/run/redis/sonic-db/database_global.json";
     static void initialize(const std::string &file = DEFAULT_SONIC_DB_CONFIG_FILE);
     static void initializeGlobalConfig(const std::string &file = DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE);
     static void validateNamespace(const std::string &netns);
@@ -49,11 +47,12 @@ public:
     static std::string getDbHostname(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
     static int getDbPort(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
     static std::vector<std::string> getNamespaces();
-    static std::vector<std::string> getDbList(const std::string &netns = EMPTY_NAMESPACE);
     static bool isInit() { return m_init; };
     static bool isGlobalInit() { return m_global_init; };
 
 private:
+    static constexpr const char *DEFAULT_SONIC_DB_CONFIG_FILE = "/var/run/redis/sonic-db/database_config.json";
+    static constexpr const char *DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE = "/var/run/redis/sonic-db/database_global.json";
     // { namespace { instName, { unix_socket_path, hostname, port } } }
     static std::unordered_map<std::string, std::unordered_map<std::string, RedisInstInfo>> m_inst_info;
     // { namespace, { dbName, {instName, dbId, separator} } }
@@ -70,7 +69,7 @@ private:
     static RedisInstInfo& getRedisInfo(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
 };
 
-class RedisContext
+class DBConnector
 {
 public:
     static constexpr const char *DEFAULT_UNIXSOCKET = "/var/run/redis/redis.sock";
@@ -82,14 +81,22 @@ public:
      * Timeout - The time in milisecond until exception is been thrown. For
      *           infinite wait, set this value to 0
      */
-    RedisContext(const std::string &hostname, int port, unsigned int timeout);
-    RedisContext(const std::string &unixPath, unsigned int timeout);
-    RedisContext(const RedisContext &other);
-    RedisContext& operator=(const RedisContext&) = delete;
+    DBConnector(int dbId, const std::string &hostname, int port, unsigned int timeout);
+    DBConnector(int dbId, const std::string &unixPath, unsigned int timeout);
+    DBConnector(const std::string &dbName, unsigned int timeout, bool isTcpConn = false);
+    DBConnector(const std::string &dbName, unsigned int timeout, bool isTcpConn, const std::string &netns);
 
-    ~RedisContext();
+    ~DBConnector();
 
     redisContext *getContext() const;
+    int getDbId() const;
+    std::string getDbName() const;
+    std::string getNamespace() const;
+
+    static void select(DBConnector *db);
+
+    /* Create new context to DB */
+    DBConnector *newConnector(unsigned int timeout) const;
 
     /*
      * Assign a name to the Redis client used for this connection
@@ -98,53 +105,6 @@ public:
     void setClientName(const std::string& clientName);
 
     std::string getClientName();
-
-protected:
-    RedisContext();
-    void initContext(const char *host, int port, const timeval& tv);
-    void initContext(const char *path, const timeval &tv);
-    void setContext(redisContext *ctx);
-
-private:
-    redisContext *m_conn;
-};
-
-class DBConnector : public RedisContext
-{
-public:
-    static constexpr const char *DEFAULT_UNIXSOCKET = "/var/run/redis/redis.sock";
-
-    /*
-     * Connect to Redis DB wither with a hostname:port or unix socket
-     * Select the database index provided by "db"
-     *
-     * Timeout - The time in milisecond until exception is been thrown. For
-     *           infinite wait, set this value to 0
-     */
-    DBConnector(const DBConnector &other);
-    DBConnector(int dbId, const RedisContext &ctx);
-    DBConnector(int dbId, const std::string &hostname, int port, unsigned int timeout);
-    DBConnector(int dbId, const std::string &unixPath, unsigned int timeout);
-    DBConnector(const std::string &dbName, unsigned int timeout, bool isTcpConn = false);
-    DBConnector(const std::string &dbName, unsigned int timeout, bool isTcpConn, const std::string &netns);
-    DBConnector& operator=(const DBConnector&) = delete;
-
-    int getDbId() const;
-    std::string getDbName() const;
-    std::string getNamespace() const;
-
-#ifdef SWIG
-    %pythoncode %{
-        __swig_getmethods__["namespace"] = getNamespace
-        __swig_setmethods__["namespace"] = None
-        if _newclass: namespace = property(getNamespace, None)
-    %}
-#endif
-
-    static void select(DBConnector *db);
-
-    /* Create new context to DB */
-    DBConnector *newConnector(unsigned int timeout) const;
 
     int64_t del(const std::string &key);
 
@@ -180,17 +140,8 @@ public:
 
     std::shared_ptr<std::string> blpop(const std::string &list, int timeout);
 
-    void subscribe(const std::string &pattern);
-
-    void psubscribe(const std::string &pattern);
-
-    int64_t publish(const std::string &channel, const std::string &message);
-
-    void config_set(const std::string &key, const std::string &value);
-
 private:
-    void setNamespace(const std::string &netns);
-
+    redisContext *m_conn;
     int m_dbId;
     std::string m_dbName;
     std::string m_namespace;
