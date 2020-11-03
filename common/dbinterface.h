@@ -5,7 +5,6 @@
 #include <stdexcept>
 
 #include "dbconnector.h"
-#include "redisclient.h"
 #include "logger.h"
 
 namespace swss

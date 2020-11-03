@@ -35,6 +35,22 @@
 %template(FieldValueMap) std::map<std::string, std::string>;
 %template(VectorString) std::vector<std::string>;
 
+%pythoncode %{
+    def _FieldValueMap__get(self, key, defval):
+        if key in self:
+            return self[key]
+        else:
+            return defval
+
+    def _FieldValueMap__update(self, *args, **kwargs):
+        other = dict(*args, **kwargs)
+        for key in other:
+            self[key] = other[key]
+
+    FieldValueMap.get = _FieldValueMap__get
+    FieldValueMap.update = _FieldValueMap__update
+%}
+
 %apply int *OUTPUT {int *fd};
 %typemap(in, numinputs=0) swss::Selectable ** (swss::Selectable *temp) {
     $1 = &temp;
@@ -52,10 +68,15 @@
 }
 
 %inline %{
-swss::RedisSelect *CastSelectableToRedisSelectObj(swss::Selectable *temp) {
-  return dynamic_cast<swss::RedisSelect *>(temp);
+template <typename T>
+T castSelectableObj(swss::Selectable *temp)
+{
+    return dynamic_cast<T>(temp);
 }
 %}
+
+%template(CastSelectableToRedisSelectObj) castSelectableObj<swss::RedisSelect *>;
+%template(CastSelectableToSubscriberTableObj) castSelectableObj<swss::SubscriberStateTable *>;
 
 %include "schema.h"
 %include "dbconnector.h"

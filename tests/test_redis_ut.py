@@ -138,9 +138,58 @@ def test_DBInterface():
     dbintf.connect(15, "TEST_DB")
 
     db = SonicV2Connector(use_unix_socket_path=True, namespace='')
+    assert db.TEST_DB == 'TEST_DB'
     assert db.namespace == ''
     db.connect("TEST_DB")
     db.set("TEST_DB", "key0", "field1", "value2")
     fvs = db.get_all("TEST_DB", "key0")
     assert "field1" in fvs
     assert fvs["field1"] == "value2"
+
+    # Test dict.get()
+    assert fvs.get("field1", "default") == "value2"
+    assert fvs.get("nonfield", "default") == "default"
+
+    # Test dict.update()
+    other = { "field1": "value3", "field4": "value4" }
+    fvs.update(other)
+    assert len(fvs) == 2
+    assert fvs["field1"] == "value3"
+    assert fvs["field4"] == "value4"
+    # Test dict.update() accepts no arguments, and then no update happens
+    fvs.update()
+    assert len(fvs) == 2
+    assert fvs["field1"] == "value3"
+    assert fvs["field4"] == "value4"
+    fvs.update(field5='value5', field6='value6')
+    assert fvs["field5"] == "value5"
+    with pytest.raises(TypeError):
+        fvs.update(fvs, fvs)
+
+    # Test blocking
+    fvs = db.get_all("TEST_DB", "key0", blocking=True)
+    assert "field1" in fvs
+    assert fvs["field1"] == "value2"
+    assert fvs.get("field1", "default") == "value2"
+    assert fvs.get("nonfield", "default") == "default"
+
+    # Test empty/none namespace
+    db = SonicV2Connector(use_unix_socket_path=True, namespace=None)
+    assert db.namespace == ''
+
+    # Test default namespace parameter
+    db = SonicV2Connector(use_unix_socket_path=True)
+    assert db.namespace == ''
+
+    # Test no exception
+    try:
+        db = SonicV2Connector(host='127.0.0.1')
+        db = SonicV2Connector(use_unix_socket_path=True, namespace='', decode_responses=True)
+        db = SonicV2Connector(use_unix_socket_path=False, decode_responses=True)
+        db = SonicV2Connector(host="127.0.0.1", decode_responses=True)
+    except:
+        assert False, 'Unexpected exception raised'
+
+    # Test exception
+    with pytest.raises(ValueError):
+        db = SonicV2Connector(decode_responses=False)
