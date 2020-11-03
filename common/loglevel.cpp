@@ -7,6 +7,7 @@
 #include "schema.h"
 #include "logger.h"
 #include "dbconnector.h"
+#include "redisclient.h"
 #include "producerstatetable.h"
 
 using namespace swss;

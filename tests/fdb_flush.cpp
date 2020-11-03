@@ -4,6 +4,7 @@
 #include "common/producertable.h"
 #include "common/consumertable.h"
 #include "common/redisapi.h"
+#include "common/redisclient.h"
 
 #include <inttypes.h>
 #include <iostream>

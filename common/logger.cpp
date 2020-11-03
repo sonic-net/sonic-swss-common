@@ -11,6 +11,7 @@
 #include "schema.h"
 #include "select.h"
 #include "dbconnector.h"
+#include "redisclient.h"
 #include "consumerstatetable.h"
 #include "producerstatetable.h"
 
