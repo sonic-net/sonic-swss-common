@@ -58,7 +58,7 @@ bool JSon::loadJsonFromFile(ifstream &fs, vector<KeyOpFieldsValuesTuple> &db_ite
         {
             if (el_count != arr_item.size())
             {
-                SWSS_LOG_ERROR("Chlid elements must have both key and op entry. %s",
+                SWSS_LOG_ERROR("Child elements must have both key and op entry. %s",
                                arr_item.dump().c_str());
                 return false;
             }
@@ -82,10 +82,6 @@ bool JSon::loadJsonFromFile(ifstream &fs, vector<KeyOpFieldsValuesTuple> &db_ite
                             value_str = (*cur_obj_it).get<string>();
                         kfvFieldsValues(cur_db_item).push_back(FieldValueTuple(field_str, value_str));
                     }
-                }
-                else
-                {
-                    kfvOp(cur_db_item) = cur_obj.get<string>();
                 }
             }
         }
