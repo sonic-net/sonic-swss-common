@@ -819,7 +819,7 @@ void DBConnector::hmset(const std::unordered_map<std::string, std::vector<std::p
     RedisReply r(this, command, REDIS_REPLY_NIL);
 }
 
-void DBConnector::hdel(const std::vector<std::string>& keys)
+void DBConnector::del(const std::vector<std::string>& keys)
 {
     SWSS_LOG_ENTER();
 

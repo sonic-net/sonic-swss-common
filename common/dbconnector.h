@@ -152,7 +152,7 @@ public:
 
     int64_t hdel(const std::string &key, const std::vector<std::string> &fields);
 
-    void hdel(const std::vector<std::string>& keys);
+    void del(const std::vector<std::string>& keys);
 
     std::unordered_map<std::string, std::string> hgetall(const std::string &key);
 
