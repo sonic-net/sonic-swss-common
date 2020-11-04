@@ -489,15 +489,13 @@ void DBConnector::select(DBConnector *db)
 
     RedisReply r(db, select, REDIS_REPLY_STATUS);
     r.checkStatusOK();
-
-    std::string luaScript = loadLuaScript("redis_multi.lua");
-    db->m_shaRedisMulti = loadRedisScript(db, luaScript);
 }
 
 DBConnector::DBConnector(const DBConnector &other)
     : RedisContext(other)
     , m_dbId(other.m_dbId)
     , m_namespace(other.m_namespace)
+    , m_shaRedisMulti(string())
 {
     select(this);
 }
@@ -506,6 +504,7 @@ DBConnector::DBConnector(int dbId, const RedisContext& ctx)
     : RedisContext(ctx)
     , m_dbId(dbId)
     , m_namespace(EMPTY_NAMESPACE)
+    , m_shaRedisMulti(string())
 {
     select(this);
 }
@@ -514,6 +513,7 @@ DBConnector::DBConnector(int dbId, const string& hostname, int port,
                          unsigned int timeout)
     : m_dbId(dbId)
     , m_namespace(EMPTY_NAMESPACE)
+    , m_shaRedisMulti(string())
 {
     struct timeval tv = {0, (suseconds_t)timeout * 1000};
     struct timeval *ptv = timeout ? &tv : NULL;
@@ -525,6 +525,7 @@ DBConnector::DBConnector(int dbId, const string& hostname, int port,
 DBConnector::DBConnector(int dbId, const string& unixPath, unsigned int timeout)
     : m_dbId(dbId)
     , m_namespace(EMPTY_NAMESPACE)
+    , m_shaRedisMulti(string())
 {
     struct timeval tv = {0, (suseconds_t)timeout * 1000};
     struct timeval *ptv = timeout ? &tv : NULL;
@@ -537,6 +538,7 @@ DBConnector::DBConnector(const string& dbName, unsigned int timeout, bool isTcpC
     : m_dbId(SonicDBConfig::getDbId(dbName, netns))
     , m_dbName(dbName)
     , m_namespace(netns)
+    , m_shaRedisMulti(string())
 {
     struct timeval tv = {0, (suseconds_t)timeout * 1000};
     struct timeval *ptv = timeout ? &tv : NULL;
@@ -809,6 +811,7 @@ void DBConnector::hmset(const std::unordered_map<std::string, std::vector<std::p
 
     std::string strJson = j.dump();
 
+    loadLua();
     RedisCommand command;
     command.format(
         "EVALSHA %s 1 %s %s",
@@ -832,6 +835,7 @@ void DBConnector::hdel(const std::vector<std::string>& keys)
 
     std::string strJson = j.dump();
 
+    loadLua();
     RedisCommand command;
     command.format(
         "EVALSHA %s 1 %s %s",
@@ -840,4 +844,13 @@ void DBConnector::hdel(const std::vector<std::string>& keys)
         "mdel");
 
     RedisReply r(this, command, REDIS_REPLY_NIL);
+}
+
+void DBConnector::loadLua(string luaPath)
+{
+    if (m_shaRedisMulti.empty())
+    {
+        std::string luaScript = loadLuaScript(luaPath);
+        m_shaRedisMulti = loadRedisScript(this, luaScript);
+    }
 }

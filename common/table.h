@@ -175,6 +175,8 @@ public:
 
     void dump(TableDump &tableDump);
 
+    void loadLua(std::string luaPath = "table_dump.lua");
+
 protected:
 
     bool m_buffered;

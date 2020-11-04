@@ -193,6 +193,8 @@ public:
 private:
     void setNamespace(const std::string &netns);
 
+    void loadLua(std::string luaPath = "redis_multi.lua");
+
     int m_dbId;
     std::string m_dbName;
     std::string m_namespace;
