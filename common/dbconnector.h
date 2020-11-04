@@ -82,8 +82,6 @@ public:
      * Timeout - The time in milisecond until exception is been thrown. For
      *           infinite wait, set this value to 0
      */
-    RedisContext(const std::string &hostname, int port, unsigned int timeout);
-    RedisContext(const std::string &unixPath, unsigned int timeout);
     RedisContext(const RedisContext &other);
     RedisContext& operator=(const RedisContext&) = delete;
 
@@ -101,8 +99,8 @@ public:
 
 protected:
     RedisContext();
-    void initContext(const char *host, int port, const timeval& tv);
-    void initContext(const char *path, const timeval &tv);
+    void initContext(const char *host, int port, const timeval *tv);
+    void initContext(const char *path, const timeval *tv);
     void setContext(redisContext *ctx);
 
 private:
