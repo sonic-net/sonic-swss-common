@@ -140,4 +140,13 @@ static inline int peekRedisContext(redisContext *c)
     return rc;
 }
 
+static inline void lazyLoadRedisScriptFile(RedisContext* ctx, std::string luaPath, std::string &m_sha)
+{
+    if (m_sha.empty())
+    {
+        std::string luaScript = loadLuaScript(luaPath);
+        m_sha = loadRedisScript(ctx, luaScript);
+    }
+}
+
 }
