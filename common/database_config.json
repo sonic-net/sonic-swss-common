@@ -81,6 +81,11 @@
             "id" : 12,
             "separator": "|",
             "instance" : "redis_chassis"
+        },
+        "CHASSIS_STATE_DB" : {
+            "id" : 13,
+            "separator": "|",
+            "instance" : "redis_chassis"
         }
     },
     "VERSION" : "1.0"
