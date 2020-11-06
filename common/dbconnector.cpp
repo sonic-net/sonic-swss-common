@@ -489,9 +489,6 @@ void DBConnector::select(DBConnector *db)
 
     RedisReply r(db, select, REDIS_REPLY_STATUS);
     r.checkStatusOK();
-
-    std::string luaScript = loadLuaScript("redis_multi.lua");
-    db->m_shaRedisMulti = loadRedisScript(db, luaScript);
 }
 
 DBConnector::DBConnector(const DBConnector &other)
@@ -809,6 +806,7 @@ void DBConnector::hmset(const std::unordered_map<std::string, std::vector<std::p
 
     std::string strJson = j.dump();
 
+    lazyLoadRedisScriptFile(this, "redis_multi.lua", m_shaRedisMulti);
     RedisCommand command;
     command.format(
         "EVALSHA %s 1 %s %s",
@@ -832,6 +830,7 @@ void DBConnector::del(const std::vector<std::string>& keys)
 
     std::string strJson = j.dump();
 
+    lazyLoadRedisScriptFile(this, "redis_multi.lua", m_shaRedisMulti);
     RedisCommand command;
     command.format(
         "EVALSHA %s 1 %s %s",
