@@ -27,8 +27,7 @@ static inline std::string loadRedisScript(RedisContext* ctx, const std::string& 
 
     std::string sha = r.getReply<std::string>();
 
-    SWSS_LOG_NOTICE("lua script loaded, sha: %s", sha.c_str());
-    SWSS_LOG_INFO("lua script: %s", script.c_str());
+    SWSS_LOG_INFO("lua script %s loaded, sha: %s", script.c_str(), sha.c_str());
 
     return sha;
 }
