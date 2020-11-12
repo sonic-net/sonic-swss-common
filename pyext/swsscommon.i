@@ -36,11 +36,11 @@
 %template(VectorString) std::vector<std::string>;
 
 %pythoncode %{
-    def _FieldValueMap__get(self, key, defval):
+    def _FieldValueMap__get(self, key, default=None):
         if key in self:
             return self[key]
         else:
-            return defval
+            return default
 
     def _FieldValueMap__update(self, *args, **kwargs):
         other = dict(*args, **kwargs)

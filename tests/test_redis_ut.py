@@ -147,6 +147,8 @@ def test_DBInterface():
     assert fvs["field1"] == "value2"
 
     # Test dict.get()
+    assert fvs.get("field1") == "value2"
+    assert fvs.get("field1_noexisting") == None
     assert fvs.get("field1", "default") == "value2"
     assert fvs.get("nonfield", "default") == "default"
 
