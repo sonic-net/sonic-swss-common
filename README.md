@@ -21,8 +21,12 @@ Checkout the source:
 Install build dependencies:
 
     sudo apt-get install make libtool m4 autoconf dh-exec debhelper cmake pkg-config \
-                         libhiredis-dev libnl-3-dev libnl-genl-3-dev libnl-route-3-dev swig3.0 \
-                         libpython2.7-dev libgtest-dev
+                         libhiredis-dev libnl-3-dev libnl-genl-3-dev libnl-route-3-dev \
+                         libnl-nf-3-dev swig3.0 libpython2.7-dev libpython3-dev libgtest-dev
+
+Install Google Test DEB package:
+
+    cd /usr/src/gtest && sudo cmake . && sudo make
 
 You can compile and install from source using:
 
@@ -37,12 +41,7 @@ You can also build a debian package using:
     dpkg-buildpackage -us -uc -b
 
 ### Build with Google Test
-1. Install Google Test DEB package.
-```
-$ sudo apt-get install cmake libgtest-dev
-$ cd /usr/src/gtest && sudo cmake . && sudo make
-```
-2. Rebuild with Google Test
+1. Rebuild with Google Test
 ```
 $ ./autogen.sh
 $ ./configure --enable-debug 'CXXFLAGS=-O0 -g'
@@ -50,13 +49,13 @@ $ make clean
 $ GCC_COLORS=1 make
 ```
 
-3. Start redis server if not yet:
+2. Start redis server if not yet:
 ```
 sudo sed -i 's/notify-keyspace-events ""/notify-keyspace-events AKE/' /etc/redis/redis.conf
 sudo service redis-server start
 ```
 
-4. Run unit test:
+3. Run unit test:
 ```
 tests/tests
 ```
