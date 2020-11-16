@@ -1,6 +1,7 @@
 #include <cerrno>
 #include <cstring>
 #include <array>
+#include <sys/wait.h>
 #include "exec.h"
 #include "common/logger.h"
 
@@ -8,10 +9,9 @@ using namespace std;
 
 namespace swss {
 
-const int buffsz = 128;
-
 int exec(const string &cmd, string &stdout)
 {
+    const int buffsz = 128;
     array<char, buffsz> buffer;
     FILE* pipe = popen(cmd.c_str(), "r");
 
@@ -33,12 +33,43 @@ int exec(const string &cmd, string &stdout)
         }
     }
 
-    int ret = pclose(pipe);
-    if (ret != 0)
+    int ret;
+    string msg;
+    int status = pclose(pipe);
+    if (status == -1)
     {
+        ret = EXEC_ERROR_PCLOSE;
         SWSS_LOG_ERROR("%s: %s", cmd.c_str(), strerror(errno));
     }
-    SWSS_LOG_DEBUG("%s : %s", cmd.c_str(), stdout.c_str());
+    else if (WIFEXITED(status))
+    {
+        ret = WEXITSTATUS(status);
+        msg = "Exited with rc=" + to_string(ret);
+    }
+    else if (WIFSIGNALED(status))
+    {
+        ret = EXEC_ERROR_SIGNALED;
+        msg = "Killed with signal=" + to_string(WTERMSIG(status));
+    }
+    else if (WIFSTOPPED(status))
+    {
+        ret = EXEC_ERROR_STOPPED;
+        msg = "Stopped with signal=" + to_string(WSTOPSIG(status));
+    }
+#ifdef WIFCONTINUED     /* Not all implementations support this */
+    else if (WIFCONTINUED(status))
+    {
+        ret = EXEC_ERROR_CONTINUED;
+        msg = "Continued";
+    }
+#endif
+    else
+    {
+        ret = EXEC_ERROR_UNEXPECTED;
+        msg = "Unexpected pclose ret=" + to_string(status);
+    }
+
+    SWSS_LOG_DEBUG("%s : %s : %s", cmd.c_str(), stdout.c_str(), msg.c_str());
 
     return ret;
 }

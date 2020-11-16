@@ -18,6 +18,12 @@ RedisCommand::~RedisCommand()
 
 void RedisCommand::format(const char *fmt, ...)
 {
+    if (temp != nullptr)
+    {
+        redisFreeCommand(temp);
+        temp = nullptr;
+    }
+
     va_list ap;
     va_start(ap, fmt);
     int len = redisvFormatCommand(&temp, fmt, ap);
@@ -31,6 +37,12 @@ void RedisCommand::format(const char *fmt, ...)
 
 void RedisCommand::formatArgv(int argc, const char **argv, const size_t *argvlen)
 {
+    if (temp != nullptr)
+    {
+        redisFreeCommand(temp);
+        temp = nullptr;
+    }
+
     int len = redisFormatCommandArgv(&temp, argc, argv, argvlen);
     if (len == -1) {
         throw std::bad_alloc();

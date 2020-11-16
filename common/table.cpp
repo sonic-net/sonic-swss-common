@@ -19,14 +19,20 @@ const std::string TableBase::TABLE_NAME_SEPARATOR_COLON = ":";
 const std::string TableBase::TABLE_NAME_SEPARATOR_VBAR = "|";
 
 const TableNameSeparatorMap TableBase::tableNameSeparatorMap = {
-   { APPL_DB,         TABLE_NAME_SEPARATOR_COLON },
-   { ASIC_DB,         TABLE_NAME_SEPARATOR_COLON },
-   { COUNTERS_DB,     TABLE_NAME_SEPARATOR_COLON },
-   { LOGLEVEL_DB,     TABLE_NAME_SEPARATOR_COLON },
-   { CONFIG_DB,       TABLE_NAME_SEPARATOR_VBAR  },
-   { PFC_WD_DB,       TABLE_NAME_SEPARATOR_COLON },
-   { FLEX_COUNTER_DB, TABLE_NAME_SEPARATOR_COLON },
-   { STATE_DB,        TABLE_NAME_SEPARATOR_VBAR  }
+   { APPL_DB,             TABLE_NAME_SEPARATOR_COLON },
+   { ASIC_DB,             TABLE_NAME_SEPARATOR_COLON },
+   { COUNTERS_DB,         TABLE_NAME_SEPARATOR_COLON },
+   { LOGLEVEL_DB,         TABLE_NAME_SEPARATOR_COLON },
+   { CONFIG_DB,           TABLE_NAME_SEPARATOR_VBAR  },
+   { PFC_WD_DB,           TABLE_NAME_SEPARATOR_COLON },
+   { FLEX_COUNTER_DB,     TABLE_NAME_SEPARATOR_COLON },
+   { STATE_DB,            TABLE_NAME_SEPARATOR_VBAR  },
+   { RESTAPI_DB,          TABLE_NAME_SEPARATOR_VBAR  },
+   { GB_ASIC_DB,          TABLE_NAME_SEPARATOR_VBAR  },
+   { GB_COUNTERS_DB,      TABLE_NAME_SEPARATOR_VBAR  },
+   { GB_FLEX_COUNTER_DB,  TABLE_NAME_SEPARATOR_VBAR  },
+   { CHASSIS_APP_DB,      TABLE_NAME_SEPARATOR_VBAR  },
+   { CHASSIS_STATE_DB,    TABLE_NAME_SEPARATOR_VBAR  }
 };
 
 Table::Table(const DBConnector *db, const string &tableName)
@@ -41,8 +47,6 @@ Table::Table(RedisPipeline *pipeline, const string &tableName, bool buffered)
     , m_pipeowned(false)
     , m_pipe(pipeline)
 {
-    std::string luaScript = loadLuaScript("table_dump.lua");
-    m_shaDump = pipeline->loadRedisScript(luaScript);
 }
 
 Table::~Table()
@@ -190,6 +194,7 @@ void Table::dump(TableDump& tableDump)
 
     SWSS_LOG_TIMER("getting");
 
+    lazyLoadRedisScriptFile(m_pipe->getDBConnector(), "table_dump.lua", m_shaDump);
     RedisCommand command;
     command.format("EVALSHA %s 1 %s ''",
             m_shaDump.c_str(),

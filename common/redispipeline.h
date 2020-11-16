@@ -33,7 +33,13 @@ public:
             case REDIS_REPLY_STATUS:
             case REDIS_REPLY_INTEGER:
             {
-                redisAppendFormattedCommand(m_db->getContext(), command.c_str(), command.length());
+                int rc = redisAppendFormattedCommand(m_db->getContext(), command.c_str(), command.length());
+                if (rc != REDIS_OK)
+                {
+                    // The only reason of error is REDIS_ERR_OOM (Out of memory)
+                    // ref: https://github.com/redis/hiredis/blob/master/hiredis.c
+                    throw std::bad_alloc();
+                }
                 m_expectedTypes.push(expectedType);
                 m_remaining++;
                 mayflush();
@@ -71,7 +77,11 @@ public:
         if (m_remaining == 0) return NULL;
 
         redisReply *reply;
-        redisGetReply(m_db->getContext(), (void**)&reply);
+        int rc = redisGetReply(m_db->getContext(), (void**)&reply);
+        if (rc != REDIS_OK)
+        {
+            throw RedisError("Failed to redisGetReply in RedisPipeline::pop", m_db->getContext());
+        }
         RedisReply r(reply);
         m_remaining--;
 

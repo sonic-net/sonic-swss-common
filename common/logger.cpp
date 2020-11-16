@@ -11,7 +11,6 @@
 #include "schema.h"
 #include "select.h"
 #include "dbconnector.h"
-#include "redisclient.h"
 #include "consumerstatetable.h"
 #include "producerstatetable.h"
 
@@ -92,14 +91,13 @@ void Logger::linkToDbWithOutput(const std::string &dbName, const PriorityChangeN
     // Initialize internal DB with observer
     logger.m_settingChangeObservers.insert(std::make_pair(dbName, std::make_pair(prioNotify, outputNotify)));
     DBConnector db("LOGLEVEL_DB", 0);
-    RedisClient redisClient(&db);
-    auto keys = redisClient.keys("*");
+    auto keys = db.keys("*");
 
     std::string key = dbName + ":" + dbName;
     std::string prio, output;
     bool doUpdate = false;
-    auto prioPtr = redisClient.hget(key, DAEMON_LOGLEVEL);
-    auto outputPtr = redisClient.hget(key, DAEMON_LOGOUTPUT);
+    auto prioPtr = db.hget(key, DAEMON_LOGLEVEL);
+    auto outputPtr = db.hget(key, DAEMON_LOGOUTPUT);
 
     if ( prioPtr == nullptr )
     {
@@ -170,24 +168,38 @@ Logger::Priority Logger::getMinPrio()
 {
     Select select;
     DBConnector db("LOGLEVEL_DB", 0);
-    std::vector<std::shared_ptr<ConsumerStateTable>> selectables(m_settingChangeObservers.size());
+    std::map<std::string, std::shared_ptr<ConsumerStateTable>> selectables;
 
-    for (const auto& i : m_settingChangeObservers)
+    while (true)
     {
-        std::shared_ptr<ConsumerStateTable> table = std::make_shared<ConsumerStateTable>(&db, i.first);
-        selectables.push_back(table);
-        select.addSelectable(table.get());
-    }
+        if (selectables.size() < m_settingChangeObservers.size())
+        {
+            for (const auto& i : m_settingChangeObservers)
+            {
+                const std::string &dbName = i.first;
+                if (selectables.find(dbName) == selectables.end())
+                {
+                    auto table = std::make_shared<ConsumerStateTable>(&db, dbName);
+                    selectables.emplace(dbName, table);
+                    select.addSelectable(table.get());
+                }
+            }
+        }
 
-    while(true)
-    {
         Selectable *selectable = nullptr;
 
-        int ret = select.select(&selectable);
+        /* TODO Resolve latency caused by timeout at initialization. */
+        int ret = select.select(&selectable, 1000); // Timeout if there is no data in 1000 ms.
 
         if (ret == Select::ERROR)
         {
             SWSS_LOG_NOTICE("%s select error %s", __PRETTY_FUNCTION__, strerror(errno));
+            continue;
+        }
+
+        if (ret == Select::TIMEOUT)
+        {
+            SWSS_LOG_DEBUG("%s select timeout", __PRETTY_FUNCTION__);
             continue;
         }
 

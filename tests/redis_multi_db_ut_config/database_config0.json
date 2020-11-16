@@ -2,13 +2,8 @@
     "INSTANCES": {
         "redis":{
             "hostname" : "127.0.0.1",
-            "port" : 6379,
-            "unix_socket_path" : "/var/run/redis/redis.sock"
-        },
-        "redis_chassis":{
-            "hostname" : "redis_chassis.server",
-            "port" : 6380,
-            "unix_socket_path" : "/var/run/redis/redis_chassis.sock"
+            "port": 6379,
+            "unix_socket_path": "/var/run/redis0/redis.sock"
         }
     },
     "DATABASES" : {
@@ -57,35 +52,30 @@
             "separator": "|",
             "instance" : "redis"
         },
-        "RESTAPI_DB" : {
-            "id" : 8,
-            "separator": "|",
-            "instance" : "redis"
-        },
-        "GB_ASIC_DB" : {
-            "id" : 9,
-            "separator": "|",
-            "instance" : "redis"
-        },
-        "GB_COUNTERS_DB" : {
+        "ASIC_DB2" : {
             "id" : 10,
-            "separator": "|",
+            "separator": ":",
             "instance" : "redis"
         },
-        "GB_FLEX_COUNTER_DB" : {
+        "COUNTERS_DB2" : {
             "id" : 11,
-            "separator": "|",
+            "separator": ":",
             "instance" : "redis"
         },
-        "CHASSIS_APP_DB" : {
+        "FLEX_COUNTER_DB2" : {
             "id" : 12,
-            "separator": "|",
-            "instance" : "redis_chassis"
+            "separator": ":",
+            "instance" : "redis"
         },
-        "CHASSIS_STATE_DB" : {
+        "STATE_DB2" : {
             "id" : 13,
             "separator": "|",
-            "instance" : "redis_chassis"
+            "instance" : "redis"
+        },
+        "TEST_DB" : {
+            "id" : 15,
+            "separator": ":",
+            "instance" : "redis"
         }
     },
     "VERSION" : "1.0"

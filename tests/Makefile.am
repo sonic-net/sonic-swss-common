@@ -27,6 +27,8 @@ tests_SOURCES = redis_ut.cpp                \
                 selectable_priority.cpp       \
                 warm_restart_ut.cpp         \
                 redis_multi_db_ut.cpp       \
+                logger_ut.cpp               \
+                redis_multi_ns_ut.cpp       \
                 fdb_flush.cpp               \
                 main.cpp
 

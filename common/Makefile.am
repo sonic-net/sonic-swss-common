@@ -7,6 +7,7 @@ EXTRA_DIST = \
     consumer_table_pops.lua \
     producer_state_table_apply_view.lua \
     table_dump.lua \
+    redis_multi.lua \
     fdb_flush.lua
 
 EXTRA_CONF_DIST = database_config.json
@@ -29,11 +30,12 @@ libswsscommon_la_SOURCES = \
     logger.cpp                \
     redisreply.cpp            \
     dbconnector.cpp           \
+    dbinterface.cpp           \
+    sonicv2connector.cpp      \
     table.cpp                 \
     json.cpp                  \
     producertable.cpp         \
     producerstatetable.cpp    \
-    redisclient.cpp           \
     rediscommand.cpp          \
     redistran.cpp             \
     redisselect.cpp           \

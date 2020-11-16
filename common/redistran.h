@@ -2,7 +2,7 @@
 
 #include <system_error>
 #include <deque>
-#include "redisreply.h"
+#include "dbconnector.h"
 #include "rediscommand.h"
 #include "logger.h"
 

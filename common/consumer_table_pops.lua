@@ -23,7 +23,9 @@ for i = n, 1, -3 do
    end
    table.insert(rets, ret)
 
-   if op == 'bulkset' or op == 'bulkcreate' or op == 'bulkremove' then
+   if ARGV[2] == "0" then
+       -- do nothing, we don't want to modify redis during pop
+   elseif op == 'bulkset' or op == 'bulkcreate' or op == 'bulkremove' then
 
 -- key is "OBJECT_TYPE:num", extract object type from key
        key = key:sub(1, string.find(key, ':') - 1)
@@ -81,6 +83,8 @@ for i = n, 1, -3 do
        op == 'notify' or
        op == 'get_stats' or
        op == 'clear_stats' or
+       op == 'attribute_capability_query' or
+       op == 'attribute_capability_response' or
        op == 'attr_enum_values_capability_query' or
        op == 'attr_enum_values_capability_response' or
        op == 'object_type_get_availability_query' or
