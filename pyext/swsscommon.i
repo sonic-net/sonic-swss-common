@@ -29,6 +29,15 @@
 %include <std_map.i>
 %include <typemaps.i>
 %include <stdint.i>
+%include <exception.i>
+
+%exception {
+    try {
+        $action
+    } catch (const std::exception& e) {
+        SWIG_exception(SWIG_RuntimeError, e.what());
+    }
+}
 
 %template(FieldValuePair) std::pair<std::string, std::string>;
 %template(FieldValuePairs) std::vector<std::pair<std::string, std::string>>;
