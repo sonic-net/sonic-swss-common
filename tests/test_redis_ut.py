@@ -146,6 +146,13 @@ def test_DBInterface():
     assert "field1" in fvs
     assert fvs["field1"] == "value2"
 
+    # Test del
+    db.set("TEST_DB", "key3", "field4", "value5")
+    deleted = db.delete("TEST_DB", "key3")
+    assert deleted == 1
+    deleted = db.delete("TEST_DB", "key3")
+    assert deleted == 0
+
     # Test dict.get()
     assert fvs.get("field1") == "value2"
     assert fvs.get("field1_noexisting") == None

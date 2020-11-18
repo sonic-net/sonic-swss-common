@@ -1,5 +1,7 @@
 %module swsscommon
 
+%rename(delete) del;
+
 %{
 #include "schema.h"
 #include "dbconnector.h"
