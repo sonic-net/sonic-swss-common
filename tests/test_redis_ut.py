@@ -153,10 +153,6 @@ def test_DBInterface():
     deleted = db.delete("TEST_DB", "key3")
     assert deleted == 0
 
-    # Test pubsub
-    redisclient = db.get_redis_client("TEST_DB")
-    ps = redisclient.pubsub()
-
     # Test dict.get()
     assert fvs.get("field1") == "value2"
     assert fvs.get("field1_noexisting") == None
