@@ -32,10 +32,14 @@
 %include <exception.i>
 
 %exception {
-    try {
+    try
+    {
         $action
-    } catch (const std::exception& e) {
-        SWIG_exception(SWIG_RuntimeError, e.what());
+    }
+    SWIG_CATCH_STDEXCEPT // catch std::exception derivatives
+    catch (...)
+    {
+        SWIG_exception(SWIG_UnknownError, "unknown exception");
     }
 }
 
