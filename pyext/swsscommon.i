@@ -31,6 +31,19 @@
 %include <std_map.i>
 %include <typemaps.i>
 %include <stdint.i>
+%include <exception.i>
+
+%exception {
+    try
+    {
+        $action
+    }
+    SWIG_CATCH_STDEXCEPT // catch std::exception derivatives
+    catch (...)
+    {
+        SWIG_exception(SWIG_UnknownError, "unknown exception");
+    }
+}
 
 %template(FieldValuePair) std::pair<std::string, std::string>;
 %template(FieldValuePairs) std::vector<std::pair<std::string, std::string>>;
