@@ -15,6 +15,7 @@
 namespace swss {
 
 class DBConnector;
+class PubSub;
 
 class RedisInstInfo
 {
@@ -143,6 +144,8 @@ public:
 
     /* Create new context to DB */
     DBConnector *newConnector(unsigned int timeout) const;
+
+    PubSub *pubsub() const;
 
     int64_t del(const std::string &key);
 

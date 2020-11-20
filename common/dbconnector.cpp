@@ -11,6 +11,7 @@
 #include "common/dbconnector.h"
 #include "common/redisreply.h"
 #include "common/redisapi.h"
+#include "common/pubsub.h"
 
 using json = nlohmann::json;
 using namespace std;
@@ -593,6 +594,11 @@ DBConnector *DBConnector::newConnector(unsigned int timeout) const
     ret->setNamespace(getNamespace());
 
     return ret;
+}
+
+PubSub *DBConnector::pubsub() const
+{
+    return new PubSub(*this);
 }
 
 int64_t DBConnector::del(const string &key)

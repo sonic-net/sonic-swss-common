@@ -56,6 +56,7 @@ libswsscommon_la_SOURCES = \
     notificationproducer.cpp  \
     linkcache.cpp             \
     portmap.cpp               \
+    pubsub.cpp                \
     tokenize.cpp              \
     exec.cpp                  \
     subscriberstatetable.cpp  \
