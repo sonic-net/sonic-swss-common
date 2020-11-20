@@ -33,6 +33,16 @@ public:
     }
 };
 
+// Follow the data structure used by redis-py
+// ref: https://redis-py.readthedocs.io/en/stable/_modules/redis/client.html#Redis.pubsub
+struct RedisMessage
+{
+    std::string type;
+    std::string pattern;
+    std::string channel;
+    std::string data;
+};
+
 class RedisReply
 {
 public:
