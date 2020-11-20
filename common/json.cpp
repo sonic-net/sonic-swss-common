@@ -83,6 +83,17 @@ bool JSon::loadJsonFromFile(ifstream &fs, vector<KeyOpFieldsValuesTuple> &db_ite
                         kfvFieldsValues(cur_db_item).push_back(FieldValueTuple(field_str, value_str));
                     }
                 }
+                else
+                {
+                    auto op = cur_obj.get<string>();
+                    if (op != "SET")
+                    {
+                        SWSS_LOG_ERROR("Child elements'op field must be SET, but got %s, ignored", op.c_str());
+                        db_items.pop_back();
+                        break;
+                    }
+                    kfvOp(cur_db_item) = op;
+                }
             }
         }
         else
