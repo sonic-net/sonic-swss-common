@@ -131,10 +131,11 @@ private:
     static void swssPrioNotify(const std::string &component, const std::string &prioStr);
     static void swssOutputNotify(const std::string &component, const std::string &outputStr);
 
-#ifndef SWIG
-    [[ noreturn ]]
+    void settingThread()
+#ifdef __GNUC__
+        __attribute__ ((noreturn))
 #endif
-    void settingThread();
+    ;
 
     LogSettingChangeObservers m_settingChangeObservers;
     std::map<std::string, std::string> m_currentPrios;
