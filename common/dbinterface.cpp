@@ -106,7 +106,7 @@ std::vector<std::string> DBInterface::keys(const std::string& dbName, const char
         auto keys = m_redisClient.at(dbName).keys(pattern);
         if (keys.empty())
         {
-            std::string message = "DB '{" + dbName + "}' is empty!";
+            std::string message = "DB '{" + dbName + "}' is empty with pattern '" + pattern + "'!";
             SWSS_LOG_WARN("%s", message.c_str());
             throw UnavailableDataError(message, "hset");
         }
