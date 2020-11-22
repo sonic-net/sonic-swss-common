@@ -37,6 +37,11 @@ void err_exit(const char *fn, int ln, int e, const char *fmt, ...)
         err_exit(__FUNCTION__, __LINE__, e, (fmt), ##args); \
     }
 
+#ifdef __GNUC__
+#    define ATTRIBUTE_NORTEURN __attribute__ ((noreturn))
+#else
+#    define ATTRIBUTE_NORTEURN
+#endif
 
 class Logger
 {
@@ -131,11 +136,7 @@ private:
     static void swssPrioNotify(const std::string &component, const std::string &prioStr);
     static void swssOutputNotify(const std::string &component, const std::string &outputStr);
 
-    void settingThread()
-#ifdef __GNUC__
-        __attribute__ ((noreturn))
-#endif
-    ;
+    ATTRIBUTE_NORTEURN void settingThread();
 
     LogSettingChangeObservers m_settingChangeObservers;
     std::map<std::string, std::string> m_currentPrios;
