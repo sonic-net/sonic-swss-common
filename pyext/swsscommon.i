@@ -23,6 +23,7 @@
 #include "notificationconsumer.h"
 #include "notificationproducer.h"
 #include "warm_restart.h"
+#include "logger.h"
 %}
 
 %include <std_string.i>
@@ -137,3 +138,4 @@ T castSelectableObj(swss::Selectable *temp)
 %include "notificationproducer.h"
 %include "warm_restart.h"
 %include "dbinterface.h"
+%include "logger.h"
