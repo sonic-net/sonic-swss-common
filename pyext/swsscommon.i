@@ -1,5 +1,7 @@
 %module swsscommon
 
+%rename(delete) del;
+
 %{
 #include "schema.h"
 #include "dbconnector.h"
@@ -21,6 +23,7 @@
 #include "notificationconsumer.h"
 #include "notificationproducer.h"
 #include "warm_restart.h"
+#include "logger.h"
 %}
 
 %include <std_string.i>
@@ -29,6 +32,19 @@
 %include <std_map.i>
 %include <typemaps.i>
 %include <stdint.i>
+%include <exception.i>
+
+%exception {
+    try
+    {
+        $action
+    }
+    SWIG_CATCH_STDEXCEPT // catch std::exception derivatives
+    catch (...)
+    {
+        SWIG_exception(SWIG_UnknownError, "unknown exception");
+    }
+}
 
 %template(FieldValuePair) std::pair<std::string, std::string>;
 %template(FieldValuePairs) std::vector<std::pair<std::string, std::string>>;
@@ -122,3 +138,4 @@ T castSelectableObj(swss::Selectable *temp)
 %include "notificationproducer.h"
 %include "warm_restart.h"
 %include "dbinterface.h"
+%include "logger.h"

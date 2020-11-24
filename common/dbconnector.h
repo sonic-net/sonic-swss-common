@@ -146,6 +146,17 @@ public:
 
     int64_t del(const std::string &key);
 
+#ifdef SWIG
+    // SWIG interface file (.i) globally rename map C++ `del` to python `delete`,
+    // but applications already followed the old behavior of auto renamed `_del`.
+    // So we implemented old behavior for backward compatiblity
+    // TODO: remove this function after applications use the function name `delete`
+    %pythoncode %{
+        def _del(self, *args, **kwargs):
+            return self.delete(*args, **kwargs)
+    %}
+#endif
+
     bool exists(const std::string &key);
 
     int64_t hdel(const std::string &key, const std::string &field);
