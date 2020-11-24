@@ -303,6 +303,7 @@ namespace swss {
 #define CFG_FG_NHG_MEMBER                           "FG_NHG_MEMBER"
 
 #define CFG_MUX_CABLE_TABLE_NAME                    "MUX_CABLE"
+#define CFG_MUX_LINKMGR_TABLE_NAME                  "MUX_LINKMGR"
 
 #define CFG_PEER_SWITCH_TABLE_NAME                  "PEER_SWITCH"
 
@@ -355,6 +356,8 @@ namespace swss {
 
 #define STATE_MUX_CABLE_TABLE_NAME                  "MUX_CABLE_TABLE"
 #define STATE_HW_MUX_CABLE_TABLE_NAME               "HW_MUX_CABLE_TABLE"
+
+#define STATE_MUX_LINKMGR_TABLE_NAME                "MUX_LINKMGR_TABLE"
 
 #define STATE_SYSTEM_NEIGH_TABLE_NAME               "SYSTEM_NEIGH_TABLE"
 
