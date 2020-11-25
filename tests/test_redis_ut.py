@@ -146,6 +146,12 @@ def test_DBInterface():
     assert "field1" in fvs
     assert fvs["field1"] == "value2"
 
+    # Test keys
+    ks = db.keys("TEST_DB", "key*");
+    assert len(ks) == 1
+    ks = db.keys("TEST_DB", u"key*");
+    assert len(ks) == 1
+
     # Test del
     db.set("TEST_DB", "key3", "field4", "value5")
     deleted = db.delete("TEST_DB", "key3")
