@@ -3,6 +3,15 @@
 %rename(delete) del;
 
 %{
+// ref: http://www.swig.org/Doc3.0/Python.html
+// A Python 2 string is not a unicode string by default and should a Unicode
+// string be passed to C/C++ it will fail to convert to a C/C++ string (char *
+// or std::string types). The Python 2 behavior can be made more like Python 3
+// by defining SWIG_PYTHON_2_UNICODE when compiling the generated C/C++ code.
+// Unicode strings will be successfully accepted and converted from UTF-8, but
+// note that they are returned as a normal Python 2 string
+#define SWIG_PYTHON_2_UNICODE
+
 #include "schema.h"
 #include "dbconnector.h"
 #include "dbinterface.h"
