@@ -63,14 +63,16 @@ bool JSon::loadJsonFromFile(ifstream &fs, vector<KeyOpFieldsValuesTuple> &db_ite
                 return false;
             }
 
-            db_items.push_back(KeyOpFieldsValuesTuple());
-            auto &cur_db_item = db_items[db_items.size() - 1];
+            db_items.emplace_back(KeyOpFieldsValuesTuple());
+            auto &cur_db_item = db_items.back();
 
-            for (nlohmann::json::iterator child_it = arr_item.begin(); child_it != arr_item.end(); child_it++) {
+            for (auto child_it = arr_item.begin(); child_it != arr_item.end(); child_it++)
+            {
                 auto cur_obj_key = child_it.key();
                 auto &cur_obj = child_it.value();
 
-                if (cur_obj.is_object()) {
+                if (cur_obj.is_object())
+                {
                     kfvKey(cur_db_item) = cur_obj_key;
                     for (nlohmann::json::iterator cur_obj_it = cur_obj.begin(); cur_obj_it != cur_obj.end(); cur_obj_it++)
                     {
@@ -80,12 +82,13 @@ bool JSon::loadJsonFromFile(ifstream &fs, vector<KeyOpFieldsValuesTuple> &db_ite
                             value_str = to_string((*cur_obj_it).get<int>());
                         else if ((*cur_obj_it).is_string())
                             value_str = (*cur_obj_it).get<string>();
-                        kfvFieldsValues(cur_db_item).push_back(FieldValueTuple(field_str, value_str));
+                        kfvFieldsValues(cur_db_item).emplace_back(FieldValueTuple(field_str, value_str));
                     }
                 }
                 else
                 {
                     auto op = cur_obj.get<string>();
+
                     if (op != "SET")
                     {
                         SWSS_LOG_ERROR("Child elements'op field must be SET, but got %s, ignored", op.c_str());
