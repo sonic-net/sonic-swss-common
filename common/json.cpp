@@ -42,7 +42,16 @@ void JSon::readJson(const string &jsonstr, vector<FieldValueTuple> &fv)
 bool JSon::loadJsonFromFile(ifstream &fs, vector<KeyOpFieldsValuesTuple> &db_items)
 {
     nlohmann::json json_array;
-    fs >> json_array;
+
+    try
+    {
+        fs >> json_array;
+    }
+    catch (...)
+    {
+        SWSS_LOG_ERROR("Unable to parse json from the input stream");
+        return false;
+    }
 
     if (!json_array.is_array())
     {
@@ -63,7 +72,7 @@ bool JSon::loadJsonFromFile(ifstream &fs, vector<KeyOpFieldsValuesTuple> &db_ite
                 return false;
             }
 
-            db_items.emplace_back(KeyOpFieldsValuesTuple());
+            db_items.emplace_back();
             auto &cur_db_item = db_items.back();
 
             for (auto child_it = arr_item.begin(); child_it != arr_item.end(); child_it++)
@@ -82,16 +91,16 @@ bool JSon::loadJsonFromFile(ifstream &fs, vector<KeyOpFieldsValuesTuple> &db_ite
                             value_str = to_string((*cur_obj_it).get<int>());
                         else if ((*cur_obj_it).is_string())
                             value_str = (*cur_obj_it).get<string>();
-                        kfvFieldsValues(cur_db_item).emplace_back(FieldValueTuple(field_str, value_str));
+                        kfvFieldsValues(cur_db_item).emplace_back(field_str, value_str);
                     }
                 }
                 else
                 {
                     auto op = cur_obj.get<string>();
 
-                    if (op != "SET")
+                    if (op != "SET" && op != "DEL")
                     {
-                        SWSS_LOG_ERROR("Child elements'op field must be SET, but got %s, ignored", op.c_str());
+                        SWSS_LOG_ERROR("Child elements' op field must be SET or DEL, but got %s, ignored", op.c_str());
                         db_items.pop_back();
                         break;
                     }
