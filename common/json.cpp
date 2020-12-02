@@ -47,9 +47,9 @@ bool JSon::loadJsonFromFile(ifstream &fs, vector<KeyOpFieldsValuesTuple> &db_ite
     {
         fs >> json_array;
     }
-    catch (...)
+    catch (const std::exception &e)
     {
-        SWSS_LOG_ERROR("Unable to parse json from the input stream");
+        SWSS_LOG_ERROR("Unable to parse json from the input stream: %s", e.what());
         return false;
     }
 
