@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <utility>
 #include <memory>
+#include <pthread.h>
 
 #include <hiredis/hiredis.h>
 #include "rediscommand.h"
@@ -54,6 +55,7 @@ public:
     static bool isGlobalInit() { return m_global_init; };
 
 private:
+    static pthread_rwlock_t db_info_lock;
     // { namespace { instName, { unix_socket_path, hostname, port } } }
     static std::unordered_map<std::string, std::unordered_map<std::string, RedisInstInfo>> m_inst_info;
     // { namespace, { dbName, {instName, dbId, separator} } }
