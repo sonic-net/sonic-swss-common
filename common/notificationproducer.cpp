@@ -19,8 +19,5 @@ int64_t swss::NotificationProducer::send(const std::string &op, const std::strin
 
     SWSS_LOG_DEBUG("channel %s, publish: %s", m_channel.c_str(), msg.c_str());
 
-    RedisCommand publish;
-    publish.format("PUBLISH %s %s", m_channel.c_str(), msg.c_str());
-    RedisReply r(m_db, publish, REDIS_REPLY_INTEGER);
-    return r.getReply<long long int>();
+    return m_db->publish(m_channel, msg);
 }

@@ -28,9 +28,9 @@ inline void guard(FUNC func, const char* command)
     }
 }
 
-RedisReply::RedisReply(DBConnector *db, const RedisCommand& command)
+RedisReply::RedisReply(RedisContext *ctx, const RedisCommand& command)
 {
-    int rc = redisAppendFormattedCommand(db->getContext(), command.c_str(), command.length());
+    int rc = redisAppendFormattedCommand(ctx->getContext(), command.c_str(), command.length());
     if (rc != REDIS_OK)
     {
         // The only reason of error is REDIS_ERR_OOM (Out of memory)
@@ -38,17 +38,17 @@ RedisReply::RedisReply(DBConnector *db, const RedisCommand& command)
         throw bad_alloc();
     }
 
-    rc = redisGetReply(db->getContext(), (void**)&m_reply);
+    rc = redisGetReply(ctx->getContext(), (void**)&m_reply);
     if (rc != REDIS_OK)
     {
-        throw RedisError("Failed to redisGetReply with " + string(command.c_str()), db->getContext());
+        throw RedisError("Failed to redisGetReply with " + string(command.c_str()), ctx->getContext());
     }
     guard([&]{checkReply();}, command.c_str());
 }
 
-RedisReply::RedisReply(DBConnector *db, const string &command)
+RedisReply::RedisReply(RedisContext *ctx, const string& command)
 {
-    int rc = redisAppendCommand(db->getContext(), command.c_str());
+    int rc = redisAppendCommand(ctx->getContext(), command.c_str());
     if (rc != REDIS_OK)
     {
         // The only reason of error is REDIS_ERR_OOM (Out of memory)
@@ -56,22 +56,22 @@ RedisReply::RedisReply(DBConnector *db, const string &command)
         throw bad_alloc();
     }
 
-    rc = redisGetReply(db->getContext(), (void**)&m_reply);
+    rc = redisGetReply(ctx->getContext(), (void**)&m_reply);
     if (rc != REDIS_OK)
     {
-        throw RedisError("Failed to redisGetReply with " + command, db->getContext());
+        throw RedisError("Failed to redisGetReply with " + command, ctx->getContext());
     }
     guard([&]{checkReply();}, command.c_str());
 }
 
-RedisReply::RedisReply(DBConnector *db, const RedisCommand& command, int expectedType)
-    : RedisReply(db, command)
+RedisReply::RedisReply(RedisContext *ctx, const RedisCommand& command, int expectedType)
+    : RedisReply(ctx, command)
 {
     guard([&]{checkReplyType(expectedType);}, command.c_str());
 }
 
-RedisReply::RedisReply(DBConnector *db, const string &command, int expectedType)
-    : RedisReply(db, command)
+RedisReply::RedisReply(RedisContext *ctx, const string& command, int expectedType)
+    : RedisReply(ctx, command)
 {
     guard([&]{checkReplyType(expectedType);}, command.c_str());
 }
