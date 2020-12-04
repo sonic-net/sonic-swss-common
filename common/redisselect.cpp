@@ -27,7 +27,7 @@ uint64_t RedisSelect::readData()
     redisReply *reply = nullptr;
 
     if (redisGetReply(m_subscribe->getContext(), reinterpret_cast<void**>(&reply)) != REDIS_OK)
-        throw std::runtime_error("Unable to read redis reply");
+        throw std::runtime_error("Unable to read redis reply from RedisSelect::readData() redisGetReply()");
 
     freeReplyObject(reply);
     m_queueLength++;
@@ -47,7 +47,7 @@ uint64_t RedisSelect::readData()
 
     if (status != REDIS_OK)
     {
-        throw std::runtime_error("Unable to read redis reply");
+        throw std::runtime_error("Unable to read redis reply from RedisSelect::readData() redisGetReplyFromReader()");
     }
     return 0;
 }
