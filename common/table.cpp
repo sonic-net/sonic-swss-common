@@ -252,7 +252,7 @@ string Table::stripSpecialSym(const string &key)
               |___/
 *******************************************************************************/
 Table_async::Table_async(DBConnector_async & dbconn_r, const std::string & table_name_r) :
-    TableBase(table_name_r, SonicDBConfig::getSeparator(dbconn_r.db_name())),
+    TableBase(table_name_r, SonicDBConfig::getSeparator(dbconn_r.getDbName())),
     dbconn_rm(dbconn_r)
 {
 }
@@ -284,4 +284,3 @@ int Table_async::hset(redisCallbackFn * cb_func_p, void * cb_data_p, const std::
     cmd.formatHSET(key, field_r, value_r);
     return dbconn_rm.formatted_command(cb_func_p, cb_data_p, cmd.c_str(), cmd.length());
 }
-

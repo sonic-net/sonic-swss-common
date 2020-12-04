@@ -267,13 +267,13 @@ public:
     /**
      * @brief Asynchronous Connector object to the REDIS server.
      *
-     * @param db_name_p Name of the DB we want to connect to (e.g. CONFIG_DB,
+     * @param p_dbName Name of the DB we want to connect to (e.g. CONFIG_DB,
      *                  APPL_DB, ...)
      *
-     * @param user_ctx_p Optional user context (future use).
+     * @param userCtxPtr Optional user context (future use).
      */
-    DBConnector_async(const std::string & db_name_p,
-                      void              * user_ctx_p=nullptr);
+    DBConnector_async(const std::string &dbName,
+                      void              *userCtxPtr=nullptr);
     ~DBConnector_async();
 
     /**
@@ -313,14 +313,14 @@ public:
      * @endcode
      *
      */
-    redisAsyncContext * context() const { return ac_pm; }
+    redisAsyncContext *context() const { return m_acPtr; }
 
     /**
      * @brief Return the user context that was provided in the constructor.
      *
      * @return User context pointer.
      */
-    void * get_user_ctx() const { return user_ctx_pm; }
+    void *getUserCtx() const { return m_userCtxPtr; }
 
     /**
      * @brief Get the DB name (e.g. "CONFIG_DB", "APPL_DB", etc.). This is the
@@ -328,21 +328,21 @@ public:
      *
      * @return The DB name associated with this connector.
      */
-    const std::string & db_name() const { return db_name_m; }
+    const char *getDbName() const { return m_dbName.c_str(); }
 
     /**
      * @brief Get the DB ID (e.g. 0 for "APPL_DB", 4 for "CONFIG_DB", etc.)
      *
      * @return The DB ID associated with this connector.
      */
-    int db_id() const { return db_id_m; }
+    int getDbId() const { return m_dbId; }
 
     /**
      * @brief Get the socket address associated with this connector.
      *
      * @return The Unix Domain Socket name.
      */
-    const std::string & sock_addr() const { return sock_addr_m; }
+    const char *getSockAddr() const { return m_sockAddr.c_str(); }
 
     /**
      * @brief Invoke a REDIS a command
@@ -356,7 +356,7 @@ public:
      * @return 0 on success, otherwise the status returned by
      *         redisvAsyncCommand()
      */
-    int command(redisCallbackFn * cb_func_p, void * cb_data_p, const char * format, ...);
+    int command(redisCallbackFn *cb_func_p, void *cb_data_p, const char *format, ...);
 
     /**
      * @brief Invoke a REDIS a command
@@ -369,15 +369,15 @@ public:
      * @return 0 on success, otherwise the status returned by
      *         redisAsyncFormattedCommand()
      */
-    int formatted_command(redisCallbackFn * cb_func_p, void * cb_data_p, const char * cmd_p, size_t len);
+    int formatted_command(redisCallbackFn *cb_func_p, void *cb_data_p, const char *cmd_p, size_t len);
 
 private:
-    const std::string    db_name_m;
-    const int            db_id_m = -1;
-    std::string          sock_addr_m;
-    redisAsyncContext  * ac_pm = nullptr;
-    void               * user_ctx_pm = nullptr;
+    const std::string   m_dbName;
+    const int           m_dbId = -1;
+    std::string         m_sockAddr;
+    redisAsyncContext  *m_acPtr = nullptr;
+    void               *m_userCtxPtr = nullptr;
 };
 
-}
+} // namespace swss
 #endif

@@ -848,51 +848,57 @@ void DBConnector::del(const std::vector<std::string>& keys)
  /_/   \_\___/\__, |_| |_|\___|
               |___/
 *******************************************************************************/
-DBConnector_async::DBConnector_async(const std::string  & db_name,
-                                     void               * user_ctx_p) :
-    db_name_m(db_name),
-    db_id_m(SonicDBConfig::getDbId(db_name_m)),
-    sock_addr_m(SonicDBConfig::getDbSock(db_name_m)),
-    user_ctx_pm(user_ctx_p)
+DBConnector_async::DBConnector_async(const std::string  &dbName,
+                                     void               *userCtxPtr) :
+    m_dbName(dbName),
+    m_dbId(SonicDBConfig::getDbId(m_dbName)),
+    m_sockAddr(SonicDBConfig::getDbSock(m_dbName)),
+    m_userCtxPtr(userCtxPtr)
 {
-    ac_pm = redisAsyncConnectUnix(sock_addr_m.c_str());
-    if (ac_pm->err != 0)
+    m_acPtr = redisAsyncConnectUnix(m_sockAddr.c_str());
+
+    if (m_acPtr->err != 0)
     {
-        std::string errmsg("Unable to connect to redis: (" + std::to_string(ac_pm->err) + ')');
-        if ((ac_pm->errstr != nullptr) && (ac_pm->errstr[0] != '\0'))
-             errmsg += " " + std::string(ac_pm->errstr);
-        redisAsyncFree(ac_pm);
-        ac_pm = nullptr;
+        std::string errmsg("Unable to connect to redis: (" + std::to_string(m_acPtr->err) + ')');
+
+        if ((m_acPtr->errstr != nullptr) && (m_acPtr->errstr[0] != '\0'))
+             errmsg += " " + std::string(m_acPtr->errstr);
+
+        redisAsyncFree(m_acPtr);
+        m_acPtr = nullptr;
+
         throw std::system_error(std::make_error_code(errc::address_not_available), errmsg);
     }
-    ac_pm->data = this;
-    command(nullptr, nullptr, "SELECT %d", db_id_m);
+
+    m_acPtr->data = this;
+
+    command(nullptr, nullptr, "SELECT %d", m_dbId);
 }
 
 DBConnector_async::~DBConnector_async()
 {
-    if (ac_pm != nullptr)
+    if (m_acPtr != nullptr)
     {
         // We can't use redisAsyncFree() here because there may
         // be pending messages to be sent or received. redisAsyncDisconnect()
         // will ensure that all pending messages are processed before the
         // context gets deleted.
-        redisAsyncDisconnect(ac_pm);
-        ac_pm = nullptr;
+        redisAsyncDisconnect(m_acPtr);
+        m_acPtr = nullptr;
     }
 }
 
-int DBConnector_async::command(redisCallbackFn * cb_func_p, void * cb_data_p, const char * format_p, ...)
+int DBConnector_async::command(redisCallbackFn *cb_func_p, void *cb_data_p, const char *format_p, ...)
 {
     va_list ap;
     int status;
-    va_start(ap,format_p);
-    status = redisvAsyncCommand(ac_pm, cb_func_p, cb_data_p, format_p, ap);
+    va_start(ap, format_p);
+    status = redisvAsyncCommand(m_acPtr, cb_func_p, cb_data_p, format_p, ap);
     va_end(ap);
     return status;
 }
 
-int DBConnector_async::formatted_command(redisCallbackFn * cb_func_p, void * cb_data_p, const char * cmd_p, size_t len)
+int DBConnector_async::formatted_command(redisCallbackFn *cb_func_p, void *cb_data_p, const char *cmd_p, size_t len)
 {
-    return redisAsyncFormattedCommand(ac_pm, cb_func_p, cb_data_p, cmd_p, len);
+    return redisAsyncFormattedCommand(m_acPtr, cb_func_p, cb_data_p, cmd_p, len);
 }
