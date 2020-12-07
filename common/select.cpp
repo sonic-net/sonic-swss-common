@@ -106,7 +106,15 @@ int Select::poll_descriptors(Selectable **c, unsigned int timeout)
     {
         int fd = events[i].data.fd;
         Selectable* sel = m_objects[fd];
-        sel->readData();
+        try
+        {
+            sel->readData();
+        }
+        catch (const std::runtime_error& ex)
+        {
+            SWSS_LOG_ERROR("readData error: %s", ex.what());
+            return Select::ERROR;
+        }
         m_ready.insert(sel);
     }
 
