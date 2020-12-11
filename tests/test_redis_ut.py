@@ -159,6 +159,19 @@ def test_DBInterface():
     deleted = db.delete("TEST_DB", "key3")
     assert deleted == 0
 
+    # Test pubsub
+    redisclient = db.get_redis_client("TEST_DB")
+    pubsub = redisclient.pubsub()
+    dbid = db.get_dbid("APPL_DB")
+    pubsub.psubscribe("__keyspace@{}__:key0".format(dbid))
+    msg = pubsub.get_message()
+    assert len(msg) == 0
+    db.set("TEST_DB", "key0", "field1", "value1")
+    msg = pubsub.get_message()
+    assert len(msg) == 4
+    msg = pubsub.get_message()
+    assert len(msg) == 0
+
     # Test dict.get()
     assert fvs.get("field1") == "value2"
     assert fvs.get("field1_noexisting") == None
