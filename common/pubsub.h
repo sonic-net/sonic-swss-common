@@ -15,8 +15,6 @@ class PubSub : protected RedisSelect
 public:
     PubSub(DBConnector *other);
 
-    //using DBConnector::psubscribe; //(const std::string &pattern);
-
     std::map<std::string, std::string> get_message();
 
     void psubscribe(const std::string &pattern);

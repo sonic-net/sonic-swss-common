@@ -34,7 +34,7 @@ uint64_t PubSub::readData()
         throw std::runtime_error("Unable to read redis reply");
     }
 
-    m_keyspace_event_buffer.push_back(shared_ptr<RedisReply>(make_shared<RedisReply>(reply)));
+    m_keyspace_event_buffer.emplace_back(make_shared<RedisReply>(reply));
 
     /* Try to read data from redis cacher.
      * If data exists put it to event buffer.
@@ -49,14 +49,14 @@ uint64_t PubSub::readData()
         status = redisGetReplyFromReader(m_subscribe->getContext(), reinterpret_cast<void**>(&reply));
         if(reply != nullptr && status == REDIS_OK)
         {
-            m_keyspace_event_buffer.push_back(shared_ptr<RedisReply>(make_shared<RedisReply>(reply)));
+            m_keyspace_event_buffer.emplace_back(make_shared<RedisReply>(reply));
         }
     }
     while(reply != nullptr && status == REDIS_OK);
 
     if (status != REDIS_OK)
     {
-        throw std::runtime_error("Unable to read redis reply");
+        throw RedisError("Unable to redisGetReplyFromReader", m_subscribe->getContext());
     }
     return 0;
 }
