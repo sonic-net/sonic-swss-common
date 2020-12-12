@@ -164,16 +164,30 @@ def test_DBInterface():
     pubsub = redisclient.pubsub()
     dbid = db.get_dbid("TEST_DB")
     print("before psubscribe")
-    pubsub.psubscribe("__keyspace@{}__:keypub*".format(dbid))
+    pubsub.psubscribe("__keyspace@{}__:pub_key*".format(dbid))
     print("before get_message 1")
     msg = pubsub.get_message()
     assert len(msg) == 0
-    db.set("TEST_DB", "keypub", "field1", "value1")
+    db.set("TEST_DB", "pub_key", "field1", "value1")
     print("before get_message 2")
     msg = pubsub.get_message()
     assert len(msg) == 4
     assert msg["data"] == "hset"
-    assert msg["channel"] == "__keyspace@{}__:keypub".format(dbid)
+    assert msg["channel"] == "__keyspace@{}__:pub_key".format(dbid)
+    msg = pubsub.get_message()
+    assert len(msg) == 0
+    db.set("TEST_DB", "pub_key", "field1", "value1")
+    db.set("TEST_DB", "pub_key", "field2", "value2")
+    db.set("TEST_DB", "pub_key", "field3", "value3")
+    db.set("TEST_DB", "pub_key", "field4", "value4")
+    msg = pubsub.get_message()
+    assert len(msg) == 4
+    msg = pubsub.get_message()
+    assert len(msg) == 4
+    msg = pubsub.get_message()
+    assert len(msg) == 4
+    msg = pubsub.get_message()
+    assert len(msg) == 4
     msg = pubsub.get_message()
     assert len(msg) == 0
 
