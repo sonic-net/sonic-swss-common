@@ -163,13 +163,10 @@ def test_DBInterface():
     redisclient = db.get_redis_client("TEST_DB")
     pubsub = redisclient.pubsub()
     dbid = db.get_dbid("TEST_DB")
-    print("before psubscribe")
     pubsub.psubscribe("__keyspace@{}__:pub_key*".format(dbid))
-    print("before get_message 1")
     msg = pubsub.get_message()
     assert len(msg) == 0
     db.set("TEST_DB", "pub_key", "field1", "value1")
-    print("before get_message 2")
     msg = pubsub.get_message()
     assert len(msg) == 4
     assert msg["data"] == "hset"

@@ -17,16 +17,12 @@ void PubSub::psubscribe(const std::string &pattern)
     {
         m_select.removeSelectable(this);
     }
-    printf("@@before RedisSelect::psubscribe\n");
     RedisSelect::psubscribe(m_parentConnector, pattern);
-    printf("@@after RedisSelect::psubscribe\n");
     m_select.addSelectable(this);
-    printf("@@after addSelectable\n");
 }
 
 uint64_t PubSub::readData()
 {
-    printf("@@enter readData\n");
     redisReply *reply = nullptr;
 
     /* Read data from redis. This call is non blocking. This method
@@ -38,7 +34,6 @@ uint64_t PubSub::readData()
         throw std::runtime_error("Unable to read redis reply");
     }
 
-    printf("@@readData: got one reply\n");
     m_keyspace_event_buffer.push_back(shared_ptr<RedisReply>(make_shared<RedisReply>(reply)));
 
     /* Try to read data from redis cacher.
@@ -51,11 +46,9 @@ uint64_t PubSub::readData()
     int status;
     do
     {
-        printf("@@readData: before redisGetReplyFromReader\n");
         status = redisGetReplyFromReader(m_subscribe->getContext(), reinterpret_cast<void**>(&reply));
         if(reply != nullptr && status == REDIS_OK)
         {
-            printf("@@readData: after redisGetReplyFromReader, got another reply\n");
             m_keyspace_event_buffer.push_back(shared_ptr<RedisReply>(make_shared<RedisReply>(reply)));
         }
     }
@@ -63,28 +56,23 @@ uint64_t PubSub::readData()
 
     if (status != REDIS_OK)
     {
-        printf("@@readData: before throw runtime_error\n");
         throw std::runtime_error("Unable to read redis reply");
     }
-    printf("@@readData: total size=%zu\n", m_keyspace_event_buffer.size());
     return 0;
 }
 
 bool PubSub::hasData()
 {
-    printf("@@enter hasData\n");
     return m_keyspace_event_buffer.size() > 0;
 }
 
 bool PubSub::hasCachedData()
 {
-    printf("@@enter hasCachedData\n");
     return m_keyspace_event_buffer.size() > 1;
 }
 
 map<string, string> PubSub::get_message()
 {
-    printf("@@enter get_message\n");
     map<string, string> ret;
     if (!m_subscribe)
     {
@@ -115,10 +103,7 @@ map<string, string> PubSub::get_message()
         return ret;
     }
 
-    printf("@@after redisPollReply\n");
-    printf("@@after RedisReply ctor\n");
     auto message = event->getReply<RedisMessage>();
-    printf("@@after RedisReply.getReply()\n");
     ret["type"] = message.type;
     ret["pattern"] = message.pattern;
     ret["channel"] = message.channel;
