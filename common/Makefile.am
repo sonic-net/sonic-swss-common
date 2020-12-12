@@ -8,7 +8,8 @@ EXTRA_DIST = \
     producer_state_table_apply_view.lua \
     table_dump.lua \
     redis_multi.lua \
-    fdb_flush.lua
+    fdb_flush.lua \
+    fdb_flush.v2.lua
 
 EXTRA_CONF_DIST = database_config.json
 
