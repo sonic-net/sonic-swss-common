@@ -162,13 +162,18 @@ def test_DBInterface():
     # Test pubsub
     redisclient = db.get_redis_client("TEST_DB")
     pubsub = redisclient.pubsub()
-    dbid = db.get_dbid("APPL_DB")
-    pubsub.psubscribe("__keyspace@{}__:key0".format(dbid))
+    dbid = db.get_dbid("TEST_DB")
+    print("before psubscribe")
+    pubsub.psubscribe("__keyspace@{}__:keypub*".format(dbid))
+    print("before get_message 1")
     msg = pubsub.get_message()
     assert len(msg) == 0
-    db.set("TEST_DB", "key0", "field1", "value1")
+    db.set("TEST_DB", "keypub", "field1", "value1")
+    print("before get_message 2")
     msg = pubsub.get_message()
     assert len(msg) == 4
+    assert msg["data"] == "hset"
+    assert msg["channel"] == "__keyspace@{}__:keypub".format(dbid)
     msg = pubsub.get_message()
     assert len(msg) == 0
 
