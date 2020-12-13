@@ -174,4 +174,43 @@ template<> string RedisReply::getReply<string>()
     return string(s);
 }
 
+template<> RedisMessage RedisReply::getReply<RedisMessage>()
+{
+    RedisMessage ret;
+    /* if the Key-space notification is empty, try emtpy message. */
+    if (getContext()->type == REDIS_REPLY_NIL)
+    {
+        return ret;
+    }
+
+    if (getContext()->type != REDIS_REPLY_ARRAY)
+    {
+        SWSS_LOG_ERROR("invalid type %d for message", getContext()->type);
+        return ret;
+    }
+    size_t n = getContext()->elements;
+
+    /* Expecting 4 elements for each keyspace pmessage notification */
+    if (n != 4)
+    {
+        SWSS_LOG_ERROR("invalid number of elements %zu for message", n);
+        return ret;
+    }
+
+    auto ctx = getContext()->element[0];
+    ret.type = ctx->str;
+
+    /* The second element should be the original pattern matched */
+    ctx = getContext()->element[1];
+    ret.pattern = ctx->str;
+
+    ctx = getContext()->element[2];
+    ret.channel = ctx->str;
+
+    ctx = getContext()->element[3];
+    ret.data = ctx->str;
+
+    return ret;
+}
+
 }

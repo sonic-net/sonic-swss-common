@@ -159,6 +159,35 @@ def test_DBInterface():
     deleted = db.delete("TEST_DB", "key3")
     assert deleted == 0
 
+    # Test pubsub
+    redisclient = db.get_redis_client("TEST_DB")
+    pubsub = redisclient.pubsub()
+    dbid = db.get_dbid("TEST_DB")
+    pubsub.psubscribe("__keyspace@{}__:pub_key*".format(dbid))
+    msg = pubsub.get_message()
+    assert len(msg) == 0
+    db.set("TEST_DB", "pub_key", "field1", "value1")
+    msg = pubsub.get_message()
+    assert len(msg) == 4
+    assert msg["data"] == "hset"
+    assert msg["channel"] == "__keyspace@{}__:pub_key".format(dbid)
+    msg = pubsub.get_message()
+    assert len(msg) == 0
+    db.set("TEST_DB", "pub_key", "field1", "value1")
+    db.set("TEST_DB", "pub_key", "field2", "value2")
+    db.set("TEST_DB", "pub_key", "field3", "value3")
+    db.set("TEST_DB", "pub_key", "field4", "value4")
+    msg = pubsub.get_message()
+    assert len(msg) == 4
+    msg = pubsub.get_message()
+    assert len(msg) == 4
+    msg = pubsub.get_message()
+    assert len(msg) == 4
+    msg = pubsub.get_message()
+    assert len(msg) == 4
+    msg = pubsub.get_message()
+    assert len(msg) == 0
+
     # Test dict.get()
     assert fvs.get("field1") == "value2"
     assert fvs.get("field1_noexisting") == None

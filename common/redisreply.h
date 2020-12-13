@@ -27,10 +27,20 @@ public:
     {
         if (m_message.empty())
         {
-            m_message = std::string("RedisResponseError: ") + std::runtime_error::what() + ", err=" + std::to_string(m_err) + ": errstr=" + m_errstr;
+            m_message = std::string("RedisError: ") + std::runtime_error::what() + ", err=" + std::to_string(m_err) + ": errstr=" + m_errstr;
         }
         return m_message.c_str();
     }
+};
+
+// Follow the data structure used by redis-py
+// ref: https://redis-py.readthedocs.io/en/stable/_modules/redis/client.html#Redis.pubsub
+struct RedisMessage
+{
+    std::string type;
+    std::string pattern;
+    std::string channel;
+    std::string data;
 };
 
 class RedisReply
