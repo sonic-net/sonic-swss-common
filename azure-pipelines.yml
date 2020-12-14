@@ -45,3 +45,4 @@ steps:
   displayName: "Run swss common unit tests"
 - publish: $(System.DefaultWorkingDirectory)/
   artifact: sonic-swss-common
+  displayName: "Archive swss common debian packages"
