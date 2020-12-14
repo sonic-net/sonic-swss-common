@@ -3,6 +3,7 @@
 [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/Azure/sonic-swss-common.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/Azure/sonic-swss-common/context:cpp)
 
 [![Build Status](https://sonic-jenkins.westus2.cloudapp.azure.com/job/common/job/sonic-swss-common-build/badge/icon)](https://sonic-jenkins.westus2.cloudapp.azure.com/job/common/job/sonic-swss-common-build/)
+[![Build Status](https://dev.azure.com/sonicswitch/build/_apis/build/status/Azure.sonic-swss-common?branchName=master)](https://dev.azure.com/sonicswitch/build/_build/latest?definitionId=9&branchName=master)
 
 # SONiC - SWitch State Service Common Library - SWSS-COMMON
 
