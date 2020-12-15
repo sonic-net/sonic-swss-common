@@ -18,6 +18,8 @@ using json = nlohmann::json;
 const std::string TableBase::TABLE_NAME_SEPARATOR_COLON = ":";
 const std::string TableBase::TABLE_NAME_SEPARATOR_VBAR = "|";
 
+// NOTE: this map is deprecated and will be removed in the future, and new DBs should instead be added to database_config.json
+// Currently it is not used in C++ projects, only used in pyext python, only for backward compatibility purpose
 const TableNameSeparatorMap TableBase::tableNameSeparatorMap = {
    { APPL_DB,             TABLE_NAME_SEPARATOR_COLON },
    { ASIC_DB,             TABLE_NAME_SEPARATOR_COLON },
@@ -26,13 +28,7 @@ const TableNameSeparatorMap TableBase::tableNameSeparatorMap = {
    { CONFIG_DB,           TABLE_NAME_SEPARATOR_VBAR  },
    { PFC_WD_DB,           TABLE_NAME_SEPARATOR_COLON },
    { FLEX_COUNTER_DB,     TABLE_NAME_SEPARATOR_COLON },
-   { STATE_DB,            TABLE_NAME_SEPARATOR_VBAR  },
-   { RESTAPI_DB,          TABLE_NAME_SEPARATOR_VBAR  },
-   { GB_ASIC_DB,          TABLE_NAME_SEPARATOR_VBAR  },
-   { GB_COUNTERS_DB,      TABLE_NAME_SEPARATOR_VBAR  },
-   { GB_FLEX_COUNTER_DB,  TABLE_NAME_SEPARATOR_VBAR  },
-   { CHASSIS_APP_DB,      TABLE_NAME_SEPARATOR_VBAR  },
-   { CHASSIS_STATE_DB,    TABLE_NAME_SEPARATOR_VBAR  }
+   { STATE_DB,            TABLE_NAME_SEPARATOR_VBAR  }
 };
 
 Table::Table(const DBConnector *db, const string &tableName)
