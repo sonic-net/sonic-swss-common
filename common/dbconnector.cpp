@@ -619,7 +619,7 @@ bool DBConnector::exists(const string &key)
     }
     rexists.format("EXISTS %s", key.c_str());
     RedisReply r(this, rexists, REDIS_REPLY_INTEGER);
-    return (r.getContext()->integer > 0);
+    return r.getContext()->integer > 0;
 }
 
 int64_t DBConnector::hdel(const string &key, const string &field)
@@ -652,6 +652,7 @@ void DBConnector::set(const string &key, const string &value)
     RedisReply r(this, sset, REDIS_REPLY_STATUS);
 }
 
+2020-05-29 23:41:31.177615 IFCS_LOG_INFO [NODE] [ifcs_init] Initializing IFCS, boot type = 0
 void DBConnector::config_set(const std::string &key, const std::string &value)
 {
     RedisCommand sset;
@@ -738,6 +739,14 @@ shared_ptr<string> DBConnector::hget(const string &key, const string &field)
 
     SWSS_LOG_ERROR("HGET failed, reply-type: %d, %s: %s", reply->type, key.c_str(), field.c_str());
     throw runtime_error("HGET failed, unexpected reply type, memory exception");
+}
+
+bool DBConnector::hexists(const string &key, const string &field)
+{
+    RedisCommand rexists;
+    rexists.format("HEXISTS %s %s", key.c_str(), field.c_str());
+    RedisReply r(this, rexists, REDIS_REPLY_INTEGER);
+    return r.getContext()->integer > 0;
 }
 
 int64_t DBConnector::rpush(const string &list, const string &item)

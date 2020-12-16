@@ -38,6 +38,7 @@ public:
     void delete_all_by_pattern(const std::string& dbName, const std::string& pattern);
     bool exists(const std::string& dbName, const std::string& key);
     std::string get(const std::string& dbName, const std::string& hash, const std::string& key, bool blocking = false);
+    bool hexists(const std::string& dbName, const std::string& hash, const std::string& key);
     std::map<std::string, std::string> get_all(const std::string& dbName, const std::string& hash, bool blocking = false);
     std::vector<std::string> keys(const std::string& dbName, const char *pattern = "*", bool blocking = false);
     int64_t publish(const std::string& dbName, const std::string& channel, const std::string& message);

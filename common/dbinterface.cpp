@@ -72,6 +72,11 @@ std::string DBInterface::get(const std::string& dbName, const std::string& hash,
     return blockable<std::string>(innerfunc, dbName, blocking);
 }
 
+bool DBInterface::hexists(const std::string& dbName, const std::string& hash, const std::string& key)
+{
+    return m_redisClient.at(dbName).hexists(hash, key);
+}
+
 std::map<std::string, std::string> DBInterface::get_all(const std::string& dbName, const std::string& hash, bool blocking)
 {
     auto innerfunc = [&]

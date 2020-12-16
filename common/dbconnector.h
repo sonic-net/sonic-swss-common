@@ -188,6 +188,8 @@ public:
 
     std::shared_ptr<std::string> hget(const std::string &key, const std::string &field);
 
+    bool hexists(const std::string &key, const std::string &field);
+
     int64_t incr(const std::string &key);
 
     int64_t decr(const std::string &key);
