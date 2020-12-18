@@ -652,7 +652,6 @@ void DBConnector::set(const string &key, const string &value)
     RedisReply r(this, sset, REDIS_REPLY_STATUS);
 }
 
-2020-05-29 23:41:31.177615 IFCS_LOG_INFO [NODE] [ifcs_init] Initializing IFCS, boot type = 0
 void DBConnector::config_set(const std::string &key, const std::string &value)
 {
     RedisCommand sset;
