@@ -74,6 +74,11 @@ std::string SonicV2Connector::get(const std::string& db_name, const std::string&
     return m_dbintf.get(db_name, _hash, key, blocking);
 }
 
+bool SonicV2Connector::hexists(const std::string& db_name, const std::string& _hash, const std::string& key)
+{
+    return m_dbintf.hexists(db_name, _hash, key);
+}
+
 std::map<std::string, std::string> SonicV2Connector::get_all(const std::string& db_name, const std::string& _hash, bool blocking)
 {
     return m_dbintf.get_all(db_name, _hash, blocking);
