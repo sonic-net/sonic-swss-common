@@ -89,6 +89,7 @@ TEST(STRINGUTILITY, hex_to_binary)
     EXPECT_EQ(a, (std::array<std::uint8_t, 5>{0x1, 0x2, 0x0A, 0xFF, 0x5}));
 
     EXPECT_FALSE(swss::hex_to_binary("01020", a.data(), a.size()));
+    EXPECT_FALSE(swss::hex_to_binary("0101010101010101", a.data(), a.size()));
     EXPECT_FALSE(swss::hex_to_binary("xxxx", a.data(), a.size()));
 }
 
@@ -96,4 +97,6 @@ TEST(STRINGUTILITY, binary_to_hex)
 {
     std::array<std::uint8_t, 5> a{0x1, 0x2, 0x0a, 0xff, 0x5};
     EXPECT_EQ(swss::binary_to_hex(a.data(), a.size()), "01020AFF05");
+
+    EXPECT_EQ(swss::binary_to_hex(nullptr, 0), "");
 }
