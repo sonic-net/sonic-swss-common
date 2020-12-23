@@ -32,7 +32,16 @@ TEST(STRINGUTILITY, split_bool)
     EXPECT_TRUE(swss::split("TRUE", ':', b));
     EXPECT_EQ(b, true);
 
+    EXPECT_TRUE(swss::split("True", ':', b));
+    EXPECT_EQ(b, true);
+
+    EXPECT_TRUE(swss::split("Truexxxx", ':', b));
+    EXPECT_EQ(b, true);
+
     EXPECT_TRUE(swss::split("1", ':', b));
+    EXPECT_EQ(b, true);
+
+    EXPECT_TRUE(swss::split("123", ':', b));
     EXPECT_EQ(b, true);
 
     EXPECT_TRUE(swss::split("false", ':', b));
@@ -41,7 +50,14 @@ TEST(STRINGUTILITY, split_bool)
     EXPECT_TRUE(swss::split("0", ':', b));
     EXPECT_EQ(b, false);
 
-    EXPECT_THROW(swss::split("123", ':', b), std::invalid_argument);
+    EXPECT_TRUE(swss::split("023", ':', b));
+    EXPECT_EQ(b, false);
+
+    EXPECT_THROW(swss::split("213", ':', b), std::invalid_argument);
+
+    EXPECT_THROW(swss::split("tr", ':', b), std::invalid_argument);
+
+    EXPECT_THROW(swss::split("abcdefg", ':', b), std::invalid_argument);
 }
 
 TEST(STRINGUTILITY, split_mix)

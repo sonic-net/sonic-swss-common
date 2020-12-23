@@ -7,25 +7,60 @@ std::istringstream &swss::operator>>(
     std::istringstream &istream,
     bool &b)
 {
-    std::string buffer = istream.str();
-    std::transform(
-        buffer.begin(),
-        buffer.end(),
-        buffer.begin(),
-        ::tolower);
-    if (buffer == "true" || buffer == "1")
+    SWSS_LOG_ENTER();
+
+    bool valid_bool_string = true;
+    char c;
+    istream >> c;
+    if (std::isdigit(c))
     {
-        b = true;
-    }
-    else if (buffer == "false" || buffer == "0")
-    {
-        b = false;
+        if (c == '1')
+        {
+            b = true;
+        }
+        else if (c == '0')
+        {
+            b = false;
+        }
+        else
+        {
+            valid_bool_string = false;
+        }
     }
     else
     {
-        throw std::invalid_argument("Invalid bool string : " + buffer);
+        std::string expect_string;
+        if (std::tolower(c) == 't')
+        {
+            expect_string = "true";
+            b = true;
+        }
+        else if (std::tolower(c) == 'f')
+        {
+            expect_string = "false";
+            b = false;
+        }
+        if (expect_string.empty())
+        {
+            valid_bool_string = false;
+        }
+        else
+        {
+            std::string receive_string(expect_string.length(), 0);
+            receive_string[0] = static_cast<char>(std::tolower(c));
+            istream.read(&receive_string[1], expect_string.length() - 1);
+            std::transform(
+                receive_string.begin(),
+                receive_string.end(),
+                receive_string.begin(),
+                ::tolower);
+            valid_bool_string = (receive_string == expect_string);
+        }
     }
-
+    if (!valid_bool_string)
+    {
+        throw std::invalid_argument("Invalid bool string : " + istream.str());
+    }
     return istream;
 }
 
