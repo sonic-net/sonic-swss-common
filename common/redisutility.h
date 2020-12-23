@@ -1,5 +1,4 @@
-#ifndef __REDISUTILITY__
-#define __REDISUTILITY__
+#pragma once
 
 #include "rediscommand.h"
 #include "logger.h"
@@ -51,5 +50,3 @@ static bool get_value(
     return false;
 }
 }
-
-#endif

@@ -94,4 +94,3 @@ std::string swss::binary_to_hex(const void *buffer, size_t length)
 
     return s;
 }
-

@@ -1,5 +1,4 @@
-#ifndef __STRINGUTILITY__
-#define __STRINGUTILITY__
+#pragma once
 
 #include "logger.h"
 
@@ -23,7 +22,7 @@ bool split(const std::string &input, char delimiter, T &output)
 }
 
 template <typename T, typename... Args>
-bool split(const std::string &input, char delimiter, T &output, Args &... args)
+    bool split(const std::string &input, char delimiter, T &output, Args &... args)
 {
     SWSS_LOG_ENTER();
     auto pos = input.find(delimiter);
@@ -37,7 +36,7 @@ bool split(const std::string &input, char delimiter, T &output, Args &... args)
 }
 
 template <typename T>
-std::string join(char delimiter, const T &input)
+std::string join(__attribute__((unused)) char delimiter, const T &input)
 {
     SWSS_LOG_ENTER();
     std::ostringstream ostream;
@@ -71,5 +70,3 @@ void hex_to_binary(
 std::string binary_to_hex(const void *buffer, size_t length);
 
 }
-
-#endif
