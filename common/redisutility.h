@@ -11,7 +11,7 @@ namespace swss
 {
 
 template <class T>
-static bool get_value(
+static bool fvGetValue(
     const std::vector<FieldValueTuple> &fvt,
     const std::string &field,
     T &value)
