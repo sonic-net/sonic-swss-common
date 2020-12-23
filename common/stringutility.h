@@ -3,12 +3,25 @@
 #include "logger.h"
 #include "tokenize.h"
 
+#include <boost/lexical_cast.hpp>
+
+#include <iostream>
 #include <vector>
 #include <string>
 #include <sstream>
 #include <cctype>
+#include <type_traits>
 
 namespace swss {
+
+template<typename T>
+T lexical_cast(const std::string &str)
+{
+    return boost::lexical_cast<T>(str);
+}
+
+template<>
+bool lexical_cast<bool>(const std::string &str);
 
 template <typename T>
 bool split(const std::string &input, char delimiter, T &output)
@@ -18,43 +31,40 @@ bool split(const std::string &input, char delimiter, T &output)
     {
         return false;
     }
-    std::istringstream istream(input);
-    istream >> output;
+    output = lexical_cast<T>(input);
     return true;
 }
 
 template <typename T, typename... Args>
 bool split(
-    std::vector<std::string>::iterator begin_itr,
-    std::vector<std::string>::iterator end_itr,
+    std::vector<std::string>::iterator begin,
+    std::vector<std::string>::iterator end,
     T &output)
 {
     SWSS_LOG_ENTER();
-    auto cur_itr = begin_itr++;
-    if (begin_itr != end_itr)
+    auto cur_itr = begin++;
+    if (begin != end)
     {
         return false;
     }
-    std::istringstream istream(*cur_itr);
-    istream >> output;
+    output = lexical_cast<T>(*cur_itr);
     return true;
 }
 
 template <typename T, typename... Args>
 bool split(
-    std::vector<std::string>::iterator begin_itr,
-    std::vector<std::string>::iterator end_itr,
+    std::vector<std::string>::iterator begin,
+    std::vector<std::string>::iterator end,
     T &output,
     Args &... args)
 {
     SWSS_LOG_ENTER();
-    if (begin_itr == end_itr)
+    if (begin == end)
     {
         return false;
     }
-    std::istringstream istream(*(begin_itr++));
-    istream >> output;
-    return split(begin_itr, end_itr, args...);
+    output = lexical_cast<T>(*(begin++));
+    return split(begin, end, args...);
 }
 
 template <typename T, typename... Args>
@@ -66,7 +76,7 @@ bool split(const std::string &input, char delimiter, T &output, Args &... args)
 }
 
 template <typename T>
-std::string join(__attribute__((unused)) char delimiter, const T &input)
+std::string join(char , const T &input)
 {
     SWSS_LOG_ENTER();
     std::ostringstream ostream;

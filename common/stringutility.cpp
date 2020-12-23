@@ -67,6 +67,15 @@ std::istringstream &swss::operator>>(
     return istream;
 }
 
+template<>
+bool swss::lexical_cast<bool>(const std::string &str)
+{
+    bool b;
+    std::istringstream istream(str);
+    istream >> b;
+    return b;
+}
+
 bool swss::hex_to_binary(
     const std::string &hex_str,
     std::uint8_t *buffer,
@@ -74,6 +83,11 @@ bool swss::hex_to_binary(
 {
     SWSS_LOG_ENTER();
 
+    if (hex_str.length() %2 != 0)
+    {
+        SWSS_LOG_ERROR("Not enough input %s", hex_str.c_str());
+        return false;
+    }
     if (hex_str.length() > (buffer_length * 2))
     {
         SWSS_LOG_ERROR("Buffer length isn't sufficient");
@@ -84,10 +98,6 @@ bool swss::hex_to_binary(
     {
         boost::algorithm::unhex(hex_str, buffer);
         return true;
-    }
-    catch(const boost::algorithm::not_enough_input &e)
-    {
-        SWSS_LOG_ERROR("Not enough input %s", hex_str.c_str());
     }
     catch(const boost::algorithm::non_hex_input &e)
     {
@@ -107,7 +117,7 @@ std::string swss::binary_to_hex(const void *buffer, size_t length)
     boost::algorithm::hex(
         _buffer,
         _buffer + length,
-        std::insert_iterator<std::string>(s, s.end()));
+        std::back_inserter<std::string>(s));
 
     return s;
 }
