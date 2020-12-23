@@ -1,7 +1,9 @@
 #pragma once
 
 #include "logger.h"
+#include "tokenize.h"
 
+#include <vector>
 #include <string>
 #include <sstream>
 #include <cctype>
@@ -22,17 +24,45 @@ bool split(const std::string &input, char delimiter, T &output)
 }
 
 template <typename T, typename... Args>
-    bool split(const std::string &input, char delimiter, T &output, Args &... args)
+bool split(
+    std::vector<std::string>::iterator begin_itr,
+    std::vector<std::string>::iterator end_itr,
+    T &output)
 {
     SWSS_LOG_ENTER();
-    auto pos = input.find(delimiter);
-    if (pos == std::string::npos)
+    auto cur_itr = begin_itr++;
+    if (begin_itr != end_itr)
     {
         return false;
     }
-    std::istringstream istream(input.substr(0, pos));
+    std::istringstream istream(*cur_itr);
     istream >> output;
-    return split(input.substr(pos + 1, input.length() - pos - 1), delimiter, args...);
+    return true;
+}
+
+template <typename T, typename... Args>
+bool split(
+    std::vector<std::string>::iterator begin_itr,
+    std::vector<std::string>::iterator end_itr,
+    T &output,
+    Args &... args)
+{
+    SWSS_LOG_ENTER();
+    if (begin_itr == end_itr)
+    {
+        return false;
+    }
+    std::istringstream istream(*(begin_itr++));
+    istream >> output;
+    return split(begin_itr, end_itr, args...);
+}
+
+template <typename T, typename... Args>
+bool split(const std::string &input, char delimiter, T &output, Args &... args)
+{
+    SWSS_LOG_ENTER();
+    auto tokens = tokenize(input, delimiter);
+    return split(tokens.begin(), tokens.end(), output, args...);
 }
 
 template <typename T>
