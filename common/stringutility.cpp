@@ -83,12 +83,12 @@ bool swss::hex_to_binary(
 {
     SWSS_LOG_ENTER();
 
-    if (hex_str.length() %2 != 0)
+    if (hex_str.length() % 2 != 0)
     {
         SWSS_LOG_ERROR("Not enough input %s", hex_str.c_str());
         return false;
     }
-    if (hex_str.length() > (buffer_length * 2))
+    if (hex_str.length() != (buffer_length * 2))
     {
         SWSS_LOG_ERROR("Buffer length isn't sufficient");
         return false;
