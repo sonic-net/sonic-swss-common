@@ -58,8 +58,7 @@ libswsscommon_la_SOURCES = \
     exec.cpp                  \
     subscriberstatetable.cpp  \
     timestamp.cpp             \
-    warm_restart.cpp          \
-    stringutility.cpp
+    warm_restart.cpp
 
 libswsscommon_la_CXXFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CFLAGS)
 libswsscommon_la_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CPPFLAGS)

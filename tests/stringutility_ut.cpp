@@ -1,75 +1,68 @@
 #include "common/stringutility.h"
 #include "common/ipaddress.h"
+#include "common/schema.h"
 
 #include "gtest/gtest.h"
 
 #include <array>
 #include <string>
 
-TEST(STRINGUTILITY, split_int)
+TEST(STRINGUTILITY, cast_int)
 {
     int i;
 
-    EXPECT_TRUE(swss::split("123", ':', i));
+    EXPECT_NO_THROW(swss::cast("123", i));
     EXPECT_EQ(i, 123);
 
-    EXPECT_TRUE(swss::split("0", ':', i));
+    EXPECT_NO_THROW(swss::cast("0", i));
     EXPECT_EQ(i, 0);
 
-    EXPECT_TRUE(swss::split("-123", ':', i));
+    EXPECT_NO_THROW(swss::cast("-123", i));
     EXPECT_EQ(i, -123);
 
-    EXPECT_FALSE(swss::split("123:", ':', i));
+    EXPECT_THROW(swss::cast("123:", i), boost::bad_lexical_cast);
 }
 
-TEST(STRINGUTILITY, split_bool)
+TEST(STRINGUTILITY, cast_bool)
 {
     bool b;
 
-    EXPECT_TRUE(swss::split("true", ':', b));
+    EXPECT_NO_THROW(swss::cast(TRUE_STRING, b));
     EXPECT_EQ(b, true);
 
-    EXPECT_TRUE(swss::split("TRUE", ':', b));
+    EXPECT_NO_THROW(swss::cast("1", b));
     EXPECT_EQ(b, true);
 
-    EXPECT_TRUE(swss::split("True", ':', b));
-    EXPECT_EQ(b, true);
-
-    EXPECT_TRUE(swss::split("Truexxxx", ':', b));
-    EXPECT_EQ(b, true);
-
-    EXPECT_TRUE(swss::split("1", ':', b));
-    EXPECT_EQ(b, true);
-
-    EXPECT_TRUE(swss::split("123", ':', b));
-    EXPECT_EQ(b, true);
-
-    EXPECT_TRUE(swss::split("false", ':', b));
+    EXPECT_NO_THROW(swss::cast(FALSE_STRING, b));
     EXPECT_EQ(b, false);
 
-    EXPECT_TRUE(swss::split("0", ':', b));
+    EXPECT_NO_THROW(swss::cast("0", b));
     EXPECT_EQ(b, false);
 
-    EXPECT_TRUE(swss::split("023", ':', b));
-    EXPECT_EQ(b, false);
+    ASSERT_NE("True", TRUE_STRING);
+    EXPECT_THROW(swss::cast("True", b), boost::bad_lexical_cast);
 
-    EXPECT_THROW(swss::split("213", ':', b), std::invalid_argument);
-
-    EXPECT_THROW(swss::split("tr", ':', b), std::invalid_argument);
-
-    EXPECT_THROW(swss::split("abcdefg", ':', b), std::invalid_argument);
+    EXPECT_THROW(swss::cast("abcdefg", b), boost::bad_lexical_cast);
 }
 
-TEST(STRINGUTILITY, split_mix)
+TEST(STRINGUTILITY, cast_mix)
 {
     int i;
     bool b;
     std::string s;
 
-    EXPECT_TRUE(swss::split("123:true:name", ':', i, b, s));
+    EXPECT_NO_THROW(swss::cast({"123", TRUE_STRING, "name"}, i, b, s));
     EXPECT_EQ(i, 123);
     EXPECT_EQ(b, true);
     EXPECT_EQ("name", s);
+
+    std::vector<std::string> attrs{"123", TRUE_STRING, "name"};
+    EXPECT_NO_THROW(swss::cast(attrs.begin(), attrs.end(), i, b, s));
+    EXPECT_NO_THROW(swss::cast(attrs, i, b, s));
+
+    EXPECT_THROW(swss::cast(attrs.begin(), attrs.end(), i), std::runtime_error);
+    EXPECT_THROW(swss::cast({"123"}, i, b), std::runtime_error);
+    EXPECT_THROW(swss::cast(attrs, i, i, i), boost::bad_lexical_cast);
 }
 
 TEST(STRINGUTILITY, join)

@@ -2,100 +2,139 @@
 
 #include "logger.h"
 #include "tokenize.h"
+#include "schema.h"
 
 #include <boost/lexical_cast.hpp>
+#include <boost/algorithm/hex.hpp>
 
-#include <iostream>
+#include <inttypes.h>
+#include <algorithm>
+#include <iterator>
 #include <vector>
 #include <string>
 #include <sstream>
 #include <cctype>
-#include <type_traits>
 
 namespace swss {
 
 template<typename T>
-T lexical_cast(const std::string &str)
-{
-    return boost::lexical_cast<T>(str);
-}
-
-template<>
-bool lexical_cast<bool>(const std::string &str);
-
-template <typename T>
-bool split(const std::string &input, char delimiter, T &output)
+void cast(const std::string &str, T &t)
 {
     SWSS_LOG_ENTER();
-    if (input.find(delimiter) != std::string::npos)
+    t = boost::lexical_cast<T>(str);
+}
+
+static inline void cast(const std::string &str, bool &b)
+{
+    SWSS_LOG_ENTER();
+    try
     {
-        return false;
+        b = boost::lexical_cast<bool>(str);
     }
-    output = lexical_cast<T>(input);
-    return true;
+    catch(const boost::bad_lexical_cast& e)
+    {
+        if (str == TRUE_STRING)
+        {
+            b = true;
+        }
+        else if (str == FALSE_STRING)
+        {
+            b = false;
+        }
+        else
+        {
+            throw e;
+        }
+    }
 }
 
 template <typename T, typename... Args>
-bool split(
-    std::vector<std::string>::iterator begin,
-    std::vector<std::string>::iterator end,
-    T &output)
+void cast(
+    std::vector<std::string>::const_iterator begin,
+    std::vector<std::string>::const_iterator end,
+    T &t)
 {
     SWSS_LOG_ENTER();
+    if (begin == end)
+    {
+        SWSS_LOG_THROW("Insufficient corpus");
+    }
     auto cur_itr = begin++;
     if (begin != end)
     {
-        return false;
+        SWSS_LOG_THROW("Too much corpus");
     }
-    output = lexical_cast<T>(*cur_itr);
-    return true;
+    cast(*cur_itr, t);
 }
 
 template <typename T, typename... Args>
-bool split(
-    std::vector<std::string>::iterator begin,
-    std::vector<std::string>::iterator end,
-    T &output,
+void cast(
+    std::vector<std::string>::const_iterator begin,
+    std::vector<std::string>::const_iterator end,
+    T &t,
     Args &... args)
 {
     SWSS_LOG_ENTER();
     if (begin == end)
     {
-        return false;
+        SWSS_LOG_THROW("Insufficient corpus");
     }
-    output = lexical_cast<T>(*(begin++));
-    return split(begin, end, args...);
+    cast(*(begin++), t);
+    return cast(begin, end, args...);
 }
 
 template <typename T, typename... Args>
-bool split(const std::string &input, char delimiter, T &output, Args &... args)
+void cast(const std::vector<std::string> &strs, T &t, Args &... args)
 {
-    SWSS_LOG_ENTER();
-    auto tokens = tokenize(input, delimiter);
-    return split(tokens.begin(), tokens.end(), output, args...);
+    cast(strs.begin(), strs.end(), t, args...);
 }
 
 template <typename T>
-std::string join(char , const T &input)
+void join(std::ostringstream &ostream, char, const T &t)
 {
     SWSS_LOG_ENTER();
-    std::ostringstream ostream;
-    ostream << input;
-    return ostream.str();
+    ostream << t;
 }
 
 template <typename T, typename... Args>
-std::string join(char delimiter, const T &input, const Args &... args)
+void join(std::ostringstream &ostream, char delimiter, const T &t, const Args &... args)
+{
+    SWSS_LOG_ENTER();
+    ostream << t << delimiter;
+    join(ostream, delimiter, args...);
+}
+
+template <typename T, typename... Args>
+std::string join(char delimiter, const T &t, const Args &... args)
 {
     SWSS_LOG_ENTER();
     std::ostringstream ostream;
-    ostream << input << delimiter << join(delimiter, args...);
+    join(ostream, delimiter, t, args...);
     return ostream.str();
 }
 
-std::istringstream &operator>>(std::istringstream &istream, bool &b);
+static inline bool hex_to_binary(const std::string &hex_str, std::uint8_t *buffer, size_t buffer_length)
+{
+    SWSS_LOG_ENTER();
 
-bool hex_to_binary(const std::string &hex_str, std::uint8_t *buffer, size_t buffer_length);
+    if (hex_str.length() != (buffer_length * 2))
+    {
+        SWSS_LOG_DEBUG("Buffer length isn't sufficient");
+        return false;
+    }
+
+    try
+    {
+        boost::algorithm::unhex(hex_str, buffer);
+    }
+    catch(const boost::algorithm::non_hex_input &e)
+    {
+        SWSS_LOG_DEBUG("Invalid hex string %s", hex_str.c_str());
+        return false;
+    }
+
+    return true;
+}
 
 template<typename T>
 void hex_to_binary(
@@ -107,6 +146,19 @@ void hex_to_binary(
     return hex_to_binary(s, &value, sizeof(T));
 }
 
-std::string binary_to_hex(const void *buffer, size_t length);
+static inline std::string binary_to_hex(const void *buffer, size_t length)
+{
+    SWSS_LOG_ENTER();
+
+    std::string s;
+    auto buf = static_cast<const std::uint8_t *>(buffer);
+
+    boost::algorithm::hex(
+        buf,
+        buf + length,
+        std::back_inserter<std::string>(s));
+
+    return s;
+}
 
 }

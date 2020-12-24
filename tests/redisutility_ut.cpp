@@ -9,18 +9,20 @@ TEST(REDISUTILITY, fvtGetValue)
     fvt.push_back(std::make_pair("bool", "true"));
     fvt.push_back(std::make_pair("string", "name"));
 
+    auto si = swss::fvtGetValue(fvt, "int");
+    EXPECT_TRUE(si);
+    auto sb = swss::fvtGetValue(fvt, "bool");
+    EXPECT_TRUE(sb);
+    auto ss = swss::fvtGetValue(fvt, "string");
+    EXPECT_TRUE(ss);
+
     int i;
-    EXPECT_TRUE(swss::fvtGetValue(fvt, "int", i));
-    EXPECT_EQ(i, 123);
-
     bool b;
-    EXPECT_TRUE(swss::fvtGetValue(fvt, "bool", b));
-    EXPECT_EQ(b, true);
-
     std::string s;
-    EXPECT_TRUE(swss::fvtGetValue(fvt, "string", s));
+    ASSERT_NO_THROW(swss::cast({si.get(), sb.get(), ss.get()}, i, b, s));
+    EXPECT_EQ(i, 123);
+    EXPECT_EQ(b, true);
     EXPECT_EQ(s, "name");
 
-    double d;
-    EXPECT_FALSE(swss::fvtGetValue(fvt, "double", d));
+    EXPECT_FALSE(swss::fvtGetValue(fvt, "double"));
 }
