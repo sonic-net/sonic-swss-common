@@ -10,7 +10,10 @@ const WarmStart::WarmStartStateNameMap WarmStart::warmStartStateNameMap =
 {
     {INITIALIZED,   "initialized"},
     {RESTORED,      "restored"},
-    {RECONCILED,    "reconciled"}
+    {REPLAYED,      "replayed"},
+    {RECONCILED,    "reconciled"},
+    {WSDISABLED,    "disabled"},
+    {WSUNKNOWN,     "unknown"}
 };
 
 const WarmStart::DataCheckStateNameMap WarmStart::dataCheckStateNameMap =
@@ -179,6 +182,41 @@ bool WarmStart::isSystemWarmRebootEnabled(void)
     auto& warmStart = getInstance();
 
     return warmStart.m_systemWarmRebootEnabled;
+}
+
+void WarmStart::getWarmStartState(const std::string &app_name, WarmStartState &state)
+{
+    std::string statestr;
+
+    auto& warmStart = getInstance();
+
+    state = RECONCILED;
+
+    if (!isWarmStart())
+    {
+        return;
+    }
+
+    warmStart.m_stateWarmRestartTable->hget(app_name, "state", statestr);
+
+    /* If warm-start is enabled, state cannot be assumed as Reconciled
+     * It should be set to unknown
+     */
+    state = WSUNKNOWN;
+
+    for (auto it = warmStartStateNameMap.begin(); it != warmStartStateNameMap.end(); it++)
+    {
+        if (it->second == statestr)
+        {
+            state = it->first;
+            break;
+        }
+    }
+        
+    SWSS_LOG_INFO("%s warm start state get %s(%d)",
+                    app_name.c_str(), statestr.c_str(), state);
+
+    return;
 }
 
 // Set the WarmStart FSM state for a particular application.

@@ -2,11 +2,46 @@
 #define __REDISREPLY__
 
 #include <hiredis/hiredis.h>
+#include <string>
 #include <stdexcept>
-#include "dbconnector.h"
 #include "rediscommand.h"
 
 namespace swss {
+
+class RedisContext;
+
+class RedisError : public std::runtime_error
+{
+    int m_err;
+    std::string m_errstr;
+    mutable std::string m_message;
+public:
+    RedisError(const std::string& arg, redisContext *ctx)
+        : std::runtime_error(arg)
+        , m_err(ctx->err)
+        , m_errstr(ctx->errstr)
+    {
+    }
+
+    const char *what() const noexcept override
+    {
+        if (m_message.empty())
+        {
+            m_message = std::string("RedisError: ") + std::runtime_error::what() + ", err=" + std::to_string(m_err) + ": errstr=" + m_errstr;
+        }
+        return m_message.c_str();
+    }
+};
+
+// Follow the data structure used by redis-py
+// ref: https://redis-py.readthedocs.io/en/stable/_modules/redis/client.html#Redis.pubsub
+struct RedisMessage
+{
+    std::string type;
+    std::string pattern;
+    std::string channel;
+    std::string data;
+};
 
 class RedisReply
 {
@@ -15,8 +50,8 @@ public:
      * Send a new command to redis and wait for reply
      * No reply type specified.
      */
-    RedisReply(DBConnector *db, const RedisCommand& command);
-    RedisReply(DBConnector *db, const std::string &command);
+    RedisReply(RedisContext *ctx, const RedisCommand& command);
+    RedisReply(RedisContext *ctx, const std::string& command);
     /*
      * Send a new command to redis and waits for reply
      * The reply must be one of REDIS_REPLY_* format (e.g. REDIS_REPLY_STATUS,
@@ -24,8 +59,8 @@ public:
      * isFormatted - Set to true if the command is already formatted in redis
      *               protocol
      */
-    RedisReply(DBConnector *db, const RedisCommand& command, int expectedType);
-    RedisReply(DBConnector *db, const std::string &command, int expectedType);
+    RedisReply(RedisContext *ctx, const RedisCommand& command, int expectedType);
+    RedisReply(RedisContext *ctx, const std::string& command, int expectedType);
 
     /* auto_ptr for native structue (Free the memory on destructor) */
     RedisReply(redisReply *reply);

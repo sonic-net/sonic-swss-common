@@ -4,7 +4,6 @@
 #include "common/producertable.h"
 #include "common/consumertable.h"
 #include "common/redisapi.h"
-#include "common/redisclient.h"
 
 #include <inttypes.h>
 #include <iostream>
@@ -66,9 +65,7 @@ static size_t count()
 {
     DBConnector db("TEST_DB", 0, true);
 
-    RedisClient rc(&db);
-
-    auto keys = rc.keys("ASIC_STATE:*");
+    auto keys = db.keys("ASIC_STATE:*");
 
     return keys.size();
 }
@@ -77,15 +74,13 @@ void print()
 {
     DBConnector db("TEST_DB", 0, true);
 
-    RedisClient rc(&db);
-
-    auto keys = rc.keys("ASIC_STATE:*");
+    auto keys = db.keys("ASIC_STATE:*");
 
     for (auto&k : keys)
     {
         printf("K %s\n", k.c_str());
 
-        auto hash = rc.hgetall(k);
+        auto hash = db.hgetall(k);
 
         for (auto&h: hash)
         {
@@ -146,13 +141,11 @@ static void mac(unsigned char m, bool is)
 {
     DBConnector db("TEST_DB", 0, true);
 
-    RedisClient rc(&db);
-
     char buffer[100];
 
     sprintf(buffer, "*SAI_OBJECT_TYPE_FDB_ENTRY:*\"mac\":\"00:00:00:00:00:%02X\"*", m);
 
-    auto keys = rc.keys(buffer);
+    auto keys = db.keys(buffer);
 
     if (is)
     {

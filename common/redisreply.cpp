@@ -7,6 +7,7 @@
 
 #include "common/logger.h"
 #include "common/redisreply.h"
+#include "common/dbconnector.h"
 #include "common/rediscommand.h"
 
 using namespace std;
@@ -27,28 +28,50 @@ inline void guard(FUNC func, const char* command)
     }
 }
 
-RedisReply::RedisReply(DBConnector *db, const RedisCommand& command)
+RedisReply::RedisReply(RedisContext *ctx, const RedisCommand& command)
 {
-    redisAppendFormattedCommand(db->getContext(), command.c_str(), command.length());
-    redisGetReply(db->getContext(), (void**)&m_reply);
+    int rc = redisAppendFormattedCommand(ctx->getContext(), command.c_str(), command.length());
+    if (rc != REDIS_OK)
+    {
+        // The only reason of error is REDIS_ERR_OOM (Out of memory)
+        // ref: https://github.com/redis/hiredis/blob/master/hiredis.c
+        throw bad_alloc();
+    }
+
+    rc = redisGetReply(ctx->getContext(), (void**)&m_reply);
+    if (rc != REDIS_OK)
+    {
+        throw RedisError("Failed to redisGetReply with " + string(command.c_str()), ctx->getContext());
+    }
     guard([&]{checkReply();}, command.c_str());
 }
 
-RedisReply::RedisReply(DBConnector *db, const string &command)
+RedisReply::RedisReply(RedisContext *ctx, const string& command)
 {
-    redisAppendCommand(db->getContext(), command.c_str());
-    redisGetReply(db->getContext(), (void**)&m_reply);
+    int rc = redisAppendCommand(ctx->getContext(), command.c_str());
+    if (rc != REDIS_OK)
+    {
+        // The only reason of error is REDIS_ERR_OOM (Out of memory)
+        // ref: https://github.com/redis/hiredis/blob/master/hiredis.c
+        throw bad_alloc();
+    }
+
+    rc = redisGetReply(ctx->getContext(), (void**)&m_reply);
+    if (rc != REDIS_OK)
+    {
+        throw RedisError("Failed to redisGetReply with " + command, ctx->getContext());
+    }
     guard([&]{checkReply();}, command.c_str());
 }
 
-RedisReply::RedisReply(DBConnector *db, const RedisCommand& command, int expectedType)
-    : RedisReply(db, command)
+RedisReply::RedisReply(RedisContext *ctx, const RedisCommand& command, int expectedType)
+    : RedisReply(ctx, command)
 {
     guard([&]{checkReplyType(expectedType);}, command.c_str());
 }
 
-RedisReply::RedisReply(DBConnector *db, const string &command, int expectedType)
-    : RedisReply(db, command)
+RedisReply::RedisReply(RedisContext *ctx, const string& command, int expectedType)
+    : RedisReply(ctx, command)
 {
     guard([&]{checkReplyType(expectedType);}, command.c_str());
 }
@@ -149,6 +172,45 @@ template<> string RedisReply::getReply<string>()
     char *s = getContext()->str;
     if (s == NULL) return string();
     return string(s);
+}
+
+template<> RedisMessage RedisReply::getReply<RedisMessage>()
+{
+    RedisMessage ret;
+    /* if the Key-space notification is empty, try emtpy message. */
+    if (getContext()->type == REDIS_REPLY_NIL)
+    {
+        return ret;
+    }
+
+    if (getContext()->type != REDIS_REPLY_ARRAY)
+    {
+        SWSS_LOG_ERROR("invalid type %d for message", getContext()->type);
+        return ret;
+    }
+    size_t n = getContext()->elements;
+
+    /* Expecting 4 elements for each keyspace pmessage notification */
+    if (n != 4)
+    {
+        SWSS_LOG_ERROR("invalid number of elements %zu for message", n);
+        return ret;
+    }
+
+    auto ctx = getContext()->element[0];
+    ret.type = ctx->str;
+
+    /* The second element should be the original pattern matched */
+    ctx = getContext()->element[1];
+    ret.pattern = ctx->str;
+
+    ctx = getContext()->element[2];
+    ret.channel = ctx->str;
+
+    ctx = getContext()->element[3];
+    ret.data = ctx->str;
+
+    return ret;
 }
 
 }

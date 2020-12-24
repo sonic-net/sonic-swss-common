@@ -1,8 +1,22 @@
 %module swsscommon
 
+%rename(delete) del;
+
 %{
+// ref: http://www.swig.org/Doc3.0/Python.html
+// A Python 2 string is not a unicode string by default and should a Unicode
+// string be passed to C/C++ it will fail to convert to a C/C++ string (char *
+// or std::string types). The Python 2 behavior can be made more like Python 3
+// by defining SWIG_PYTHON_2_UNICODE when compiling the generated C/C++ code.
+// Unicode strings will be successfully accepted and converted from UTF-8, but
+// note that they are returned as a normal Python 2 string
+#define SWIG_PYTHON_2_UNICODE
+
 #include "schema.h"
 #include "dbconnector.h"
+#include "dbinterface.h"
+#include "sonicv2connector.h"
+#include "pubsub.h"
 #include "select.h"
 #include "selectable.h"
 #include "rediscommand.h"
@@ -19,22 +33,55 @@
 #include "notificationconsumer.h"
 #include "notificationproducer.h"
 #include "warm_restart.h"
+#include "logger.h"
 %}
 
 %include <std_string.i>
 %include <std_vector.i>
 %include <std_pair.i>
+%include <std_map.i>
 %include <typemaps.i>
 %include <stdint.i>
+%include <exception.i>
+
+%exception {
+    try
+    {
+        $action
+    }
+    SWIG_CATCH_STDEXCEPT // catch std::exception derivatives
+    catch (...)
+    {
+        SWIG_exception(SWIG_UnknownError, "unknown exception");
+    }
+}
 
 %template(FieldValuePair) std::pair<std::string, std::string>;
 %template(FieldValuePairs) std::vector<std::pair<std::string, std::string>>;
+%template(FieldValueMap) std::map<std::string, std::string>;
 %template(VectorString) std::vector<std::string>;
+
+%pythoncode %{
+    def _FieldValueMap__get(self, key, default=None):
+        if key in self:
+            return self[key]
+        else:
+            return default
+
+    def _FieldValueMap__update(self, *args, **kwargs):
+        other = dict(*args, **kwargs)
+        for key in other:
+            self[key] = other[key]
+
+    FieldValueMap.get = _FieldValueMap__get
+    FieldValueMap.update = _FieldValueMap__update
+%}
 
 %apply int *OUTPUT {int *fd};
 %typemap(in, numinputs=0) swss::Selectable ** (swss::Selectable *temp) {
     $1 = &temp;
 }
+
 %typemap(argout) swss::Selectable ** {
     PyObject* temp = NULL;
     if (!PyList_Check($result)) {
@@ -45,8 +92,22 @@
     temp = SWIG_NewPointerObj(*$1, SWIGTYPE_p_swss__Selectable, 0);
     SWIG_Python_AppendOutput($result, temp);
 }
+
+%inline %{
+template <typename T>
+T castSelectableObj(swss::Selectable *temp)
+{
+    return dynamic_cast<T>(temp);
+}
+%}
+
+%template(CastSelectableToRedisSelectObj) castSelectableObj<swss::RedisSelect *>;
+%template(CastSelectableToSubscriberTableObj) castSelectableObj<swss::SubscriberStateTable *>;
+
 %include "schema.h"
 %include "dbconnector.h"
+%include "sonicv2connector.h"
+%include "pubsub.h"
 %include "selectable.h"
 %include "select.h"
 %include "rediscommand.h"
@@ -56,9 +117,11 @@
 
 %apply std::vector<std::string>& OUTPUT {std::vector<std::string> &keys};
 %apply std::vector<std::pair<std::string, std::string>>& OUTPUT {std::vector<std::pair<std::string, std::string>> &ovalues};
+%apply std::string& OUTPUT {std::string &value};
 %include "table.h"
 %clear std::vector<std::string> &keys;
 %clear std::vector<std::pair<std::string, std::string>> &values;
+%clear std::string &value;
 
 %include "producertable.h"
 %include "producerstatetable.h"
@@ -85,3 +148,5 @@
 
 %include "notificationproducer.h"
 %include "warm_restart.h"
+%include "dbinterface.h"
+%include "logger.h"

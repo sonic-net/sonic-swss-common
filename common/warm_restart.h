@@ -17,7 +17,10 @@ public:
     {
         INITIALIZED,
         RESTORED,
+        REPLAYED,
         RECONCILED,
+        WSDISABLED,
+        WSUNKNOWN,
     };
 
     enum DataCheckState
@@ -53,6 +56,9 @@ public:
     static bool isWarmStart(void);
 
     static bool isSystemWarmRebootEnabled(void);
+
+    static void getWarmStartState(const std::string &app_name,
+                                  WarmStartState    &state);
 
     static void setWarmStartState(const std::string &app_name,
                                   WarmStartState     state);

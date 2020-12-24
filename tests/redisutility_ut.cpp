@@ -24,5 +24,7 @@ TEST(REDISUTILITY, fvtGetValue)
     EXPECT_EQ(b, true);
     EXPECT_EQ(s, "name");
 
+    EXPECT_FALSE(swss::fvtGetValue(fvt, "Int"));
+    EXPECT_TRUE(swss::fvtGetValue(fvt, "Int", swss::FieldNameStrategy::CASE_INSENSITIVE));
     EXPECT_FALSE(swss::fvtGetValue(fvt, "double"));
 }

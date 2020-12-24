@@ -13,15 +13,34 @@
 namespace swss
 {
 
+enum FieldNameStrategy
+{
+    CASE_SENSITIVE,
+    CASE_INSENSITIVE,
+};
+
 static inline boost::optional<std::string> fvtGetValue(
     const std::vector<FieldValueTuple> &fvt,
-    const std::string &field)
+    const std::string &field,
+    FieldNameStrategy strategy = FieldNameStrategy::CASE_SENSITIVE)
 {
     SWSS_LOG_ENTER();
 
     for (auto itr = fvt.begin(); itr != fvt.end(); itr++)
     {
-        if (boost::iequals(fvField(*itr), field))
+        bool is_equal = false;
+        switch(strategy)
+        {
+            case FieldNameStrategy::CASE_SENSITIVE:
+                is_equal = boost::equals(fvField(*itr), field);
+                break;
+            case FieldNameStrategy::CASE_INSENSITIVE:
+                is_equal = boost::iequals(fvField(*itr), field);
+                break;
+            default:
+                is_equal = boost::equals(fvField(*itr), field);
+        }
+        if (is_equal)
         {
             return boost::optional<std::string>(fvValue(*itr));
         }

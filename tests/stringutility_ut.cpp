@@ -51,6 +51,11 @@ TEST(STRINGUTILITY, cast_mix)
     bool b;
     std::string s;
 
+    EXPECT_NO_THROW(swss::cast(swss::tokenize("123:" TRUE_STRING ":name", ':'), i, b, s));
+    EXPECT_EQ(i, 123);
+    EXPECT_EQ(b, true);
+    EXPECT_EQ("name", s);
+
     EXPECT_NO_THROW(swss::cast({"123", TRUE_STRING, "name"}, i, b, s));
     EXPECT_EQ(i, 123);
     EXPECT_EQ(b, true);
