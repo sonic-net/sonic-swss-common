@@ -38,8 +38,7 @@ static bool fvtGetValue(
         });
     if (itr != fvt.end())
     {
-        std::istringstream istream(fvValue(*itr));
-        istream >> value;
+        value = swss::lexical_cast<T>(fvValue(*itr));
         SWSS_LOG_DEBUG(
             "Set field '%s' as '%s'",
             field.c_str(),
