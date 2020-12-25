@@ -18,13 +18,13 @@
 namespace swss {
 
 template<typename T>
-void cast(const std::string &str, T &t)
+static inline void lexical_convert(const std::string &str, T &t)
 {
     SWSS_LOG_ENTER();
     t = boost::lexical_cast<T>(str);
 }
 
-static inline void cast(const std::string &str, bool &b)
+static inline void lexical_convert(const std::string &str, bool &b)
 {
     SWSS_LOG_ENTER();
     try
@@ -48,68 +48,78 @@ static inline void cast(const std::string &str, bool &b)
     }
 }
 
-template <typename T, typename... Args>
-void cast(
-    std::vector<std::string>::const_iterator begin,
-    std::vector<std::string>::const_iterator end,
-    T &t)
+namespace lexical_convert_detail
 {
-    SWSS_LOG_ENTER();
-    if (begin == end)
+
+    template <typename T, typename... Args>
+    void lexical_convert(
+        std::vector<std::string>::const_iterator begin,
+        std::vector<std::string>::const_iterator end,
+        T &t)
     {
-        SWSS_LOG_THROW("Insufficient corpus");
+        SWSS_LOG_ENTER();
+        if (begin == end)
+        {
+            SWSS_LOG_THROW("Insufficient corpus");
+        }
+        auto cur_itr = begin++;
+        if (begin != end)
+        {
+            SWSS_LOG_THROW("Too much corpus");
+        }
+        swss::lexical_convert(*cur_itr, t);
     }
-    auto cur_itr = begin++;
-    if (begin != end)
+
+    template <typename T, typename... Args>
+    void lexical_convert(
+        std::vector<std::string>::const_iterator begin,
+        std::vector<std::string>::const_iterator end,
+        T &t,
+        Args &... args)
     {
-        SWSS_LOG_THROW("Too much corpus");
+        SWSS_LOG_ENTER();
+        if (begin == end)
+        {
+            SWSS_LOG_THROW("Insufficient corpus");
+        }
+        swss::lexical_convert(*(begin++), t);
+        return lexical_convert(begin, end, args...);
     }
-    cast(*cur_itr, t);
+
 }
 
 template <typename T, typename... Args>
-void cast(
-    std::vector<std::string>::const_iterator begin,
-    std::vector<std::string>::const_iterator end,
-    T &t,
-    Args &... args)
+void lexical_convert(const std::vector<std::string> &strs, T &t, Args &... args)
 {
-    SWSS_LOG_ENTER();
-    if (begin == end)
+    lexical_convert_detail::lexical_convert(strs.begin(), strs.end(), t, args...);
+}
+
+namespace join_detail
+{
+
+    template <typename T>
+    void join(std::ostringstream &ostream, char, const T &t)
     {
-        SWSS_LOG_THROW("Insufficient corpus");
+        SWSS_LOG_ENTER();
+        ostream << t;
     }
-    cast(*(begin++), t);
-    return cast(begin, end, args...);
+
+    template <typename T, typename... Args>
+    void join(std::ostringstream &ostream, char delimiter, const T &t, const Args &... args)
+    {
+        SWSS_LOG_ENTER();
+        ostream << t << delimiter;
+        join(ostream, delimiter, args...);
+    }
+
 }
 
 template <typename T, typename... Args>
-void cast(const std::vector<std::string> &strs, T &t, Args &... args)
-{
-    cast(strs.begin(), strs.end(), t, args...);
-}
-
-template <typename T>
-void join(std::ostringstream &ostream, char, const T &t)
-{
-    SWSS_LOG_ENTER();
-    ostream << t;
-}
-
-template <typename T, typename... Args>
-void join(std::ostringstream &ostream, char delimiter, const T &t, const Args &... args)
-{
-    SWSS_LOG_ENTER();
-    ostream << t << delimiter;
-    join(ostream, delimiter, args...);
-}
-
-template <typename T, typename... Args>
-std::string join(char delimiter, const T &t, const Args &... args)
+static inline std::string join(char delimiter, const T &t, const Args &... args)
 {
     SWSS_LOG_ENTER();
     std::ostringstream ostream;
-    join(ostream, delimiter, t, args...);
+    join_detail::join(ostream, delimiter, t, args...);
     return ostream.str();
 }
 
@@ -137,9 +147,7 @@ static inline bool hex_to_binary(const std::string &hex_str, std::uint8_t *buffe
 }
 
 template<typename T>
-void hex_to_binary(
-    const std::string &s,
-    T &value)
+static inline void hex_to_binary(const std::string &s, T &value)
 {
     SWSS_LOG_ENTER();
 

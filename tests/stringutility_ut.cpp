@@ -11,38 +11,38 @@ TEST(STRINGUTILITY, cast_int)
 {
     int i;
 
-    EXPECT_NO_THROW(swss::cast("123", i));
+    EXPECT_NO_THROW(swss::lexical_convert("123", i));
     EXPECT_EQ(i, 123);
 
-    EXPECT_NO_THROW(swss::cast("0", i));
+    EXPECT_NO_THROW(swss::lexical_convert("0", i));
     EXPECT_EQ(i, 0);
 
-    EXPECT_NO_THROW(swss::cast("-123", i));
+    EXPECT_NO_THROW(swss::lexical_convert("-123", i));
     EXPECT_EQ(i, -123);
 
-    EXPECT_THROW(swss::cast("123:", i), boost::bad_lexical_cast);
+    EXPECT_THROW(swss::lexical_convert("123:", i), boost::bad_lexical_cast);
 }
 
 TEST(STRINGUTILITY, cast_bool)
 {
     bool b;
 
-    EXPECT_NO_THROW(swss::cast(TRUE_STRING, b));
+    EXPECT_NO_THROW(swss::lexical_convert(TRUE_STRING, b));
     EXPECT_EQ(b, true);
 
-    EXPECT_NO_THROW(swss::cast("1", b));
+    EXPECT_NO_THROW(swss::lexical_convert("1", b));
     EXPECT_EQ(b, true);
 
-    EXPECT_NO_THROW(swss::cast(FALSE_STRING, b));
+    EXPECT_NO_THROW(swss::lexical_convert(FALSE_STRING, b));
     EXPECT_EQ(b, false);
 
-    EXPECT_NO_THROW(swss::cast("0", b));
+    EXPECT_NO_THROW(swss::lexical_convert("0", b));
     EXPECT_EQ(b, false);
 
     ASSERT_NE("True", TRUE_STRING);
-    EXPECT_THROW(swss::cast("True", b), boost::bad_lexical_cast);
+    EXPECT_THROW(swss::lexical_convert("True", b), boost::bad_lexical_cast);
 
-    EXPECT_THROW(swss::cast("abcdefg", b), boost::bad_lexical_cast);
+    EXPECT_THROW(swss::lexical_convert("abcdefg", b), boost::bad_lexical_cast);
 }
 
 TEST(STRINGUTILITY, cast_mix)
@@ -51,23 +51,21 @@ TEST(STRINGUTILITY, cast_mix)
     bool b;
     std::string s;
 
-    EXPECT_NO_THROW(swss::cast(swss::tokenize("123:" TRUE_STRING ":name", ':'), i, b, s));
+    EXPECT_NO_THROW(swss::lexical_convert(swss::tokenize("123:" TRUE_STRING ":name", ':'), i, b, s));
     EXPECT_EQ(i, 123);
     EXPECT_EQ(b, true);
     EXPECT_EQ("name", s);
 
-    EXPECT_NO_THROW(swss::cast({"123", TRUE_STRING, "name"}, i, b, s));
+    EXPECT_NO_THROW(swss::lexical_convert({"123", TRUE_STRING, "name"}, i, b, s));
     EXPECT_EQ(i, 123);
     EXPECT_EQ(b, true);
     EXPECT_EQ("name", s);
 
     std::vector<std::string> attrs{"123", TRUE_STRING, "name"};
-    EXPECT_NO_THROW(swss::cast(attrs.begin(), attrs.end(), i, b, s));
-    EXPECT_NO_THROW(swss::cast(attrs, i, b, s));
+    EXPECT_NO_THROW(swss::lexical_convert(attrs, i, b, s));
 
-    EXPECT_THROW(swss::cast(attrs.begin(), attrs.end(), i), std::runtime_error);
-    EXPECT_THROW(swss::cast({"123"}, i, b), std::runtime_error);
-    EXPECT_THROW(swss::cast(attrs, i, i, i), boost::bad_lexical_cast);
+    EXPECT_THROW(swss::lexical_convert({"123"}, i, b), std::runtime_error);
+    EXPECT_THROW(swss::lexical_convert(attrs, i, i, i), boost::bad_lexical_cast);
 }
 
 TEST(STRINGUTILITY, join)
