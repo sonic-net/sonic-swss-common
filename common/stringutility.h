@@ -20,13 +20,11 @@ namespace swss {
 template<typename T>
 static inline void lexical_convert(const std::string &str, T &t)
 {
-    SWSS_LOG_ENTER();
     t = boost::lexical_cast<T>(str);
 }
 
 static inline void lexical_convert(const std::string &str, bool &b)
 {
-    SWSS_LOG_ENTER();
     try
     {
         b = boost::lexical_cast<bool>(str);
@@ -57,7 +55,6 @@ namespace lexical_convert_detail
         std::vector<std::string>::const_iterator end,
         T &t)
     {
-        SWSS_LOG_ENTER();
         if (begin == end)
         {
             SWSS_LOG_THROW("Insufficient corpus");
@@ -77,7 +74,6 @@ namespace lexical_convert_detail
         T &t,
         Args &... args)
     {
-        SWSS_LOG_ENTER();
         if (begin == end)
         {
             SWSS_LOG_THROW("Insufficient corpus");
@@ -100,14 +96,12 @@ namespace join_detail
     template <typename T>
     void join(std::ostringstream &ostream, char, const T &t)
     {
-        SWSS_LOG_ENTER();
         ostream << t;
     }
 
     template <typename T, typename... Args>
     void join(std::ostringstream &ostream, char delimiter, const T &t, const Args &... args)
     {
-        SWSS_LOG_ENTER();
         ostream << t << delimiter;
         join(ostream, delimiter, args...);
     }
@@ -117,7 +111,6 @@ namespace join_detail
 template <typename T, typename... Args>
 static inline std::string join(char delimiter, const T &t, const Args &... args)
 {
-    SWSS_LOG_ENTER();
     std::ostringstream ostream;
     join_detail::join(ostream, delimiter, t, args...);
     return ostream.str();
@@ -125,8 +118,6 @@ static inline std::string join(char delimiter, const T &t, const Args &... args)
 
 static inline bool hex_to_binary(const std::string &hex_str, std::uint8_t *buffer, size_t buffer_length)
 {
-    SWSS_LOG_ENTER();
-
     if (hex_str.length() != (buffer_length * 2))
     {
         SWSS_LOG_DEBUG("Buffer length isn't sufficient");
@@ -149,15 +140,11 @@ static inline bool hex_to_binary(const std::string &hex_str, std::uint8_t *buffe
 template<typename T>
 static inline void hex_to_binary(const std::string &s, T &value)
 {
-    SWSS_LOG_ENTER();
-
     return hex_to_binary(s, &value, sizeof(T));
 }
 
 static inline std::string binary_to_hex(const void *buffer, size_t length)
 {
-    SWSS_LOG_ENTER();
-
     std::string s;
     auto buf = static_cast<const std::uint8_t *>(buffer);
 
