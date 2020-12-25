@@ -1,5 +1,6 @@
 #include "common/redisutility.h"
 #include "common/stringutility.h"
+#include "common/boolean.h"
 
 #include "gtest/gtest.h"
 
@@ -18,7 +19,7 @@ TEST(REDISUTILITY, fvsGetValue)
     EXPECT_TRUE(ss);
 
     int i;
-    bool b;
+    swss::AlphaBoolean b;
     std::string s;
     ASSERT_NO_THROW(swss::lexical_convert({*si, *sb, *ss}, i, b, s));
     EXPECT_EQ(i, 123);

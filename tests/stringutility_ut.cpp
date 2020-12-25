@@ -1,6 +1,5 @@
 #include "common/stringutility.h"
-#include "common/ipaddress.h"
-#include "common/schema.h"
+#include "common/boolean.h"
 
 #include "gtest/gtest.h"
 
@@ -23,23 +22,16 @@ TEST(STRINGUTILITY, cast_int)
     EXPECT_THROW(swss::lexical_convert("123:", i), boost::bad_lexical_cast);
 }
 
-TEST(STRINGUTILITY, cast_bool)
+TEST(STRINGUTILITY, cast_alpha_bool)
 {
-    bool b;
+    swss::AlphaBoolean b;
 
-    EXPECT_NO_THROW(swss::lexical_convert(TRUE_STRING, b));
+    EXPECT_NO_THROW(swss::lexical_convert("true", b));
     EXPECT_EQ(b, true);
 
-    EXPECT_NO_THROW(swss::lexical_convert("1", b));
-    EXPECT_EQ(b, true);
-
-    EXPECT_NO_THROW(swss::lexical_convert(FALSE_STRING, b));
+    EXPECT_NO_THROW(swss::lexical_convert("false", b));
     EXPECT_EQ(b, false);
 
-    EXPECT_NO_THROW(swss::lexical_convert("0", b));
-    EXPECT_EQ(b, false);
-
-    ASSERT_NE("True", TRUE_STRING);
     EXPECT_THROW(swss::lexical_convert("True", b), boost::bad_lexical_cast);
 
     EXPECT_THROW(swss::lexical_convert("abcdefg", b), boost::bad_lexical_cast);
@@ -48,20 +40,20 @@ TEST(STRINGUTILITY, cast_bool)
 TEST(STRINGUTILITY, cast_mix)
 {
     int i;
-    bool b;
+    swss::AlphaBoolean b;
     std::string s;
 
-    EXPECT_NO_THROW(swss::lexical_convert(swss::tokenize("123:" TRUE_STRING ":name", ':'), i, b, s));
+    EXPECT_NO_THROW(swss::lexical_convert(swss::tokenize("123:true:name", ':'), i, b, s));
     EXPECT_EQ(i, 123);
     EXPECT_EQ(b, true);
     EXPECT_EQ("name", s);
 
-    EXPECT_NO_THROW(swss::lexical_convert({"123", TRUE_STRING, "name"}, i, b, s));
+    EXPECT_NO_THROW(swss::lexical_convert({"123", "true", "name"}, i, b, s));
     EXPECT_EQ(i, 123);
     EXPECT_EQ(b, true);
     EXPECT_EQ("name", s);
 
-    std::vector<std::string> attrs{"123", TRUE_STRING, "name"};
+    std::vector<std::string> attrs{"123", "true", "name"};
     EXPECT_NO_THROW(swss::lexical_convert(attrs, i, b, s));
 
     EXPECT_THROW(swss::lexical_convert({"123"}, i, b), std::runtime_error);
@@ -70,8 +62,11 @@ TEST(STRINGUTILITY, cast_mix)
 
 TEST(STRINGUTILITY, join)
 {
-    auto str = swss::join(':', 123, true, std::string("name"));
-    EXPECT_EQ(str, "123:1:name");
+    EXPECT_EQ(swss::join(':', 123, true, std::string("name")), "123:1:name");
+
+    EXPECT_EQ(swss::join(':', 123, swss::AlphaBoolean(true), std::string("name")), "123:true:name");
+
+    EXPECT_EQ(swss::join('|', 123, swss::AlphaBoolean(false), std::string("name")), "123|false|name");
 }
 
 TEST(STRINGUTILITY, hex_to_binary)

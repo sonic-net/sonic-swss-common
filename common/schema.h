@@ -376,9 +376,6 @@ namespace swss {
 #define CFG_DTEL_QUEUE_REPORT_TABLE_NAME	"DTEL_QUEUE_REPORT"
 #define CFG_DTEL_EVENT_TABLE_NAME			"DTEL_EVENT"
 
-#define TRUE_STRING     "true"
-#define FALSE_STRING    "false"
-
 #ifdef __cplusplus
 }
 #endif
