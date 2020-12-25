@@ -3,6 +3,7 @@
 #include <string>
 #include <memory>
 #include "selectable.h"
+#include "dbconnector.h"
 
 namespace swss {
 
@@ -27,6 +28,8 @@ public:
 
     /* PSUBSCRIBE */
     void psubscribe(DBConnector* db, const std::string &channelName);
+    /* PUNSUBSCRIBE */
+    void punsubscribe(const std::string &channelName);
 
     void setQueueLength(long long int queueLength);
 

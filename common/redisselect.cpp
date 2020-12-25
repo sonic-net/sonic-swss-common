@@ -92,6 +92,19 @@ void RedisSelect::psubscribe(DBConnector* db, const std::string &channelName)
     m_subscribe->psubscribe(channelName);
 }
 
+/* PUNSUBSCRIBE */
+void RedisSelect::punsubscribe(const std::string &channelName)
+{
+    /*
+     * Send PUNSUBSCRIBE #channel command on the
+     * non-blocking subscriber DBConnector
+     */
+    if (m_subscribe)
+    {
+        m_subscribe->psubscribe(channelName);
+    }
+}
+
 void RedisSelect::setQueueLength(long long int queueLength)
 {
     m_queueLength = queueLength;

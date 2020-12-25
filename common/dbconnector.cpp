@@ -791,6 +791,13 @@ void DBConnector::psubscribe(const std::string &pattern)
     RedisReply r(this, s, REDIS_REPLY_ARRAY);
 }
 
+void DBConnector::punsubscribe(const std::string &pattern)
+{
+    std::string s("PUNSUBSCRIBE ");
+    s += pattern;
+    RedisReply r(this, s, REDIS_REPLY_ARRAY);
+}
+
 int64_t DBConnector::publish(const string &channel, const string &message)
 {
     RedisCommand publish;

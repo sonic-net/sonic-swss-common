@@ -202,6 +202,8 @@ public:
 
     void psubscribe(const std::string &pattern);
 
+    void punsubscribe(const std::string &pattern);
+
     int64_t publish(const std::string &channel, const std::string &message);
 
     void config_set(const std::string &key, const std::string &value);

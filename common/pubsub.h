@@ -15,9 +15,11 @@ class PubSub : protected RedisSelect
 public:
     PubSub(DBConnector *other);
 
-    std::map<std::string, std::string> get_message();
+    std::map<std::string, std::string> get_message(double timeout = 0.0);
+    std::map<std::string, std::string> listen_message();
 
     void psubscribe(const std::string &pattern);
+    void punsubscribe(const std::string &pattern);
 
     /* Read keyspace event from redis */
     uint64_t readData() override;
