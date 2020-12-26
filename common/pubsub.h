@@ -13,7 +13,7 @@ namespace swss {
 class PubSub : protected RedisSelect
 {
 public:
-    PubSub(DBConnector *other);
+    explicit PubSub(DBConnector *other);
 
     std::map<std::string, std::string> get_message();
 
