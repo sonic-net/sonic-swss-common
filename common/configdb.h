@@ -20,6 +20,8 @@ public:
     std::vector<std::string> get_keys(std::string table, bool split = true);
     std::unordered_map<std::string, std::unordered_map<std::string, std::string>> get_table(std::string table);
     void delete_table(std::string table);
+    void mod_config(const std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_map<std::string, std::string>>>& data);
+    std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_map<std::string, std::string>>> get_config();
 
 protected:
     static constexpr const char *INIT_INDICATOR = "CONFIG_DB_INITIALIZED";

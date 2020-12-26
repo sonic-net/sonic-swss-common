@@ -15,7 +15,7 @@ ConfigDBConnector::ConfigDBConnector(bool use_unix_socket_path, const char *netn
 
 void ConfigDBConnector::db_connect(string db_name, bool wait_for_init, bool retry_on)
 {
-    m_db_name = db_name; 
+    m_db_name = db_name;
     SonicV2Connector::connect(m_db_name, retry_on);
 
     if (wait_for_init)
@@ -188,3 +188,63 @@ void ConfigDBConnector::delete_table(string table)
     }
 }
 
+// Write multiple tables into config db.
+//    Extra entries/fields in the db which are not in the data are kept.
+// Args:
+//     data: config data in a dictionary form
+//     {
+//         'TABLE_NAME': { 'row_key': {'column_key': 'value', ...}, ...},
+//         'MULTI_KEY_TABLE_NAME': { ('l1_key', 'l2_key', ...) : {'column_key': 'value', ...}, ...},
+//         ...
+//     }
+void ConfigDBConnector::mod_config(const unordered_map<string, unordered_map<string, unordered_map<string, string>>>& data)
+{
+    for (auto const& it: data)
+    {
+        string table_name = it.first;
+        auto const& table_data = it.second;
+        if (table_data.empty())
+        {
+            delete_table(table_name);
+            continue;
+        }
+        for (auto const& ie: table_data)
+        {
+            string key = ie.first;
+            auto const& fvs = ie.second;
+            mod_entry(table_name, key, fvs);
+        }
+    }
+}
+
+// Read all config data.
+// Returns:
+//     Config data in a dictionary form of
+//     {
+//         'TABLE_NAME': { 'row_key': {'column_key': 'value', ...}, ...},
+//         'MULTI_KEY_TABLE_NAME': { ('l1_key', 'l2_key', ...) : {'column_key': 'value', ...}, ...},
+//         ...
+//     }
+unordered_map<string, unordered_map<string, unordered_map<string, string>>> ConfigDBConnector::get_config()
+{
+    auto& client = get_redis_client(m_db_name);
+    auto const& keys = client.keys("*");
+    unordered_map<string, unordered_map<string, unordered_map<string, string>>> data;
+    for (string key: keys)
+    {
+        size_t pos = key.find(TABLE_NAME_SEPARATOR);
+        if (pos == string::npos)
+        {
+            continue;
+        }
+        string table_name = key.substr(0, pos);
+        string row = key.substr(pos + 1);
+        auto const& entry = client.hgetall(key);
+
+        if (!entry.empty())
+        {
+            data[table_name][row] = entry;
+        }
+    }
+    return data;
+}
