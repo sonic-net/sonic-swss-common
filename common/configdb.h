@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <map>
 #include "sonicv2connector.h"
 
 namespace swss {
@@ -11,6 +12,9 @@ public:
     ConfigDBConnector(bool use_unix_socket_path = false, const char *netns = "");
 
     void connect(bool wait_for_init = true, bool retry_on = false);
+
+    void set_entry(std::string table, std::string key, const std::unordered_map<std::string, std::string>& data);
+    std::unordered_map<std::string, std::string> get_entry(std::string table, std::string key);
 
 protected:
     static constexpr const char *INIT_INDICATOR = "CONFIG_DB_INITIALIZED";
