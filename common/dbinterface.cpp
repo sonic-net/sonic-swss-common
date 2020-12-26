@@ -326,7 +326,7 @@ void DBInterface::_onetime_connect(int dbId, const string& dbName)
     bool inserted = rc.second;
     if (inserted)
     {
-        auto redisClient = rc.first->second;
+        auto& redisClient = rc.first->second;
         redisClient.config_set("notify-keyspace-events", KEYSPACE_EVENTS);
     }
 }
