@@ -1,5 +1,6 @@
 #include <boost/algorithm/string.hpp>
 #include <unordered_map>
+#include <vector>
 #include "configdb.h"
 #include "pubsub.h"
 #include "converter.h"
@@ -118,4 +119,33 @@ unordered_map<string, string> ConfigDBConnector::get_entry(string table, string 
     auto& client = get_redis_client(m_db_name);
     string _hash = to_upper(table) + TABLE_NAME_SEPARATOR + key;
     return client.hgetall(_hash);
+}
+
+// Read all keys of a table from config db.
+// Args:
+//     table: Table name.
+//     split: split the first part and return second.
+//            Useful for keys with two parts <tablename>:<key>
+// Returns:
+//     List of keys.
+vector<string> ConfigDBConnector::get_keys(string table, bool split)
+{
+    auto& client = get_redis_client(m_db_name);
+    string pattern = to_upper(table) + TABLE_NAME_SEPARATOR + "*";
+    const auto& keys = client.keys(pattern);
+    vector<string> data;
+    for (auto& key: keys)
+    {
+        if (split)
+        {
+            size_t pos = key.find(TABLE_NAME_SEPARATOR);
+            string row = key.substr(pos + 1);
+            data.push_back(row);
+        }
+        else
+        {
+            data.push_back(key);
+        }
+    }
+    return data;
 }
