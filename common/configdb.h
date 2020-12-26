@@ -14,6 +14,7 @@ public:
     void connect(bool wait_for_init = true, bool retry_on = false);
 
     void set_entry(std::string table, std::string key, const std::unordered_map<std::string, std::string>& data);
+    void mod_entry(std::string table, std::string key, const std::unordered_map<std::string, std::string>& data);
     std::unordered_map<std::string, std::string> get_entry(std::string table, std::string key);
 
 protected:

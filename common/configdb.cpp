@@ -80,6 +80,27 @@ void ConfigDBConnector::set_entry(string table, string key, const unordered_map<
     }
 }
 
+// Modify a table entry to config db.
+// Args:
+//     table: Table name.
+//     key: Key of table entry, or a tuple of keys if it is a multi-key table.
+//     data: Table row data in a form of dictionary {'column_key': 'value', ...}.
+//           Pass {} as data will create an entry with no column if not already existed.
+//           Pass None as data will delete the entry.
+void ConfigDBConnector::mod_entry(string table, string key, const unordered_map<string, string>& data)
+{
+    auto& client = get_redis_client(m_db_name);
+    string _hash = to_upper(table) + TABLE_NAME_SEPARATOR + key;
+    if (data.empty())
+    {
+        client.del(_hash);
+    }
+    else
+    {
+        client.hmset(_hash, data.begin(), data.end());
+    }
+}
+
 // Read a table entry from config db.
 // Args:
 //     table: Table name.
