@@ -11,6 +11,7 @@ class ConfigDBConnector : public SonicV2Connector
 public:
     ConfigDBConnector(bool use_unix_socket_path = false, const char *netns = "");
 
+    void db_connect(std::string db_name, bool wait_for_init, bool retry_on);
     void connect(bool wait_for_init = true, bool retry_on = false);
 
     void set_entry(std::string table, std::string key, const std::unordered_map<std::string, std::string>& data);

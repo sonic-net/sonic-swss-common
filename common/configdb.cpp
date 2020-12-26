@@ -12,9 +12,9 @@ ConfigDBConnector::ConfigDBConnector(bool use_unix_socket_path, const char *netn
 {
 }
 
-void ConfigDBConnector::connect(bool wait_for_init, bool retry_on)
+void ConfigDBConnector::db_connect(string db_name, bool wait_for_init, bool retry_on)
 {
-    m_db_name = "CONFIG_DB";
+    m_db_name = db_name; 
     SonicV2Connector::connect(m_db_name, retry_on);
 
     if (wait_for_init)
@@ -47,6 +47,11 @@ void ConfigDBConnector::connect(bool wait_for_init, bool retry_on)
             pubsub->punsubscribe(pattern);
         }
     }
+}
+
+void ConfigDBConnector::connect(bool wait_for_init, bool retry_on)
+{
+    db_connect("CONFIG_DB", wait_for_init, retry_on);
 }
 
 // Write a table entry to config db.
