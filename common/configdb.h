@@ -19,6 +19,7 @@ public:
     std::unordered_map<std::string, std::string> get_entry(std::string table, std::string key);
     std::vector<std::string> get_keys(std::string table, bool split = true);
     std::unordered_map<std::string, std::unordered_map<std::string, std::string>> get_table(std::string table);
+    void delete_table(std::string table);
 
 protected:
     static constexpr const char *INIT_INDICATOR = "CONFIG_DB_INITIALIZED";

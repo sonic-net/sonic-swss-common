@@ -174,3 +174,17 @@ unordered_map<string, unordered_map<string, string>> ConfigDBConnector::get_tabl
     return data;
 }
 
+// Delete an entire table from config db.
+// Args:
+//     table: Table name.
+void ConfigDBConnector::delete_table(string table)
+{
+    auto& client = get_redis_client(m_db_name);
+    string pattern = to_upper(table) + TABLE_NAME_SEPARATOR + "*";
+    const auto& keys = client.keys(pattern);
+    for (auto& key: keys)
+    {
+        client.del(key);
+    }
+}
+
