@@ -149,3 +149,28 @@ vector<string> ConfigDBConnector::get_keys(string table, bool split)
     }
     return data;
 }
+
+// Read an entire table from config db.
+// Args:
+//     table: Table name.
+// Returns:
+//     Table data in a dictionary form of
+//     { 'row_key': {'column_key': value, ...}, ...}
+//     or { ('l1_key', 'l2_key', ...): {'column_key': value, ...}, ...} for a multi-key table.
+//     Empty dictionary if table does not exist.
+unordered_map<string, unordered_map<string, string>> ConfigDBConnector::get_table(string table)
+{
+    auto& client = get_redis_client(m_db_name);
+    string pattern = to_upper(table) + TABLE_NAME_SEPARATOR + "*";
+    const auto& keys = client.keys(pattern);
+    unordered_map<string, unordered_map<string, string>> data;
+    for (auto& key: keys)
+    {
+        auto const& entry = client.hgetall(key);
+        size_t pos = key.find(TABLE_NAME_SEPARATOR);
+        string row = key.substr(pos + 1);
+        data[row] = entry;
+    }
+    return data;
+}
+
