@@ -223,9 +223,9 @@ private:
 template<typename OutputIterator>
 void DBConnector::hgetall(const std::string &key, OutputIterator result)
 {
-    RedisCommand sincr;
-    sincr.format("HGETALL %s", key.c_str());
-    RedisReply r(this, sincr, REDIS_REPLY_ARRAY);
+    RedisCommand shgetall;
+    shgetall.format("HGETALL %s", key.c_str());
+    RedisReply r(this, shgetall, REDIS_REPLY_ARRAY);
 
     auto ctx = r.getContext();
 
