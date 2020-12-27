@@ -73,6 +73,10 @@ void RedisTransactioner::enqueue(const std::string &command, int expectedType)
 
 redisReply *RedisTransactioner::dequeueReply()
 {
+    if (m_results.empty())
+    {
+        return NULL;
+    }
     redisReply *ret = m_results.front();
     m_results.pop_front();
     return ret;
@@ -80,7 +84,10 @@ redisReply *RedisTransactioner::dequeueReply()
 
 void RedisTransactioner::clearResults()
 {
-    if (m_results.empty()) return;
+    if (m_results.empty())
+    {
+        return;
+    }
     for (const auto& r: m_results)
     {
         freeReplyObject(r);
