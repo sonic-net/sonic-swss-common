@@ -31,6 +31,24 @@ public:
         __swig_setmethods__["KEY_SEPARATOR"] = None
         if _newclass: KEY_SEPARATOR = property(getKeySeparator, None)
 
+        ## Note: callback is difficult to implement by SWIG C++, so keep in python
+        def listen(self):
+            ## Start listen Redis keyspace events and will trigger corresponding handlers when content of a table changes.
+            self.pubsub = self.get_redis_client(self.m_db_name).pubsub()
+            self.pubsub.psubscribe("__keyspace@{}__:*".format(self.get_dbid(self.m_db_name)))
+            while True:
+                item = self.pubsub.listen_message():
+                if item['type'] == 'pmessage':
+                    key = item['channel'].split(':', 1)[1]
+                    try:
+                        (table, row) = key.split(self.TABLE_NAME_SEPARATOR, 1)
+                        if table in self.handlers:
+                            client = self.get_redis_client(self.db_name)
+                            data = self.raw_to_typed(client.hgetall(key))
+                            self.__fire(table, row, data)
+                    except ValueError:
+                        pass    #Ignore non table-formated redis entries
+
         ## Dynamic typed functions used in python
         @staticmethod
         def raw_to_typed(raw_data):
@@ -90,6 +108,15 @@ protected:
     std::string KEY_SEPARATOR = "|";
 
     std::string m_db_name;
+
+#ifdef SWIG
+    %pythoncode %{
+        def __fire(self, table, key, data):
+            if table in self.handlers:
+                handler = self.handlers[table]
+                handler(table, key, data)
+    %}
+#endif
 };
 
 #ifdef SWIG
@@ -105,6 +132,8 @@ protected:
         if namespace is None:
             namespace = ''
         _old_ConfigDBConnector__init__(self, use_unix_socket_path = use_unix_socket_path, netns = namespace)
+        ## Note: callback is difficult to implement by SWIG C++, so keep in python
+        self.handlers = {}
     ConfigDBConnector.__init__ = _new_ConfigDBConnector__init__
 
     _old_ConfigDBConnector_set_entry = ConfigDBConnector.set_entry
