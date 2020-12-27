@@ -10,12 +10,15 @@ using namespace swss;
 
 ConfigDBConnector::ConfigDBConnector(bool use_unix_socket_path, const char *netns)
     : SonicV2Connector(use_unix_socket_path, netns)
+    , TABLE_NAME_SEPARATOR("|")
+    , KEY_SEPARATOR("|")
 {
 }
 
 void ConfigDBConnector::db_connect(string db_name, bool wait_for_init, bool retry_on)
 {
     m_db_name = db_name;
+    KEY_SEPARATOR = TABLE_NAME_SEPARATOR = get_db_separator(db_name);
     SonicV2Connector::connect(m_db_name, retry_on);
 
     if (wait_for_init)
@@ -34,7 +37,11 @@ void ConfigDBConnector::db_connect(string db_name, bool wait_for_init, bool retr
                 {
                     string channel = item["channel"];
                     size_t pos = channel.find(':');
-                    string key = channel.substr(pos + 1);
+                    string key;
+                    if (pos != string::npos)
+                    {
+                        key = channel.substr(pos + 1);
+                    }
                     if (key == INIT_INDICATOR)
                     {
                         initialized = client.get(INIT_INDICATOR);
@@ -139,7 +146,11 @@ vector<string> ConfigDBConnector::get_keys(string table, bool split)
         if (split)
         {
             size_t pos = key.find(TABLE_NAME_SEPARATOR);
-            string row = key.substr(pos + 1);
+            string row;
+            if (pos != string::npos)
+            {
+                row = key.substr(pos + 1);
+            }
             data.push_back(row);
         }
         else
@@ -168,7 +179,11 @@ unordered_map<string, unordered_map<string, string>> ConfigDBConnector::get_tabl
     {
         auto const& entry = client.hgetall(key);
         size_t pos = key.find(TABLE_NAME_SEPARATOR);
-        string row = key.substr(pos + 1);
+        string row;
+        if (pos != string::npos)
+        {
+            row = key.substr(pos + 1);
+        }
         data[row] = entry;
     }
     return data;

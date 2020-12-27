@@ -25,8 +25,8 @@ public:
 
 protected:
     static constexpr const char *INIT_INDICATOR = "CONFIG_DB_INITIALIZED";
-    static constexpr const char *TABLE_NAME_SEPARATOR = "|";
-    static constexpr const char *KEY_SEPARATOR = "|";
+    std::string TABLE_NAME_SEPARATOR = "|";
+    std::string KEY_SEPARATOR = "|";
 
     std::string m_db_name;
 };
