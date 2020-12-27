@@ -263,3 +263,8 @@ unordered_map<string, unordered_map<string, unordered_map<string, string>>> Conf
     }
     return data;
 }
+
+std::string ConfigDBConnector::getKeySeparator() const
+{
+    return KEY_SEPARATOR;
+}

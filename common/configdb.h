@@ -23,16 +23,15 @@ public:
     void mod_config(const std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_map<std::string, std::string>>>& data);
     std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_map<std::string, std::string>>> get_config();
 
-protected:
-    static constexpr const char *INIT_INDICATOR = "CONFIG_DB_INITIALIZED";
-    std::string TABLE_NAME_SEPARATOR = "|";
-    std::string KEY_SEPARATOR = "|";
-
-    std::string m_db_name;
+    std::string getKeySeparator() const;
 
 #ifdef SWIG
-    // Dynamic typed functions used in python
     %pythoncode %{
+        __swig_getmethods__["KEY_SEPARATOR"] = getKeySeparator
+        __swig_setmethods__["KEY_SEPARATOR"] = None
+        if _newclass: KEY_SEPARATOR = property(getKeySeparator, None)
+
+        ## Dynamic typed functions used in python
         @staticmethod
         def raw_to_typed(raw_data):
             if raw_data is None:
@@ -85,6 +84,12 @@ protected:
     %}
 #endif
 
+protected:
+    static constexpr const char *INIT_INDICATOR = "CONFIG_DB_INITIALIZED";
+    std::string TABLE_NAME_SEPARATOR = "|";
+    std::string KEY_SEPARATOR = "|";
+
+    std::string m_db_name;
 };
 
 #ifdef SWIG
