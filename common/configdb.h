@@ -3,6 +3,7 @@
 #include <string>
 #include <map>
 #include "sonicv2connector.h"
+#include "redistran.h"
 
 namespace swss {
 
@@ -20,8 +21,8 @@ public:
     std::vector<std::string> get_keys(std::string table, bool split = true);
     std::unordered_map<std::string, std::unordered_map<std::string, std::string>> get_table(std::string table);
     void delete_table(std::string table);
-    void mod_config(const std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_map<std::string, std::string>>>& data);
-    std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_map<std::string, std::string>>> get_config();
+    virtual void mod_config(const std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_map<std::string, std::string>>>& data);
+    virtual std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_map<std::string, std::string>>> get_config();
 
     std::string getKeySeparator() const;
 
@@ -157,6 +158,42 @@ protected:
         return self.raw_to_typed(raw_data)
     ConfigDBConnector.get_entry = _new_ConfigDBConnector_get_entry
 
+%}
+#endif
+
+class ConfigDBPipeConnector: public ConfigDBConnector
+{
+public:
+    ConfigDBPipeConnector(bool use_unix_socket_path = false, const char *netns = "");
+
+    void mod_config(const std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_map<std::string, std::string>>>& data) override;
+    std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_map<std::string, std::string>>> get_config() override;
+
+private:
+    static const int64_t REDIS_SCAN_BATCH_SIZE = 30;
+
+    int64_t _delete_entries(DBConnector& client, RedisTransactioner& pipe, const char *pattern, int64_t cursor);
+    void _delete_table(DBConnector& client, RedisTransactioner& pipe, std::string table);
+    void _mod_entry(RedisTransactioner& pipe, std::string table, std::string key, const std::unordered_map<std::string, std::string>& data);
+    int64_t _get_config(DBConnector& client, RedisTransactioner& pipe, std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_map<std::string, std::string>>>& data, int64_t cursor);
+};
+
+#ifdef SWIG
+%pythoncode %{
+    // TRICK!
+    // Note: there is no easy way for SWIG to map ctor parameter netns(C++) to namespace(python),
+    // so we use python patch to achieve this
+    // TODO: implement it with formal SWIG syntax, which will be target language independent
+    _old_ConfigDBPipeConnector__init__ = ConfigDBPipeConnector.__init__
+    def _new_ConfigDBPipeConnector__init__(self, use_unix_socket_path = False, namespace = '', **kwargs):
+        if 'decode_responses' in kwargs and kwargs.pop('decode_responses') != True:
+            raise ValueError('decode_responses must be True if specified, False is not supported')
+        if namespace is None:
+            namespace = ''
+        _old_ConfigDBPipeConnector__init__(self, use_unix_socket_path = use_unix_socket_path, netns = namespace)
+        ## Note: callback is difficult to implement by SWIG C++, so keep in python
+        self.handlers = {}
+    ConfigDBPipeConnector.__init__ = _new_ConfigDBPipeConnector__init__
 %}
 #endif
 }
