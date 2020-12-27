@@ -681,6 +681,26 @@ vector<string> DBConnector::keys(const string &key)
     return list;
 }
 
+pair<int64_t, vector<string>> DBConnector::scan(int64_t cursor, const char *match, uint32_t count)
+{
+    RedisCommand sscan;
+    sscan.format("SCAN %lld %s %lld", cursor, match, count);
+    RedisReply r(this, sscan, REDIS_REPLY_ARRAY);
+
+    RedisReply r0(r.releaseChild(0));
+    RedisReply r1(r.releaseChild(1));
+    r1.checkReplyType(REDIS_REPLY_ARRAY);
+
+    pair<int64_t, vector<string>> ret;
+    ret.first = r0.getReply<long long>();
+    for (size_t i = 0; i < r1.getChildCount(); i++)
+    {
+        RedisReply r11(r1.releaseChild(i));
+        ret.second.emplace_back(r11.getReply<string>());
+    }
+    return ret;
+}
+
 int64_t DBConnector::incr(const string &key)
 {
     RedisCommand sincr;

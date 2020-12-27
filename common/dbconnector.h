@@ -175,6 +175,8 @@ public:
 
     std::vector<std::string> keys(const std::string &key);
 
+    std::pair<int64_t, std::vector<std::string>> scan(int64_t cursor = 0, const char *match = "", uint32_t count = 10);
+
     void set(const std::string &key, const std::string &value);
 
     void hset(const std::string &key, const std::string &field, const std::string &value);

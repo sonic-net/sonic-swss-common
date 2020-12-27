@@ -69,6 +69,11 @@ std::vector<std::string> SonicV2Connector::keys(const std::string& db_name, cons
     return m_dbintf.keys(db_name, pattern, blocking);
 }
 
+std::pair<int64_t, std::vector<std::string>> SonicV2Connector::scan(const std::string& db_name, int64_t cursor, const char *match, uint32_t count)
+{
+    return m_dbintf.scan(db_name, cursor, match, count);
+}
+
 std::string SonicV2Connector::get(const std::string& db_name, const std::string& _hash, const std::string& key, bool blocking)
 {
     return m_dbintf.get(db_name, _hash, key, blocking);

@@ -74,7 +74,12 @@ public:
     /* Return the actual reply object */
     redisReply *getContext();
 
+    size_t getChildCount();
+
     redisReply *getChild(size_t index);
+
+    /* Return the actual child reply object and release the ownership */
+    redisReply *releaseChild(size_t index);
 
     void checkReplyType(int expectedType);
 
