@@ -7,21 +7,30 @@ namespace swss
 class Boolean
 {
 public:
-    operator bool() const;
-protected:
     Boolean() = default;
-    Boolean(bool boolean);
+    Boolean(bool boolean) : m_boolean(boolean)
+    {
+    }
+    operator bool() const
+    {
+        return m_boolean;
+    }
+protected:
     bool m_boolean;
 };
 
 class AlphaBoolean : public Boolean
 {
 public:
-    static const std::string ALPHA_TRUE;
-    static const std::string ALPHA_FALSE;
     AlphaBoolean() = default;
-    AlphaBoolean(bool boolean);
+    AlphaBoolean(bool boolean) : Boolean(boolean)
+    {
+    }
 };
+
+std::ostream &operator<<(std::ostream &out, const Boolean &b);
+
+std::istream &operator>>(std::istream &in, Boolean &b);
 
 std::ostream &operator<<(std::ostream &out, const AlphaBoolean &b);
 

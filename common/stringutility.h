@@ -23,29 +23,6 @@ static inline void lexical_convert(const std::string &str, T &t)
     t = boost::lexical_cast<T>(str);
 }
 
-// static inline void lexical_convert(const std::string &str, bool &b)
-// {
-//     try
-//     {
-//         b = boost::lexical_cast<bool>(str);
-//     }
-//     catch(const boost::bad_lexical_cast& e)
-//     {
-//         if (str == TRUE_STRING)
-//         {
-//             b = true;
-//         }
-//         else if (str == FALSE_STRING)
-//         {
-//             b = false;
-//         }
-//         else
-//         {
-//             throw e;
-//         }
-//     }
-// }
-
 namespace lexical_convert_detail
 {
 
