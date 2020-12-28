@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>
+#include <ios>
 
 namespace swss
 {
@@ -28,12 +29,34 @@ public:
     }
 };
 
-std::ostream &operator<<(std::ostream &out, const Boolean &b);
+static inline std::ostream &operator<<(std::ostream &out, const AlphaBoolean &b)
+{
+    bool value = b;
+    out << std::boolalpha << value;
+    return out;
+}
 
-std::istream &operator>>(std::istream &in, Boolean &b);
+static inline std::istream &operator>>(std::istream &in, AlphaBoolean &b)
+{
+    bool value = false;
+    in >> std::boolalpha >> value;
+    b = value;
+    return in;
+}
 
-std::ostream &operator<<(std::ostream &out, const AlphaBoolean &b);
+static inline std::ostream &operator<<(std::ostream &out, const Boolean &b)
+{
+    bool value = b;
+    out << value;
+    return out;
+}
 
-std::istream &operator>>(std::istream &in, AlphaBoolean &b);
+static inline std::istream &operator>>(std::istream &in, Boolean &b)
+{
+    bool value = false;
+    in >> value;
+    b = value;
+    return in;
+}
 
 }

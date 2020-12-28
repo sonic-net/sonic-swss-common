@@ -63,8 +63,7 @@ libswsscommon_la_SOURCES = \
     subscriberstatetable.cpp  \
     timestamp.cpp             \
     warm_restart.cpp          \
-    redisutility.cpp          \
-    boolean.cpp
+    redisutility.cpp
 
 libswsscommon_la_CXXFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CFLAGS)
 libswsscommon_la_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CPPFLAGS)
