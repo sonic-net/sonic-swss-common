@@ -13,6 +13,7 @@
 #define SWIG_PYTHON_2_UNICODE
 
 #include "schema.h"
+#include "configdb.h"
 #include "dbconnector.h"
 #include "dbinterface.h"
 #include "sonicv2connector.h"
@@ -106,6 +107,7 @@ T castSelectableObj(swss::Selectable *temp)
 %template(CastSelectableToSubscriberTableObj) castSelectableObj<swss::SubscriberStateTable *>;
 
 %include "schema.h"
+%include "configdb.h"
 %include "dbconnector.h"
 %include "sonicv2connector.h"
 %include "pubsub.h"

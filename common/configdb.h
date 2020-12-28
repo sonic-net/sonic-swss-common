@@ -38,7 +38,7 @@ public:
             self.pubsub = self.get_redis_client(self.m_db_name).pubsub()
             self.pubsub.psubscribe("__keyspace@{}__:*".format(self.get_dbid(self.m_db_name)))
             while True:
-                item = self.pubsub.listen_message():
+                item = self.pubsub.listen_message()
                 if item['type'] == 'pmessage':
                     key = item['channel'].split(':', 1)[1]
                     try:
@@ -122,10 +122,10 @@ protected:
 
 #ifdef SWIG
 %pythoncode %{
-    // TRICK!
-    // Note: there is no easy way for SWIG to map ctor parameter netns(C++) to namespace(python),
-    // so we use python patch to achieve this
-    // TODO: implement it with formal SWIG syntax, which will be target language independent
+    ## TRICK!
+    ## Note: there is no easy way for SWIG to map ctor parameter netns(C++) to namespace(python),
+    ## so we use python patch to achieve this
+    ## TODO: implement it with formal SWIG syntax, which will be target language independent
     _old_ConfigDBConnector__init__ = ConfigDBConnector.__init__
     def _new_ConfigDBConnector__init__(self, use_unix_socket_path = False, namespace = '', **kwargs):
         if 'decode_responses' in kwargs and kwargs.pop('decode_responses') != True:
@@ -180,10 +180,10 @@ private:
 
 #ifdef SWIG
 %pythoncode %{
-    // TRICK!
-    // Note: there is no easy way for SWIG to map ctor parameter netns(C++) to namespace(python),
-    // so we use python patch to achieve this
-    // TODO: implement it with formal SWIG syntax, which will be target language independent
+    ## TRICK!
+    ## Note: there is no easy way for SWIG to map ctor parameter netns(C++) to namespace(python),
+    ## so we use python patch to achieve this
+    ## TODO: implement it with formal SWIG syntax, which will be target language independent
     _old_ConfigDBPipeConnector__init__ = ConfigDBPipeConnector.__init__
     def _new_ConfigDBPipeConnector__init__(self, use_unix_socket_path = False, namespace = '', **kwargs):
         if 'decode_responses' in kwargs and kwargs.pop('decode_responses') != True:

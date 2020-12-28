@@ -269,6 +269,11 @@ std::string ConfigDBConnector::getKeySeparator() const
     return KEY_SEPARATOR;
 }
 
+ConfigDBPipeConnector::ConfigDBPipeConnector(bool use_unix_socket_path, const char *netns)
+    : ConfigDBConnector(use_unix_socket_path, netns)
+{
+}
+
 // Helper method to delete table entries from config db using Redis pipeline
 // with batch size of REDIS_SCAN_BATCH_SIZE.
 // The caller should call pipeline execute once ready
