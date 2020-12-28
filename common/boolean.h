@@ -16,6 +16,10 @@ public:
     {
         return m_boolean;
     }
+    operator bool&()
+    {
+        return m_boolean;
+    }
 protected:
     bool m_boolean;
 };
@@ -31,32 +35,22 @@ public:
 
 static inline std::ostream &operator<<(std::ostream &out, const AlphaBoolean &b)
 {
-    bool value = b;
-    out << std::boolalpha << value;
-    return out;
+    return out << std::boolalpha << (bool)(b);
 }
 
 static inline std::istream &operator>>(std::istream &in, AlphaBoolean &b)
 {
-    bool value = false;
-    in >> std::boolalpha >> value;
-    b = value;
-    return in;
+    return in >> std::boolalpha >> (bool &)(b);
 }
 
 static inline std::ostream &operator<<(std::ostream &out, const Boolean &b)
 {
-    bool value = b;
-    out << value;
-    return out;
+    return out << (bool)(b);
 }
 
 static inline std::istream &operator>>(std::istream &in, Boolean &b)
 {
-    bool value = false;
-    in >> value;
-    b = value;
-    return in;
+    return in >> (bool &)(b);
 }
 
 }

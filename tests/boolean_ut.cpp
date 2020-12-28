@@ -4,6 +4,33 @@
 
 #include <sstream>
 
+TEST(BOOLEAN, boolean)
+{
+    swss::Boolean b;
+
+    b = true;
+    std::ostringstream ost;
+    ost << b;
+    EXPECT_EQ(ost.str(), "1");
+
+    b = false;
+    std::ostringstream osf;
+    osf << b;
+    EXPECT_EQ(osf.str(), "0");
+
+    b = false;
+    std::istringstream ist("1");
+    ist >> b;
+    EXPECT_TRUE(b);
+    EXPECT_FALSE(ist.fail());
+
+    b = true;
+    std::istringstream isf("0");
+    isf >> b;
+    EXPECT_FALSE(b);
+    EXPECT_FALSE(isf.fail());
+}
+
 TEST(BOOLEAN, alpha_boolean)
 {
     swss::AlphaBoolean bt(true);
