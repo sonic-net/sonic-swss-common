@@ -30,6 +30,9 @@ tests_SOURCES = redis_ut.cpp                \
                 logger_ut.cpp               \
                 redis_multi_ns_ut.cpp       \
                 fdb_flush.cpp               \
+                stringutility_ut.cpp        \
+                redisutility_ut.cpp         \
+                boolean_ut.cpp              \
                 main.cpp
 
 tests_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_GTEST) $(LIBNL_CFLAGS)
