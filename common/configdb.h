@@ -86,20 +86,29 @@ public:
                     raw_data[key] = str(value)
             return raw_data
 
+        # Note: we could not use a class variable for KEY_SEPARATOR, but original dependent code is using
+        # these static functions. So we implement both static and instance functions with the same name.
+        # The static function will behave according to ConfigDB separators.
         @staticmethod
-        def serialize_key(key):
+        def serialize_key(key, separator='|'):
             if type(key) is tuple:
-                return ConfigDBConnector.KEY_SEPARATOR.join(key)
+                return separator.join(key)
             else:
                 return str(key)
 
+        def _serialize_key(self, key):
+            return ConfigDBConnector.serialize_key(key, self.KEY_SEPARATOR)
+
         @staticmethod
-        def deserialize_key(key):
-            tokens = key.split(ConfigDBConnector.KEY_SEPARATOR)
+        def deserialize_key(key, separator='|'):
+            tokens = key.split(separator)
             if len(tokens) > 1:
                 return tuple(tokens)
             else:
                 return key
+
+        def _deserialize_key(self, key):
+            return ConfigDBConnector.deserialize_key(key, self.KEY_SEPARATOR)
     %}
 #endif
 
@@ -133,6 +142,12 @@ protected:
         if namespace is None:
             namespace = ''
         _old_ConfigDBConnector__init__(self, use_unix_socket_path = use_unix_socket_path, netns = namespace)
+
+        # Trick: to achieve static/instance method "overload", we must use initize the function in ctor
+        # ref: https://stackoverflow.com/a/28766809/2514803
+        self.serialize_key = self._serialize_key
+        self.deserialize_key = self._deserialize_key
+
         ## Note: callback is difficult to implement by SWIG C++, so keep in python
         self.handlers = {}
     ConfigDBConnector.__init__ = _new_ConfigDBConnector__init__
