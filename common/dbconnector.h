@@ -40,6 +40,15 @@ public:
     static constexpr const char *DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE = "/var/run/redis/sonic-db/database_global.json";
     static void initialize(const std::string &file = DEFAULT_SONIC_DB_CONFIG_FILE);
     static void initializeGlobalConfig(const std::string &file = DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE);
+#ifdef SWIG
+    %pythoncode %{
+        ## TODO: the python function and C++ one is not on-par
+        @staticmethod
+        def load_sonic_global_db_config(global_db_file_path=DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE, namespace=None):
+            SonicDBConfig.initializeGlobalConfig(global_db_file_path)
+    %}
+#endif
+
     static void validateNamespace(const std::string &netns);
     static std::string getDbInst(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
     static int getDbId(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
