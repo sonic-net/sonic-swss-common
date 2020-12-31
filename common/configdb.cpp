@@ -1,5 +1,5 @@
 #include <boost/algorithm/string.hpp>
-#include <unordered_map>
+#include <map>
 #include <vector>
 #include "configdb.h"
 #include "pubsub.h"
@@ -69,7 +69,7 @@ void ConfigDBConnector::connect(bool wait_for_init, bool retry_on)
 //     key: Key of table entry, or a tuple of keys if it is a multi-key table.
 //     data: Table row data in a form of dictionary {'column_key': 'value', ...}.
 //           Pass {} as data will delete the entry.
-void ConfigDBConnector::set_entry(string table, string key, const unordered_map<string, string>& data)
+void ConfigDBConnector::set_entry(string table, string key, const map<string, string>& data)
 {
     auto& client = get_redis_client(m_db_name);
     string _hash = to_upper(table) + TABLE_NAME_SEPARATOR + key;
@@ -100,7 +100,7 @@ void ConfigDBConnector::set_entry(string table, string key, const unordered_map<
 //     data: Table row data in a form of dictionary {'column_key': 'value', ...}.
 //           Pass {} as data will create an entry with no column if not already existed.
 //           Pass None as data will delete the entry.
-void ConfigDBConnector::mod_entry(string table, string key, const unordered_map<string, string>& data)
+void ConfigDBConnector::mod_entry(string table, string key, const map<string, string>& data)
 {
     auto& client = get_redis_client(m_db_name);
     string _hash = to_upper(table) + TABLE_NAME_SEPARATOR + key;
@@ -121,7 +121,7 @@ void ConfigDBConnector::mod_entry(string table, string key, const unordered_map<
 // Returns:
 //     Table row data in a form of dictionary {'column_key': 'value', ...}
 //     Empty dictionary if table does not exist or entry does not exist.
-unordered_map<string, string> ConfigDBConnector::get_entry(string table, string key)
+map<string, string> ConfigDBConnector::get_entry(string table, string key)
 {
     auto& client = get_redis_client(m_db_name);
     string _hash = to_upper(table) + TABLE_NAME_SEPARATOR + key;
@@ -169,12 +169,12 @@ vector<string> ConfigDBConnector::get_keys(string table, bool split)
 //     { 'row_key': {'column_key': value, ...}, ...}
 //     or { ('l1_key', 'l2_key', ...): {'column_key': value, ...}, ...} for a multi-key table.
 //     Empty dictionary if table does not exist.
-unordered_map<string, unordered_map<string, string>> ConfigDBConnector::get_table(string table)
+map<string, map<string, string>> ConfigDBConnector::get_table(string table)
 {
     auto& client = get_redis_client(m_db_name);
     string pattern = to_upper(table) + TABLE_NAME_SEPARATOR + "*";
     const auto& keys = client.keys(pattern);
-    unordered_map<string, unordered_map<string, string>> data;
+    map<string, map<string, string>> data;
     for (auto& key: keys)
     {
         auto const& entry = client.hgetall(key);
@@ -212,7 +212,7 @@ void ConfigDBConnector::delete_table(string table)
 //         'MULTI_KEY_TABLE_NAME': { ('l1_key', 'l2_key', ...) : {'column_key': 'value', ...}, ...},
 //         ...
 //     }
-void ConfigDBConnector::mod_config(const unordered_map<string, unordered_map<string, unordered_map<string, string>>>& data)
+void ConfigDBConnector::mod_config(const map<string, map<string, map<string, string>>>& data)
 {
     for (auto const& it: data)
     {
@@ -240,11 +240,11 @@ void ConfigDBConnector::mod_config(const unordered_map<string, unordered_map<str
 //         'MULTI_KEY_TABLE_NAME': { ('l1_key', 'l2_key', ...) : {'column_key': 'value', ...}, ...},
 //         ...
 //     }
-unordered_map<string, unordered_map<string, unordered_map<string, string>>> ConfigDBConnector::get_config()
+map<string, map<string, map<string, string>>> ConfigDBConnector::get_config()
 {
     auto& client = get_redis_client(m_db_name);
     auto const& keys = client.keys("*");
-    unordered_map<string, unordered_map<string, unordered_map<string, string>>> data;
+    map<string, map<string, map<string, string>>> data;
     for (string key: keys)
     {
         size_t pos = key.find(TABLE_NAME_SEPARATOR);
@@ -325,7 +325,7 @@ void ConfigDBPipeConnector::_delete_table(DBConnector& client, RedisTransactione
 //     data: Table row data in a form of dictionary {'column_key': 'value', ...}.
 //           Pass {} as data will create an entry with no column if not already existed.
 //           Pass None as data will delete the entry.
-void ConfigDBPipeConnector::_mod_entry(RedisTransactioner& pipe, string table, string key, const unordered_map<string, string>& data)
+void ConfigDBPipeConnector::_mod_entry(RedisTransactioner& pipe, string table, string key, const map<string, string>& data)
 {
     string _hash = to_upper(table) + TABLE_NAME_SEPARATOR + key;
     if (data.empty())
@@ -350,7 +350,7 @@ void ConfigDBPipeConnector::_mod_entry(RedisTransactioner& pipe, string table, s
 //         'MULTI_KEY_TABLE_NAME': { ('l1_key', 'l2_key', ...) : {'column_key': 'value', ...}, ...},
 //         ...
 //     }
-void ConfigDBPipeConnector::mod_config(const unordered_map<string, unordered_map<string, unordered_map<string, string>>>& data)
+void ConfigDBPipeConnector::mod_config(const map<string, map<string, map<string, string>>>& data)
 {
     auto& client = get_redis_client(m_db_name);
     RedisTransactioner pipe(&client);
@@ -382,7 +382,7 @@ void ConfigDBPipeConnector::mod_config(const unordered_map<string, unordered_map
 //
 // Returns:
 //     cur: poition of next item to scan
-int64_t ConfigDBPipeConnector::_get_config(DBConnector& client, RedisTransactioner& pipe, unordered_map<string, unordered_map<string, unordered_map<string, string>>>& data, int64_t cursor)
+int64_t ConfigDBPipeConnector::_get_config(DBConnector& client, RedisTransactioner& pipe, map<string, map<string, map<string, string>>>& data, int64_t cursor)
 {
     auto const& rc = client.scan(cursor, "*", REDIS_SCAN_BATCH_SIZE);
     auto cur = rc.first;
@@ -433,12 +433,12 @@ int64_t ConfigDBPipeConnector::_get_config(DBConnector& client, RedisTransaction
     return cur;
 }
 
-unordered_map<string, unordered_map<string, unordered_map<string, string>>> ConfigDBPipeConnector::get_config()
+map<string, map<string, map<string, string>>> ConfigDBPipeConnector::get_config()
 {
     auto& client = get_redis_client(m_db_name);
     RedisTransactioner pipe(&client);
 
-    unordered_map<string, unordered_map<string, unordered_map<string, string>>> data;
+    map<string, map<string, map<string, string>>> data;
     auto cur = _get_config(client, pipe, data, 0);
     while (cur != 0)
     {

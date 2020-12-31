@@ -15,14 +15,14 @@ public:
     void db_connect(std::string db_name, bool wait_for_init, bool retry_on);
     void connect(bool wait_for_init = true, bool retry_on = false);
 
-    void set_entry(std::string table, std::string key, const std::unordered_map<std::string, std::string>& data);
-    void mod_entry(std::string table, std::string key, const std::unordered_map<std::string, std::string>& data);
-    std::unordered_map<std::string, std::string> get_entry(std::string table, std::string key);
+    void set_entry(std::string table, std::string key, const std::map<std::string, std::string>& data);
+    void mod_entry(std::string table, std::string key, const std::map<std::string, std::string>& data);
+    std::map<std::string, std::string> get_entry(std::string table, std::string key);
     std::vector<std::string> get_keys(std::string table, bool split = true);
-    std::unordered_map<std::string, std::unordered_map<std::string, std::string>> get_table(std::string table);
+    std::map<std::string, std::map<std::string, std::string>> get_table(std::string table);
     void delete_table(std::string table);
-    virtual void mod_config(const std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_map<std::string, std::string>>>& data);
-    virtual std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_map<std::string, std::string>>> get_config();
+    virtual void mod_config(const std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>& data);
+    virtual std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> get_config();
 
     std::string getKeySeparator() const;
 
@@ -181,16 +181,16 @@ class ConfigDBPipeConnector: public ConfigDBConnector
 public:
     ConfigDBPipeConnector(bool use_unix_socket_path = false, const char *netns = "");
 
-    void mod_config(const std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_map<std::string, std::string>>>& data) override;
-    std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_map<std::string, std::string>>> get_config() override;
+    void mod_config(const std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>& data) override;
+    std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> get_config() override;
 
 private:
     static const int64_t REDIS_SCAN_BATCH_SIZE = 30;
 
     int64_t _delete_entries(DBConnector& client, RedisTransactioner& pipe, const char *pattern, int64_t cursor);
     void _delete_table(DBConnector& client, RedisTransactioner& pipe, std::string table);
-    void _mod_entry(RedisTransactioner& pipe, std::string table, std::string key, const std::unordered_map<std::string, std::string>& data);
-    int64_t _get_config(DBConnector& client, RedisTransactioner& pipe, std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_map<std::string, std::string>>>& data, int64_t cursor);
+    void _mod_entry(RedisTransactioner& pipe, std::string table, std::string key, const std::map<std::string, std::string>& data);
+    int64_t _get_config(DBConnector& client, RedisTransactioner& pipe, std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>& data, int64_t cursor);
 };
 
 #ifdef SWIG
