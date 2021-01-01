@@ -26,7 +26,7 @@ void ConfigDBConnector::db_connect(string db_name, bool wait_for_init, bool retr
         auto& client = get_redis_client(m_db_name);
         auto pubsub = client.pubsub();
         auto initialized = client.get(INIT_INDICATOR);
-        if (initialized)
+        if (!initialized || initialized->empty())
         {
             string pattern = "__keyspace@" + to_string(get_dbid(m_db_name)) +  "__:" + INIT_INDICATOR;
             pubsub->psubscribe(pattern);
