@@ -173,6 +173,35 @@ protected:
         return self.raw_to_typed(raw_data)
     ConfigDBConnector.get_entry = _new_ConfigDBConnector_get_entry
 
+    _old_ConfigDBConnector_get_keys = ConfigDBConnector.get_keys
+    def _new_ConfigDBConnector_get_keys(self, table, split=True):
+        keys = _old_ConfigDBConnector_get_keys(self, table, split)
+        ret = []
+        for key in keys:
+            ret.append(self.deserialize_key(key))
+        return ret
+    ConfigDBConnector.get_key = _new_ConfigDBConnector_get_keys
+
+    _old_ConfigDBConnector_get_table = ConfigDBConnector.get_table
+    def _new_ConfigDBConnector_get_table(self, table):
+        data = _old_ConfigDBConnector_get_table(self, table)
+        ret = {}
+        for row, entry in data.items():
+            entry = self.raw_to_typed(entry)
+            ret[self.deserialize_key(row)] = entry
+        return ret
+    ConfigDBConnector.get_table = _new_ConfigDBConnector_get_table
+
+    _old_ConfigDBConnector_get_config = ConfigDBConnector.get_config
+    def _new_ConfigDBConnector_get_config(self):
+        data = _old_ConfigDBConnector_get_config(self)
+        ret = {}
+        for table_name, table in data.items():
+            for row, entry in table.items():
+                entry = self.raw_to_typed(entry)
+                ret.setdefault(table_name, {})[self.deserialize_key(row)] = entry
+        return ret
+    ConfigDBConnector.get_config = _new_ConfigDBConnector_get_config
 %}
 #endif
 
