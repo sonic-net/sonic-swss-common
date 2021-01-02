@@ -99,6 +99,11 @@ redisReply *RedisReply::getContext()
     return m_reply;
 }
 
+size_t RedisReply::getChildCount()
+{
+    return m_reply->elements;
+}
+
 redisReply *RedisReply::getChild(size_t index)
 {
     if (index >= m_reply->elements)
@@ -106,6 +111,13 @@ redisReply *RedisReply::getChild(size_t index)
         throw out_of_range("Out of the range of redisReply elements");
     }
     return m_reply->element[index];
+}
+
+redisReply *RedisReply::releaseChild(size_t index)
+{
+    auto ret = getChild(index);
+    m_reply->element[index] = NULL;
+    return ret;
 }
 
 void RedisReply::checkStatus(const char *status)

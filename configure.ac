@@ -29,6 +29,7 @@ AC_ARG_ENABLE(debug,
 	*) AC_MSG_ERROR(bad value ${enableval} for --enable-debug) ;;
 esac],[debug=false])
 AM_CONDITIONAL(DEBUG, test x$debug = xtrue)
+AM_CONDITIONAL(ARCH64, test `getconf LONG_BIT` = "64")
 
 AC_PATH_PROG(SWIG, [swig3.0])
 

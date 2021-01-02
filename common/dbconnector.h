@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <map>
 #include <unordered_map>
 #include <utility>
 #include <memory>
@@ -40,6 +41,15 @@ public:
     static constexpr const char *DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE = "/var/run/redis/sonic-db/database_global.json";
     static void initialize(const std::string &file = DEFAULT_SONIC_DB_CONFIG_FILE);
     static void initializeGlobalConfig(const std::string &file = DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE);
+#ifdef SWIG
+    %pythoncode %{
+        ## TODO: the python function and C++ one is not on-par
+        @staticmethod
+        def load_sonic_global_db_config(global_db_file_path=DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE, namespace=None):
+            SonicDBConfig.initializeGlobalConfig(global_db_file_path)
+    %}
+#endif
+
     static void validateNamespace(const std::string &netns);
     static std::string getDbInst(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
     static int getDbId(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
@@ -168,12 +178,14 @@ public:
 
     void del(const std::vector<std::string>& keys);
 
-    std::unordered_map<std::string, std::string> hgetall(const std::string &key);
+    std::map<std::string, std::string> hgetall(const std::string &key);
 
     template <typename OutputIterator>
     void hgetall(const std::string &key, OutputIterator result);
 
     std::vector<std::string> keys(const std::string &key);
+
+    std::pair<int64_t, std::vector<std::string>> scan(int64_t cursor = 0, const char *match = "", uint32_t count = 10);
 
     void set(const std::string &key, const std::string &value);
 
@@ -201,6 +213,8 @@ public:
     void subscribe(const std::string &pattern);
 
     void psubscribe(const std::string &pattern);
+
+    void punsubscribe(const std::string &pattern);
 
     int64_t publish(const std::string &channel, const std::string &message);
 

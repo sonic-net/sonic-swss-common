@@ -13,6 +13,7 @@
 #define SWIG_PYTHON_2_UNICODE
 
 #include "schema.h"
+#include "configdb.h"
 #include "dbconnector.h"
 #include "dbinterface.h"
 #include "sonicv2connector.h"
@@ -60,6 +61,8 @@
 %template(FieldValuePairs) std::vector<std::pair<std::string, std::string>>;
 %template(FieldValueMap) std::map<std::string, std::string>;
 %template(VectorString) std::vector<std::string>;
+%template(ScanResult) std::pair<int64_t, std::vector<std::string>>;
+%template(GetTableResult) std::map<std::string, std::map<std::string, std::string>>;
 
 %pythoncode %{
     def _FieldValueMap__get(self, key, default=None):
@@ -105,6 +108,7 @@ T castSelectableObj(swss::Selectable *temp)
 %template(CastSelectableToSubscriberTableObj) castSelectableObj<swss::SubscriberStateTable *>;
 
 %include "schema.h"
+%include "configdb.h"
 %include "dbconnector.h"
 %include "sonicv2connector.h"
 %include "pubsub.h"

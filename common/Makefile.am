@@ -30,6 +30,7 @@ endif
 libswsscommon_la_SOURCES = \
     logger.cpp                \
     redisreply.cpp            \
+    configdb.cpp              \
     dbconnector.cpp           \
     dbinterface.cpp           \
     sonicv2connector.cpp      \

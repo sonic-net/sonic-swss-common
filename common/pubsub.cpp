@@ -21,6 +21,12 @@ void PubSub::psubscribe(const std::string &pattern)
     m_select.addSelectable(this);
 }
 
+void PubSub::punsubscribe(const std::string &pattern)
+{
+    RedisSelect::punsubscribe(pattern);
+    m_select.removeSelectable(this);
+}
+
 uint64_t PubSub::readData()
 {
     redisReply *reply = nullptr;
@@ -71,7 +77,7 @@ bool PubSub::hasCachedData()
     return m_keyspace_event_buffer.size() > 1;
 }
 
-map<string, string> PubSub::get_message()
+map<string, string> PubSub::get_message(double timeout)
 {
     map<string, string> ret;
     if (!m_subscribe)
@@ -80,7 +86,7 @@ map<string, string> PubSub::get_message()
     }
 
     Selectable *selected;
-    int rc = m_select.select(&selected, 0);
+    int rc = m_select.select(&selected, int(timeout));
     switch (rc)
     {
         case Select::ERROR:
@@ -109,6 +115,21 @@ map<string, string> PubSub::get_message()
     ret["channel"] = message.channel;
     ret["data"] = message.data;
     return ret;
+}
+
+// Note: it is not straightforward to implement redis-py PubSub.listen() directly in c++
+// due to the `yield` syntax, so we implement this function for blocking listen one message
+std::map<std::string, std::string> PubSub::listen_message()
+{
+    const double GET_MESSAGE_INTERVAL = 600.0; // in seconds
+    for (;;)
+    {
+        auto ret = get_message(GET_MESSAGE_INTERVAL);
+        if (!ret.empty())
+        {
+            return ret;
+        }
+    }
 }
 
 shared_ptr<RedisReply> PubSub::popEventBuffer()

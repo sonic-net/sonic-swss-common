@@ -659,9 +659,9 @@ void DBConnector::config_set(const std::string &key, const std::string &value)
     RedisReply r(this, sset, REDIS_REPLY_STATUS);
 }
 
-unordered_map<string, string> DBConnector::hgetall(const string &key)
+map<string, string> DBConnector::hgetall(const string &key)
 {
-    unordered_map<string, string> map;
+    map<string, string> map;
     hgetall(key, std::inserter(map, map.end()));
     return map;
 }
@@ -679,6 +679,26 @@ vector<string> DBConnector::keys(const string &key)
         list.emplace_back(ctx->element[i]->str);
 
     return list;
+}
+
+pair<int64_t, vector<string>> DBConnector::scan(int64_t cursor, const char *match, uint32_t count)
+{
+    RedisCommand sscan;
+    sscan.format("SCAN %lld %s %lld", cursor, match, count);
+    RedisReply r(this, sscan, REDIS_REPLY_ARRAY);
+
+    RedisReply r0(r.releaseChild(0));
+    RedisReply r1(r.releaseChild(1));
+    r1.checkReplyType(REDIS_REPLY_ARRAY);
+
+    pair<int64_t, vector<string>> ret;
+    ret.first = r0.getReply<long long>();
+    for (size_t i = 0; i < r1.getChildCount(); i++)
+    {
+        RedisReply r11(r1.releaseChild(i));
+        ret.second.emplace_back(r11.getReply<string>());
+    }
+    return ret;
 }
 
 int64_t DBConnector::incr(const string &key)
@@ -787,6 +807,13 @@ void DBConnector::subscribe(const std::string &pattern)
 void DBConnector::psubscribe(const std::string &pattern)
 {
     std::string s("PSUBSCRIBE ");
+    s += pattern;
+    RedisReply r(this, s, REDIS_REPLY_ARRAY);
+}
+
+void DBConnector::punsubscribe(const std::string &pattern)
+{
+    std::string s("PUNSUBSCRIBE ");
     s += pattern;
     RedisReply r(this, s, REDIS_REPLY_ARRAY);
 }
