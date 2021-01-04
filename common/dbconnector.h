@@ -3,7 +3,6 @@
 
 #include <string>
 #include <vector>
-#include <map>
 #include <unordered_map>
 #include <utility>
 #include <memory>
@@ -178,7 +177,7 @@ public:
 
     void del(const std::vector<std::string>& keys);
 
-    std::map<std::string, std::string> hgetall(const std::string &key);
+    std::unordered_map<std::string, std::string> hgetall(const std::string &key);
 
     template <typename OutputIterator>
     void hgetall(const std::string &key, OutputIterator result);
