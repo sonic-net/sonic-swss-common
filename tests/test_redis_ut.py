@@ -3,7 +3,7 @@ import pytest
 from threading import Thread
 from pympler.tracker import SummaryTracker
 from swsscommon import swsscommon
-from swsscommon.swsscommon import DBInterface, SonicV2Connector, SonicDBConfig
+from swsscommon.swsscommon import DBInterface, SonicV2Connector, SonicDBConfig, ConfigDBConnector
 
 existing_file = "./tests/redis_multi_db_ut_config/database_config.json"
 
@@ -237,3 +237,10 @@ def test_DBInterface():
     # Test exception
     with pytest.raises(ValueError):
         db = SonicV2Connector(decode_responses=False)
+
+def test_ConfigDBConnector():
+    config_db = ConfigDBConnector()
+    config_db.connect(wait_for_init=False)
+    config_db.set_entry("TEST_PORT", "Ethernet111", {"alias": "etp1x"})
+    allconfig = config_db.get_config()
+    assert allconfig["TEST_PORT"]["alias"] == "etp1x"
