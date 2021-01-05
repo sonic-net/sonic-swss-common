@@ -84,7 +84,7 @@ void ConfigDBConnector::set_entry(string table, string key, const map<string, st
         for (auto& it: original)
         {
             auto& k = it.first;
-            bool found = data.find(k) == data.end();
+            bool found = data.find(k) != data.end();
             if (!found)
             {
                 client.hdel(_hash, k);
