@@ -49,7 +49,6 @@ def test_Table():
     assert fvs[0] == ('a', 'b')
     assert fvs[1] == ('c', 'd')
     alltable = db.hgetall("test_TABLE:aaa")
-    print(alltable)
     assert len(alltable) == 2
     assert alltable['a'] == 'b'
 
@@ -247,8 +246,6 @@ def test_ConfigDBConnector():
     config_db.connect(wait_for_init=False)
     config_db.set_entry("TEST_PORT", "Ethernet111", {"alias": "etp1x"})
     allconfig = config_db.get_config()
-    print(allconfig)
-    print(allconfig.keys())
     assert allconfig["TEST_PORT"]["Ethernet111"]["alias"] == "etp1x"
 
     config_db.set_entry("TEST_PORT", "Ethernet111", {"mtu": "12345"})
