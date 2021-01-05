@@ -659,13 +659,6 @@ void DBConnector::config_set(const std::string &key, const std::string &value)
     RedisReply r(this, sset, REDIS_REPLY_STATUS);
 }
 
-map<string, string> DBConnector::hgetall(const string &key)
-{
-    map<string, string> map;
-    hgetall(key, std::inserter(map, map.end()));
-    return map;
-}
-
 vector<string> DBConnector::keys(const string &key)
 {
     RedisCommand skeys;

@@ -3,7 +3,6 @@
 
 #include <string>
 #include <vector>
-#include <map>
 #include <unordered_map>
 #include <utility>
 #include <memory>
@@ -178,10 +177,13 @@ public:
 
     void del(const std::vector<std::string>& keys);
 
-    std::map<std::string, std::string> hgetall(const std::string &key);
+    template <typename ReturnType=std::unordered_map<std::string, std::string>>
+    ReturnType hgetall(const std::string &key);
 
+#ifndef SWIG
     template <typename OutputIterator>
     void hgetall(const std::string &key, OutputIterator result);
+#endif
 
     std::vector<std::string> keys(const std::string &key);
 
@@ -230,6 +232,15 @@ private:
     std::string m_shaRedisMulti;
 };
 
+template <typename ReturnType>
+ReturnType DBConnector::hgetall(const std::string &key)
+{
+    ReturnType map;
+    hgetall(key, std::inserter(map, map.end()));
+    return map;
+}
+
+#ifndef SWIG
 template<typename OutputIterator>
 void DBConnector::hgetall(const std::string &key, OutputIterator result)
 {
@@ -245,6 +256,7 @@ void DBConnector::hgetall(const std::string &key, OutputIterator result)
         ++result;
     }
 }
+#endif
 
 template<typename InputIterator>
 void DBConnector::hmset(const std::string &key, InputIterator start, InputIterator stop)

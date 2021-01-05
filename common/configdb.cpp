@@ -84,7 +84,7 @@ void ConfigDBConnector::set_entry(string table, string key, const map<string, st
         for (auto& it: original)
         {
             auto& k = it.first;
-            bool found = data.find(k) == data.end();
+            bool found = data.find(k) != data.end();
             if (!found)
             {
                 client.hdel(_hash, k);
@@ -125,7 +125,7 @@ map<string, string> ConfigDBConnector::get_entry(string table, string key)
 {
     auto& client = get_redis_client(m_db_name);
     string _hash = to_upper(table) + TABLE_NAME_SEPARATOR + key;
-    return client.hgetall(_hash);
+    return client.hgetall<map<string, string>>(_hash);
 }
 
 // Read all keys of a table from config db.
@@ -177,7 +177,7 @@ map<string, map<string, string>> ConfigDBConnector::get_table(string table)
     map<string, map<string, string>> data;
     for (auto& key: keys)
     {
-        auto const& entry = client.hgetall(key);
+        auto const& entry = client.hgetall<map<string, string>>(key);
         size_t pos = key.find(TABLE_NAME_SEPARATOR);
         string row;
         if (pos != string::npos)
@@ -254,7 +254,7 @@ map<string, map<string, map<string, string>>> ConfigDBConnector::get_config()
         }
         string table_name = key.substr(0, pos);
         string row = key.substr(pos + 1);
-        auto const& entry = client.hgetall(key);
+        auto const& entry = client.hgetall<map<string, string>>(key);
 
         if (!entry.empty())
         {

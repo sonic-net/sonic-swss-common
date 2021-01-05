@@ -63,6 +63,7 @@
 %template(VectorString) std::vector<std::string>;
 %template(ScanResult) std::pair<int64_t, std::vector<std::string>>;
 %template(GetTableResult) std::map<std::string, std::map<std::string, std::string>>;
+%template(GetConfigResult) std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>;
 
 %pythoncode %{
     def _FieldValueMap__get(self, key, default=None):
@@ -118,6 +119,10 @@ T castSelectableObj(swss::Selectable *temp)
 %include "redispipeline.h"
 %include "redisselect.h"
 %include "redistran.h"
+
+%extend swss::DBConnector {
+    %template(hgetall) hgetall<std::map<std::string, std::string>>;
+}
 
 %apply std::vector<std::string>& OUTPUT {std::vector<std::string> &keys};
 %apply std::vector<std::pair<std::string, std::string>>& OUTPUT {std::vector<std::pair<std::string, std::string>> &ovalues};
