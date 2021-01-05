@@ -243,4 +243,11 @@ def test_ConfigDBConnector():
     config_db.connect(wait_for_init=False)
     config_db.set_entry("TEST_PORT", "Ethernet111", {"alias": "etp1x"})
     allconfig = config_db.get_config()
-    assert allconfig["TEST_PORT"]["alias"] == "etp1x"
+    print(allconfig)
+    print(allconfig.keys())
+    assert allconfig["TEST_PORT"]["Ethernet111"]["alias"] == "etp1x"
+
+    config_db.set_entry("TEST_PORT", "Ethernet111", {"mtu": "12345"})
+    allconfig =  config_db.get_config()
+    assert "alias" not in allconfig["TEST_PORT"]["Ethernet111"]
+    assert allconfig["TEST_PORT"]["Ethernet111"]["mtu"] == "12345"
