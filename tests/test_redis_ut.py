@@ -48,6 +48,10 @@ def test_Table():
     assert len(fvs) == 2
     assert fvs[0] == ('a', 'b')
     assert fvs[1] == ('c', 'd')
+    alltable = db.hgetall("test_TABLE:aaa")
+    print(alltable)
+    assert len(alltable) == 2
+    assert alltable['a'] == 'b'
 
 def test_SubscriberStateTable():
     db = swsscommon.DBConnector("APPL_DB", 0, True)

@@ -120,6 +120,10 @@ T castSelectableObj(swss::Selectable *temp)
 %include "redisselect.h"
 %include "redistran.h"
 
+%extend swss::DBConnector {
+    %template(hgetall) hgetall<std::map<std::string, std::string>>;
+}
+
 %apply std::vector<std::string>& OUTPUT {std::vector<std::string> &keys};
 %apply std::vector<std::pair<std::string, std::string>>& OUTPUT {std::vector<std::pair<std::string, std::string>> &ovalues};
 %apply std::string& OUTPUT {std::string &value};
