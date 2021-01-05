@@ -180,8 +180,8 @@ public:
     template <typename ReturnType=std::unordered_map<std::string, std::string>>
     ReturnType hgetall(const std::string &key);
 
-    template <typename OutputIterator>
 #ifndef SWIG
+    template <typename OutputIterator>
     void hgetall(const std::string &key, OutputIterator result);
 #endif
 

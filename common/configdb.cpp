@@ -125,9 +125,7 @@ map<string, string> ConfigDBConnector::get_entry(string table, string key)
 {
     auto& client = get_redis_client(m_db_name);
     string _hash = to_upper(table) + TABLE_NAME_SEPARATOR + key;
-    map<string, string> ret;
-    client.hgetall(_hash, inserter(ret, ret.end()));
-    return ret;
+    return client.hgetall<map<string, string>>(_hash);
 }
 
 // Read all keys of a table from config db.
@@ -179,15 +177,14 @@ map<string, map<string, string>> ConfigDBConnector::get_table(string table)
     map<string, map<string, string>> data;
     for (auto& key: keys)
     {
+        auto const& entry = client.hgetall<map<string, string>>(key);
         size_t pos = key.find(TABLE_NAME_SEPARATOR);
         string row;
         if (pos != string::npos)
         {
             row = key.substr(pos + 1);
         }
-        auto rc = data.emplace(row, map<string, string>());
-        auto& entry = rc.first->second;
-        client.hgetall(key, inserter(entry, entry.end()));
+        data[row] = entry;
     }
     return data;
 }
@@ -257,9 +254,7 @@ map<string, map<string, map<string, string>>> ConfigDBConnector::get_config()
         }
         string table_name = key.substr(0, pos);
         string row = key.substr(pos + 1);
-
-        map<string, string> entry;
-        client.hgetall(key, inserter(entry, entry.end()));
+        auto const& entry = client.hgetall<map<string, string>>(key);
 
         if (!entry.empty())
         {
