@@ -157,7 +157,7 @@ void SubscriberStateTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, const strin
         {
             if (!m_table.get(key, kfvFieldsValues(kco)))
             {
-                SWSS_LOG_ERROR("Failed to get content for table key %s", table_entry.c_str());
+                SWSS_LOG_NOTICE("Miss table key %s, possibly outdated", table_entry.c_str());
                 continue;
             }
             kfvKey(kco) = key;
