@@ -73,6 +73,7 @@ void SonicDBConfig::initializeGlobalConfig(const string &file)
     std::unordered_map<std::string, SonicDBInfo> db_entry;
     std::unordered_map<std::string, RedisInstInfo> inst_entry;
     std::unordered_map<int, std::string> separator_entry;
+    std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
 
     SWSS_LOG_ENTER();
 
@@ -82,7 +83,6 @@ void SonicDBConfig::initializeGlobalConfig(const string &file)
         return;
     }
 
-    pthread_rwlock_wrlock(&db_info_lock);
     ifstream i(file);
     if (i.good())
     {
@@ -142,13 +142,11 @@ void SonicDBConfig::initializeGlobalConfig(const string &file)
         catch (domain_error& e)
         {
             SWSS_LOG_ERROR("key doesn't exist in json object, NULL value has no iterator >> %s\n", e.what());
-            pthread_rwlock_unlock(&db_info_lock);
             throw runtime_error("key doesn't exist in json object, NULL value has no iterator >> " + string(e.what()));
         }
         catch (exception &e)
         {
             SWSS_LOG_ERROR("Sonic database config file syntax error >> %s\n", e.what());
-            pthread_rwlock_unlock(&db_info_lock);
             throw runtime_error("Sonic database config file syntax error >> " + string(e.what()));
         }
     }
@@ -157,7 +155,6 @@ void SonicDBConfig::initializeGlobalConfig(const string &file)
         SWSS_LOG_ERROR("Sonic database config global file doesn't exist at %s\n", file.c_str());
     }
 
-    pthread_rwlock_unlock(&db_info_lock);
 
     // Set it as the global config file is already parsed and init done.
     m_global_init = true;
@@ -168,6 +165,7 @@ void SonicDBConfig::initialize(const string &file)
     std::unordered_map<std::string, SonicDBInfo> db_entry;
     std::unordered_map<std::string, RedisInstInfo> inst_entry;
     std::unordered_map<int, std::string> separator_entry;
+    std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
 
     SWSS_LOG_ENTER();
 
@@ -177,12 +175,10 @@ void SonicDBConfig::initialize(const string &file)
         throw runtime_error("SonicDBConfig already initialized");
     }
 
-    pthread_rwlock_wrlock(&db_info_lock);
     parseDatabaseConfig(file, inst_entry, db_entry, separator_entry);
     m_inst_info[EMPTY_NAMESPACE] = inst_entry;
     m_db_info[EMPTY_NAMESPACE] = db_entry;
     m_db_separator[EMPTY_NAMESPACE] = separator_entry;
-    pthread_rwlock_unlock(&db_info_lock);
 
     // Set it as the config file is already parsed and init done.
     m_init = true;
@@ -190,6 +186,8 @@ void SonicDBConfig::initialize(const string &file)
 
 void SonicDBConfig::validateNamespace(const string &netns)
 {
+    std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
+
     SWSS_LOG_ENTER();
 
     // With valid namespace input and database_global.json is not loaded, ask user to initializeGlobalConfig first
@@ -202,9 +200,7 @@ void SonicDBConfig::validateNamespace(const string &netns)
         }
 
         // Check if the namespace is valid, check if this is a key in either of this map
-        pthread_rwlock_rdlock(&db_info_lock);
         unordered_map<string, unordered_map<string, RedisInstInfo>>::const_iterator entry = m_inst_info.find(netns);
-        pthread_rwlock_unlock(&db_info_lock);
         if (entry == m_inst_info.end())
         {
             SWSS_LOG_THROW("Namespace %s is not a valid namespace name in config file", netns.c_str());
@@ -214,6 +210,8 @@ void SonicDBConfig::validateNamespace(const string &netns)
 
 SonicDBInfo& SonicDBConfig::getDbInfo(const std::string &dbName, const std::string &netns)
 {
+    std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
+
     SWSS_LOG_ENTER();
 
     if (!m_init)
@@ -226,9 +224,7 @@ SonicDBInfo& SonicDBConfig::getDbInfo(const std::string &dbName, const std::stri
             SWSS_LOG_THROW("Initialize global DB config using API SonicDBConfig::initializeGlobalConfig");
         }
     }
-    pthread_rwlock_rdlock(&db_info_lock);
     auto foundNetns = m_db_info.find(netns);
-    pthread_rwlock_unlock(&db_info_lock);
     if (foundNetns == m_db_info.end())
     {
         string msg = "Namespace " + netns + " is not a valid namespace name in config file";
@@ -248,6 +244,8 @@ SonicDBInfo& SonicDBConfig::getDbInfo(const std::string &dbName, const std::stri
 
 RedisInstInfo& SonicDBConfig::getRedisInfo(const std::string &dbName, const std::string &netns)
 {
+    std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
+
     SWSS_LOG_ENTER();
 
     if (!m_init)
@@ -260,9 +258,7 @@ RedisInstInfo& SonicDBConfig::getRedisInfo(const std::string &dbName, const std:
             SWSS_LOG_THROW("Initialize global DB config using API SonicDBConfig::initializeGlobalConfig");
         }
     }
-    pthread_rwlock_rdlock(&db_info_lock);
     auto foundNetns = m_inst_info.find(netns);
-    pthread_rwlock_unlock(&db_info_lock);
     if (foundNetns == m_inst_info.end())
     {
         string msg = "Namespace " + netns + " is not a valid namespace name in Redis instances in config file";
@@ -297,6 +293,8 @@ string SonicDBConfig::getSeparator(const string &dbName, const string &netns)
 
 string SonicDBConfig::getSeparator(int dbId, const string &netns)
 {
+    std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
+
     if (!m_init)
         initialize(DEFAULT_SONIC_DB_CONFIG_FILE);
 
@@ -307,9 +305,7 @@ string SonicDBConfig::getSeparator(int dbId, const string &netns)
             SWSS_LOG_THROW("Initialize global DB config using API SonicDBConfig::initializeGlobalConfig");
         }
     }
-    pthread_rwlock_rdlock(&db_info_lock);
     auto foundNetns = m_db_separator.find(netns);
-    pthread_rwlock_unlock(&db_info_lock);
     if (foundNetns == m_db_separator.end())
     {
         string msg = "Namespace " + netns + " is not a valid namespace name in config file";
@@ -364,23 +360,23 @@ int SonicDBConfig::getDbPort(const string &dbName, const string &netns)
 vector<string> SonicDBConfig::getNamespaces()
 {
     vector<string> list;
+    std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
 
     if (!m_global_init)
         initializeGlobalConfig();
 
     // This API returns back non-empty namespaces.
-    pthread_rwlock_rdlock(&db_info_lock);
     for (auto it = m_inst_info.cbegin(); it != m_inst_info.cend(); ++it) {
         if(!((it->first).empty()))
             list.push_back(it->first);
     }
-    pthread_rwlock_unlock(&db_info_lock);
 
     return list;
 }
 
 std::vector<std::string> SonicDBConfig::getDbList(const std::string &netns)
 {
+    std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
     if (!m_init)
     {
         initialize();
@@ -388,18 +384,16 @@ std::vector<std::string> SonicDBConfig::getDbList(const std::string &netns)
     validateNamespace(netns);
 
     std::vector<std::string> dbNames;
-    pthread_rwlock_rdlock(&db_info_lock);
     for (auto& imap: m_db_info.at(netns))
     {
         dbNames.push_back(imap.first);
     }
-    pthread_rwlock_unlock(&db_info_lock);
     return dbNames;
 }
 
 constexpr const char *SonicDBConfig::DEFAULT_SONIC_DB_CONFIG_FILE;
 constexpr const char *SonicDBConfig::DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE;
-pthread_rwlock_t SonicDBConfig::db_info_lock = PTHREAD_RWLOCK_INITIALIZER;
+std::recursive_mutex SonicDBConfig::m_db_info_mutex;
 unordered_map<string, unordered_map<string, RedisInstInfo>> SonicDBConfig::m_inst_info;
 unordered_map<string, unordered_map<string, SonicDBInfo>> SonicDBConfig::m_db_info;
 unordered_map<string, unordered_map<int, string>> SonicDBConfig::m_db_separator;
