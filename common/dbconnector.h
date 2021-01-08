@@ -6,7 +6,6 @@
 #include <unordered_map>
 #include <utility>
 #include <memory>
-#include <pthread.h>
 #include <mutex>
 
 #include <hiredis/hiredis.h>
