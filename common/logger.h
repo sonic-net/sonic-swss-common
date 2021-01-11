@@ -136,7 +136,7 @@ private:
     static void swssPrioNotify(const std::string &component, const std::string &prioStr);
     static void swssOutputNotify(const std::string &component, const std::string &outputStr);
 
-    ATTRIBUTE_NORTEURN void settingThread();
+    void settingThread();
 
     LogSettingChangeObservers m_settingChangeObservers;
     std::map<std::string, std::string> m_currentPrios;
@@ -145,6 +145,7 @@ private:
     std::atomic<Output> m_output = { SWSS_SYSLOG };
     std::unique_ptr<std::thread> m_settingThread;
     std::mutex m_mutex;
+    bool detachSettingThread = false;
 };
 
 }

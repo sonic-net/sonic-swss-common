@@ -381,11 +381,11 @@ std::vector<std::string> SonicDBConfig::getDbList(const std::string &netns)
 
 constexpr const char *SonicDBConfig::DEFAULT_SONIC_DB_CONFIG_FILE;
 constexpr const char *SonicDBConfig::DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE;
-unordered_map<string, unordered_map<string, RedisInstInfo>> SonicDBConfig::m_inst_info;
-unordered_map<string, unordered_map<string, SonicDBInfo>> SonicDBConfig::m_db_info;
-unordered_map<string, unordered_map<int, string>> SonicDBConfig::m_db_separator;
-bool SonicDBConfig::m_init = false;
-bool SonicDBConfig::m_global_init = false;
+thread_local unordered_map<string, unordered_map<string, RedisInstInfo>> SonicDBConfig::m_inst_info;
+thread_local unordered_map<string, unordered_map<string, SonicDBInfo>> SonicDBConfig::m_db_info;
+thread_local unordered_map<string, unordered_map<int, string>> SonicDBConfig::m_db_separator;
+thread_local bool SonicDBConfig::m_init = false;
+thread_local bool SonicDBConfig::m_global_init = false;
 
 constexpr const char *RedisContext::DEFAULT_UNIXSOCKET;
 
