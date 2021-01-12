@@ -145,7 +145,7 @@ private:
     std::atomic<Output> m_output = { SWSS_SYSLOG };
     std::unique_ptr<std::thread> m_settingThread;
     std::mutex m_mutex;
-    bool detachSettingThread = false;
+    bool terminateSettingThread = false;
 };
 
 }

@@ -33,8 +33,8 @@ void err_exit(const char *fn, int ln, int e, const char *fmt, ...)
 
 Logger::~Logger() {
     if (m_settingThread) {
-        detachSettingThread = true;
-        m_settingThread->detach();
+        terminateSettingThread = true;
+        m_settingThread->join();
     }
 }
 
@@ -171,7 +171,7 @@ void Logger::settingThread()
     DBConnector db("LOGLEVEL_DB", 0);
     std::map<std::string, std::shared_ptr<ConsumerStateTable>> selectables;
 
-    while (!detachSettingThread)
+    while (!terminateSettingThread)
     {
         if (selectables.size() < m_settingChangeObservers.size())
         {

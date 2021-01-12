@@ -65,13 +65,13 @@ public:
 
 private:
     // { namespace { instName, { unix_socket_path, hostname, port } } }
-    static thread_local std::unordered_map<std::string, std::unordered_map<std::string, RedisInstInfo>> m_inst_info;
+    static std::unordered_map<std::string, std::unordered_map<std::string, RedisInstInfo>> m_inst_info;
     // { namespace, { dbName, {instName, dbId, separator} } }
-    static thread_local std::unordered_map<std::string, std::unordered_map<std::string, SonicDBInfo>> m_db_info;
+    static std::unordered_map<std::string, std::unordered_map<std::string, SonicDBInfo>> m_db_info;
     // { namespace, { dbId, separator } }
-    static thread_local std::unordered_map<std::string, std::unordered_map<int, std::string>> m_db_separator;
-    static thread_local bool m_init;
-    static thread_local bool m_global_init;
+    static std::unordered_map<std::string, std::unordered_map<int, std::string>> m_db_separator;
+    static bool m_init;
+    static bool m_global_init;
     static void parseDatabaseConfig(const std::string &file,
                                     std::unordered_map<std::string, RedisInstInfo> &inst_entry,
                                     std::unordered_map<std::string, SonicDBInfo> &db_entry,
@@ -86,10 +86,10 @@ public:
     static constexpr const char *DEFAULT_UNIXSOCKET = "/var/run/redis/redis.sock";
 
     /*
-     * Connect to Redis DB either with a hostname:port or unix socket
+     * Connect to Redis DB wither with a hostname:port or unix socket
      * Select the database index provided by "db"
      *
-     * Timeout - The time in millisecond until exception is been thrown. For
+     * Timeout - The time in milisecond until exception is been thrown. For
      *           infinite wait, set this value to 0
      */
     RedisContext(const RedisContext &other);
@@ -126,7 +126,7 @@ public:
      * Connect to Redis DB wither with a hostname:port or unix socket
      * Select the database index provided by "db"
      *
-     * Timeout - The time in millisecond until exception is been thrown. For
+     * Timeout - The time in milisecond until exception is been thrown. For
      *           infinite wait, set this value to 0
      */
     explicit DBConnector(const DBConnector &other);
