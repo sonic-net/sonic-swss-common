@@ -74,6 +74,7 @@ void SonicDBConfig::initializeGlobalConfig(const string &file)
     std::unordered_map<std::string, SonicDBInfo> db_entry;
     std::unordered_map<std::string, RedisInstInfo> inst_entry;
     std::unordered_map<int, std::string> separator_entry;
+    std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
 
     SWSS_LOG_ENTER();
 
@@ -155,6 +156,7 @@ void SonicDBConfig::initializeGlobalConfig(const string &file)
         SWSS_LOG_ERROR("Sonic database config global file doesn't exist at %s\n", file.c_str());
     }
 
+
     // Set it as the global config file is already parsed and init done.
     m_global_init = true;
 }
@@ -164,6 +166,7 @@ void SonicDBConfig::initialize(const string &file)
     std::unordered_map<std::string, SonicDBInfo> db_entry;
     std::unordered_map<std::string, RedisInstInfo> inst_entry;
     std::unordered_map<int, std::string> separator_entry;
+    std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
 
     SWSS_LOG_ENTER();
 
@@ -184,6 +187,8 @@ void SonicDBConfig::initialize(const string &file)
 
 void SonicDBConfig::validateNamespace(const string &netns)
 {
+    std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
+
     SWSS_LOG_ENTER();
 
     // With valid namespace input and database_global.json is not loaded, ask user to initializeGlobalConfig first
@@ -206,6 +211,8 @@ void SonicDBConfig::validateNamespace(const string &netns)
 
 SonicDBInfo& SonicDBConfig::getDbInfo(const std::string &dbName, const std::string &netns)
 {
+    std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
+
     SWSS_LOG_ENTER();
 
     if (!m_init)
@@ -238,6 +245,8 @@ SonicDBInfo& SonicDBConfig::getDbInfo(const std::string &dbName, const std::stri
 
 RedisInstInfo& SonicDBConfig::getRedisInfo(const std::string &dbName, const std::string &netns)
 {
+    std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
+
     SWSS_LOG_ENTER();
 
     if (!m_init)
@@ -285,6 +294,8 @@ string SonicDBConfig::getSeparator(const string &dbName, const string &netns)
 
 string SonicDBConfig::getSeparator(int dbId, const string &netns)
 {
+    std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
+
     if (!m_init)
         initialize(DEFAULT_SONIC_DB_CONFIG_FILE);
 
@@ -350,6 +361,7 @@ int SonicDBConfig::getDbPort(const string &dbName, const string &netns)
 vector<string> SonicDBConfig::getNamespaces()
 {
     vector<string> list;
+    std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
 
     if (!m_global_init)
         initializeGlobalConfig();
@@ -365,6 +377,7 @@ vector<string> SonicDBConfig::getNamespaces()
 
 std::vector<std::string> SonicDBConfig::getDbList(const std::string &netns)
 {
+    std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
     if (!m_init)
     {
         initialize();
@@ -381,6 +394,7 @@ std::vector<std::string> SonicDBConfig::getDbList(const std::string &netns)
 
 constexpr const char *SonicDBConfig::DEFAULT_SONIC_DB_CONFIG_FILE;
 constexpr const char *SonicDBConfig::DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE;
+std::recursive_mutex SonicDBConfig::m_db_info_mutex;
 unordered_map<string, unordered_map<string, RedisInstInfo>> SonicDBConfig::m_inst_info;
 unordered_map<string, unordered_map<string, SonicDBInfo>> SonicDBConfig::m_db_info;
 unordered_map<string, unordered_map<int, string>> SonicDBConfig::m_db_separator;
