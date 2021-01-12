@@ -29,8 +29,7 @@ jobs:
     displayName: "Install dependencies"
   - script: |
       ./autogen.sh
-      dpkg-buildpackage -us -uc -b -j$(nproc)
-      cp ../*.deb .
+      dpkg-buildpackage -us -uc -b -j$(nproc) && cp ../*.deb .
     displayName: "Compile sonic swss common"
   - script: |
       sudo pip install Pympler==0.8
@@ -53,7 +52,7 @@ jobs:
 - job:
   displayName: "arm64"
   timeoutInMinutes: 180
-  pool: sonic
+  pool: sonicbld
 
   container:
     image: sonicdev-microsoft.azurecr.io:443/sonic-slave-buster-arm64:latest
@@ -70,8 +69,7 @@ jobs:
     displayName: "Install dependencies"
   - script: |
       ./autogen.sh
-      dpkg-buildpackage -us -uc -b -j$(nproc)
-      cp ../*.deb .
+      dpkg-buildpackage -us -uc -b -j$(nproc) && cp ../*.deb .
     displayName: "Compile sonic swss common"
   - publish: $(System.DefaultWorkingDirectory)/
     artifact: sonic-swss-common.arm64
@@ -80,7 +78,7 @@ jobs:
 - job:
   displayName: "armhf"
   timeoutInMinutes: 180
-  pool: sonic
+  pool: sonicbld
 
   container:
     image: sonicdev-microsoft.azurecr.io:443/sonic-slave-buster-armhf:latest
@@ -97,8 +95,7 @@ jobs:
     displayName: "Install dependencies"
   - script: |
       ./autogen.sh
-      dpkg-buildpackage -us -uc -b -j$(nproc)
-      cp ../*.deb .
+      dpkg-buildpackage -us -uc -b -j$(nproc) && cp ../*.deb .
     displayName: "Compile sonic swss common"
   - publish: $(System.DefaultWorkingDirectory)/
     artifact: sonic-swss-common.armhf
