@@ -64,7 +64,14 @@ bool RedisTransactioner::exec()
 }
 
 /* Send a command within a transaction */
-void RedisTransactioner::enqueue(const std::string &command, int expectedType)
+void RedisTransactioner::enqueue(const std::string& command, int expectedType)
+{
+    RedisReply r(m_db, command, REDIS_REPLY_STATUS);
+    r.checkStatusQueued();
+    m_expectedResults.push_back(expectedType);
+}
+
+void RedisTransactioner::enqueue(const RedisCommand& command, int expectedType)
 {
     RedisReply r(m_db, command, REDIS_REPLY_STATUS);
     r.checkStatusQueued();

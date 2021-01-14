@@ -691,7 +691,7 @@ vector<string> DBConnector::keys(const string &key)
 pair<int64_t, vector<string>> DBConnector::scan(int64_t cursor, const char *match, uint32_t count)
 {
     RedisCommand sscan;
-    sscan.format("SCAN %lld %s %lld", cursor, match, count);
+    sscan.format("SCAN %lld MATCH %s COUNT %lld", cursor, match, count);
     RedisReply r(this, sscan, REDIS_REPLY_ARRAY);
 
     RedisReply r0(r.releaseChild(0));

@@ -3,7 +3,7 @@ import pytest
 from threading import Thread
 from pympler.tracker import SummaryTracker
 from swsscommon import swsscommon
-from swsscommon.swsscommon import DBInterface, SonicV2Connector, SonicDBConfig, ConfigDBConnector
+from swsscommon.swsscommon import ConfigDBPipeConnector, DBInterface, SonicV2Connector, SonicDBConfig, ConfigDBConnector
 
 existing_file = "./tests/redis_multi_db_ut_config/database_config.json"
 
@@ -252,3 +252,15 @@ def test_ConfigDBConnector():
     allconfig =  config_db.get_config()
     assert "alias" not in allconfig["TEST_PORT"]["Ethernet111"]
     assert allconfig["TEST_PORT"]["Ethernet111"]["mtu"] == "12345"
+
+def test_ConfigDBPipeConnector():
+    config_db = ConfigDBPipeConnector()
+    config_db.connect(wait_for_init=False)
+    config_db.set_entry("TEST_PORT", "Ethernet112", {"alias": "etp1x"})
+    allconfig = config_db.get_config()
+    assert allconfig["TEST_PORT"]["Ethernet112"]["alias"] == "etp1x"
+
+    config_db.set_entry("TEST_PORT", "Ethernet112", {"mtu": "12345"})
+    allconfig =  config_db.get_config()
+    assert "alias" not in allconfig["TEST_PORT"]["Ethernet112"]
+    assert allconfig["TEST_PORT"]["Ethernet112"]["mtu"] == "12345"

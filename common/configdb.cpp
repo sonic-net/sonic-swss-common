@@ -8,14 +8,14 @@
 using namespace std;
 using namespace swss;
 
-ConfigDBConnector::ConfigDBConnector(bool use_unix_socket_path, const char *netns)
+ConfigDBConnector_Native::ConfigDBConnector_Native(bool use_unix_socket_path, const char *netns)
     : SonicV2Connector(use_unix_socket_path, netns)
     , TABLE_NAME_SEPARATOR("|")
     , KEY_SEPARATOR("|")
 {
 }
 
-void ConfigDBConnector::db_connect(string db_name, bool wait_for_init, bool retry_on)
+void ConfigDBConnector_Native::db_connect(string db_name, bool wait_for_init, bool retry_on)
 {
     m_db_name = db_name;
     KEY_SEPARATOR = TABLE_NAME_SEPARATOR = get_db_separator(db_name);
@@ -57,7 +57,7 @@ void ConfigDBConnector::db_connect(string db_name, bool wait_for_init, bool retr
     }
 }
 
-void ConfigDBConnector::connect(bool wait_for_init, bool retry_on)
+void ConfigDBConnector_Native::connect(bool wait_for_init, bool retry_on)
 {
     db_connect("CONFIG_DB", wait_for_init, retry_on);
 }
@@ -69,7 +69,7 @@ void ConfigDBConnector::connect(bool wait_for_init, bool retry_on)
 //     key: Key of table entry, or a tuple of keys if it is a multi-key table.
 //     data: Table row data in a form of dictionary {'column_key': 'value', ...}.
 //           Pass {} as data will delete the entry.
-void ConfigDBConnector::set_entry(string table, string key, const map<string, string>& data)
+void ConfigDBConnector_Native::set_entry(string table, string key, const map<string, string>& data)
 {
     auto& client = get_redis_client(m_db_name);
     string _hash = to_upper(table) + TABLE_NAME_SEPARATOR + key;
@@ -100,7 +100,7 @@ void ConfigDBConnector::set_entry(string table, string key, const map<string, st
 //     data: Table row data in a form of dictionary {'column_key': 'value', ...}.
 //           Pass {} as data will create an entry with no column if not already existed.
 //           Pass None as data will delete the entry.
-void ConfigDBConnector::mod_entry(string table, string key, const map<string, string>& data)
+void ConfigDBConnector_Native::mod_entry(string table, string key, const map<string, string>& data)
 {
     auto& client = get_redis_client(m_db_name);
     string _hash = to_upper(table) + TABLE_NAME_SEPARATOR + key;
@@ -121,7 +121,7 @@ void ConfigDBConnector::mod_entry(string table, string key, const map<string, st
 // Returns:
 //     Table row data in a form of dictionary {'column_key': 'value', ...}
 //     Empty dictionary if table does not exist or entry does not exist.
-map<string, string> ConfigDBConnector::get_entry(string table, string key)
+map<string, string> ConfigDBConnector_Native::get_entry(string table, string key)
 {
     auto& client = get_redis_client(m_db_name);
     string _hash = to_upper(table) + TABLE_NAME_SEPARATOR + key;
@@ -135,7 +135,7 @@ map<string, string> ConfigDBConnector::get_entry(string table, string key)
 //            Useful for keys with two parts <tablename>:<key>
 // Returns:
 //     List of keys.
-vector<string> ConfigDBConnector::get_keys(string table, bool split)
+vector<string> ConfigDBConnector_Native::get_keys(string table, bool split)
 {
     auto& client = get_redis_client(m_db_name);
     string pattern = to_upper(table) + TABLE_NAME_SEPARATOR + "*";
@@ -169,7 +169,7 @@ vector<string> ConfigDBConnector::get_keys(string table, bool split)
 //     { 'row_key': {'column_key': value, ...}, ...}
 //     or { ('l1_key', 'l2_key', ...): {'column_key': value, ...}, ...} for a multi-key table.
 //     Empty dictionary if table does not exist.
-map<string, map<string, string>> ConfigDBConnector::get_table(string table)
+map<string, map<string, string>> ConfigDBConnector_Native::get_table(string table)
 {
     auto& client = get_redis_client(m_db_name);
     string pattern = to_upper(table) + TABLE_NAME_SEPARATOR + "*";
@@ -192,7 +192,7 @@ map<string, map<string, string>> ConfigDBConnector::get_table(string table)
 // Delete an entire table from config db.
 // Args:
 //     table: Table name.
-void ConfigDBConnector::delete_table(string table)
+void ConfigDBConnector_Native::delete_table(string table)
 {
     auto& client = get_redis_client(m_db_name);
     string pattern = to_upper(table) + TABLE_NAME_SEPARATOR + "*";
@@ -212,7 +212,7 @@ void ConfigDBConnector::delete_table(string table)
 //         'MULTI_KEY_TABLE_NAME': { ('l1_key', 'l2_key', ...) : {'column_key': 'value', ...}, ...},
 //         ...
 //     }
-void ConfigDBConnector::mod_config(const map<string, map<string, map<string, string>>>& data)
+void ConfigDBConnector_Native::mod_config(const map<string, map<string, map<string, string>>>& data)
 {
     for (auto const& it: data)
     {
@@ -240,7 +240,7 @@ void ConfigDBConnector::mod_config(const map<string, map<string, map<string, str
 //         'MULTI_KEY_TABLE_NAME': { ('l1_key', 'l2_key', ...) : {'column_key': 'value', ...}, ...},
 //         ...
 //     }
-map<string, map<string, map<string, string>>> ConfigDBConnector::get_config()
+map<string, map<string, map<string, string>>> ConfigDBConnector_Native::get_config()
 {
     auto& client = get_redis_client(m_db_name);
     auto const& keys = client.keys("*");
@@ -264,13 +264,13 @@ map<string, map<string, map<string, string>>> ConfigDBConnector::get_config()
     return data;
 }
 
-std::string ConfigDBConnector::getKeySeparator() const
+std::string ConfigDBConnector_Native::getKeySeparator() const
 {
     return KEY_SEPARATOR;
 }
 
-ConfigDBPipeConnector::ConfigDBPipeConnector(bool use_unix_socket_path, const char *netns)
-    : ConfigDBConnector(use_unix_socket_path, netns)
+ConfigDBPipeConnector_Native::ConfigDBPipeConnector_Native(bool use_unix_socket_path, const char *netns)
+    : ConfigDBConnector_Native(use_unix_socket_path, netns)
 {
 }
 
@@ -285,7 +285,7 @@ ConfigDBPipeConnector::ConfigDBPipeConnector(bool use_unix_socket_path, const ch
 //
 // Returns:
 //     cur: poition of next item to scan
-int64_t ConfigDBPipeConnector::_delete_entries(DBConnector& client, RedisTransactioner& pipe, const char *pattern, int64_t cursor)
+int64_t ConfigDBPipeConnector_Native::_delete_entries(DBConnector& client, RedisTransactioner& pipe, const char *pattern, int64_t cursor)
 {
     const auto& rc = client.scan(cursor, pattern, REDIS_SCAN_BATCH_SIZE);
     auto cur = rc.first;
@@ -294,7 +294,7 @@ int64_t ConfigDBPipeConnector::_delete_entries(DBConnector& client, RedisTransac
     {
         RedisCommand sdel;
         sdel.format("DEL %s", key.c_str());
-        pipe.enqueue(sdel.c_str(), REDIS_REPLY_INTEGER);
+        pipe.enqueue(sdel, REDIS_REPLY_INTEGER);
     }
 
     return cur;
@@ -306,7 +306,7 @@ int64_t ConfigDBPipeConnector::_delete_entries(DBConnector& client, RedisTransac
 //     client: Redis client
 //     pipe: Redis DB pipe
 //     table: Table name.
-void ConfigDBPipeConnector::_delete_table(DBConnector& client, RedisTransactioner& pipe, string table)
+void ConfigDBPipeConnector_Native::_delete_table(DBConnector& client, RedisTransactioner& pipe, string table)
 {
     string pattern = to_upper(table) + TABLE_NAME_SEPARATOR + "*";
     auto cur = _delete_entries(client, pipe, pattern.c_str(), 0);
@@ -325,20 +325,20 @@ void ConfigDBPipeConnector::_delete_table(DBConnector& client, RedisTransactione
 //     data: Table row data in a form of dictionary {'column_key': 'value', ...}.
 //           Pass {} as data will create an entry with no column if not already existed.
 //           Pass None as data will delete the entry.
-void ConfigDBPipeConnector::_mod_entry(RedisTransactioner& pipe, string table, string key, const map<string, string>& data)
+void ConfigDBPipeConnector_Native::_mod_entry(RedisTransactioner& pipe, string table, string key, const map<string, string>& data)
 {
     string _hash = to_upper(table) + TABLE_NAME_SEPARATOR + key;
     if (data.empty())
     {
         RedisCommand sdel;
         sdel.format("DEL %s", _hash.c_str());
-        pipe.enqueue(sdel.c_str(), REDIS_REPLY_INTEGER);
+        pipe.enqueue(sdel, REDIS_REPLY_INTEGER);
     }
     else
     {
         RedisCommand shmset;
         shmset.formatHMSET(_hash, data.begin(), data.end());
-        pipe.enqueue(shmset.c_str(), REDIS_REPLY_STATUS);
+        pipe.enqueue(shmset, REDIS_REPLY_STATUS);
     }
 }
 // Write multiple tables into config db.
@@ -350,7 +350,7 @@ void ConfigDBPipeConnector::_mod_entry(RedisTransactioner& pipe, string table, s
 //         'MULTI_KEY_TABLE_NAME': { ('l1_key', 'l2_key', ...) : {'column_key': 'value', ...}, ...},
 //         ...
 //     }
-void ConfigDBPipeConnector::mod_config(const map<string, map<string, map<string, string>>>& data)
+void ConfigDBPipeConnector_Native::mod_config(const map<string, map<string, map<string, string>>>& data)
 {
     auto& client = get_redis_client(m_db_name);
     RedisTransactioner pipe(&client);
@@ -382,7 +382,7 @@ void ConfigDBPipeConnector::mod_config(const map<string, map<string, map<string,
 //
 // Returns:
 //     cur: poition of next item to scan
-int64_t ConfigDBPipeConnector::_get_config(DBConnector& client, RedisTransactioner& pipe, map<string, map<string, map<string, string>>>& data, int64_t cursor)
+int64_t ConfigDBPipeConnector_Native::_get_config(DBConnector& client, RedisTransactioner& pipe, map<string, map<string, map<string, string>>>& data, int64_t cursor)
 {
     auto const& rc = client.scan(cursor, "*", REDIS_SCAN_BATCH_SIZE);
     auto cur = rc.first;
@@ -396,7 +396,7 @@ int64_t ConfigDBPipeConnector::_get_config(DBConnector& client, RedisTransaction
         }
         RedisCommand shgetall;
         shgetall.format("HGETALL %s", key.c_str());
-        pipe.enqueue(shgetall.c_str(), REDIS_REPLY_ARRAY);
+        pipe.enqueue(shgetall, REDIS_REPLY_ARRAY);
     }
     pipe.exec();
 
@@ -412,7 +412,7 @@ int64_t ConfigDBPipeConnector::_get_config(DBConnector& client, RedisTransaction
         {
             continue;
         }
-        string table_name = key.substr(0, pos - 1);
+        string table_name = key.substr(0, pos);
         string row = key.substr(pos + 1);
 
         auto reply = pipe.dequeueReply();
@@ -422,7 +422,7 @@ int64_t ConfigDBPipeConnector::_get_config(DBConnector& client, RedisTransaction
         }
         RedisReply r(reply);
 
-        auto dataentry = data[table_name][row];
+        auto& dataentry = data[table_name][row];
         for (unsigned int i = 0; i < r.getChildCount(); i += 2)
         {
             string field = r.getChild(i)->str;
@@ -433,7 +433,7 @@ int64_t ConfigDBPipeConnector::_get_config(DBConnector& client, RedisTransaction
     return cur;
 }
 
-map<string, map<string, map<string, string>>> ConfigDBPipeConnector::get_config()
+map<string, map<string, map<string, string>>> ConfigDBPipeConnector_Native::get_config()
 {
     auto& client = get_redis_client(m_db_name);
     RedisTransactioner pipe(&client);
