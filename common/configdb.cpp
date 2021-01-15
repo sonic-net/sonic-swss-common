@@ -437,7 +437,8 @@ int64_t ConfigDBPipeConnector_Native::_get_config(DBConnector& client, RedisTran
 map<string, map<string, map<string, string>>> ConfigDBPipeConnector_Native::get_config()
 {
     auto& client = get_redis_client(m_db_name);
-    RedisTransactioner pipe(&client);
+    DBConnector clientPipe(client);
+    RedisTransactioner pipe(&clientPipe);
 
     map<string, map<string, map<string, string>>> data;
     auto cur = _get_config(client, pipe, data, 0);
