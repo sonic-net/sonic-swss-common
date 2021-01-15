@@ -154,6 +154,18 @@ protected:
             raw_data = self.typed_to_raw(data)
             super(ConfigDBConnector, self).set_entry(table, key, raw_data)
 
+        def mod_config(self, data):
+            raw_config = {}
+            for table_name, table_data in data.items():
+                raw_config[table_name] = {}
+                if table_data == None:
+                    continue
+                for key, data in table_data.items():
+                    raw_key = self.serialize_key(key)
+                    raw_data = self.typed_to_raw(data)
+                    raw_config[table_name][raw_key] = raw_data
+            super(ConfigDBConnector, self).mod_config(raw_config)
+
         def mod_entry(self, table, key, data):
             key = self.serialize_key(key)
             raw_data = self.typed_to_raw(data)

@@ -353,7 +353,8 @@ void ConfigDBPipeConnector_Native::_mod_entry(RedisTransactioner& pipe, string t
 void ConfigDBPipeConnector_Native::mod_config(const map<string, map<string, map<string, string>>>& data)
 {
     auto& client = get_redis_client(m_db_name);
-    RedisTransactioner pipe(&client);
+    DBConnector clientPipe(client);
+    RedisTransactioner pipe(&clientPipe);
     pipe.multi();
     for (auto const& id: data)
     {

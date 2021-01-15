@@ -264,3 +264,10 @@ def test_ConfigDBPipeConnector():
     allconfig =  config_db.get_config()
     assert "alias" not in allconfig["TEST_PORT"]["Ethernet112"]
     assert allconfig["TEST_PORT"]["Ethernet112"]["mtu"] == "12345"
+
+    config_db.mod_config(allconfig)
+    allconfig["TEST_PORT"]["Ethernet113"] = None
+    allconfig["TEST_VLAN"] = None
+    config_db.mod_config(allconfig)
+    allconfig.setdefault("ACL_TABLE", {}).setdefault("EVERFLOW", {})["ports"] = ["Ethernet0","Ethernet4","Ethernet8"]
+    config_db.mod_config(allconfig)
