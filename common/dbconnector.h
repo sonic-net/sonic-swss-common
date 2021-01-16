@@ -207,7 +207,7 @@ public:
 
     std::vector<std::string> keys(const std::string &key);
 
-    std::pair<int64_t, std::vector<std::string>> scan(int64_t cursor = 0, const char *match = "", uint32_t count = 10);
+    std::pair<int, std::vector<std::string>> scan(int cursor = 0, const char *match = "", uint32_t count = 10);
 
     void set(const std::string &key, const std::string &value);
 

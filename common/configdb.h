@@ -213,10 +213,10 @@ public:
 private:
     static const int64_t REDIS_SCAN_BATCH_SIZE = 30;
 
-    int64_t _delete_entries(DBConnector& client, RedisTransactioner& pipe, const char *pattern, int64_t cursor);
+    int _delete_entries(DBConnector& client, RedisTransactioner& pipe, const char *pattern, int cursor);
     void _delete_table(DBConnector& client, RedisTransactioner& pipe, std::string table);
     void _mod_entry(RedisTransactioner& pipe, std::string table, std::string key, const std::map<std::string, std::string>& data);
-    int64_t _get_config(DBConnector& client, RedisTransactioner& pipe, std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>& data, int64_t cursor);
+    int _get_config(DBConnector& client, RedisTransactioner& pipe, std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>& data, int cursor);
 };
 
 #ifdef SWIG

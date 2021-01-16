@@ -248,12 +248,12 @@ map<string, map<string, map<string, string>>> ConfigDBConnector_Native::get_conf
     for (string key: keys)
     {
         size_t pos = key.find(TABLE_NAME_SEPARATOR);
-        if (pos == string::npos)
-        {
-            continue;
-        }
         string table_name = key.substr(0, pos);
-        string row = key.substr(pos + 1);
+        string row;
+        if (pos != string::npos)
+        {
+            row = key.substr(pos + 1);
+        }
         auto const& entry = client.hgetall<map<string, string>>(key);
 
         if (!entry.empty())
@@ -285,7 +285,7 @@ ConfigDBPipeConnector_Native::ConfigDBPipeConnector_Native(bool use_unix_socket_
 //
 // Returns:
 //     cur: poition of next item to scan
-int64_t ConfigDBPipeConnector_Native::_delete_entries(DBConnector& client, RedisTransactioner& pipe, const char *pattern, int64_t cursor)
+int ConfigDBPipeConnector_Native::_delete_entries(DBConnector& client, RedisTransactioner& pipe, const char *pattern, int cursor)
 {
     const auto& rc = client.scan(cursor, pattern, REDIS_SCAN_BATCH_SIZE);
     auto cur = rc.first;
@@ -383,7 +383,7 @@ void ConfigDBPipeConnector_Native::mod_config(const map<string, map<string, map<
 //
 // Returns:
 //     cur: poition of next item to scan
-int64_t ConfigDBPipeConnector_Native::_get_config(DBConnector& client, RedisTransactioner& pipe, map<string, map<string, map<string, string>>>& data, int64_t cursor)
+int ConfigDBPipeConnector_Native::_get_config(DBConnector& client, RedisTransactioner& pipe, map<string, map<string, map<string, string>>>& data, int cursor)
 {
     auto const& rc = client.scan(cursor, "*", REDIS_SCAN_BATCH_SIZE);
     auto cur = rc.first;
@@ -409,18 +409,14 @@ int64_t ConfigDBPipeConnector_Native::_get_config(DBConnector& client, RedisTran
         }
 
         size_t pos = key.find(TABLE_NAME_SEPARATOR);
-        if (pos == string::npos)
-        {
-            continue;
-        }
         string table_name = key.substr(0, pos);
-        string row = key.substr(pos + 1);
+        string row;
+        if (pos != string::npos)
+        {
+            row = key.substr(pos + 1);
+        }
 
         auto reply = pipe.dequeueReply();
-        if (reply == NULL)
-        {
-            continue;
-        }
         RedisReply r(reply);
 
         auto& dataentry = data[table_name][row];
