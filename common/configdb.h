@@ -7,10 +7,10 @@
 
 namespace swss {
 
-class ConfigDBConnector : public SonicV2Connector
+class ConfigDBConnector_Native : public SonicV2Connector
 {
 public:
-    ConfigDBConnector(bool use_unix_socket_path = false, const char *netns = "");
+    ConfigDBConnector_Native(bool use_unix_socket_path = false, const char *netns = "");
 
     void db_connect(std::string db_name, bool wait_for_init, bool retry_on);
     void connect(bool wait_for_init = true, bool retry_on = false);
@@ -131,84 +131,81 @@ protected:
 
 #ifdef SWIG
 %pythoncode %{
-    ## TRICK!
-    ## Note: there is no easy way for SWIG to map ctor parameter netns(C++) to namespace(python),
-    ## so we use python patch to achieve this
-    ## TODO: implement it with formal SWIG syntax, which will be target language independent
-    _old_ConfigDBConnector__init__ = ConfigDBConnector.__init__
-    def _new_ConfigDBConnector__init__(self, use_unix_socket_path = False, namespace = '', **kwargs):
-        if 'decode_responses' in kwargs and kwargs.pop('decode_responses') != True:
-            raise ValueError('decode_responses must be True if specified, False is not supported')
-        if namespace is None:
-            namespace = ''
-        _old_ConfigDBConnector__init__(self, use_unix_socket_path = use_unix_socket_path, netns = namespace)
+    class ConfigDBConnector(ConfigDBConnector_Native):
 
-        # Trick: to achieve static/instance method "overload", we must use initize the function in ctor
-        # ref: https://stackoverflow.com/a/28766809/2514803
-        self.serialize_key = self._serialize_key
-        self.deserialize_key = self._deserialize_key
+        ## Note: there is no easy way for SWIG to map ctor parameter netns(C++) to namespace(python),
+        def __init__(self, use_unix_socket_path = False, namespace = '', **kwargs):
+            if 'decode_responses' in kwargs and kwargs.pop('decode_responses') != True:
+                raise ValueError('decode_responses must be True if specified, False is not supported')
+            if namespace is None:
+                namespace = ''
+            super(ConfigDBConnector, self).__init__(use_unix_socket_path = use_unix_socket_path, netns = namespace)
 
-        ## Note: callback is difficult to implement by SWIG C++, so keep in python
-        self.handlers = {}
-    ConfigDBConnector.__init__ = _new_ConfigDBConnector__init__
+            # Trick: to achieve static/instance method "overload", we must use initize the function in ctor
+            # ref: https://stackoverflow.com/a/28766809/2514803
+            self.serialize_key = self._serialize_key
+            self.deserialize_key = self._deserialize_key
 
-    _old_ConfigDBConnector_set_entry = ConfigDBConnector.set_entry
-    def _new_ConfigDBConnector_set_entry(self, table, key, data):
-        key = self.serialize_key(key)
-        raw_data = self.typed_to_raw(data)
-        _old_ConfigDBConnector_set_entry(self, table, key, raw_data)
-    ConfigDBConnector.set_entry = _new_ConfigDBConnector_set_entry
+            ## Note: callback is difficult to implement by SWIG C++, so keep in python
+            self.handlers = {}
 
-    _old_ConfigDBConnector_mod_entry = ConfigDBConnector.mod_entry
-    def _new_ConfigDBConnector_mod_entry(self, table, key, data):
-        key = self.serialize_key(key)
-        raw_data = self.typed_to_raw(data)
-        _old_ConfigDBConnector_mod_entry(self, table, key, raw_data)
-    ConfigDBConnector.mod_entry = _new_ConfigDBConnector_mod_entry
+        def set_entry(self, table, key, data):
+            key = self.serialize_key(key)
+            raw_data = self.typed_to_raw(data)
+            super(ConfigDBConnector, self).set_entry(table, key, raw_data)
 
-    _old_ConfigDBConnector_get_entry = ConfigDBConnector.get_entry
-    def _new_ConfigDBConnector_get_entry(self, table, key):
-        key = self.serialize_key(key)
-        raw_data = _old_ConfigDBConnector_get_entry(self, table, key)
-        return self.raw_to_typed(raw_data)
-    ConfigDBConnector.get_entry = _new_ConfigDBConnector_get_entry
+        def mod_config(self, data):
+            raw_config = {}
+            for table_name, table_data in data.items():
+                raw_config[table_name] = {}
+                if table_data == None:
+                    continue
+                for key, data in table_data.items():
+                    raw_key = self.serialize_key(key)
+                    raw_data = self.typed_to_raw(data)
+                    raw_config[table_name][raw_key] = raw_data
+            super(ConfigDBConnector, self).mod_config(raw_config)
 
-    _old_ConfigDBConnector_get_keys = ConfigDBConnector.get_keys
-    def _new_ConfigDBConnector_get_keys(self, table, split=True):
-        keys = _old_ConfigDBConnector_get_keys(self, table, split)
-        ret = []
-        for key in keys:
-            ret.append(self.deserialize_key(key))
-        return ret
-    ConfigDBConnector.get_key = _new_ConfigDBConnector_get_keys
+        def mod_entry(self, table, key, data):
+            key = self.serialize_key(key)
+            raw_data = self.typed_to_raw(data)
+            super(ConfigDBConnector, self).mod_entry(table, key, raw_data)
 
-    _old_ConfigDBConnector_get_table = ConfigDBConnector.get_table
-    def _new_ConfigDBConnector_get_table(self, table):
-        data = _old_ConfigDBConnector_get_table(self, table)
-        ret = {}
-        for row, entry in data.items():
-            entry = self.raw_to_typed(entry)
-            ret[self.deserialize_key(row)] = entry
-        return ret
-    ConfigDBConnector.get_table = _new_ConfigDBConnector_get_table
+        def get_entry(self, table, key):
+            key = self.serialize_key(key)
+            raw_data = super(ConfigDBConnector, self).get_entry(table, key)
+            return self.raw_to_typed(raw_data)
 
-    _old_ConfigDBConnector_get_config = ConfigDBConnector.get_config
-    def _new_ConfigDBConnector_get_config(self):
-        data = _old_ConfigDBConnector_get_config(self)
-        ret = {}
-        for table_name, table in data.items():
-            for row, entry in table.items():
+        def get_keys(self, table, split=True):
+            keys = super(ConfigDBConnector, self).get_keys(table, split)
+            ret = []
+            for key in keys:
+                ret.append(self.deserialize_key(key))
+            return ret
+
+        def get_table(self, table):
+            data = super(ConfigDBConnector, self).get_table(table)
+            ret = {}
+            for row, entry in data.items():
                 entry = self.raw_to_typed(entry)
-                ret.setdefault(table_name, {})[self.deserialize_key(row)] = entry
-        return ret
-    ConfigDBConnector.get_config = _new_ConfigDBConnector_get_config
+                ret[self.deserialize_key(row)] = entry
+            return ret
+
+        def get_config(self):
+            data = super(ConfigDBConnector, self).get_config()
+            ret = {}
+            for table_name, table in data.items():
+                for row, entry in table.items():
+                    entry = self.raw_to_typed(entry)
+                    ret.setdefault(table_name, {})[self.deserialize_key(row)] = entry
+            return ret
 %}
 #endif
 
-class ConfigDBPipeConnector: public ConfigDBConnector
+class ConfigDBPipeConnector_Native: public ConfigDBConnector_Native
 {
 public:
-    ConfigDBPipeConnector(bool use_unix_socket_path = false, const char *netns = "");
+    ConfigDBPipeConnector_Native(bool use_unix_socket_path = false, const char *netns = "");
 
     void mod_config(const std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>& data) override;
     std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> get_config() override;
@@ -216,28 +213,19 @@ public:
 private:
     static const int64_t REDIS_SCAN_BATCH_SIZE = 30;
 
-    int64_t _delete_entries(DBConnector& client, RedisTransactioner& pipe, const char *pattern, int64_t cursor);
+    int _delete_entries(DBConnector& client, RedisTransactioner& pipe, const char *pattern, int cursor);
     void _delete_table(DBConnector& client, RedisTransactioner& pipe, std::string table);
     void _mod_entry(RedisTransactioner& pipe, std::string table, std::string key, const std::map<std::string, std::string>& data);
-    int64_t _get_config(DBConnector& client, RedisTransactioner& pipe, std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>& data, int64_t cursor);
+    int _get_config(DBConnector& client, RedisTransactioner& pipe, std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>& data, int cursor);
 };
 
 #ifdef SWIG
 %pythoncode %{
-    ## TRICK!
-    ## Note: there is no easy way for SWIG to map ctor parameter netns(C++) to namespace(python),
-    ## so we use python patch to achieve this
-    ## TODO: implement it with formal SWIG syntax, which will be target language independent
-    _old_ConfigDBPipeConnector__init__ = ConfigDBPipeConnector.__init__
-    def _new_ConfigDBPipeConnector__init__(self, use_unix_socket_path = False, namespace = '', **kwargs):
-        if 'decode_responses' in kwargs and kwargs.pop('decode_responses') != True:
-            raise ValueError('decode_responses must be True if specified, False is not supported')
-        if namespace is None:
-            namespace = ''
-        _old_ConfigDBPipeConnector__init__(self, use_unix_socket_path = use_unix_socket_path, netns = namespace)
-        ## Note: callback is difficult to implement by SWIG C++, so keep in python
-        self.handlers = {}
-    ConfigDBPipeConnector.__init__ = _new_ConfigDBPipeConnector__init__
+    class ConfigDBPipeConnector(ConfigDBConnector, ConfigDBPipeConnector_Native):
+
+        ## Note: diamond inheritance, reusing functions in both classes
+        def __init__(self, **kwargs):
+            super(ConfigDBPipeConnector, self).__init__(**kwargs)
 %}
 #endif
 }

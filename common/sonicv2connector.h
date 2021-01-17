@@ -41,7 +41,7 @@ public:
 
     std::vector<std::string> keys(const std::string& db_name, const char *pattern="*", bool blocking=false);
 
-    std::pair<int64_t, std::vector<std::string>> scan(const std::string& db_name, int64_t cursor = 0, const char *match = "", uint32_t count = 10);
+    std::pair<int, std::vector<std::string>> scan(const std::string& db_name, int cursor = 0, const char *match = "", uint32_t count = 10);
 
     std::string get(const std::string& db_name, const std::string& _hash, const std::string& key, bool blocking=false);
 

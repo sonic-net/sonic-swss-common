@@ -23,8 +23,10 @@ inline void guard(FUNC func, const char* command)
     }
     catch (const system_error& ex)
     {
-        SWSS_LOG_ERROR("RedisReply catches system_error: command: %s, reason: %s", command, ex.what());
-        throw;
+        // Combine more error message and throw again
+        string errmsg = "RedisReply catches system_error: command: " + string(command) + ", reason: " + ex.what();
+        SWSS_LOG_ERROR("%s", errmsg.c_str());
+        throw system_error(ex.code(), errmsg.c_str());
     }
 }
 
@@ -156,11 +158,9 @@ void RedisReply::checkReplyType(int expectedType)
         const char *err = (m_reply->type == REDIS_REPLY_STRING || m_reply->type == REDIS_REPLY_ERROR) ?
             m_reply->str : "NON-STRING-REPLY";
 
-        SWSS_LOG_ERROR("Expected to get redis type %d got type %d, err: %s",
-                      expectedType, m_reply->type, err);
-
-        throw system_error(make_error_code(errc::io_error),
-                           "Wrong expected type of result");
+        string errmsg = "Expected to get redis type " + to_string(expectedType) + " got type " + to_string(m_reply->type) + ", err: " + err;
+        SWSS_LOG_ERROR("%s", errmsg.c_str());
+        throw system_error(make_error_code(errc::io_error), errmsg);
     }
 }
 

@@ -688,18 +688,27 @@ vector<string> DBConnector::keys(const string &key)
     return list;
 }
 
-pair<int64_t, vector<string>> DBConnector::scan(int64_t cursor, const char *match, uint32_t count)
+pair<int, vector<string>> DBConnector::scan(int cursor, const char *match, uint32_t count)
 {
     RedisCommand sscan;
-    sscan.format("SCAN %lld %s %lld", cursor, match, count);
+    sscan.format("SCAN %d MATCH %s COUNT %u", cursor, match, count);
     RedisReply r(this, sscan, REDIS_REPLY_ARRAY);
 
     RedisReply r0(r.releaseChild(0));
+    r0.checkReplyType(REDIS_REPLY_STRING);
     RedisReply r1(r.releaseChild(1));
     r1.checkReplyType(REDIS_REPLY_ARRAY);
 
     pair<int64_t, vector<string>> ret;
-    ret.first = r0.getReply<long long>();
+    string cur = r0.getReply<string>();
+    try
+    {
+        ret.first = stoi(cur);
+    }
+    catch(logic_error& ex)
+    {
+        throw system_error(make_error_code(errc::io_error), "Invalid cursor string returned by scan: " + cur);
+    }
     for (size_t i = 0; i < r1.getChildCount(); i++)
     {
         RedisReply r11(r1.releaseChild(i));

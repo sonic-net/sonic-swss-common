@@ -3,7 +3,7 @@ import pytest
 from threading import Thread
 from pympler.tracker import SummaryTracker
 from swsscommon import swsscommon
-from swsscommon.swsscommon import DBInterface, SonicV2Connector, SonicDBConfig, ConfigDBConnector
+from swsscommon.swsscommon import ConfigDBPipeConnector, DBInterface, SonicV2Connector, SonicDBConfig, ConfigDBConnector
 
 existing_file = "./tests/redis_multi_db_ut_config/database_config.json"
 
@@ -252,3 +252,52 @@ def test_ConfigDBConnector():
     allconfig =  config_db.get_config()
     assert "alias" not in allconfig["TEST_PORT"]["Ethernet111"]
     assert allconfig["TEST_PORT"]["Ethernet111"]["mtu"] == "12345"
+
+    config_db.delete_table("TEST_PORT")
+    allconfig =  config_db.get_config()
+    assert len(allconfig) == 0
+
+def test_ConfigDBPipeConnector():
+    config_db = ConfigDBPipeConnector()
+    config_db.connect(wait_for_init=False)
+    config_db.set_entry("TEST_PORT", "Ethernet112", {"alias": "etp1x"})
+    allconfig = config_db.get_config()
+    assert allconfig["TEST_PORT"]["Ethernet112"]["alias"] == "etp1x"
+
+    config_db.set_entry("TEST_PORT", "Ethernet112", {"mtu": "12345"})
+    allconfig =  config_db.get_config()
+    assert "alias" not in allconfig["TEST_PORT"]["Ethernet112"]
+    assert allconfig["TEST_PORT"]["Ethernet112"]["mtu"] == "12345"
+
+    config_db.mod_config(allconfig)
+    allconfig["TEST_PORT"]["Ethernet113"] = None
+    allconfig["TEST_VLAN"] = None
+    config_db.mod_config(allconfig)
+    allconfig.setdefault("ACL_TABLE", {}).setdefault("EVERFLOW", {})["ports"] = ["Ethernet0", "Ethernet4", "Ethernet8"]
+    config_db.mod_config(allconfig)
+    allconfig = config_db.get_config()
+
+    config_db.delete_table("TEST_PORT")
+    config_db.delete_table("ACL_TABLE")
+    allconfig = config_db.get_config()
+    assert len(allconfig) == 0
+
+def test_ConfigDBScan():
+    config_db = ConfigDBPipeConnector()
+    config_db.connect(wait_for_init=False)
+    n = 1000
+    for i in range(0, n):
+        s = str(i)
+        config_db.mod_entry("TEST_TYPE" + s, "Ethernet" + s, {"alias" + s: "etp" + s})
+
+    allconfig = config_db.get_config()
+    assert len(allconfig) == n
+
+    config_db = ConfigDBConnector()
+    config_db.connect(wait_for_init=False)
+    allconfig = config_db.get_config()
+    assert len(allconfig) == n
+
+    for i in range(0, n):
+        s = str(i)
+        config_db.delete_table("TEST_TYPE" + s)

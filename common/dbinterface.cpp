@@ -120,7 +120,7 @@ std::vector<std::string> DBInterface::keys(const std::string& dbName, const char
     return blockable<std::vector<std::string>>(innerfunc, dbName, blocking);
 }
 
-std::pair<int64_t, std::vector<std::string>> DBInterface::scan(const std::string& db_name, int64_t cursor, const char *match, uint32_t count)
+std::pair<int, std::vector<std::string>> DBInterface::scan(const std::string& db_name, int cursor, const char *match, uint32_t count)
 {
     return m_redisClient.at(db_name).scan(cursor, match, count);
 }

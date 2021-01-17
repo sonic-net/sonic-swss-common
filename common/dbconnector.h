@@ -40,6 +40,15 @@ public:
     static constexpr const char *DEFAULT_SONIC_DB_CONFIG_FILE = "/var/run/redis/sonic-db/database_config.json";
     static constexpr const char *DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE = "/var/run/redis/sonic-db/database_global.json";
     static void initialize(const std::string &file = DEFAULT_SONIC_DB_CONFIG_FILE);
+#ifdef SWIG
+    %pythoncode %{
+        ## TODO: the python function and C++ one is not on-par
+        @staticmethod
+        def load_sonic_db_config(sonic_db_file_path=DEFAULT_SONIC_DB_CONFIG_FILE):
+            SonicDBConfig.initialize(sonic_db_file_path)
+    %}
+#endif
+
     static void initializeGlobalConfig(const std::string &file = DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE);
 #ifdef SWIG
     %pythoncode %{
@@ -60,6 +69,15 @@ public:
     static std::string getDbHostname(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
     static int getDbPort(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
     static std::vector<std::string> getNamespaces();
+#ifdef SWIG
+    %pythoncode %{
+        ## TODO: the python function and C++ one is not on-par
+        @staticmethod
+        def get_ns_list():
+            return SonicDBConfig.getNamespaces()
+    %}
+#endif
+
     static std::vector<std::string> getDbList(const std::string &netns = EMPTY_NAMESPACE);
     static bool isInit() { return m_init; };
     static bool isGlobalInit() { return m_global_init; };
@@ -189,7 +207,7 @@ public:
 
     std::vector<std::string> keys(const std::string &key);
 
-    std::pair<int64_t, std::vector<std::string>> scan(int64_t cursor = 0, const char *match = "", uint32_t count = 10);
+    std::pair<int, std::vector<std::string>> scan(int cursor = 0, const char *match = "", uint32_t count = 10);
 
     void set(const std::string &key, const std::string &value);
 
