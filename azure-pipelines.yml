@@ -10,6 +10,32 @@ trigger:
 
 jobs:
 - job:
+  displayName: "amd64/ubuntu-20.04"
+  pool:
+    vmImage: 'ubuntu-20.04'
+
+  steps:
+  - script: |
+      sudo apt-get update
+      sudo apt-get install -y make libtool m4 autoconf dh-exec debhelper cmake pkg-config \
+                       libhiredis-dev libnl-3-dev libnl-genl-3-dev libnl-route-3-dev libnl-nf-3-dev swig3.0 \
+                       libpython2.7-dev libgtest-dev libboost-dev libboost1.71-dev
+      sudo apt-get install -y sudo
+      sudo apt-get install -y redis-server redis-tools
+      sudo apt-get install -y python3-pip
+      sudo pip3 install pytest
+      sudo apt-get install -y python
+      sudo apt-get install cmake libgtest-dev
+      cd /usr/src/gtest && sudo cmake . && sudo make
+    displayName: "Install dependencies"
+  - script: |
+      dpkg-buildpackage -rfakeroot -us -uc -b -j$(nproc) && cp ../*.deb .
+    displayName: "Compile sonic swss common"
+  - publish: $(System.DefaultWorkingDirectory)/
+    artifact: sonic-swss-common.amd64.ubuntu20_04
+    displayName: "Archive swss common debian packages"
+
+- job:
   displayName: "amd64"
   pool:
     vmImage: 'ubuntu-20.04'
