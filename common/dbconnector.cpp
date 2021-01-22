@@ -846,7 +846,8 @@ void DBConnector::hmset(const std::unordered_map<std::string, std::vector<std::p
 {
     SWSS_LOG_ENTER();
 
-    json j;
+    // make sure this will be object (not null) when multi hash is empty
+    json j = json::object();
 
     // pack multi hash to json (takes bout 70 ms for 10k to construct)
     for (const auto& kvp: multiHash)
