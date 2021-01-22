@@ -956,3 +956,11 @@ TEST(Select, resultToString)
 
     ASSERT_EQ(u, "UNKNOWN");
 }
+
+TEST(Connector, hmset)
+{
+    DBConnector db("TEST_DB", 0, true);
+
+    // test empty multi hash
+    db.hmset({});
+}
