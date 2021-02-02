@@ -133,4 +133,14 @@ static inline std::string binary_to_hex(const void *buffer, size_t length)
     return s;
 }
 
+static inline void toupper(std::string &str)
+{
+    std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c){return std::toupper(c);});
+}
+
+static inline void tolower(std::string &str)
+{
+    std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c){return std::tolower(c);});
+}
+
 }
