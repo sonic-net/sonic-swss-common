@@ -7,7 +7,7 @@
 
 namespace swss {
 
-class ConfigDBConnector_Native : public SonicV2Connector
+class ConfigDBConnector_Native : public SonicV2Connector_Native
 {
 public:
     ConfigDBConnector_Native(bool use_unix_socket_path = false, const char *netns = "");
@@ -131,7 +131,8 @@ protected:
 
 #ifdef SWIG
 %pythoncode %{
-    class ConfigDBConnector(ConfigDBConnector_Native):
+    ## Note: diamond inheritance, reusing functions in both classes
+    class ConfigDBConnector(SonicV2Connector, ConfigDBConnector_Native):
 
         ## Note: there is no easy way for SWIG to map ctor parameter netns(C++) to namespace(python),
         def __init__(self, use_unix_socket_path = False, namespace = '', **kwargs):

@@ -318,7 +318,7 @@ TEST(DBConnector, DBInterface)
     dbintf.set_redis_kwargs("", "127.0.0.1", 6379);
     dbintf.connect(15, "TEST_DB");
 
-    SonicV2Connector db;
+    SonicV2Connector_Native db;
     db.connect("TEST_DB");
     db.set("TEST_DB", "key0", "field1", "value2");
     auto fvs = db.get_all("TEST_DB", "key0");
