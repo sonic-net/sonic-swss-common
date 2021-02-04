@@ -63,7 +63,7 @@ private:
 %pythoncode %{
     class SonicV2Connector(SonicV2Connector_Native):
 
-        ## Note: there is no easy way for SWIG to map ctor parameter netns(C++) to namespace(python),
+        ## Note: there is no easy way for SWIG to map ctor parameter netns(C++) to namespace(python)
         def __init__(self, use_unix_socket_path = False, namespace = '', **kwargs):
             if 'host' in kwargs:
                 # Note: host argument will be ignored, same as in sonic-py-swsssdk

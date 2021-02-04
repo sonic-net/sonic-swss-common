@@ -135,7 +135,7 @@ protected:
     ## Note: diamond inheritance, reusing functions in both classes
     class ConfigDBConnector(SonicV2Connector, ConfigDBConnector_Native):
 
-        ## Note: there is no easy way for SWIG to map ctor parameter netns(C++) to namespace(python),
+        ## Note: there is no easy way for SWIG to map ctor parameter netns(C++) to namespace(python)
         def __init__(self, use_unix_socket_path = False, namespace = '', **kwargs):
             if 'decode_responses' in kwargs and kwargs.pop('decode_responses') != True:
                 raise ValueError('decode_responses must be True if specified, False is not supported')
