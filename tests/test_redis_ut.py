@@ -301,3 +301,6 @@ def test_ConfigDBScan():
     for i in range(0, n):
         s = str(i)
         config_db.delete_table("TEST_TYPE" + s)
+
+    client = config_db.get_redis_client(config_db.CONFIG_DB)
+    client.flushdb()
