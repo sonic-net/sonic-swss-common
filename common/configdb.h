@@ -10,6 +10,8 @@ namespace swss {
 class ConfigDBConnector_Native : public SonicV2Connector_Native
 {
 public:
+    static constexpr const char *INIT_INDICATOR = "CONFIG_DB_INITIALIZED";
+
     ConfigDBConnector_Native(bool use_unix_socket_path = false, const char *netns = "");
 
     void db_connect(std::string db_name, bool wait_for_init, bool retry_on);
@@ -113,7 +115,6 @@ public:
 #endif
 
 protected:
-    static constexpr const char *INIT_INDICATOR = "CONFIG_DB_INITIALIZED";
     std::string TABLE_NAME_SEPARATOR = "|";
     std::string KEY_SEPARATOR = "|";
 
