@@ -673,6 +673,15 @@ void DBConnector::config_set(const std::string &key, const std::string &value)
     RedisReply r(this, sset, REDIS_REPLY_STATUS);
 }
 
+bool DBConnector::flushdb()
+{
+    RedisCommand sflushdb;
+    sflushdb.format("FLUSHDB");
+    RedisReply r(this, sflushdb, REDIS_REPLY_STATUS);
+    string s = r.getReply<string>();
+    return s == "OK";
+}
+
 vector<string> DBConnector::keys(const string &key)
 {
     RedisCommand skeys;

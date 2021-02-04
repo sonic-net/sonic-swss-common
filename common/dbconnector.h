@@ -242,6 +242,8 @@ public:
 
     void config_set(const std::string &key, const std::string &value);
 
+    bool flushdb();
+
 private:
     void setNamespace(const std::string &netns);
 

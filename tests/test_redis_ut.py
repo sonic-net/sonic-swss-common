@@ -302,5 +302,11 @@ def test_ConfigDBScan():
         s = str(i)
         config_db.delete_table("TEST_TYPE" + s)
 
+def test_ConfigDBFlush():
+    config_db = ConfigDBConnector()
+    config_db.connect(wait_for_init=False)
+    config_db.set_entry("TEST_PORT", "Ethernet111", {"alias": "etp1x"})
     client = config_db.get_redis_client(config_db.CONFIG_DB)
     client.flushdb()
+    allconfig = config_db.get_config()
+    assert len(allconfig) == 0
