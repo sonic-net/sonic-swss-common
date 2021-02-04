@@ -323,3 +323,11 @@ def test_ConfigDBFlush():
     client.flushdb()
     allconfig = config_db.get_config()
     assert len(allconfig) == 0
+
+def test_ConfigDBConnect():
+    config_db = ConfigDBConnector()
+    config_db.db_connect('CONFIG_DB')
+    client = config_db.get_redis_client(config_db.CONFIG_DB)
+    client.flushdb()
+    allconfig = config_db.get_config()
+    assert len(allconfig) == 0
