@@ -8,6 +8,7 @@
 #include "common/consumertable.h"
 #include "common/notificationconsumer.h"
 #include "common/notificationproducer.h"
+#include "common/redisclient.h"
 #include "common/select.h"
 #include "common/selectableevent.h"
 #include "common/selectabletimer.h"
@@ -463,6 +464,14 @@ TEST(DBConnector, RedisClient)
     fvs = db.hgetall(key_2);
 
     EXPECT_TRUE(fvs.empty());
+
+    // Note: ignore deprecated compilation error in unit test
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+    RedisClient client(&db);
+#pragma GCC diagnostic pop
+    bool rc = db.set("testkey", "testvalue");
+    EXPECT_TRUE(rc);
 
     cout << "Done." << endl;
 }
