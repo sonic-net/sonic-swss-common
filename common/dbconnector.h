@@ -209,7 +209,8 @@ public:
 
     std::pair<int, std::vector<std::string>> scan(int cursor = 0, const char *match = "", uint32_t count = 10);
 
-    void set(const std::string &key, const std::string &value);
+    bool set(const std::string &key, const std::string &value);
+    bool set(const std::string &key, int value);
 
     void hset(const std::string &key, const std::string &field, const std::string &value);
 
@@ -241,6 +242,8 @@ public:
     int64_t publish(const std::string &channel, const std::string &message);
 
     void config_set(const std::string &key, const std::string &value);
+
+    bool flushdb();
 
 private:
     void setNamespace(const std::string &netns);

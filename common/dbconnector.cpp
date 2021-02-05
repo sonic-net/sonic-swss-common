@@ -659,11 +659,18 @@ void DBConnector::hset(const string &key, const string &field, const string &val
     RedisReply r(this, shset, REDIS_REPLY_INTEGER);
 }
 
-void DBConnector::set(const string &key, const string &value)
+bool DBConnector::set(const string &key, const string &value)
 {
     RedisCommand sset;
     sset.format("SET %s %s", key.c_str(), value.c_str());
     RedisReply r(this, sset, REDIS_REPLY_STATUS);
+    string s = r.getReply<string>();
+    return s == "OK";
+}
+
+bool DBConnector::set(const string &key, int value)
+{
+    return set(key, to_string(value));
 }
 
 void DBConnector::config_set(const std::string &key, const std::string &value)
@@ -671,6 +678,15 @@ void DBConnector::config_set(const std::string &key, const std::string &value)
     RedisCommand sset;
     sset.format("CONFIG SET %s %s", key.c_str(), value.c_str());
     RedisReply r(this, sset, REDIS_REPLY_STATUS);
+}
+
+bool DBConnector::flushdb()
+{
+    RedisCommand sflushdb;
+    sflushdb.format("FLUSHDB");
+    RedisReply r(this, sflushdb, REDIS_REPLY_STATUS);
+    string s = r.getReply<string>();
+    return s == "OK";
 }
 
 vector<string> DBConnector::keys(const string &key)

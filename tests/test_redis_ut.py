@@ -244,6 +244,7 @@ def test_DBInterface():
 def test_ConfigDBConnector():
     config_db = ConfigDBConnector()
     config_db.connect(wait_for_init=False)
+    config_db.get_redis_client(config_db.CONFIG_DB).flushdb()
     config_db.set_entry("TEST_PORT", "Ethernet111", {"alias": "etp1x"})
     allconfig = config_db.get_config()
     assert allconfig["TEST_PORT"]["Ethernet111"]["alias"] == "etp1x"
@@ -260,6 +261,7 @@ def test_ConfigDBConnector():
 def test_ConfigDBPipeConnector():
     config_db = ConfigDBPipeConnector()
     config_db.connect(wait_for_init=False)
+    config_db.get_redis_client(config_db.CONFIG_DB).flushdb()
     config_db.set_entry("TEST_PORT", "Ethernet112", {"alias": "etp1x"})
     allconfig = config_db.get_config()
     assert allconfig["TEST_PORT"]["Ethernet112"]["alias"] == "etp1x"
@@ -285,6 +287,7 @@ def test_ConfigDBPipeConnector():
 def test_ConfigDBScan():
     config_db = ConfigDBPipeConnector()
     config_db.connect(wait_for_init=False)
+    config_db.get_redis_client(config_db.CONFIG_DB).flushdb()
     n = 1000
     for i in range(0, n):
         s = str(i)
@@ -301,3 +304,30 @@ def test_ConfigDBScan():
     for i in range(0, n):
         s = str(i)
         config_db.delete_table("TEST_TYPE" + s)
+
+def test_ConfigDBFlush():
+    config_db = ConfigDBConnector()
+    config_db.connect(wait_for_init=False)
+    config_db.set_entry("TEST_PORT", "Ethernet111", {"alias": "etp1x"})
+    client = config_db.get_redis_client(config_db.CONFIG_DB)
+
+    assert ConfigDBConnector.INIT_INDICATOR == "CONFIG_DB_INITIALIZED"
+    assert config_db.INIT_INDICATOR == "CONFIG_DB_INITIALIZED"
+
+    suc = client.set(config_db.INIT_INDICATOR, 1)
+    assert suc
+    # TODO: redis.get is not yet supported
+    # indicator = client.get(config_db.INIT_INDICATOR)
+    # assert indicator == '1'
+
+    client.flushdb()
+    allconfig = config_db.get_config()
+    assert len(allconfig) == 0
+
+def test_ConfigDBConnect():
+    config_db = ConfigDBConnector()
+    config_db.db_connect('CONFIG_DB')
+    client = config_db.get_redis_client(config_db.CONFIG_DB)
+    client.flushdb()
+    allconfig = config_db.get_config()
+    assert len(allconfig) == 0
