@@ -189,7 +189,7 @@ template<> string RedisReply::getReply<string>()
 template<> RedisMessage RedisReply::getReply<RedisMessage>()
 {
     RedisMessage ret;
-    /* if the Key-space notification is empty, try emtpy message. */
+    /* if the Key-space notification is empty, try empty message. */
     if (getContext()->type == REDIS_REPLY_NIL)
     {
         return ret;

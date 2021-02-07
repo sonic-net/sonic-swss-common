@@ -382,7 +382,7 @@ void ConfigDBPipeConnector_Native::mod_config(const map<string, map<string, map<
 //     cursor: position to start scanning from
 //
 // Returns:
-//     cur: poition of next item to scan
+//     cur: position of next item to scan
 int ConfigDBPipeConnector_Native::_get_config(DBConnector& client, RedisTransactioner& pipe, map<string, map<string, map<string, string>>>& data, int cursor)
 {
     auto const& rc = client.scan(cursor, "*", REDIS_SCAN_BATCH_SIZE);

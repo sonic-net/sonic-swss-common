@@ -39,7 +39,7 @@ static inline string value(int index, int keyid)
 {
     if (keyid == 0)
     {
-        return string(); // emtpy
+        return string(); // empty
     }
 
     return string("value ") + to_string(index) + ":" + to_string(keyid);

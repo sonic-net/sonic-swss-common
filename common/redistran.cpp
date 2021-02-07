@@ -37,7 +37,7 @@ bool RedisTransactioner::exec()
 
     if (size != m_expectedResults.size())
         throw system_error(make_error_code(errc::io_error),
-                "Got to different nuber of answers!");
+                "Got to different number of answers!");
 
     clearResults();
     for (unsigned int i = 0; i < size; i++)
