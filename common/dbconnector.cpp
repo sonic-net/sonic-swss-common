@@ -363,13 +363,12 @@ vector<string> SonicDBConfig::getNamespaces()
     vector<string> list;
     std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
 
-    if (!m_global_init)
-        initializeGlobalConfig();
+    if (!m_init)
+        initialize(DEFAULT_SONIC_DB_CONFIG_FILE);
 
-    // This API returns back non-empty namespaces.
+    // This API returns back all namespaces including '' representing global ns.
     for (auto it = m_inst_info.cbegin(); it != m_inst_info.cend(); ++it) {
-        if(!((it->first).empty()))
-            list.push_back(it->first);
+        list.push_back(it->first);
     }
 
     return list;

@@ -67,8 +67,8 @@ TEST(DBConnector, multi_ns_test)
             else
             {
                 ns_name = element["namespace"];
-                namespaces.push_back(ns_name);
             }
+            namespaces.push_back(ns_name);
 
             // parse config file
             ifstream i(local_file);
