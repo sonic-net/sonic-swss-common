@@ -104,6 +104,11 @@ static inline std::set<std::string> runRedisScript(RedisContext &ctx, const std:
         {
             SWSS_LOG_ERROR("Got EMPTY response type from redis %d", reply->type);
         }
+        else if (reply->type == REDIS_REPLY_INTEGER)
+        {
+            SWSS_LOG_DEBUG("Got INTEGER response type from redis %d", reply->type);
+            ret.emplace(std::to_string(reply->integer));
+        }
         else if (reply->type != REDIS_REPLY_ARRAY)
         {
             SWSS_LOG_ERROR("Got invalid response type from redis %d", reply->type);
