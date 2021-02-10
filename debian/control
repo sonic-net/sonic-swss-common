@@ -19,7 +19,7 @@ Description: debugging symbols for libswsscommon library.
 
 Package: libswsscommon-dev
 Architecture: any
-Depends: libswsscommon (= ${binary:Version})
+Depends: libswsscommon (= ${binary:Version}), libboost-dev | libboost1.71-dev
 Section: libdevel
 Description: This package contains development files for Switch State Service.
 
