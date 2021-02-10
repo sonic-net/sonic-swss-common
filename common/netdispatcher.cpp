@@ -18,7 +18,7 @@ void NetDispatcher::registerMessageHandler(int nlmsg_type, NetMsg *callback)
     MUTEX;
 
     if (m_handlers.find(nlmsg_type) != m_handlers.end())
-        throw "Trying to register on already registerd netlink message";
+        throw "Trying to register on already registered netlink message";
 
     m_handlers[nlmsg_type] = callback;
 }

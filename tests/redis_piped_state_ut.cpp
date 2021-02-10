@@ -39,7 +39,7 @@ static inline string field(int i)
 
 static inline string value(int i)
 {
-    if (i == 0) return string(); // emtpy
+    if (i == 0) return string(); // empty
     return string("value") + to_string(i);
 }
 
@@ -474,7 +474,7 @@ TEST(ConsumerStateTable, async_singlethread)
     while ((ret = cs.select(&selectcs, 1000)) == Select::OBJECT)
     {
         c.pop(kco);
-        // keys have been droppd, expecting empty kco.
+        // keys have been dropped, expecting empty kco.
         EXPECT_EQ(kfvOp(kco), "");
         numberOfNotification++;
 

@@ -13,7 +13,7 @@ namespace swss
     {
         public:
 
-            /** Get singlton instance. */
+            /** Get singleton instance. */
             static NetDispatcher& getInstance();
 
             /**

@@ -566,7 +566,7 @@ DBConnector::DBConnector(const string& dbName, unsigned int timeout, bool isTcpC
 DBConnector::DBConnector(const string& dbName, unsigned int timeout, bool isTcpConn)
     : DBConnector(dbName, timeout, isTcpConn, EMPTY_NAMESPACE)
 {
-    // Empty contructor
+    // Empty constructor
 }
 
 int DBConnector::getDbId() const

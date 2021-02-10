@@ -52,7 +52,7 @@ public:
          fs: the input ifstream representing the json file
          fv: the output vector
        return: boolean
-         True: the input json file has been succefully parsed
+         True: the input json file has been successfully parsed
          False: there are some errors found
      */
     static bool loadJsonFromFile(std::ifstream &fs, std::vector<KeyOpFieldsValuesTuple> &db_items);

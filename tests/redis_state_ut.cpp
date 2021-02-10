@@ -38,7 +38,7 @@ static inline string field(int i)
 
 static inline string value(int i)
 {
-    if (i == 0) return string(); // emtpy
+    if (i == 0) return string(); // empty
     return string("value ") + to_string(i);
 }
 
@@ -477,7 +477,7 @@ TEST(ConsumerStateTable, set_pop_del_set_pop_get)
     EXPECT_EQ(values.size(), (unsigned int)maxNumOfFields);
 
     /*
-     * Third pop operation, consumer received two consectuive signals.
+     * Third pop operation, consumer received two consecutive signals.
      * data depleted upon first one
      */
     /*
@@ -537,7 +537,7 @@ TEST(ConsumerStateTable, view_switch)
         }
         p.set(key(i), fields);
     }
-    // Set opeartions should go into temp view
+    // Set operations should go into temp view
     EXPECT_EQ(p.count(), 0);
     for (int i=0; i<numOfKeysToDel; ++i)
     {
