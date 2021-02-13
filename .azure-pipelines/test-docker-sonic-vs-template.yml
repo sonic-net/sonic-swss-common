@@ -27,7 +27,8 @@ jobs:
 
   - script: |
       set -x
-      sudo .azure-pipelines/build_and_install_module.sh
+      ls -l
+      sudo sonic-swss-common/.azure-pipelines/build_and_install_module.sh
 
       sudo apt-get install -y libhiredis0.14
       sudo dpkg -i --force-confask,confnew ../libswsscommon_1.0.0_amd64.deb || apt-get install -f
