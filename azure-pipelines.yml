@@ -10,6 +10,10 @@ trigger:
 
 resources:
   repositories:
+  - repository: sonic-sairedis
+    type: github
+    name: Azure/sonic-sairedis
+    endpoint: build
   - repository: sonic-swss
     type: github
     name: Azure/sonic-swss

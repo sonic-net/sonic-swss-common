@@ -80,7 +80,8 @@ jobs:
       sudo dpkg -i ${{ parameters.sairedis_artifact_name }}/syncd-vs_*.deb
     workingDirectory: $(Pipeline.Workspace)
     displayName: "Install sonic swss common and sairedis"
-  - checkout: self
+  - checkout: sonic-swss
+    path: s
     submodules: true
   - script: |
       ./autogen.sh

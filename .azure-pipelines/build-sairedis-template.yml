@@ -87,7 +87,8 @@ jobs:
       sudo dpkg -i ${{ parameters.swss_common_artifact_name }}/libswsscommon-dev_1.0.0_${{ parameters.arch }}.deb
     workingDirectory: $(Pipeline.Workspace)
     displayName: "Install sonic swss Common"
-  - checkout: self
+  - checkout: sonic-sairedis
+    path: s
     submodules: true
   - script: |
       ./autogen.sh
