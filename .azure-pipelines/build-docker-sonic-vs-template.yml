@@ -38,21 +38,11 @@ jobs:
     displayName: "Download sonic swss common deb packages"
   - task: DownloadPipelineArtifact@2
     inputs:
-      source: specific
-      project: build
-      pipeline: 12
       artifact: ${{ parameters.sairedis_artifact_name }}
-      runVersion: 'latestFromBranch'
-      runBranch: 'refs/heads/master'
     displayName: "Download sonic sairedis deb packages"
   - task: DownloadPipelineArtifact@2
     inputs:
-      source: specific
-      project: build
-      pipeline: 15
       artifact: ${{ parameters.swss_artifact_name }}
-      runVersion: 'latestFromBranch'
-      runBranch: 'refs/heads/master'
     displayName: "Download sonic swss artifact"
   - task: DownloadPipelineArtifact@2
     inputs:
