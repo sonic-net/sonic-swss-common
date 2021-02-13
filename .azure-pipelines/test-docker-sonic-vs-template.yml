@@ -25,6 +25,11 @@ jobs:
       artifact: sonic-swss-common.amd64.ubuntu20_04
     displayName: "Download sonic swss common deb packages"
 
+  - checkout: self
+    displayName: "Checkout sonic-swss-common"
+  - checkout: sonic-swss
+    displayName: "Checkout sonic-swss"
+
   - script: |
       set -x
       ls -l
@@ -39,9 +44,6 @@ jobs:
       sudo apt-get install -y python3-pip
       sudo pip3 install pytest==4.6.2 attrs==19.1.0 exabgp==4.0.10 distro==1.5.0 docker==4.4.1 redis==3.3.4 flaky==3.7.0
     displayName: "Install dependencies"
-
-  - checkout: sonic-swss
-    displayName: "Checkout sonic-swss"
 
   - script: |
       set -x
