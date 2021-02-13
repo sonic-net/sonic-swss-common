@@ -8,6 +8,13 @@ trigger:
     include:
       - "*"
 
+resources:
+  repositories:
+  - repository: sonic-swss
+    type: github
+    name: Azure/sonic-swss
+    endpoint: build
+
 stages:
 - stage: Build
 
