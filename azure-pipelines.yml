@@ -48,6 +48,7 @@ stages:
 - stage: BuildArm
   dependsOn: Build
   condition: succeeded('Build')
+  jobs:
   - template: .azure-pipelines/build-template.yml
     parameters:
       arch: armhf
