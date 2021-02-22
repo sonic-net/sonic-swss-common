@@ -4686,8 +4686,7 @@ class basic_json
         // add element to array (move semantics)
         assert(m_value.array != nullptr);
         m_value.array->push_back(std::move(val));
-        // invalidate object
-        val.m_type = value_t::null;
+        // if val is moved from, basic_json move constructor marks it null so we do not call the destructor
     }
 
     /*!
