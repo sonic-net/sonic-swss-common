@@ -93,6 +93,24 @@ static inline std::string join(char delimiter, const T &t, const Args &... args)
     return ostream.str();
 }
 
+template <typename Container, typename Delim>
+static inline std::string join(const Delim &delim, const Container &cont)
+{
+    if (cont.empty())
+    {
+        return std::string();
+    }
+    std::ostringstream ostream;
+    auto iter = cont.begin();
+    auto end = cont.end();
+    ostream << *iter;
+    while(++iter != end)
+    {
+        ostream << delim << *iter;
+    }
+    return ostream.str();
+}
+
 static inline bool hex_to_binary(const std::string &hex_str, std::uint8_t *buffer, size_t buffer_length)
 {
     if (hex_str.length() != (buffer_length * 2))
