@@ -8,20 +8,12 @@
 namespace swss
 {
 
-class SonicV2Connector
+class SonicV2Connector_Native
 {
 public:
-    SonicV2Connector(bool use_unix_socket_path = false, const char *netns = "");
+    SonicV2Connector_Native(bool use_unix_socket_path = false, const char *netns = "");
 
     std::string getNamespace() const;
-
-#ifdef SWIG
-    %pythoncode %{
-        __swig_getmethods__["namespace"] = getNamespace
-        __swig_setmethods__["namespace"] = None
-        if _newclass: namespace = property(getNamespace, None)
-    %}
-#endif
 
     void connect(const std::string& db_name, bool retry_on = true);
 
@@ -68,32 +60,32 @@ private:
 };
 
 #ifdef SWIG
-// TRICK!
-// Note: there is no easy way for SWIG to map ctor parameter netns(C++) to namespace(python),
-// so we use python patch to achieve this
-// TODO: implement it with formal SWIG syntax, which will be target language independent
 %pythoncode %{
-    _old_SonicV2Connector__init__ = SonicV2Connector.__init__
-    def _new_SonicV2Connector__init__(self, use_unix_socket_path = False, namespace = '', **kwargs):
-        if 'host' in kwargs:
-            # Note: host argument will be ignored, same as in sonic-py-swsssdk
-            kwargs.pop('host')
-        if 'decode_responses' in kwargs and kwargs.pop('decode_responses') != True:
-            raise ValueError('decode_responses must be True if specified, False is not supported')
-        if namespace is None:
-            namespace = ''
-        _old_SonicV2Connector__init__(self, use_unix_socket_path = use_unix_socket_path, netns = namespace)
+    class SonicV2Connector(SonicV2Connector_Native):
 
-        # Add database name attributes into SonicV2Connector instance
-        # Note: this is difficult to implement in C++
-        for db_name in self.get_db_list():
-            # set a database name as a constant value attribute.
-            setattr(self, db_name, db_name)
-            getmethod = lambda self: db_name
-            SonicV2Connector.__swig_getmethods__[db_name] = getmethod
-            SonicV2Connector.__swig_setmethods__[db_name] = None
+        ## Note: there is no easy way for SWIG to map ctor parameter netns(C++) to namespace(python)
+        def __init__(self, use_unix_socket_path = False, namespace = '', **kwargs):
+            if 'host' in kwargs:
+                # Note: host argument will be ignored, same as in sonic-py-swsssdk
+                kwargs.pop('host')
+            if 'decode_responses' in kwargs and kwargs.pop('decode_responses') != True:
+                raise ValueError('decode_responses must be True if specified, False is not supported')
+            if namespace is None:
+                namespace = ''
+            super(SonicV2Connector, self).__init__(use_unix_socket_path = use_unix_socket_path, netns = namespace)
 
-    SonicV2Connector.__init__ = _new_SonicV2Connector__init__
+            # Add database name attributes into SonicV2Connector instance
+            # Note: this is difficult to implement in C++
+            for db_name in self.get_db_list():
+                # set a database name as a constant value attribute.
+                setattr(self, db_name, db_name)
+                getmethod = lambda self: db_name
+                SonicV2Connector.__swig_getmethods__[db_name] = getmethod
+                SonicV2Connector.__swig_setmethods__[db_name] = None
+
+        @property
+        def namespace(self):
+            return self.getNamespace()
 %}
 #endif
 }

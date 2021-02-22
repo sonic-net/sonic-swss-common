@@ -187,7 +187,7 @@ namespace swss {
 #define FLEX_COUNTER_STATUS_FIELD     "FLEX_COUNTER_STATUS"
 #define FLEX_COUNTER_GROUP_TABLE      "FLEX_COUNTER_GROUP_TABLE"
 
-/***** CONFIGUATION DATABASE *****/
+/***** CONFIGURATION DATABASE *****/
 
 #define CFG_PORT_TABLE_NAME           "PORT"
 #define CFG_PORT_CABLE_LEN_TABLE_NAME "CABLE_LENGTH"
@@ -303,6 +303,7 @@ namespace swss {
 #define CFG_FG_NHG_MEMBER                           "FG_NHG_MEMBER"
 
 #define CFG_MUX_CABLE_TABLE_NAME                    "MUX_CABLE"
+#define CFG_MUX_LINKMGR_TABLE_NAME                  "MUX_LINKMGR"
 
 #define CFG_PEER_SWITCH_TABLE_NAME                  "PEER_SWITCH"
 
@@ -315,6 +316,8 @@ namespace swss {
 
 #define CHASSIS_APP_SYSTEM_INTERFACE_TABLE_NAME     "SYSTEM_INTERFACE"
 #define CHASSIS_APP_SYSTEM_NEIGH_TABLE_NAME         "SYSTEM_NEIGH"
+#define CHASSIS_APP_LAG_TABLE_NAME                  "SYSTEM_LAG_TABLE"
+#define CHASSIS_APP_LAG_MEMBER_TABLE_NAME           "SYSTEM_LAG_MEMBER_TABLE"
 
 #define CFG_CHASSIS_MODULE_TABLE                    "CHASSIS_MODULE"
 
@@ -353,6 +356,7 @@ namespace swss {
 
 #define STATE_MUX_CABLE_TABLE_NAME                  "MUX_CABLE_TABLE"
 #define STATE_HW_MUX_CABLE_TABLE_NAME               "HW_MUX_CABLE_TABLE"
+#define STATE_MUX_LINKMGR_TABLE_NAME                "MUX_LINKMGR_TABLE"
 
 #define STATE_SYSTEM_NEIGH_TABLE_NAME               "SYSTEM_NEIGH_TABLE"
 

@@ -13,7 +13,6 @@
 #define SWIG_PYTHON_2_UNICODE
 
 #include "schema.h"
-#include "configdb.h"
 #include "dbconnector.h"
 #include "dbinterface.h"
 #include "sonicv2connector.h"
@@ -35,6 +34,7 @@
 #include "notificationproducer.h"
 #include "warm_restart.h"
 #include "logger.h"
+#include "configdb.h"
 %}
 
 %include <std_string.i>
@@ -109,7 +109,6 @@ T castSelectableObj(swss::Selectable *temp)
 %template(CastSelectableToSubscriberTableObj) castSelectableObj<swss::SubscriberStateTable *>;
 
 %include "schema.h"
-%include "configdb.h"
 %include "dbconnector.h"
 %include "sonicv2connector.h"
 %include "pubsub.h"
@@ -119,6 +118,7 @@ T castSelectableObj(swss::Selectable *temp)
 %include "redispipeline.h"
 %include "redisselect.h"
 %include "redistran.h"
+%include "configdb.h"
 
 %extend swss::DBConnector {
     %template(hgetall) hgetall<std::map<std::string, std::string>>;

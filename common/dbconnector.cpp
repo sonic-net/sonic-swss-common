@@ -363,13 +363,12 @@ vector<string> SonicDBConfig::getNamespaces()
     vector<string> list;
     std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
 
-    if (!m_global_init)
-        initializeGlobalConfig();
+    if (!m_init)
+        initialize(DEFAULT_SONIC_DB_CONFIG_FILE);
 
-    // This API returns back non-empty namespaces.
+    // This API returns back all namespaces including '' representing global ns.
     for (auto it = m_inst_info.cbegin(); it != m_inst_info.cend(); ++it) {
-        if(!((it->first).empty()))
-            list.push_back(it->first);
+        list.push_back(it->first);
     }
 
     return list;
@@ -567,7 +566,7 @@ DBConnector::DBConnector(const string& dbName, unsigned int timeout, bool isTcpC
 DBConnector::DBConnector(const string& dbName, unsigned int timeout, bool isTcpConn)
     : DBConnector(dbName, timeout, isTcpConn, EMPTY_NAMESPACE)
 {
-    // Empty contructor
+    // Empty constructor
 }
 
 int DBConnector::getDbId() const
@@ -659,11 +658,18 @@ void DBConnector::hset(const string &key, const string &field, const string &val
     RedisReply r(this, shset, REDIS_REPLY_INTEGER);
 }
 
-void DBConnector::set(const string &key, const string &value)
+bool DBConnector::set(const string &key, const string &value)
 {
     RedisCommand sset;
     sset.format("SET %s %s", key.c_str(), value.c_str());
     RedisReply r(this, sset, REDIS_REPLY_STATUS);
+    string s = r.getReply<string>();
+    return s == "OK";
+}
+
+bool DBConnector::set(const string &key, int value)
+{
+    return set(key, to_string(value));
 }
 
 void DBConnector::config_set(const std::string &key, const std::string &value)
@@ -671,6 +677,15 @@ void DBConnector::config_set(const std::string &key, const std::string &value)
     RedisCommand sset;
     sset.format("CONFIG SET %s %s", key.c_str(), value.c_str());
     RedisReply r(this, sset, REDIS_REPLY_STATUS);
+}
+
+bool DBConnector::flushdb()
+{
+    RedisCommand sflushdb;
+    sflushdb.format("FLUSHDB");
+    RedisReply r(this, sflushdb, REDIS_REPLY_STATUS);
+    string s = r.getReply<string>();
+    return s == "OK";
 }
 
 vector<string> DBConnector::keys(const string &key)
@@ -846,7 +861,8 @@ void DBConnector::hmset(const std::unordered_map<std::string, std::vector<std::p
 {
     SWSS_LOG_ENTER();
 
-    json j;
+    // make sure this will be object (not null) when multi hash is empty
+    json j = json::object();
 
     // pack multi hash to json (takes bout 70 ms for 10k to construct)
     for (const auto& kvp: multiHash)

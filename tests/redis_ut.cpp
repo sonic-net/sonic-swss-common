@@ -8,6 +8,7 @@
 #include "common/consumertable.h"
 #include "common/notificationconsumer.h"
 #include "common/notificationproducer.h"
+#include "common/redisclient.h"
 #include "common/select.h"
 #include "common/selectableevent.h"
 #include "common/selectabletimer.h"
@@ -318,7 +319,7 @@ TEST(DBConnector, DBInterface)
     dbintf.set_redis_kwargs("", "127.0.0.1", 6379);
     dbintf.connect(15, "TEST_DB");
 
-    SonicV2Connector db;
+    SonicV2Connector_Native db;
     db.connect("TEST_DB");
     db.set("TEST_DB", "key0", "field1", "value2");
     auto fvs = db.get_all("TEST_DB", "key0");
@@ -463,6 +464,14 @@ TEST(DBConnector, RedisClient)
     fvs = db.hgetall(key_2);
 
     EXPECT_TRUE(fvs.empty());
+
+    // Note: ignore deprecated compilation error in unit test
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+    RedisClient client(&db);
+#pragma GCC diagnostic pop
+    bool rc = db.set("testkey", "testvalue");
+    EXPECT_TRUE(rc);
 
     cout << "Done." << endl;
 }
@@ -955,4 +964,12 @@ TEST(Select, resultToString)
     auto u = Select::resultToString(5);
 
     ASSERT_EQ(u, "UNKNOWN");
+}
+
+TEST(Connector, hmset)
+{
+    DBConnector db("TEST_DB", 0, true);
+
+    // test empty multi hash
+    db.hmset({});
 }

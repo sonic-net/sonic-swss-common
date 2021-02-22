@@ -39,7 +39,7 @@ class RedisClient
 
         std::vector<std::string> keys(const std::string &key) { return m_db->keys(key); }
 
-        void set(const std::string &key, const std::string &value) { return m_db->set(key, value); }
+        bool set(const std::string &key, const std::string &value) { return m_db->set(key, value); }
 
         void hset(const std::string &key, const std::string &field, const std::string &value) { return m_db->hset(key, field, value); }
 

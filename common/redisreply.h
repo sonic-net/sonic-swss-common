@@ -62,7 +62,7 @@ public:
     RedisReply(RedisContext *ctx, const RedisCommand& command, int expectedType);
     RedisReply(RedisContext *ctx, const std::string& command, int expectedType);
 
-    /* auto_ptr for native structue (Free the memory on destructor) */
+    /* auto_ptr for native structure (Free the memory on destructor) */
     RedisReply(redisReply *reply);
 
     /* Free the resources */
@@ -86,10 +86,10 @@ public:
     template<typename TYPE>
     TYPE getReply();
 
-    /* Check that the staus is OK, throw exception otherwise */
+    /* Check that the status is OK, throw exception otherwise */
     void checkStatusOK();
 
-    /* Check that the staus is QUEUED, throw exception otherwise */
+    /* Check that the status is QUEUED, throw exception otherwise */
     void checkStatusQueued();
 
 private:

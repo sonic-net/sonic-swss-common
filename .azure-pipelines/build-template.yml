@@ -1,0 +1,75 @@
+parameters:
+- name: arch
+  type: string
+  values:
+  - amd64
+  - armhf
+  - arm64
+
+- name: pool
+  type: string
+  values:
+  - sonicbld
+  - default
+  default: default
+
+- name: timeout
+  type: number
+  default: 60
+
+- name: sonic_slave
+  type: string
+
+- name: artifact_name
+  type: string
+
+- name: run_unit_test
+  type: boolean
+  default: false
+
+jobs:
+- job:
+  displayName: ${{ parameters.arch }}
+  timeoutInMinutes: ${{ parameters.timeout }}
+
+  pool:
+    ${{ if ne(parameters.pool, 'default') }}:
+      name: ${{ parameters.pool }}
+    ${{ if eq(parameters.pool, 'default') }}:
+      vmImage: 'ubuntu-20.04'
+
+  container:
+    image: sonicdev-microsoft.azurecr.io:443/${{ parameters.sonic_slave }}:latest
+
+  steps:
+  - script: |
+      sudo apt-get install -qq -y \
+        libhiredis-dev \
+        libnl-3-dev \
+        libnl-genl-3-dev \
+        libnl-route-3-dev \
+        libnl-nf-3-dev \
+        swig3.0
+    displayName: "Install dependencies"
+  - script: |
+      ./autogen.sh
+      dpkg-buildpackage -us -uc -b -j$(nproc) && cp ../*.deb .
+    displayName: "Compile sonic swss common"
+  - ${{ if eq(parameters.run_unit_test, true) }}:
+    - script: |
+        sudo pip install Pympler==0.8
+        sudo apt-get install -y redis-server
+        sudo sed -i 's/notify-keyspace-events ""/notify-keyspace-events AKE/' /etc/redis/redis.conf
+        sudo sed -ri 's/^# unixsocket/unixsocket/' /etc/redis/redis.conf
+        sudo sed -ri 's/^unixsocketperm .../unixsocketperm 777/' /etc/redis/redis.conf
+        sudo sed -ri 's/redis-server.sock/redis.sock/' /etc/redis/redis.conf
+        sudo service redis-server restart
+
+        sudo dpkg -i libswsscommon_*.deb
+        sudo dpkg -i python-swsscommon_*.deb
+
+        sudo ./tests/tests && redis-cli FLUSHALL && pytest
+      displayName: "Run swss common unit tests"
+  - publish: $(System.DefaultWorkingDirectory)/
+    artifact: ${{ parameters.artifact_name }}
+    displayName: "Archive swss common debian packages"

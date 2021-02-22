@@ -9,7 +9,7 @@ using namespace std;
 using namespace swss;
 
 ConfigDBConnector_Native::ConfigDBConnector_Native(bool use_unix_socket_path, const char *netns)
-    : SonicV2Connector(use_unix_socket_path, netns)
+    : SonicV2Connector_Native(use_unix_socket_path, netns)
     , TABLE_NAME_SEPARATOR("|")
     , KEY_SEPARATOR("|")
 {
@@ -19,7 +19,7 @@ void ConfigDBConnector_Native::db_connect(string db_name, bool wait_for_init, bo
 {
     m_db_name = db_name;
     KEY_SEPARATOR = TABLE_NAME_SEPARATOR = get_db_separator(db_name);
-    SonicV2Connector::connect(m_db_name, retry_on);
+    SonicV2Connector_Native::connect(m_db_name, retry_on);
 
     if (wait_for_init)
     {
@@ -382,7 +382,7 @@ void ConfigDBPipeConnector_Native::mod_config(const map<string, map<string, map<
 //     cursor: position to start scanning from
 //
 // Returns:
-//     cur: poition of next item to scan
+//     cur: position of next item to scan
 int ConfigDBPipeConnector_Native::_get_config(DBConnector& client, RedisTransactioner& pipe, map<string, map<string, map<string, string>>>& data, int cursor)
 {
     auto const& rc = client.scan(cursor, "*", REDIS_SCAN_BATCH_SIZE);

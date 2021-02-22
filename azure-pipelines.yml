@@ -8,121 +8,113 @@ trigger:
     include:
       - "*"
 
-jobs:
-- job:
-  displayName: "amd64/ubuntu-20.04"
-  pool:
-    vmImage: 'ubuntu-20.04'
+resources:
+  repositories:
+  - repository: sonic-sairedis
+    type: github
+    name: Azure/sonic-sairedis
+    endpoint: build
+  - repository: sonic-swss
+    type: github
+    name: Azure/sonic-swss
+    endpoint: build
 
-  steps:
-  - script: |
-      sudo apt-get update
-      sudo apt-get install -y make libtool m4 autoconf dh-exec debhelper cmake pkg-config \
-                       libhiredis-dev libnl-3-dev libnl-genl-3-dev libnl-route-3-dev libnl-nf-3-dev swig3.0 \
-                       libpython2.7-dev libgtest-dev libboost-dev libboost1.71-dev
-      sudo apt-get install -y sudo
-      sudo apt-get install -y redis-server redis-tools
-      sudo apt-get install -y python3-pip
-      sudo pip3 install pytest
-      sudo apt-get install -y python
-      sudo apt-get install cmake libgtest-dev
-      cd /usr/src/gtest && sudo cmake . && sudo make
-    displayName: "Install dependencies"
-  - script: |
-      dpkg-buildpackage -rfakeroot -us -uc -b -j$(nproc) && cp ../*.deb .
-    displayName: "Compile sonic swss common"
-  - publish: $(System.DefaultWorkingDirectory)/
-    artifact: sonic-swss-common.amd64.ubuntu20_04
-    displayName: "Archive swss common debian packages"
+stages:
+- stage: Build
 
-- job:
-  displayName: "amd64"
-  pool:
-    vmImage: 'ubuntu-20.04'
+  jobs:
+  - job:
+    displayName: "amd64/ubuntu-20.04"
+    pool:
+      vmImage: 'ubuntu-20.04'
 
-  container:
-    image: sonicdev-microsoft.azurecr.io:443/sonic-slave-buster:latest
+    steps:
+    - script: |
+        sudo apt-get update
+        sudo apt-get install -y make libtool m4 autoconf dh-exec debhelper cmake pkg-config \
+                         libhiredis-dev libnl-3-dev libnl-genl-3-dev libnl-route-3-dev libnl-nf-3-dev swig3.0 \
+                         libpython2.7-dev libgtest-dev libboost-dev libboost1.71-dev
+        sudo apt-get install -y sudo
+        sudo apt-get install -y redis-server redis-tools
+        sudo apt-get install -y python3-pip
+        sudo pip3 install pytest
+        sudo apt-get install -y python
+        sudo apt-get install cmake libgtest-dev
+        cd /usr/src/gtest && sudo cmake . && sudo make
+      displayName: "Install dependencies"
+    - script: |
+        dpkg-buildpackage -rfakeroot -us -uc -b -j$(nproc) && cp ../*.deb .
+      displayName: "Compile sonic swss common"
+    - publish: $(System.DefaultWorkingDirectory)/
+      artifact: sonic-swss-common.amd64.ubuntu20_04
+      displayName: "Archive swss common debian packages"
 
-  steps:
-  - script: |
-      sudo apt-get install -qq -y \
-        libhiredis-dev \
-        libnl-3-dev \
-        libnl-genl-3-dev \
-        libnl-route-3-dev \
-        libnl-nf-3-dev \
-        swig3.0
-    displayName: "Install dependencies"
-  - script: |
-      ./autogen.sh
-      dpkg-buildpackage -us -uc -b -j$(nproc) && cp ../*.deb .
-    displayName: "Compile sonic swss common"
-  - script: |
-      sudo pip install Pympler==0.8
-      sudo apt-get install -y redis-server
-      sudo sed -i 's/notify-keyspace-events ""/notify-keyspace-events AKE/' /etc/redis/redis.conf
-      sudo sed -ri 's/^# unixsocket/unixsocket/' /etc/redis/redis.conf
-      sudo sed -ri 's/^unixsocketperm .../unixsocketperm 777/' /etc/redis/redis.conf
-      sudo sed -ri 's/redis-server.sock/redis.sock/' /etc/redis/redis.conf
-      sudo service redis-server restart
+  - template: .azure-pipelines/build-template.yml
+    parameters:
+      arch: amd64
+      sonic_slave: sonic-slave-buster
+      artifact_name: sonic-swss-common
+      run_unit_test: true
 
-      sudo dpkg -i libswsscommon_*.deb
-      sudo dpkg -i python-swsscommon_*.deb
+- stage: BuildArm
+  dependsOn: Build
+  condition: succeeded('Build')
+  jobs:
+  - template: .azure-pipelines/build-template.yml
+    parameters:
+      arch: armhf
+      timeout: 180
+      pool: sonicbld
+      sonic_slave: sonic-slave-buster-armhf
+      artifact_name: sonic-swss-common.armhf
 
-      sudo ./tests/tests && redis-cli FLUSHALL && pytest
-    displayName: "Run swss common unit tests"
-  - publish: $(System.DefaultWorkingDirectory)/
-    artifact: sonic-swss-common
-    displayName: "Archive swss common debian packages"
+  - template: .azure-pipelines/build-template.yml
+    parameters:
+      arch: arm64
+      timeout: 180
+      pool: sonicbld
+      sonic_slave: sonic-slave-buster-arm64
+      artifact_name: sonic-swss-common.arm64
 
-- job:
-  displayName: "arm64"
-  timeoutInMinutes: 180
-  pool: sonicbld
+- stage: BuildSairedis
+  dependsOn: Build
+  condition: succeeded('Build')
+  jobs:
+  - template: .azure-pipelines/build-sairedis-template.yml
+    parameters:
+      arch: amd64
+      sonic_slave: sonic-slave-buster
+      swss_common_artifact_name: sonic-swss-common
+      artifact_name: sonic-sairedis
+      syslog_artifact_name: sonic-sairedis.syslog
 
-  container:
-    image: sonicdev-microsoft.azurecr.io:443/sonic-slave-buster-arm64:latest
+- stage: BuildSwss
+  dependsOn: BuildSairedis
+  condition: succeeded('BuildSairedis')
+  jobs:
+  - template: .azure-pipelines/build-swss-template.yml
+    parameters:
+      arch: amd64
+      sonic_slave: sonic-slave-buster
+      swss_common_artifact_name: sonic-swss-common
+      sairedis_artifact_name: sonic-sairedis
+      artifact_name: sonic-swss
 
-  steps:
-  - script: |
-      sudo apt-get install -qq -y \
-        libhiredis-dev \
-        libnl-3-dev \
-        libnl-genl-3-dev \
-        libnl-route-3-dev \
-        libnl-nf-3-dev \
-        swig3.0
-    displayName: "Install dependencies"
-  - script: |
-      ./autogen.sh
-      dpkg-buildpackage -us -uc -b -j$(nproc) && cp ../*.deb .
-    displayName: "Compile sonic swss common"
-  - publish: $(System.DefaultWorkingDirectory)/
-    artifact: sonic-swss-common.arm64
-    displayName: "Archive swss common debian packages"
+- stage: BuildDocker
+  dependsOn: BuildSwss
+  condition: succeeded('BuildSwss')
+  jobs:
+  - template: .azure-pipelines/build-docker-sonic-vs-template.yml
+    parameters:
+      swss_common_artifact_name: sonic-swss-common
+      sairedis_artifact_name: sonic-sairedis
+      swss_artifact_name: sonic-swss
+      artifact_name: docker-sonic-vs
 
-- job:
-  displayName: "armhf"
-  timeoutInMinutes: 180
-  pool: sonicbld
-
-  container:
-    image: sonicdev-microsoft.azurecr.io:443/sonic-slave-buster-armhf:latest
-
-  steps:
-  - script: |
-      sudo apt-get install -qq -y \
-        libhiredis-dev \
-        libnl-3-dev \
-        libnl-genl-3-dev \
-        libnl-route-3-dev \
-        libnl-nf-3-dev \
-        swig3.0
-    displayName: "Install dependencies"
-  - script: |
-      ./autogen.sh
-      dpkg-buildpackage -us -uc -b -j$(nproc) && cp ../*.deb .
-    displayName: "Compile sonic swss common"
-  - publish: $(System.DefaultWorkingDirectory)/
-    artifact: sonic-swss-common.armhf
-    displayName: "Archive swss common debian packages"
+- stage: Test
+  dependsOn: BuildDocker
+  condition: succeeded('BuildDocker')
+  jobs:
+  - template: .azure-pipelines/test-docker-sonic-vs-template.yml
+    parameters:
+      log_artifact_name: log
