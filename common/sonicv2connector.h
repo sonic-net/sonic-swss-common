@@ -86,6 +86,9 @@ private:
         @property
         def namespace(self):
             return self.getNamespace()
+
+        def get_all(self, db_name, _hash, blocking=False):
+            return dict(super(SonicV2Connector, self).get_all(db_name, _hash, blocking))
 %}
 #endif
 }
