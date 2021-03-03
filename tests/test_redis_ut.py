@@ -4,6 +4,7 @@ from threading import Thread
 from pympler.tracker import SummaryTracker
 from swsscommon import swsscommon
 from swsscommon.swsscommon import ConfigDBPipeConnector, DBInterface, SonicV2Connector, SonicDBConfig, ConfigDBConnector
+import json
 
 existing_file = "./tests/redis_multi_db_ut_config/database_config.json"
 
@@ -148,6 +149,10 @@ def test_DBInterface():
     fvs = db.get_all("TEST_DB", "key0")
     assert "field1" in fvs
     assert fvs["field1"] == "value2"
+    try:
+        json.dumps(fvs)
+    except:
+        assert False, 'Unexpected exception raised in json dumps'
 
     # Test keys
     ks = db.keys("TEST_DB", "key*");
