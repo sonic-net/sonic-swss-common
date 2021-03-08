@@ -83,6 +83,23 @@ namespace join_detail
         join(ostream, delimiter, args...);
     }
 
+    template <typename Delimiter, typename Container>
+    void join(std::ostringstream &ostream, const Delimiter &delimiter, const Container &container)
+    {
+        if (container.empty())
+        {
+            return;
+        }
+
+        auto iter = container.begin();
+        auto end = container.end();
+        ostream << *iter;
+        while(++iter != end)
+        {
+            ostream << delimiter << *iter;
+        }
+    }
+
 }
 
 template <typename T, typename... Args>
@@ -93,21 +110,11 @@ static inline std::string join(char delimiter, const T &t, const Args &... args)
     return ostream.str();
 }
 
-template <typename Container, typename Delim>
-static inline std::string join(const Delim &delim, const Container &cont)
+template <typename Delimiter, typename Container>
+static inline std::string join(const Delimiter &delimiter, const Container &container)
 {
-    if (cont.empty())
-    {
-        return std::string();
-    }
     std::ostringstream ostream;
-    auto iter = cont.begin();
-    auto end = cont.end();
-    ostream << *iter;
-    while(++iter != end)
-    {
-        ostream << delim << *iter;
-    }
+    join_detail::join(ostream, delimiter, container);
     return ostream.str();
 }
 
@@ -149,16 +156,6 @@ static inline std::string binary_to_hex(const void *buffer, size_t length)
         std::back_inserter<std::string>(s));
 
     return s;
-}
-
-static inline void toupper(std::string &str)
-{
-    std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c){return std::toupper(c);});
-}
-
-static inline void tolower(std::string &str)
-{
-    std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c){return std::tolower(c);});
 }
 
 }
