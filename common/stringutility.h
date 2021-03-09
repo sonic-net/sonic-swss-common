@@ -83,8 +83,8 @@ namespace join_detail
         join(ostream, delimiter, args...);
     }
 
-    template <typename Delimiter, typename Container>
-    void join(std::ostringstream &ostream, const Delimiter &delimiter, const Container &container)
+    template <typename Container>
+    void join_n(std::ostringstream &ostream, char delimiter, const Container &container)
     {
         if (container.empty())
         {
@@ -110,11 +110,11 @@ static inline std::string join(char delimiter, const T &t, const Args &... args)
     return ostream.str();
 }
 
-template <typename Delimiter, typename Container>
-static inline std::string join(const Delimiter &delimiter, const Container &container)
+template <typename Container>
+static inline std::string join_n(char delimiter, const Container &container)
 {
     std::ostringstream ostream;
-    join_detail::join(ostream, delimiter, container);
+    join_detail::join_n(ostream, delimiter, container);
     return ostream.str();
 }
 
