@@ -248,12 +248,11 @@ map<string, map<string, map<string, string>>> ConfigDBConnector_Native::get_conf
     for (string key: keys)
     {
         size_t pos = key.find(TABLE_NAME_SEPARATOR);
-        string table_name = key.substr(0, pos);
-        string row;
-        if (pos != string::npos)
-        {
-            row = key.substr(pos + 1);
+        if (pos == string::npos) {
+            continue;
         }
+        string table_name = key.substr(0, pos);
+        string row = key.substr(pos + 1);
         auto const& entry = client.hgetall<map<string, string>>(key);
 
         if (!entry.empty())
