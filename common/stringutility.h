@@ -83,23 +83,20 @@ namespace join_detail
         join(ostream, delimiter, args...);
     }
 
-    template <typename Container>
-    void join_n(std::ostringstream &ostream, char delimiter, const Container &container)
+    template <typename Iterator>
+    void join(std::ostringstream &ostream, char delimiter, Iterator begin, Iterator end)
     {
-        if (container.empty())
+        if (begin == end)
         {
             return;
         }
 
-        auto iter = container.begin();
-        auto end = container.end();
-        ostream << *iter;
-        while(++iter != end)
+        ostream << *begin;
+        while(++begin != end)
         {
-            ostream << delimiter << *iter;
+            ostream << delimiter << *begin;
         }
     }
-
 }
 
 template <typename T, typename... Args>
@@ -110,11 +107,11 @@ static inline std::string join(char delimiter, const T &t, const Args &... args)
     return ostream.str();
 }
 
-template <typename Container>
-static inline std::string join_n(char delimiter, const Container &container)
+template <typename Iterator>
+static inline std::string join(char delimiter, Iterator begin, Iterator end)
 {
     std::ostringstream ostream;
-    join_detail::join_n(ostream, delimiter, container);
+    join_detail::join(ostream, delimiter, begin, end);
     return ostream.str();
 }
 
