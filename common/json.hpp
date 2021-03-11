@@ -1612,7 +1612,7 @@ class basic_json
     static basic_json array(std::initializer_list<basic_json> init =
                                 std::initializer_list<basic_json>())
     {
-        return basic_json(init, false, value_t::array);
+        return basic_json(init, false);
     }
 
     /*!
