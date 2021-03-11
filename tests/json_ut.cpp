@@ -75,3 +75,12 @@ TEST(JSON, test)
     }
     file.close();
 }
+
+TEST(JSON, Array)
+{
+    json arr = json::array();
+    json::array_t a;
+    json arr1(a);
+    EXPECT_TRUE(arr.is_array());
+    EXPECT_TRUE(arr1.is_array());
+}
