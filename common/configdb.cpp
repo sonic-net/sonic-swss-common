@@ -180,10 +180,11 @@ map<string, map<string, string>> ConfigDBConnector_Native::get_table(string tabl
         auto const& entry = client.hgetall<map<string, string>>(key);
         size_t pos = key.find(TABLE_NAME_SEPARATOR);
         string row;
-        if (pos != string::npos)
+        if (pos == string::npos)
         {
-            row = key.substr(pos + 1);
+            continue;
         }
+        row = key.substr(pos + 1);
         data[row] = entry;
     }
     return data;
@@ -410,10 +411,11 @@ int ConfigDBPipeConnector_Native::_get_config(DBConnector& client, RedisTransact
         size_t pos = key.find(TABLE_NAME_SEPARATOR);
         string table_name = key.substr(0, pos);
         string row;
-        if (pos != string::npos)
+        if (pos == string::npos)
         {
-            row = key.substr(pos + 1);
+            continue;
         }
+        row = key.substr(pos + 1);
 
         auto reply = pipe.dequeueReply();
         RedisReply r(reply);
