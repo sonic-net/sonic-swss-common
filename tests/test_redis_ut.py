@@ -263,6 +263,25 @@ def test_ConfigDBConnector():
     allconfig =  config_db.get_config()
     assert len(allconfig) == 0
 
+def test_ConfigDBConnectorSeparator():
+    db = swsscommon.DBConnector("APPL_DB", 0, True)
+    config_db = ConfigDBConnector()
+    config_db.db_connect("APPL_DB", False, False)
+    config_db.get_redis_client(config_db.APPL_DB).flushdb()
+    config_db.set_entry("TEST_PORT", "Ethernet222", {"alias": "etp2x"})
+    db.set("ItemWithoutSeparator", "item11")
+    allconfig = config_db.get_config()
+    assert "TEST_PORT" in allconfig
+    assert "ItemWithoutSeparator" not in allconfig
+
+    alltable = config_db.get_table("*")
+    assert "Ethernet222" in alltable
+
+    config_db.delete_table("TEST_PORT")
+    db.delete("ItemWithoutSeparator")
+    allconfig = config_db.get_config()
+    assert len(allconfig) == 0
+
 def test_ConfigDBPipeConnector():
     config_db = ConfigDBPipeConnector()
     config_db.connect(wait_for_init=False)
