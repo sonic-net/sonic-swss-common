@@ -158,6 +158,7 @@ def test_DBInterface():
     ks = db.keys("TEST_DB", "key*");
     assert len(ks) == 1
     ks = db.keys("TEST_DB", u"key*");
+    ks.sort(reverse=True)
     assert len(ks) == 1
 
     # Test del

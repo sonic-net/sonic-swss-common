@@ -89,6 +89,9 @@ private:
 
         def get_all(self, db_name, _hash, blocking=False):
             return dict(super(SonicV2Connector, self).get_all(db_name, _hash, blocking))
+
+        def keys(self, *args, **kwargs):
+            return list(super(SonicV2Connector, self).keys(*args, **kwargs))
 %}
 #endif
 }
