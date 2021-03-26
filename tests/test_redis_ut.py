@@ -170,6 +170,7 @@ def test_DBInterface():
     ks0 = ks
     ks.sort(reverse=True)
     assert ks == sorted(ks0, reverse=True)
+    assert isinstance(ks, list)
 
     # Test del
     db.set("TEST_DB", "key3", "field4", "value5")
