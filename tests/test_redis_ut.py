@@ -190,6 +190,8 @@ def test_DBInterface():
     assert db.TEST_DB == 'TEST_DB'
     assert db.namespace == ''
     db.connect("TEST_DB")
+    redisclient = db.get_redis_client("TEST_DB")
+    redisclient.flushdb()
     db.set("TEST_DB", "key0", "field1", "value2")
     fvs = db.get_all("TEST_DB", "key0")
     assert "field1" in fvs
@@ -200,10 +202,20 @@ def test_DBInterface():
         assert False, 'Unexpected exception raised in json dumps'
 
     # Test keys
-    ks = db.keys("TEST_DB", "key*");
+    ks = db.keys("TEST_DB", "key*")
     assert len(ks) == 1
-    ks = db.keys("TEST_DB", u"key*");
+    ks = db.keys("TEST_DB", u"key*")
     assert len(ks) == 1
+
+    # Test keys could be sorted in place
+    db.set("TEST_DB", "key11", "field1", "value2")
+    db.set("TEST_DB", "key12", "field1", "value2")
+    db.set("TEST_DB", "key13", "field1", "value2")
+    ks = db.keys("TEST_DB", "key*")
+    ks0 = ks
+    ks.sort(reverse=True)
+    assert ks == sorted(ks0, reverse=True)
+    assert isinstance(ks, list)
 
     # Test del
     db.set("TEST_DB", "key3", "field4", "value5")
@@ -213,7 +225,6 @@ def test_DBInterface():
     assert deleted == 0
 
     # Test pubsub
-    redisclient = db.get_redis_client("TEST_DB")
     pubsub = redisclient.pubsub()
     dbid = db.get_dbid("TEST_DB")
     pubsub.psubscribe("__keyspace@{}__:pub_key*".format(dbid))
