@@ -48,7 +48,7 @@ Licensed under the MIT License <http://opensource.org/licenses/MIT>.
 @see https://github.com/nlohmann
 @since version 1.0.0
 */
-namespace nlohmann
+namespace nlohmann __attribute__ ((visibility ("hidden")))
 {
 
 
