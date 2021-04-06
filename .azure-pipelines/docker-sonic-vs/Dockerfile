@@ -13,4 +13,6 @@ RUN dpkg -i /debs/libsairedis_1.0.0_amd64.deb
 RUN dpkg -i /debs/libsaivs_1.0.0_amd64.deb
 RUN dpkg -i /debs/syncd-vs_1.0.0_amd64.deb
 
+RUN md5sum /usr/bin/orchagent
 RUN dpkg -i /debs/swss_1.0.0_amd64.deb
+RUN md5sum /usr/bin/orchagent
