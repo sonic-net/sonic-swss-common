@@ -40,6 +40,10 @@ jobs:
     inputs:
       artifact: ${{ parameters.sairedis_artifact_name }}
     displayName: "Download sonic sairedis deb packages"
+    - task: DownloadPipelineArtifact@2
+    inputs:
+      artifact: ${{ parameters.swss_artifact_name }}
+    displayName: "Download sonic swss artifact"
   - task: DownloadPipelineArtifact@2
     inputs:
       source: specific
@@ -49,10 +53,6 @@ jobs:
       runVersion: 'latestFromBranch'
       runBranch: 'refs/heads/master'
     displayName: "Download sonic buildimage"
-  - task: DownloadPipelineArtifact@2
-    inputs:
-      artifact: ${{ parameters.swss_artifact_name }}
-    displayName: "Download sonic swss artifact"
   - script: |
       echo $(Build.DefinitionName).$(Build.BuildNumber)
 
