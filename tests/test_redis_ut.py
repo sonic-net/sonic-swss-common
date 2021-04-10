@@ -1,9 +1,10 @@
+import os
 import time
 import pytest
 from threading import Thread
 from pympler.tracker import SummaryTracker
 from swsscommon import swsscommon
-from swsscommon.swsscommon import ConfigDBPipeConnector, DBInterface, SonicV2Connector, SonicDBConfig, ConfigDBConnector
+from swsscommon.swsscommon import ConfigDBPipeConnector, DBInterface, SonicV2Connector, SonicDBConfig, ConfigDBConnector, SonicDBConfig
 import json
 
 existing_file = "./tests/redis_multi_db_ut_config/database_config.json"
@@ -433,3 +434,10 @@ def test_ConfigDBConnect():
     client.flushdb()
     allconfig = config_db.get_config()
     assert len(allconfig) == 0
+
+def test_multidb_ConfigDBConnector():
+    test_dir = os.path.dirname(os.path.abspath(__file__))
+    global_db_config = os.path.join(test_dir, 'redis_multi_db_ut_config', 'database_global.json')
+    SonicDBConfig.load_sonic_global_db_config(global_db_config)
+    config_db = ConfigDBConnector(use_unix_socket_path=True, namespace='asic1')
+    assert config_db.namespace == 'asic1'
