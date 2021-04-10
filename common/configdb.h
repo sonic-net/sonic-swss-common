@@ -141,7 +141,7 @@ protected:
                 raise ValueError('decode_responses must be True if specified, False is not supported')
             if namespace is None:
                 namespace = ''
-            super(ConfigDBConnector, self).__init__(use_unix_socket_path = use_unix_socket_path, netns = namespace)
+            super(ConfigDBConnector, self).__init__(use_unix_socket_path = use_unix_socket_path, namespace = namespace)
 
             # Trick: to achieve static/instance method "overload", we must use initize the function in ctor
             # ref: https://stackoverflow.com/a/28766809/2514803
