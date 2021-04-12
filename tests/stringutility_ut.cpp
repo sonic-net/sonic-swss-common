@@ -67,6 +67,9 @@ TEST(STRINGUTILITY, join)
     EXPECT_EQ(swss::join(':', 123, swss::AlphaBoolean(true), std::string("name")), "123:true:name");
 
     EXPECT_EQ(swss::join('|', 123, swss::AlphaBoolean(false), std::string("name")), "123|false|name");
+
+    std::vector<int> c{1,2,3,4};
+    EXPECT_EQ(swss::join(',', c.begin(), c.end()), "1,2,3,4");
 }
 
 TEST(STRINGUTILITY, hex_to_binary)
