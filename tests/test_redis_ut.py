@@ -56,6 +56,7 @@ def test_Table():
 
 def test_SubscriberStateTable():
     db = swsscommon.DBConnector("APPL_DB", 0, True)
+    db.flushdb()
     t = swsscommon.Table(db, "testsst")
     sel = swsscommon.Select()
     cst = swsscommon.SubscriberStateTable(db, "testsst")
@@ -64,6 +65,39 @@ def test_SubscriberStateTable():
     t.set("aaa", fvs)
     (state, c) = sel.select()
     assert state == swsscommon.Select.OBJECT
+    (key, op, cfvs) = cst.pop()
+    assert key == "aaa"
+    assert op == "SET"
+    assert len(cfvs) == 1
+    assert cfvs[0] == ('a', 'b')
+
+def thread_test_func():
+    print("Start thread: thread_test_func")
+    time.sleep(2)
+    db = swsscommon.DBConnector("APPL_DB", 0, True)
+    t = swsscommon.Table(db, "testsst")
+    fvs = swsscommon.FieldValuePairs([('a','b')])
+    t.set("aaa", fvs)
+    print("Leave thread: thread_test_func")
+
+def test_SelectYield():
+    db = swsscommon.DBConnector("APPL_DB", 0, True)
+    db.flushdb()
+    sel = swsscommon.Select()
+    cst = swsscommon.SubscriberStateTable(db, "testsst")
+    sel.addSelectable(cst)
+
+    print("Spawning thread: thread_test_func")
+    test_thread = Thread(target=thread_test_func)
+    test_thread.start()
+
+    while True:
+        (state, c) = sel.select(1000)
+        print("select: state=", state, swsscommon.Select.OBJECT, state==swsscommon.Select.OBJECT)
+        if state == swsscommon.Select.OBJECT:
+            break
+
+    test_thread.join()
     (key, op, cfvs) = cst.pop()
     assert key == "aaa"
     assert op == "SET"
