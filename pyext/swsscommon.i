@@ -46,6 +46,7 @@
 %include <exception.i>
 
 %exception {
+    Py_BEGIN_ALLOW_THREADS
     try
     {
         $action
@@ -55,6 +56,7 @@
     {
         SWIG_exception(SWIG_UnknownError, "unknown exception");
     }
+    Py_END_ALLOW_THREADS
 }
 
 %template(FieldValuePair) std::pair<std::string, std::string>;
