@@ -92,10 +92,12 @@ def test_SelectYield():
     test_thread.start()
 
     while True:
-        (state, c) = sel.select(1000)
-        print("select: state=", state, swsscommon.Select.OBJECT, state==swsscommon.Select.OBJECT)
+        # timeout 10s is too long and indicates thread hanging
+        (state, c) = sel.select(10000)
         if state == swsscommon.Select.OBJECT:
             break
+        elif state == swsscommon.Select.TIMEOUT:
+            assert False
 
     test_thread.join()
     (key, op, cfvs) = cst.pop()
