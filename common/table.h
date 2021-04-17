@@ -112,6 +112,24 @@ public:
 
     /* Get multiple pop elements */
     virtual void pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const std::string &prefix = EMPTY_PREFIX) = 0;
+
+    void pops(std::vector<std::string> &keys, std::vector<std::string> &ops, std::vector<std::vector<FieldValueTuple>> &fvss, const std::string &prefix = EMPTY_PREFIX)
+    {
+        std::deque<KeyOpFieldsValuesTuple> vkco;
+        pops(vkco);
+
+        keys.clear();
+        ops.clear();
+        fvss.clear();
+        while(!vkco.empty())
+        {
+            auto& kco = vkco.front();
+            keys.emplace_back(kfvKey(kco));
+            ops.emplace_back(kfvOp(kco));
+            fvss.emplace_back(kfvFieldsValues(kco));
+            vkco.pop_front();
+        }
+    }
 };
 
 class TableConsumable : public TableBase, public TableEntryPoppable, public RedisSelect {

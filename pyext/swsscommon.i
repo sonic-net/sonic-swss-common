@@ -79,6 +79,15 @@
     }
 }
 
+%template(FieldValuePair) std::pair<std::string, std::string>;
+%template(FieldValuePairs) std::vector<std::pair<std::string, std::string>>;
+%template(FieldValuePairsList) std::vector<std::vector<std::pair<std::string, std::string>>>;
+%template(FieldValueMap) std::map<std::string, std::string>;
+%template(VectorString) std::vector<std::string>;
+%template(ScanResult) std::pair<int64_t, std::vector<std::string>>;
+%template(GetTableResult) std::map<std::string, std::map<std::string, std::string>>;
+%template(GetConfigResult) std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>;
+
 %pythoncode %{
     def _FieldValueMap__get(self, key, default=None):
         if key in self:
@@ -138,11 +147,16 @@ T castSelectableObj(swss::Selectable *temp)
     %template(hgetall) hgetall<std::map<std::string, std::string>>;
 }
 
+%ignore swss::TableEntryPoppable::pops(std::deque<KeyOpFieldsValuesTuple> &, const std::string &);
 %apply std::vector<std::string>& OUTPUT {std::vector<std::string> &keys};
+%apply std::vector<std::string>& OUTPUT {std::vector<std::string> &ops};
+%apply std::vector<std::vector<std::pair<std::string, std::string>>>& OUTPUT {std::vector<std::vector<std::pair<std::string, std::string>>> &fvss};
 %apply std::vector<std::pair<std::string, std::string>>& OUTPUT {std::vector<std::pair<std::string, std::string>> &ovalues};
 %apply std::string& OUTPUT {std::string &value};
 %include "table.h"
 %clear std::vector<std::string> &keys;
+%clear std::vector<std::string> &ops;
+%clear std::vector<std::vector<std::pair<std::string, std::string>>> &fvss;
 %clear std::vector<std::pair<std::string, std::string>> &values;
 %clear std::string &value;
 
