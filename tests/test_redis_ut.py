@@ -19,7 +19,9 @@ def test_ProducerTable():
     cs = swsscommon.ConsumerTable(db, "abc")
     fvs = swsscommon.FieldValuePairs([('a','b')])
     ps.set("bbb", fvs)
-    (key, op, cfvs) = cs.pop()
+    entries = cs.pops()
+    assert len(entries) == 1
+    (key, op, cfvs) = entries[0]
     assert key == "bbb"
     assert op == "SET"
     assert len(cfvs) == 1
