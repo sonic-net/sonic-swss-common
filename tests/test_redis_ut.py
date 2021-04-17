@@ -4,7 +4,7 @@ import pytest
 from threading import Thread
 from pympler.tracker import SummaryTracker
 from swsscommon import swsscommon
-from swsscommon.swsscommon import ConfigDBPipeConnector, DBInterface, SonicV2Connector, SonicDBConfig, ConfigDBConnector, SonicDBConfig
+from swsscommon.swsscommon import ConfigDBPipeConnector, DBInterface, SonicV2Connector, SonicDBConfig, ConfigDBConnector, SonicDBConfig, transpose_pops
 import json
 
 existing_file = "./tests/redis_multi_db_ut_config/database_config.json"
@@ -17,15 +17,23 @@ def test_ProducerTable():
     db = swsscommon.DBConnector("APPL_DB", 0, True)
     ps = swsscommon.ProducerTable(db, "abc")
     cs = swsscommon.ConsumerTable(db, "abc")
-    fvs = swsscommon.FieldValuePairs([('a','b')])
+    fvs = swsscommon.FieldValuePairs([('a','b'), ('c', 'd')])
     ps.set("bbb", fvs)
-    entries = cs.pops()
-    assert len(entries) == 1
+    ps.delete("cccc")
+    entries = transpose_pops(cs.pops())
+    assert len(entries) == 2
+
     (key, op, cfvs) = entries[0]
     assert key == "bbb"
     assert op == "SET"
-    assert len(cfvs) == 1
+    assert len(cfvs) == 2
     assert cfvs[0] == ('a', 'b')
+    assert cfvs[1] == ('c', 'd')
+
+    (key, op, cfvs) = entries[1]
+    assert key == "cccc"
+    assert op == "DEL"
+    assert len(cfvs) == 0
 
 def test_ProducerStateTable():
     db = swsscommon.DBConnector("APPL_DB", 0, True)

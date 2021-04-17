@@ -113,6 +113,8 @@ public:
     /* Get multiple pop elements */
     virtual void pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const std::string &prefix = EMPTY_PREFIX) = 0;
 
+    /* Get multiple pop elements (only for SWIG usage) */
+    /* TODO: current swig 3.0 does not support std::tuple, remove after future support */
     void pops(std::vector<std::string> &keys, std::vector<std::string> &ops, std::vector<std::vector<FieldValueTuple>> &fvss, const std::string &prefix = EMPTY_PREFIX)
     {
         std::deque<KeyOpFieldsValuesTuple> vkco;
@@ -131,6 +133,13 @@ public:
         }
     }
 };
+
+#ifdef SWIG
+%pythoncode %{
+    def transpose_pops(m):
+        return [tuple(m[j][i] for j in range(len(m))) for i in range(len(m[0]))]
+%}
+#endif
 
 class TableConsumable : public TableBase, public TableEntryPoppable, public RedisSelect {
 public:
