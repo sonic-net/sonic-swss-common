@@ -54,17 +54,27 @@
 %template(GetConfigResult) std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>;
 
 %exception {
-    PyThreadState *_save;
-    _save = PyEval_SaveThread();
     try
     {
+        class PyThreadStateGuard
+        {
+            PyThreadState *m_save;
+        public:
+            PyThreadStateGuard()
+            {
+                m_save = PyEval_SaveThread();
+            }
+            ~PyThreadStateGuard()
+            {
+                PyEval_RestoreThread(m_save);
+            }
+        } thread_state_guard;
+
         $action
-        PyEval_RestoreThread(_save);
     }
     SWIG_CATCH_STDEXCEPT // catch std::exception derivatives
     catch (...)
     {
-        PyEval_RestoreThread(_save);
         SWIG_exception(SWIG_UnknownError, "unknown exception");
     }
 }
