@@ -211,6 +211,7 @@ namespace swss {
 #define CFG_SWITCH_TABLE_NAME      "SWITCH"
 #define CFG_VRF_TABLE_NAME         "VRF"
 #define CFG_CRM_TABLE_NAME         "CRM"
+#define CFG_MGMT_VRF_TABLE_NAME    "MGMT_VRF_CONFIG"
 
 #define CFG_DHCP_SERVER_TABLE_NAME   "DHCP_SERVER"
 #define CFG_NTP_SERVER_TABLE_NAME    "NTP_SERVER"
