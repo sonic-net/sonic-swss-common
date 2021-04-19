@@ -45,9 +45,31 @@
 %include <stdint.i>
 %include <exception.i>
 
+%template(FieldValuePair) std::pair<std::string, std::string>;
+%template(FieldValuePairs) std::vector<std::pair<std::string, std::string>>;
+%template(FieldValueMap) std::map<std::string, std::string>;
+%template(VectorString) std::vector<std::string>;
+%template(ScanResult) std::pair<int64_t, std::vector<std::string>>;
+%template(GetTableResult) std::map<std::string, std::map<std::string, std::string>>;
+%template(GetConfigResult) std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>;
+
 %exception {
     try
     {
+        class PyThreadStateGuard
+        {
+            PyThreadState *m_save;
+        public:
+            PyThreadStateGuard()
+            {
+                m_save = PyEval_SaveThread();
+            }
+            ~PyThreadStateGuard()
+            {
+                PyEval_RestoreThread(m_save);
+            }
+        } thread_state_guard;
+
         $action
     }
     SWIG_CATCH_STDEXCEPT // catch std::exception derivatives
@@ -56,14 +78,6 @@
         SWIG_exception(SWIG_UnknownError, "unknown exception");
     }
 }
-
-%template(FieldValuePair) std::pair<std::string, std::string>;
-%template(FieldValuePairs) std::vector<std::pair<std::string, std::string>>;
-%template(FieldValueMap) std::map<std::string, std::string>;
-%template(VectorString) std::vector<std::string>;
-%template(ScanResult) std::pair<int64_t, std::vector<std::string>>;
-%template(GetTableResult) std::map<std::string, std::map<std::string, std::string>>;
-%template(GetConfigResult) std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>;
 
 %pythoncode %{
     def _FieldValueMap__get(self, key, default=None):
