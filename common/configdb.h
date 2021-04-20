@@ -27,18 +27,26 @@ public:
     virtual std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> get_config();
 
     std::string getKeySeparator() const;
+    std::string getTableNameSeparator() const;
+    std::string getDbName() const;
 
 #ifdef SWIG
     %pythoncode %{
         __swig_getmethods__["KEY_SEPARATOR"] = getKeySeparator
         __swig_setmethods__["KEY_SEPARATOR"] = None
+        __swig_getmethods__["TABLE_NAME_SEPARATOR"] = getTableNameSeparator
+        __swig_setmethods__["TABLE_NAME_SEPARATOR"] = None
+        __swig_getmethods__["db_name"] = getDbName
+        __swig_setmethods__["db_name"] = None
         if _newclass: KEY_SEPARATOR = property(getKeySeparator, None)
+        if _newclass: TABLE_NAME_SEPARATOR = property(getTableNameSeparator, None)
+        if _newclass: db_name = property(getDbName, None)
 
         ## Note: callback is difficult to implement by SWIG C++, so keep in python
         def listen(self):
             ## Start listen Redis keyspace events and will trigger corresponding handlers when content of a table changes.
-            self.pubsub = self.get_redis_client(self.m_db_name).pubsub()
-            self.pubsub.psubscribe("__keyspace@{}__:*".format(self.get_dbid(self.m_db_name)))
+            self.pubsub = self.get_redis_client(self.db_name).pubsub()
+            self.pubsub.psubscribe("__keyspace@{}__:*".format(self.get_dbid(self.db_name)))
             while True:
                 item = self.pubsub.listen_message()
                 if item['type'] == 'pmessage':
@@ -126,6 +134,14 @@ protected:
             if table in self.handlers:
                 handler = self.handlers[table]
                 handler(table, key, data)
+        
+        def subscribe(self, table, handler):
+            self.handlers[table] = handler
+
+        def unsubscribe(self, table):
+            if self.handlers.has_key(table):
+                self.handlers.pop(table)
+
     %}
 #endif
 };
