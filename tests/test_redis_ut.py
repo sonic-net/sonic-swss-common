@@ -283,6 +283,19 @@ def test_DBInterface():
     assert fvs.get("field1", "default") == "value2"
     assert fvs.get("nonfield", "default") == "default"
 
+    # Test hmset
+    fvs = {"field1": "value3", "field2": "value4"}
+    db.hmset("TEST_DB", "key5", fvs)
+    attrs = db.get_all("TEST_DB", "key5")
+    assert len(attrs) == 2
+    assert attrs["field1"] == "value3"
+    assert attrs["field2"] == "value4"
+    fvs = {"field5": "value5"}
+    db.hmset("TEST_DB", "key5", fvs)
+    attrs = db.get_all("TEST_DB", "key5")
+    assert len(attrs) == 3
+    assert attrs["field5"] == "value5"
+
     # Test empty/none namespace
     db = SonicV2Connector(use_unix_socket_path=True, namespace=None)
     assert db.namespace == ''

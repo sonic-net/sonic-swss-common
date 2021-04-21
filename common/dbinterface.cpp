@@ -130,6 +130,11 @@ int64_t DBInterface::publish(const std::string& dbName, const std::string& chann
     return m_redisClient.at(dbName).publish(channel, message);
 }
 
+void DBInterface::hmset(const std::string& dbName, const std::string &hash, const std::map<std::string, std::string> &values)
+{
+    m_redisClient.at(dbName).hmset(hash, values.begin(), values.end());
+}
+
 int64_t DBInterface::set(const std::string& dbName, const std::string& hash, const std::string& key, const std::string& value, bool blocking)
 {
     auto innerfunc = [&]
