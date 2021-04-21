@@ -43,6 +43,7 @@ public:
     std::vector<std::string> keys(const std::string& dbName, const char *pattern = "*", bool blocking = false);
     std::pair<int, std::vector<std::string>> scan(const std::string& db_name, int cursor, const char *match, uint32_t count);
     int64_t publish(const std::string& dbName, const std::string& channel, const std::string& message);
+    void hmset(const std::string& dbName, const std::string &hash, const std::map<std::string, std::string> &values);
     int64_t set(const std::string& dbName, const std::string& hash, const std::string& key, const std::string& value, bool blocking = false);
     DBConnector& get_redis_client(const std::string& dbName);
     void set_redis_kwargs(std::string unix_socket_path, std::string host, int port);
