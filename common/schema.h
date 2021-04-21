@@ -357,6 +357,7 @@ namespace swss {
 #define STATE_MUX_CABLE_TABLE_NAME                  "MUX_CABLE_TABLE"
 #define STATE_HW_MUX_CABLE_TABLE_NAME               "HW_MUX_CABLE_TABLE"
 #define STATE_MUX_LINKMGR_TABLE_NAME                "MUX_LINKMGR_TABLE"
+#define STATE_MUX_METRICS_TABLE_NAME                "MUX_METRICS_TABLE"
 
 #define STATE_SYSTEM_NEIGH_TABLE_NAME               "SYSTEM_NEIGH_TABLE"
 
