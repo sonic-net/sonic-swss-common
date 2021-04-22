@@ -27,11 +27,12 @@ public:
     virtual std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> get_config();
 
     std::string getKeySeparator() const;
+    std::string getTableNameSeparator() const;
     std::string getDbName() const;
 
 protected:
-    std::string TABLE_NAME_SEPARATOR = "|";
-    std::string KEY_SEPARATOR = "|";
+    std::string m_table_name_separator = "|";
+    std::string m_key_separator = "|";
 
     std::string m_db_name;
 };
@@ -60,6 +61,10 @@ protected:
         @property
         def KEY_SEPARATOR(self):
             return self.getKeySeparator()
+
+        @property
+        def TABLE_NAME_SEPARATOR(self):
+            return self.getTableNameSeparator()
 
         @property
         def db_name(self):
