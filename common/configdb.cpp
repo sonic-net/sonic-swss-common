@@ -269,6 +269,11 @@ std::string ConfigDBConnector_Native::getKeySeparator() const
     return KEY_SEPARATOR;
 }
 
+std::string ConfigDBConnector_Native::getDbName() const
+{
+    return m_db_name;
+}
+
 ConfigDBPipeConnector_Native::ConfigDBPipeConnector_Native(bool use_unix_socket_path, const char *netns)
     : ConfigDBConnector_Native(use_unix_socket_path, netns)
 {

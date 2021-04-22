@@ -319,7 +319,9 @@ def test_DBInterface():
 
 def test_ConfigDBConnector():
     config_db = ConfigDBConnector()
+    assert config_db.db_name == ""
     config_db.connect(wait_for_init=False)
+    assert config_db.db_name == "CONFIG_DB"
     config_db.get_redis_client(config_db.CONFIG_DB).flushdb()
     config_db.set_entry("TEST_PORT", "Ethernet111", {"alias": "etp1x"})
     allconfig = config_db.get_config()
