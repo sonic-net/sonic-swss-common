@@ -10,15 +10,15 @@ using namespace swss;
 
 ConfigDBConnector_Native::ConfigDBConnector_Native(bool use_unix_socket_path, const char *netns)
     : SonicV2Connector_Native(use_unix_socket_path, netns)
-    , TABLE_NAME_SEPARATOR("|")
-    , KEY_SEPARATOR("|")
+    , m_table_name_separator("|")
+    , m_key_separator("|")
 {
 }
 
 void ConfigDBConnector_Native::db_connect(string db_name, bool wait_for_init, bool retry_on)
 {
     m_db_name = db_name;
-    KEY_SEPARATOR = TABLE_NAME_SEPARATOR = get_db_separator(db_name);
+    m_key_separator = m_table_name_separator = get_db_separator(db_name);
     SonicV2Connector_Native::connect(m_db_name, retry_on);
 
     if (wait_for_init)
@@ -72,7 +72,7 @@ void ConfigDBConnector_Native::connect(bool wait_for_init, bool retry_on)
 void ConfigDBConnector_Native::set_entry(string table, string key, const map<string, string>& data)
 {
     auto& client = get_redis_client(m_db_name);
-    string _hash = to_upper(table) + TABLE_NAME_SEPARATOR + key;
+    string _hash = to_upper(table) + m_table_name_separator + key;
     if (data.empty())
     {
         client.del(_hash);
@@ -103,7 +103,7 @@ void ConfigDBConnector_Native::set_entry(string table, string key, const map<str
 void ConfigDBConnector_Native::mod_entry(string table, string key, const map<string, string>& data)
 {
     auto& client = get_redis_client(m_db_name);
-    string _hash = to_upper(table) + TABLE_NAME_SEPARATOR + key;
+    string _hash = to_upper(table) + m_table_name_separator + key;
     if (data.empty())
     {
         client.del(_hash);
@@ -124,7 +124,7 @@ void ConfigDBConnector_Native::mod_entry(string table, string key, const map<str
 map<string, string> ConfigDBConnector_Native::get_entry(string table, string key)
 {
     auto& client = get_redis_client(m_db_name);
-    string _hash = to_upper(table) + TABLE_NAME_SEPARATOR + key;
+    string _hash = to_upper(table) + m_table_name_separator + key;
     return client.hgetall<map<string, string>>(_hash);
 }
 
@@ -138,14 +138,14 @@ map<string, string> ConfigDBConnector_Native::get_entry(string table, string key
 vector<string> ConfigDBConnector_Native::get_keys(string table, bool split)
 {
     auto& client = get_redis_client(m_db_name);
-    string pattern = to_upper(table) + TABLE_NAME_SEPARATOR + "*";
+    string pattern = to_upper(table) + m_table_name_separator + "*";
     const auto& keys = client.keys(pattern);
     vector<string> data;
     for (auto& key: keys)
     {
         if (split)
         {
-            size_t pos = key.find(TABLE_NAME_SEPARATOR);
+            size_t pos = key.find(m_table_name_separator);
             string row;
             if (pos != string::npos)
             {
@@ -172,13 +172,13 @@ vector<string> ConfigDBConnector_Native::get_keys(string table, bool split)
 map<string, map<string, string>> ConfigDBConnector_Native::get_table(string table)
 {
     auto& client = get_redis_client(m_db_name);
-    string pattern = to_upper(table) + TABLE_NAME_SEPARATOR + "*";
+    string pattern = to_upper(table) + m_table_name_separator + "*";
     const auto& keys = client.keys(pattern);
     map<string, map<string, string>> data;
     for (auto& key: keys)
     {
         auto const& entry = client.hgetall<map<string, string>>(key);
-        size_t pos = key.find(TABLE_NAME_SEPARATOR);
+        size_t pos = key.find(m_table_name_separator);
         string row;
         if (pos == string::npos)
         {
@@ -196,7 +196,7 @@ map<string, map<string, string>> ConfigDBConnector_Native::get_table(string tabl
 void ConfigDBConnector_Native::delete_table(string table)
 {
     auto& client = get_redis_client(m_db_name);
-    string pattern = to_upper(table) + TABLE_NAME_SEPARATOR + "*";
+    string pattern = to_upper(table) + m_table_name_separator + "*";
     const auto& keys = client.keys(pattern);
     for (auto& key: keys)
     {
@@ -248,7 +248,7 @@ map<string, map<string, map<string, string>>> ConfigDBConnector_Native::get_conf
     map<string, map<string, map<string, string>>> data;
     for (string key: keys)
     {
-        size_t pos = key.find(TABLE_NAME_SEPARATOR);
+        size_t pos = key.find(m_table_name_separator);
         if (pos == string::npos) {
             continue;
         }
@@ -266,7 +266,17 @@ map<string, map<string, map<string, string>>> ConfigDBConnector_Native::get_conf
 
 std::string ConfigDBConnector_Native::getKeySeparator() const
 {
-    return KEY_SEPARATOR;
+    return m_key_separator;
+}
+
+std::string ConfigDBConnector_Native::getTableNameSeparator() const
+{
+    return m_table_name_separator;
+}
+
+std::string ConfigDBConnector_Native::getDbName() const
+{
+    return m_db_name;
 }
 
 ConfigDBPipeConnector_Native::ConfigDBPipeConnector_Native(bool use_unix_socket_path, const char *netns)
@@ -308,7 +318,7 @@ int ConfigDBPipeConnector_Native::_delete_entries(DBConnector& client, RedisTran
 //     table: Table name.
 void ConfigDBPipeConnector_Native::_delete_table(DBConnector& client, RedisTransactioner& pipe, string table)
 {
-    string pattern = to_upper(table) + TABLE_NAME_SEPARATOR + "*";
+    string pattern = to_upper(table) + m_table_name_separator + "*";
     auto cur = _delete_entries(client, pipe, pattern.c_str(), 0);
     while (cur != 0)
     {
@@ -327,7 +337,7 @@ void ConfigDBPipeConnector_Native::_delete_table(DBConnector& client, RedisTrans
 //           Pass None as data will delete the entry.
 void ConfigDBPipeConnector_Native::_mod_entry(RedisTransactioner& pipe, string table, string key, const map<string, string>& data)
 {
-    string _hash = to_upper(table) + TABLE_NAME_SEPARATOR + key;
+    string _hash = to_upper(table) + m_table_name_separator + key;
     if (data.empty())
     {
         RedisCommand sdel;
@@ -408,7 +418,7 @@ int ConfigDBPipeConnector_Native::_get_config(DBConnector& client, RedisTransact
             continue;
         }
 
-        size_t pos = key.find(TABLE_NAME_SEPARATOR);
+        size_t pos = key.find(m_table_name_separator);
         string table_name = key.substr(0, pos);
         string row;
         if (pos == string::npos)
