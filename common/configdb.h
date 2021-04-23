@@ -30,17 +30,45 @@ public:
     std::string getTableNameSeparator() const;
     std::string getDbName() const;
 
+protected:
+    std::string m_table_name_separator = "|";
+    std::string m_key_separator = "|";
+
+    std::string m_db_name;
+};
+
 #ifdef SWIG
-    %pythoncode %{
-        __swig_getmethods__["KEY_SEPARATOR"] = getKeySeparator
-        __swig_setmethods__["KEY_SEPARATOR"] = None
-        __swig_getmethods__["TABLE_NAME_SEPARATOR"] = getTableNameSeparator
-        __swig_setmethods__["TABLE_NAME_SEPARATOR"] = None
-        __swig_getmethods__["db_name"] = getDbName
-        __swig_setmethods__["db_name"] = None
-        if _newclass: KEY_SEPARATOR = property(getKeySeparator, None)
-        if _newclass: TABLE_NAME_SEPARATOR = property(getTableNameSeparator, None)
-        if _newclass: db_name = property(getDbName, None)
+%pythoncode %{
+    ## Note: diamond inheritance, reusing functions in both classes
+    class ConfigDBConnector(SonicV2Connector, ConfigDBConnector_Native):
+
+        ## Note: there is no easy way for SWIG to map ctor parameter netns(C++) to namespace(python)
+        def __init__(self, use_unix_socket_path = False, namespace = '', **kwargs):
+            if 'decode_responses' in kwargs and kwargs.pop('decode_responses') != True:
+                raise ValueError('decode_responses must be True if specified, False is not supported')
+            if namespace is None:
+                namespace = ''
+            super(ConfigDBConnector, self).__init__(use_unix_socket_path = use_unix_socket_path, namespace = namespace)
+
+            # Trick: to achieve static/instance method "overload", we must use initize the function in ctor
+            # ref: https://stackoverflow.com/a/28766809/2514803
+            self.serialize_key = self._serialize_key
+            self.deserialize_key = self._deserialize_key
+
+            ## Note: callback is difficult to implement by SWIG C++, so keep in python
+            self.handlers = {}
+
+        @property
+        def KEY_SEPARATOR(self):
+            return self.getKeySeparator()
+
+        @property
+        def TABLE_NAME_SEPARATOR(self):
+            return self.getTableNameSeparator()
+
+        @property
+        def db_name(self):
+            return self.getDbName()
 
         ## Note: callback is difficult to implement by SWIG C++, so keep in python
         def listen(self):
@@ -119,53 +147,18 @@ public:
 
         def _deserialize_key(self, key):
             return ConfigDBConnector.deserialize_key(key, self.KEY_SEPARATOR)
-    %}
-#endif
 
-protected:
-    std::string TABLE_NAME_SEPARATOR = "|";
-    std::string KEY_SEPARATOR = "|";
-
-    std::string m_db_name;
-
-#ifdef SWIG
-    %pythoncode %{
         def __fire(self, table, key, data):
             if table in self.handlers:
                 handler = self.handlers[table]
                 handler(table, key, data)
-        
+
         def subscribe(self, table, handler):
             self.handlers[table] = handler
 
         def unsubscribe(self, table):
             if self.handlers.has_key(table):
                 self.handlers.pop(table)
-
-    %}
-#endif
-};
-
-#ifdef SWIG
-%pythoncode %{
-    ## Note: diamond inheritance, reusing functions in both classes
-    class ConfigDBConnector(SonicV2Connector, ConfigDBConnector_Native):
-
-        ## Note: there is no easy way for SWIG to map ctor parameter netns(C++) to namespace(python)
-        def __init__(self, use_unix_socket_path = False, namespace = '', **kwargs):
-            if 'decode_responses' in kwargs and kwargs.pop('decode_responses') != True:
-                raise ValueError('decode_responses must be True if specified, False is not supported')
-            if namespace is None:
-                namespace = ''
-            super(ConfigDBConnector, self).__init__(use_unix_socket_path = use_unix_socket_path, namespace = namespace)
-
-            # Trick: to achieve static/instance method "overload", we must use initize the function in ctor
-            # ref: https://stackoverflow.com/a/28766809/2514803
-            self.serialize_key = self._serialize_key
-            self.deserialize_key = self._deserialize_key
-
-            ## Note: callback is difficult to implement by SWIG C++, so keep in python
-            self.handlers = {}
 
         def set_entry(self, table, key, data):
             key = self.serialize_key(key)

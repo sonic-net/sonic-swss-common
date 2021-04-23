@@ -283,6 +283,19 @@ def test_DBInterface():
     assert fvs.get("field1", "default") == "value2"
     assert fvs.get("nonfield", "default") == "default"
 
+    # Test hmset
+    fvs = {"field1": "value3", "field2": "value4"}
+    db.hmset("TEST_DB", "key5", fvs)
+    attrs = db.get_all("TEST_DB", "key5")
+    assert len(attrs) == 2
+    assert attrs["field1"] == "value3"
+    assert attrs["field2"] == "value4"
+    fvs = {"field5": "value5"}
+    db.hmset("TEST_DB", "key5", fvs)
+    attrs = db.get_all("TEST_DB", "key5")
+    assert len(attrs) == 3
+    assert attrs["field5"] == "value5"
+
     # Test empty/none namespace
     db = SonicV2Connector(use_unix_socket_path=True, namespace=None)
     assert db.namespace == ''
@@ -306,7 +319,11 @@ def test_DBInterface():
 
 def test_ConfigDBConnector():
     config_db = ConfigDBConnector()
+    assert config_db.db_name == ""
+    assert config_db.TABLE_NAME_SEPARATOR == "|"
     config_db.connect(wait_for_init=False)
+    assert config_db.db_name == "CONFIG_DB"
+    assert config_db.TABLE_NAME_SEPARATOR == "|"
     config_db.get_redis_client(config_db.CONFIG_DB).flushdb()
     config_db.set_entry("TEST_PORT", "Ethernet111", {"alias": "etp1x"})
     allconfig = config_db.get_config()
