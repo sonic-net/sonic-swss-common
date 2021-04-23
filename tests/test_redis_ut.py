@@ -437,3 +437,24 @@ def test_multidb_ConfigDBConnector():
     SonicDBConfig.load_sonic_global_db_config(global_db_config)
     config_db = ConfigDBConnector(use_unix_socket_path=True, namespace='asic1')
     assert config_db.namespace == 'asic1'
+
+def test_ConfigDBSubscribe():
+        table_name = 'Test_table'
+        test_key = 'key1'
+        test_data = {'field1': 'value1'}
+
+        def test_handler(key, data):
+            assert key == test_key
+            assert data == test_data
+
+        config_db = ConfigDBConnector()
+        config_db.connect(wait_for_init=False)
+        config_db.subscribe(table_name, lambda table, key, data: test_handler(key, data))
+
+        assert table_name in config_db.handler
+        assert config_db.handler[table_name] == 'test_handler'
+
+        config_db.set_entry(table_name, test_key, test_data)
+        
+        config_db.unsubscribe(table_name)
+        assert table_name not in config_db.handler
