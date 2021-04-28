@@ -157,7 +157,7 @@ protected:
             self.handlers[table] = handler
 
         def unsubscribe(self, table):
-            if self.handlers.has_key(table):
+            if table in self.handlers:
                 self.handlers.pop(table)
 
         def set_entry(self, table, key, data):
