@@ -153,6 +153,13 @@ protected:
                 handler = self.handlers[table]
                 handler(table, key, data)
 
+        def subscribe(self, table, handler):
+            self.handlers[table] = handler
+
+        def unsubscribe(self, table):
+            if table in self.handlers:
+                self.handlers.pop(table)
+
         def set_entry(self, table, key, data):
             key = self.serialize_key(key)
             raw_data = self.typed_to_raw(data)

@@ -445,3 +445,61 @@ def test_multidb_ConfigDBConnector():
     SonicDBConfig.load_sonic_global_db_config(global_db_config)
     config_db = ConfigDBConnector(use_unix_socket_path=True, namespace='asic1')
     assert config_db.namespace == 'asic1'
+
+
+def test_ConfigDBSubscribe():
+    table_name = 'TEST_TABLE'
+    test_key = 'key1'
+    test_data = {'field1': 'value1'}
+    global output_data 
+    global stop_listen_thread
+    output_data =  ""
+    stop_listen_thread = False
+
+    def test_handler(key, data):
+        global output_data
+        assert key == test_key
+        assert data == test_data
+        output_data = test_data['field1']
+
+    # the config_db.listen() is a blocking function so could not use that in the tests
+    # this function has similar logic with a way to exit  the listen function
+    def listen_thread_func(config_db):
+        global stop_listen_thread
+        pubsub = config_db.get_redis_client(config_db.db_name).pubsub()
+        pubsub.psubscribe(
+            "__keyspace@{}__:*".format(config_db.get_dbid(config_db.db_name)))
+        time.sleep(2)
+        while True:
+            if stop_listen_thread:
+                break
+            item = pubsub.listen_message()
+            if 'type' in item and item['type'] == 'pmessage':
+                key = item['channel'].split(':', 1)[1]
+                try:
+                    (table, row) = key.split(config_db.TABLE_NAME_SEPARATOR, 1)
+                    if table in config_db.handlers:
+                        client = config_db.get_redis_client(config_db.db_name)
+                        data = config_db.raw_to_typed(client.hgetall(key))
+                        config_db._ConfigDBConnector__fire(table, row, data)
+                except ValueError:
+                    pass  # Ignore non table-formated redis entries
+
+    config_db = ConfigDBConnector()
+    config_db.connect(wait_for_init=False)
+    client = config_db.get_redis_client(config_db.CONFIG_DB)
+    client.flushdb()
+    config_db.subscribe(table_name, lambda table, key,
+                        data: test_handler(key, data))
+    assert table_name in config_db.handlers
+
+    thread = Thread(target=listen_thread_func, args=(config_db,))
+    thread.start()
+    time.sleep(5)
+    config_db.set_entry(table_name, test_key, test_data)
+    stop_listen_thread = True
+    thread.join()
+    assert output_data == test_data['field1']
+
+    config_db.unsubscribe(table_name)
+    assert table_name not in config_db.handlers
