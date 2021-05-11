@@ -401,7 +401,8 @@ int ConfigDBPipeConnector_Native::_get_config(DBConnector& client, RedisTransact
     pipe.multi();
     for (auto const& key: keys)
     {
-        if (key == INIT_INDICATOR)
+        size_t pos = key.find(m_table_name_separator);
+        if (pos == string::npos)
         {
             continue;
         }
@@ -413,11 +414,6 @@ int ConfigDBPipeConnector_Native::_get_config(DBConnector& client, RedisTransact
 
     for (auto const& key: keys)
     {
-        if (key == INIT_INDICATOR)
-        {
-            continue;
-        }
-
         size_t pos = key.find(m_table_name_separator);
         string table_name = key.substr(0, pos);
         string row;
