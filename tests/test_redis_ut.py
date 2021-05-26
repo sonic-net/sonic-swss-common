@@ -462,7 +462,7 @@ def test_ConfigDBSubscribe():
     table_name = 'TEST_TABLE'
     test_key = 'key1'
     test_data = {'field1': 'value1'}
-    global output_data 
+    global output_data
     global stop_listen_thread
     output_data =  ""
     stop_listen_thread = False
@@ -514,3 +514,13 @@ def test_ConfigDBSubscribe():
 
     config_db.unsubscribe(table_name)
     assert table_name not in config_db.handlers
+
+
+def test_DBConnectFailure():
+    """ Verify that a DB connection failure will not cause a process abort
+    but transfer exception from C++ to python SWIG wrapper. """
+
+    nonexisting_host = "."
+    with pytest.raises(RuntimeError):
+        db = swsscommon.DBConnector(0, nonexisting_host, 0)
+
