@@ -7,16 +7,18 @@ trigger:
   branches:
     include:
       - "*"
+variables:
+  refBranchName: refs/heads/202012
 
 resources:
   repositories:
   - repository: sonic-sairedis
     type: github
-    ref: refs/heads/202012
+    ref: ${{ variables.refBranchName }}
     name: Azure/sonic-sairedis
     endpoint: build
   - repository: sonic-swss
-    ref: refs/heads/202012
+    ref: ${{ variables.refBranchName }}
     type: github
     name: Azure/sonic-swss
     endpoint: build
