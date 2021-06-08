@@ -18,7 +18,7 @@ resources:
   - repository: sonic-swss
     ref: refs/heads/202012
     type: github
-    name: Azure/sonic-swss
+    name: xumia/sonic-swss
     endpoint: build
 
 stages:
