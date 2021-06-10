@@ -60,6 +60,9 @@ function build_and_install_kmodule()
     ls $TEAM_DIR
     TEAM_DIR=$(echo /lib/modules/$(uname -r)/kernel/net/team)
     NET_DIR=$(echo /lib/modules/$(uname -r)/kernel/net)
+    echo NET_DIR=$NET_DIR
+    ls -l $NET_DIR
+    find $NET_DIR -name *.ko
     if [ ! -e "$TEAM_DIR/team.ko" ]; then
         mkdir -p $TEAM_DIR
         cp drivers/net/team/*.ko $TEAM_DIR/
