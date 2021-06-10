@@ -56,6 +56,8 @@ function build_and_install_kmodule()
     make M=drivers/net
 
     # Install the module
+    echo Install the module
+    ls $TEAM_DIR
     TEAM_DIR=$(echo /lib/modules/$(uname -r)/kernel/net/team)
     NET_DIR=$(echo /lib/modules/$(uname -r)/kernel/net)
     if [ ! -e "$TEAM_DIR/team.ko" ]; then

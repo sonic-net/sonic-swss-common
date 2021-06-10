@@ -60,7 +60,7 @@ stages:
 
 - stage: BuildArm
   dependsOn: Build
-  condition: succeeded('Build')
+  condition: false
   jobs:
   - template: .azure-pipelines/build-template.yml
     parameters:
