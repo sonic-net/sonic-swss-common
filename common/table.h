@@ -170,11 +170,21 @@ public:
     Table(RedisPipeline *pipeline, const std::string &tableName, bool buffered);
     ~Table() override;
 
+    /* The default time to live for a DB entry is infinite */
+    static constexpr int DEFAULT_DB_TTL = -1;
+
     /* Set an entry in the DB directly (op not in use) */
     virtual void set(const std::string &key,
                      const std::vector<FieldValueTuple> &values,
                      const std::string &op = "",
                      const std::string &prefix = EMPTY_PREFIX);
+    /* Set an entry in the DB directly and configure ttl for it (op not in use) */
+    virtual void set(const std::string &key,
+                     const std::vector<FieldValueTuple> &values,
+                     const int32_t &ttl, 
+                     const std::string &op = "",
+                     const std::string &prefix = EMPTY_PREFIX);    
+
     /* Delete an entry in the table */
     virtual void del(const std::string &key,
                      const std::string &op = "",
