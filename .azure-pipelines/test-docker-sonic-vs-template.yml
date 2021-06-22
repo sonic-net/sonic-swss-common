@@ -11,8 +11,7 @@ jobs:
   displayName: vstest
   timeoutInMinutes: ${{ parameters.timeout }}
 
-  pool:
-    vmImage: 'ubuntu-20.04'
+  pool: 'sonictest'
 
   steps:
   - task: DownloadPipelineArtifact@2
@@ -31,18 +30,24 @@ jobs:
     displayName: "Checkout sonic-swss"
 
   - script: |
+      sudo apt-get install -y python2.7 libpython2.7
+      curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py
+      sudo python2.7 get-pip.py
+    displayName: "Install Python2.7"
+
+  - script: |
       set -x
       ls -l
       sudo sonic-swss-common/.azure-pipelines/build_and_install_module.sh
 
       sudo apt-get install -y libhiredis0.14
-      sudo dpkg -i --force-confask,confnew ../libswsscommon_1.0.0_amd64.deb || apt-get install -f
-      sudo dpkg -i ../python3-swsscommon_1.0.0_amd64.deb
+      sudo dpkg -i --force-confask,confnew ../libswsscommon_1.0.0_amd64.deb || sudo apt-get install -f
+      sudo dpkg -i --force-confask,confnew ../python-swsscommon_1.0.0_amd64.deb || sudo apt-get install -f
 
       # install packages for vs test
       sudo apt-get install -y net-tools bridge-utils vlan
-      sudo apt-get install -y python3-pip
-      sudo pip3 install pytest==4.6.2 attrs==19.1.0 exabgp==4.0.10 distro==1.5.0 docker==4.4.1 redis==3.3.4 flaky==3.7.0
+      pip --version
+      sudo pip install pytest==4.6.2 attrs==19.1.0 exabgp==4.0.10 distro==1.5.0 docker==4.4.1 redis==3.3.4 flaky==3.7.0
     displayName: "Install dependencies"
 
   - script: |

@@ -83,16 +83,22 @@ jobs:
       artifact: ${{ parameters.swss_common_artifact_name }}
     displayName: "Download sonic swss common deb packages"
   - script: |
-      sudo dpkg -i libswsscommon_1.0.0_${{ parameters.arch }}.deb
-      sudo dpkg -i libswsscommon-dev_1.0.0_${{ parameters.arch }}.deb
+      sudo dpkg -i --force-confask,confnew libswsscommon_1.0.0_${{ parameters.arch }}.deb || sudo apt-get install -f
+      sudo dpkg -i --force-confask,confnew libswsscommon-dev_1.0.0_${{ parameters.arch }}.deb || sudo apt-get install -f
     workingDirectory: $(Pipeline.Workspace)
     displayName: "Install sonic swss Common"
   - checkout: sonic-sairedis
     path: s
     submodules: true
   - script: |
-      ./autogen.sh
-      fakeroot dpkg-buildpackage -b -us -uc -Tbinary-syncd-vs -j$(nproc) && cp ../*.deb .
+      # There are no .artifactignore in sonic-sairedis 201911 branch
+      if [ ! -f .artifactignore ]; then
+        echo '**/*' >> .artifactignore
+        echo '!*.deb' >> .artifactignore
+      fi
+       ./autogen.sh
+      #TODO: enable the check when aspellcheck.pl test failure
+      DEB_BUILD_OPTIONS=nocheck fakeroot dpkg-buildpackage -b -us -uc -Tbinary-syncd-vs -j$(nproc) && cp ../*.deb .
     displayName: "Compile sonic sairedis"
   - script: |
       sudo cp azsyslog.conf /etc/rsyslog.conf
