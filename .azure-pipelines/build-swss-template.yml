@@ -1,0 +1,116 @@
+parameters:
+- name: arch
+  type: string
+  values:
+  - amd64
+  - armhf
+  - arm64
+  default: amd64
+
+- name: pool
+  type: string
+  values:
+  - sonicbld
+  - default
+  default: default
+
+- name: timeout
+  type: number
+  default: 60
+
+- name: sonic_slave
+  type: string
+
+- name: sairedis_artifact_name
+  type: string
+
+- name: swss_common_artifact_name
+  type: string
+
+- name: artifact_name
+  type: string
+
+jobs:
+- job:
+  displayName: ${{ parameters.arch }}
+  timeoutInMinutes: ${{ parameters.timeout }}
+
+  pool:
+    ${{ if ne(parameters.pool, 'default') }}:
+      name: ${{ parameters.pool }}
+    ${{ if eq(parameters.pool, 'default') }}:
+      vmImage: 'ubuntu-20.04'
+
+  container:
+    image: sonicdev-microsoft.azurecr.io:443/${{ parameters.sonic_slave }}:latest
+
+  steps:
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      artifact: ${{ parameters.swss_common_artifact_name }}
+    displayName: "Download sonic swss common deb packages"
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      artifact: ${{ parameters.sairedis_artifact_name }}
+    displayName: "Download sonic sairedis deb packages"
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      source: specific
+      project: build
+      pipeline: 142
+      artifact: sonic-buildimage.vs
+      runVersion: 'latestFromBranch'
+      runBranch: 'refs/heads/201911'
+      patterns: target/debs/stretch/*.deb
+    displayName: "Download sonic image deb packages"
+  - script: |
+      pushd $(Pipeline.Workspace)/target/debs/stretch
+      cp libhiredis0.14_*.deb \
+         libhiredis-dev_*.deb \
+         libnl-3-200_*.deb \
+         libnl-3-dev_*.deb \
+         libnl-genl-3-200_*.deb \
+         libnl-genl-3-dev_*.deb \
+         libnl-route-3-200_*.deb \
+         libnl-route-3-dev_*.deb \
+         libnl-nf-3-200_*.deb \
+         libnl-nf-3-dev_*.deb \
+         libnl-cli-3-200_*.deb \
+         swig3.0_*.deb \
+         $(Pipeline.Workspace)/
+         cp libteam-dev_1.28-1_amd64.deb libteam5_1.28-1_amd64.deb libteamdctl0_1.28-1_amd64.deb $(Pipeline.Workspace)/
+      popd
+      pushd $(Pipeline.Workspace)
+      cp libswsscommon_1.0.0_${{ parameters.arch }}.deb \
+         libswsscommon-dev_1.0.0_${{ parameters.arch }}.deb \
+         libsaivs_*.deb \
+         libsaivs-dev_*.deb \
+         libsairedis_*.deb \
+         libsairedis-dev_*.deb \
+         libsaimetadata_*.deb \
+         libsaimetadata-dev_*.deb \
+         syncd-vs_*.deb \
+         $(Pipeline.Workspace)/
+       popd
+       ls -l $(Pipeline.Workspace)/*.deb
+    displayName: "Copy deb packages"
+  - script: |
+      sudo apt-get install -y libzmq5 libzmq3-dev
+      sudo dpkg -i --force-confask,confnew *.deb || sudo apt-get install -f -y
+    workingDirectory: $(Pipeline.Workspace)
+    displayName: "Install dependencies"
+  - checkout: sonic-swss
+    path: s
+    submodules: true
+  - script: |
+      if [ ! -f .artifactignore ]; then
+        echo '**/*' >> .artifactignore
+        echo '!*.deb' >> .artifactignore
+      fi
+
+      ./autogen.sh
+      dpkg-buildpackage -us -uc -b -j$(nproc) && cp ../*.deb .
+    displayName: "Compile sonic swss"
+  - publish: $(System.DefaultWorkingDirectory)/
+    artifact: ${{ parameters.artifact_name }}
+    displayName: "Archive swss debian packages"
