@@ -8,6 +8,7 @@ parameters:
 
 jobs:
 - job:
+  condition: false
   displayName: vstest
   timeoutInMinutes: ${{ parameters.timeout }}
 
