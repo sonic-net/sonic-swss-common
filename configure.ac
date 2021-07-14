@@ -14,9 +14,6 @@ AM_PATH_PYTHON
 AM_PATH_PYTHON3
 
 AC_CHECK_LIB([hiredis], [redisConnect])
-PKG_CHECK_MODULES([LIBNL], [libnl-3.0 libnl-genl-3.0 libnl-route-3.0 libnl-nf-3.0])
-        CFLAGS="$CFLAGS $LIBNL_CFLAGS"
-        LIBS="$LIBS $LIBNL_LIBS"
 
 LDFLAGS="-Wl,--no-undefined $LDFLAGS"
 AC_SUBST([LDFLAGS])
@@ -30,6 +27,35 @@ AC_ARG_ENABLE(debug,
 esac],[debug=false])
 AM_CONDITIONAL(DEBUG, test x$debug = xtrue)
 AM_CONDITIONAL(ARCH64, test `getconf LONG_BIT` = "64")
+
+AC_ARG_WITH(libnl-3.0-inc,
+[  --with-libnl-3.0-inc=DIR
+                           prefix where libnl-3.0 includes are installed],
+[AC_SUBST(CPPFLAGS, "$CPPFLAGS -I${withval}")
+ AC_SUBST(LIBNL_INC_DIR, "${withval}")])
+
+AC_ARG_WITH(libnl-3.0-lib,
+[  --with-libnl-3.0-lib=DIR
+                           prefix where libnl-3.0 libraries are installed],
+[AC_SUBST(LDFLAGS, "$LDFLAGS -L${withval}")
+ AC_SUBST(LIBNL_LIB_DIR, "${withval}")])
+
+AC_ARG_WITH(libnl-3.0-usr-lib,
+[  --with-libnl-3.0-usr-lib=DIR
+                           prefix where libnl-3.0 libraries are installed],
+[AC_SUBST(LDFLAGS, "$LDFLAGS -L${withval}")
+ AC_SUBST(LIBNL_USR_LIB_DIR, "${withval}")])
+
+if test "${with_libnl_3_0_inc+set}" = set; then
+    AC_CHECK_LIB([nl-3], [nl_addr_alloc])
+    AC_CHECK_LIB([nl-genl-3], [nl_socket_get_cb])
+    AC_CHECK_LIB([nl-route-3], [nl_object_alloc])
+    AC_CHECK_LIB([nl-nf-3], [nfnl_connect])
+else
+    PKG_CHECK_MODULES([LIBNL], [libnl-3.0 libnl-genl-3.0 libnl-route-3.0 libnl-nf-3.0])
+            CFLAGS="$CFLAGS $LIBNL_CFLAGS"
+            LIBS="$LIBS $LIBNL_LIBS"
+fi
 
 AC_PATH_PROG(SWIG, [swig3.0])
 
