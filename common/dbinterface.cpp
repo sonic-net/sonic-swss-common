@@ -1,4 +1,5 @@
 #include <chrono>
+#include <cstring>
 #include <utility>
 #include <hiredis/hiredis.h>
 #include "dbinterface.h"

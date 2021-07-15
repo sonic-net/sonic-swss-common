@@ -1,6 +1,7 @@
 #pragma once
 #include <unistd.h>
 #include <poll.h>
+#include <cstring>
 #include <stdexcept>
 #include <vector>
 #include <set>

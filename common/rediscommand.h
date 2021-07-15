@@ -1,5 +1,7 @@
 #pragma once
-#include <string.h>
+#include <cstring>
+#include <string>
+#include <stdexcept>
 #include <utility>
 #include <tuple>
 #include <vector>

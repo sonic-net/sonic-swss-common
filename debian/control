@@ -2,7 +2,7 @@ Source: sonic
 Maintainer: Shuotian Cheng <shuche@microsoft.com>
 Section: net
 Priority: optional
-Build-Depends: dh-exec (>=0.3), debhelper (>= 9), autotools-dev, libboost-dev | libboost1.71-dev
+Build-Depends: dh-exec (>=0.3), debhelper (>= 9), autotools-dev, libboost-dev | libboost1.71-dev | libboost1.74-dev
 Standards-Version: 1.0.0
 
 Package: libswsscommon
@@ -19,15 +19,9 @@ Description: debugging symbols for libswsscommon library.
 
 Package: libswsscommon-dev
 Architecture: any
-Depends: libswsscommon (= ${binary:Version}), libboost-dev | libboost1.71-dev
+Depends: libswsscommon (= ${binary:Version}), libboost-dev | libboost1.71-dev | libboost1.74-dev
 Section: libdevel
 Description: This package contains development files for Switch State Service.
-
-Package: python-swsscommon
-Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Pre-Depends}
-Section: libs
-Description: This package contains Switch State Service common Python2 library.
 
 Package: python3-swsscommon
 Architecture: any
