@@ -141,7 +141,7 @@ void Logger::linkToDb(const std::string &dbName, const PriorityChangeNotify& pri
     linkToDbWithOutput(dbName, prioNotify, defPrio, swssOutputNotify, "SYSLOG");
 }
 
-void Logger::linkToDbNative(const std::string &dbName, const std::string& defPrio)
+void Logger::linkToDbNative(const std::string &dbName, const char * defPrio)
 {
     auto& logger = getInstance();
 
