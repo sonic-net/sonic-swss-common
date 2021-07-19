@@ -31,7 +31,7 @@ esac],[debug=false])
 AM_CONDITIONAL(DEBUG, test x$debug = xtrue)
 AM_CONDITIONAL(ARCH64, test `getconf LONG_BIT` = "64")
 
-AC_PATH_PROG(SWIG, [swig4.0])
+AC_PATH_PROGS(SWIG, [swig4.0 swig3.0])
 
 CFLAGS_COMMON=""
 CFLAGS_COMMON+=" -ansi"
