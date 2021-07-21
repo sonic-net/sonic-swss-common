@@ -72,7 +72,7 @@ private:
     static const int DATA_RETRIEVAL_WAIT_TIME = 3;
 
     // Time to wait for any given message to arrive via pub-sub.
-    static constexpr double PUB_SUB_NOTIFICATION_TIMEOUT = 10.0;  // seconds
+    static const int PUB_SUB_NOTIFICATION_TIMEOUT = 10;  // seconds
 
     // Maximum allowable time to wait on a specific pub-sub notification.
     static constexpr double PUB_SUB_MAXIMUM_DATA_WAIT = 60.0;  // seconds
