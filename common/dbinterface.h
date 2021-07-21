@@ -48,20 +48,6 @@ public:
     DBConnector& get_redis_client(const std::string& dbName);
     void set_redis_kwargs(std::string unix_socket_path, std::string host, int port);
 
-private:
-    template <typename T, typename FUNC>
-    T blockable(FUNC f, const std::string& dbName, bool blocking = false);
-    // Unsubscribe the chosent client from keyspace event notifications
-    void _unsubscribe_keyspace_notification(const std::string& dbName);
-    bool _unavailable_data_handler(const std::string& dbName, const char *data);
-    // Subscribe the chosent client to keyspace event notifications
-    void _subscribe_keyspace_notification(const std::string& dbName);
-    // In the event Redis is unavailable, close existing connections, and try again.
-    void _connection_error_handler(const std::string& dbName);
-    void _onetime_connect(int dbId, const std::string& dbName);
-    // Keep reconnecting to Database 'dbId' until success
-    void _persistent_connect(int dbId, const std::string& dbName);
-
     static const int BLOCKING_ATTEMPT_ERROR_THRESHOLD = 10;
     static const int BLOCKING_ATTEMPT_SUPPRESSION = BLOCKING_ATTEMPT_ERROR_THRESHOLD + 5;
 
@@ -76,6 +62,20 @@ private:
 
     // Maximum allowable time to wait on a specific pub-sub notification.
     static constexpr double PUB_SUB_MAXIMUM_DATA_WAIT = 60.0;  // seconds
+
+private:
+    template <typename T, typename FUNC>
+    T blockable(FUNC f, const std::string& dbName, bool blocking = false);
+    // Unsubscribe the chosent client from keyspace event notifications
+    void _unsubscribe_keyspace_notification(const std::string& dbName);
+    bool _unavailable_data_handler(const std::string& dbName, const char *data);
+    // Subscribe the chosent client to keyspace event notifications
+    void _subscribe_keyspace_notification(const std::string& dbName);
+    // In the event Redis is unavailable, close existing connections, and try again.
+    void _connection_error_handler(const std::string& dbName);
+    void _onetime_connect(int dbId, const std::string& dbName);
+    // Keep reconnecting to Database 'dbId' until success
+    void _persistent_connect(int dbId, const std::string& dbName);
 
     // Pub-sub keyspace pattern
     static constexpr const char *KEYSPACE_PATTERN = "__key*__:*";

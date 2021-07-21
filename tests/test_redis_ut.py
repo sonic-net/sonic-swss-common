@@ -183,6 +183,15 @@ def test_SelectMemoryLeak():
     assert not cases
 
 
+def thread_coming_data():
+    print("Start thread: thread_coming_data")
+    db = SonicV2Connector(use_unix_socket_path=True)
+    db.connect("TEST_DB")
+    time.sleep(DBInterface.PUB_SUB_NOTIFICATION_TIMEOUT * 2)
+    db.set("TEST_DB", "key0_coming", "field1", "value2")
+    print("Leave thread: thread_coming_data")
+
+
 def test_DBInterface():
     dbintf = DBInterface()
     dbintf.set_redis_kwargs("", "127.0.0.1", 6379)
@@ -276,8 +285,17 @@ def test_DBInterface():
     with pytest.raises(TypeError):
         fvs.update(fvs, fvs)
 
-    # Test blocking
+    # Test blocking reading existing data in Redis
     fvs = db.get_all("TEST_DB", "key0", blocking=True)
+    assert "field1" in fvs
+    assert fvs["field1"] == "value2"
+    assert fvs.get("field1", "default") == "value2"
+    assert fvs.get("nonfield", "default") == "default"
+
+    # Test blocking reading coming data in Redis
+    thread = Thread(target=thread_coming_data)
+    thread.start()
+    fvs = db.get_all("TEST_DB", "key0_coming", blocking=True)
     assert "field1" in fvs
     assert fvs["field1"] == "value2"
     assert fvs.get("field1", "default") == "value2"
