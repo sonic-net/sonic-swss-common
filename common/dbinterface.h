@@ -47,6 +47,21 @@ public:
     DBConnector& get_redis_client(const std::string& dbName);
     void set_redis_kwargs(std::string unix_socket_path, std::string host, int port);
 
+    static const int BLOCKING_ATTEMPT_ERROR_THRESHOLD = 10;
+    static const int BLOCKING_ATTEMPT_SUPPRESSION = BLOCKING_ATTEMPT_ERROR_THRESHOLD + 5;
+
+    // Wait period in seconds before attempting to reconnect to Redis.
+    static const int CONNECT_RETRY_WAIT_TIME = 10;
+
+    // Wait period in seconds to wait before attempting to retrieve missing data.
+    static const int DATA_RETRIEVAL_WAIT_TIME = 3;
+
+    // Time to wait for any given message to arrive via pub-sub.
+    static const int PUB_SUB_NOTIFICATION_TIMEOUT = 10;  // seconds
+
+    // Maximum allowable time to wait on a specific pub-sub notification.
+    static constexpr double PUB_SUB_MAXIMUM_DATA_WAIT = 60.0;  // seconds
+
 private:
     template <typename T, typename FUNC>
     T blockable(FUNC f, const std::string& dbName, bool blocking = false);
@@ -60,21 +75,6 @@ private:
     void _onetime_connect(int dbId, const std::string& dbName);
     // Keep reconnecting to Database 'dbId' until success
     void _persistent_connect(int dbId, const std::string& dbName);
-
-    static const int BLOCKING_ATTEMPT_ERROR_THRESHOLD = 10;
-    static const int BLOCKING_ATTEMPT_SUPPRESSION = BLOCKING_ATTEMPT_ERROR_THRESHOLD + 5;
-
-    // Wait period in seconds before attempting to reconnect to Redis.
-    static const int CONNECT_RETRY_WAIT_TIME = 10;
-
-    // Wait period in seconds to wait before attempting to retrieve missing data.
-    static const int DATA_RETRIEVAL_WAIT_TIME = 3;
-
-    // Time to wait for any given message to arrive via pub-sub.
-    static constexpr double PUB_SUB_NOTIFICATION_TIMEOUT = 10.0;  // seconds
-
-    // Maximum allowable time to wait on a specific pub-sub notification.
-    static constexpr double PUB_SUB_MAXIMUM_DATA_WAIT = 60.0;  // seconds
 
     // Pub-sub keyspace pattern
     static constexpr const char *KEYSPACE_PATTERN = "__key*__:*";
