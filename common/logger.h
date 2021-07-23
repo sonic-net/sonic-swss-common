@@ -1,5 +1,4 @@
-#ifndef SWSS_COMMON_LOGGER_H
-#define SWSS_COMMON_LOGGER_H
+#pragma once
 
 #include <string>
 #include <chrono>
@@ -9,6 +8,8 @@
 #include <thread>
 #include <mutex>
 #include <functional>
+
+#include "concurentmap.h"
 
 namespace swss {
 
@@ -30,8 +31,7 @@ void err_exit(const char *fn, int ln, int e, const char *fmt, ...)
 #endif
         ;
 
-
-#define ABORT_IF_NOT(x, fmt, args...)                      \
+#define ABORT_IF_NOT(x, fmt, args...)                       \
     if (!(x)) {                                             \
         int e = errno;                                      \
         err_exit(__FUNCTION__, __LINE__, e, (fmt), ##args); \
@@ -68,18 +68,25 @@ public:
         SWSS_STDOUT,
         SWSS_STDERR
     };
+
     typedef std::map<std::string, Output> OutputStringMap;
     static const OutputStringMap outputStringMap;
     typedef std::function<void (std::string component, std::string outputStr)> OutputChangeNotify;
-    typedef std::map<std::string, std::pair<PriorityChangeNotify, OutputChangeNotify>> LogSettingChangeObservers;
 
-    static Logger &getInstance();
+    static Logger& getInstance();
     static void setMinPrio(Priority prio);
     static Priority getMinPrio();
-    static void linkToDbWithOutput(const std::string &dbName, const PriorityChangeNotify& prioNotify, const std::string& defPrio, const OutputChangeNotify& outputNotify, const std::string& defOutput);
-    static void linkToDb(const std::string &dbName, const PriorityChangeNotify& notify, const std::string& defPrio);
+
+    static void linkToDbWithOutput(
+            const std::string& dbName,
+            const PriorityChangeNotify& prioNotify,
+            const std::string& defPrio,
+            const OutputChangeNotify& outputNotify,
+            const std::string& defOutput);
+
+    static void linkToDb(const std::string& dbName, const PriorityChangeNotify& notify, const std::string& defPrio);
     // Must be called after all linkToDb to start select from DB
-    static void linkToDbNative(const std::string &dbName, const char * defPrio="NOTICE");
+    static void linkToDbNative(const std::string& dbName, const char * defPrio="NOTICE");
     void write(Priority prio, const char *fmt, ...)
 #ifdef __GNUC__
         __attribute__ ((format (printf, 3, 4)))
@@ -131,23 +138,25 @@ private:
     Logger() = default;
     ~Logger();
     Logger(const Logger&);
-    Logger &operator=(const Logger&);
+    Logger& operator=(const Logger&);
 
-    static void swssPrioNotify(const std::string &component, const std::string &prioStr);
-    static void swssOutputNotify(const std::string &component, const std::string &outputStr);
+    static void swssPrioNotify(const std::string& component, const std::string& prioStr);
+    static void swssOutputNotify(const std::string& component, const std::string& outputStr);
 
     void settingThread();
+    void terminateSettingThread();
+    void restartSettingThread();
+
+    typedef ConcurentMap<std::string, std::pair<PriorityChangeNotify, OutputChangeNotify>> LogSettingChangeObservers;
 
     LogSettingChangeObservers m_settingChangeObservers;
-    std::map<std::string, std::string> m_currentPrios;
+    ConcurentMap<std::string, std::string> m_currentPrios;
     std::atomic<Priority> m_minPrio = { SWSS_NOTICE };
-    std::map<std::string, std::string> m_currentOutputs;
+    ConcurentMap<std::string, std::string> m_currentOutputs;
     std::atomic<Output> m_output = { SWSS_SYSLOG };
     std::unique_ptr<std::thread> m_settingThread;
     std::mutex m_mutex;
-    volatile bool terminateSettingThread = false;
+    volatile bool m_runSettingThread = true;
 };
 
 }
-
-#endif /* SWSS_COMMON_LOGGER_H */
