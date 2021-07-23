@@ -28,7 +28,15 @@ AC_ARG_ENABLE(debug,
 	no)  debug=false ;;
 	*) AC_MSG_ERROR(bad value ${enableval} for --enable-debug) ;;
 esac],[debug=false])
+AC_ARG_ENABLE(python2,
+[  --enable-python2     Generate Python 2 bindings],
+[case "${enableval}" in
+	yes) python2=true ;;
+	no)  python2=false ;;
+	*) AC_MSG_ERROR(bad value ${enableval} for --enable-python2) ;;
+esac],[python2=true])
 AM_CONDITIONAL(DEBUG, test x$debug = xtrue)
+AM_CONDITIONAL(PYTHON2, test x$python2 = xtrue)
 AM_CONDITIONAL(ARCH64, test `getconf LONG_BIT` = "64")
 
 AC_PATH_PROGS(SWIG, [swig4.0 swig3.0])
