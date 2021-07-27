@@ -49,14 +49,14 @@ void Logger::terminateSettingThread()
         m_settingThread->join();
 
         m_settingThread = nullptr;
-
-        m_runSettingThread = true;
     }
 }
 
 void Logger::restartSettingThread()
 {
     terminateSettingThread();
+
+    m_runSettingThread = true;
 
     m_settingThread.reset(new std::thread(&Logger::settingThread, this));
 }
@@ -251,13 +251,11 @@ void Logger::settingThread()
             if ((field == DAEMON_LOGLEVEL) && (value != m_currentPrios.get(key)))
             {
                 m_currentPrios.set(key, value);
-
                 m_settingChangeObservers.get(key).first(key, value);
             }
             else if ((field == DAEMON_LOGOUTPUT) && (value != m_currentOutputs.get(key)))
             {
                 m_currentOutputs.set(key, value);
-
                 m_settingChangeObservers.get(key).second(key, value);
             }
         }
