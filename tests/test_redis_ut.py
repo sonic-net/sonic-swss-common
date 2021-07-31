@@ -203,9 +203,18 @@ def test_DBInterface():
     db.connect("TEST_DB")
     redisclient = db.get_redis_client("TEST_DB")
     redisclient.flushdb()
+
     db.set("TEST_DB", "key0", "field1", "value2")
     val = db.get("TEST_DB", "key0", "field1")
     assert val == "value2"
+    db.set("TEST_DB", "kkk3", "field3", "")
+    val = db.get("TEST_DB", "kkk3", "field3")
+    assert val == ""
+    val = db.get("TEST_DB", "kkk3", "missing")
+    assert val == None
+    val = db.get("TEST_DB", "kkk_missing", "missing")
+    assert val == None
+
     fvs = db.get_all("TEST_DB", "key0")
     assert "field1" in fvs
     assert fvs["field1"] == "value2"
