@@ -204,14 +204,22 @@ def test_DBInterface():
     redisclient = db.get_redis_client("TEST_DB")
     redisclient.flushdb()
 
+    # Case: hset and hget normally
     db.set("TEST_DB", "key0", "field1", "value2")
     val = db.get("TEST_DB", "key0", "field1")
     assert val == "value2"
+    # Case: hset an empty value
     db.set("TEST_DB", "kkk3", "field3", "")
     val = db.get("TEST_DB", "kkk3", "field3")
     assert val == ""
+    # Case: hset an "None" string value, hget will intepret it as true None (feature)
+    db.set("TEST_DB", "kkk3", "field3", "None")
+    val = db.get("TEST_DB", "kkk3", "field3")
+    assert val == None
+    # hget on an existing key but non-existing field
     val = db.get("TEST_DB", "kkk3", "missing")
     assert val == None
+    # hget on an non-existing key and non-existing field
     val = db.get("TEST_DB", "kkk_missing", "missing")
     assert val == None
 
