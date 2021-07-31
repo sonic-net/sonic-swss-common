@@ -39,7 +39,7 @@ public:
 
     bool hexists(const std::string& db_name, const std::string& _hash, const std::string& key);
 
-    std::map<std::string, std::shared_ptr<std::string>> get_all(const std::string& db_name, const std::string& _hash, bool blocking=false);
+    std::map<std::string, std::string> get_all(const std::string& db_name, const std::string& _hash, bool blocking=false);
 
     void hmset(const std::string& db_name, const std::string &key, const std::map<std::string, std::string> &values);
 

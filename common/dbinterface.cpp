@@ -77,30 +77,31 @@ bool DBInterface::hexists(const std::string& dbName, const std::string& hash, co
     return m_redisClient.at(dbName).hexists(hash, key);
 }
 
-std::map<std::string, std::shared_ptr<std::string>> DBInterface::get_all(const std::string& dbName, const std::string& hash, bool blocking)
+std::map<std::string, std::string> DBInterface::get_all(const std::string& dbName, const std::string& hash, bool blocking)
 {
     auto innerfunc = [&]
     {
-        map<string, string> table;
-        m_redisClient.at(dbName).hgetall(hash, std::inserter(table, table.end()));
+        std::map<std::string, std::string> map;
+        m_redisClient.at(dbName).hgetall(hash, std::inserter(map, map.end()));
 
-        if (table.empty())
+        if (map.empty())
         {
             std::string message = "Key '{" + hash + "}' unavailable in database '{" + dbName + "}'";
             SWSS_LOG_WARN("%s", message.c_str());
             throw UnavailableDataError(message, hash);
         }
-        map<string, shared_ptr<string>> ret;
-        for (auto& i : table)
+        for (auto& i : map)
         {
-            auto& key = i.first;
-            auto& value = i.second;
-            ret.emplace(key, value == "None" ? shared_ptr<string>() : make_shared<string>(value));
+            std::string& value = i.second;
+            if (value == "None")
+            {
+                value = "";
+            }
         }
 
-        return ret;
+        return map;
     };
-    return blockable<map<string, shared_ptr<string>>>(innerfunc, dbName, blocking);
+    return blockable<std::map<std::string, std::string>>(innerfunc, dbName, blocking);
 }
 
 std::vector<std::string> DBInterface::keys(const std::string& dbName, const char *pattern, bool blocking)

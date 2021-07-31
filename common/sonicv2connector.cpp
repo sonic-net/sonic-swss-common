@@ -84,7 +84,7 @@ bool SonicV2Connector_Native::hexists(const std::string& db_name, const std::str
     return m_dbintf.hexists(db_name, _hash, key);
 }
 
-std::map<std::string, std::shared_ptr<std::string>> SonicV2Connector_Native::get_all(const std::string& db_name, const std::string& _hash, bool blocking)
+std::map<std::string, std::string> SonicV2Connector_Native::get_all(const std::string& db_name, const std::string& _hash, bool blocking)
 {
     return m_dbintf.get_all(db_name, _hash, blocking);
 }
