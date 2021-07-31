@@ -89,6 +89,21 @@
 %template(GetTableResult) std::map<std::string, std::map<std::string, std::string>>;
 %template(GetConfigResult) std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>;
 
+%typemap(out) std::shared_ptr<std::string> %{
+    {
+        auto& p = static_cast<std::shared_ptr<std::string>&>($1);
+        if(p)
+        {
+            $result = PyUnicode_FromStringAndSize(p->c_str(), p->size());
+        }
+        else
+        {
+            $result = Py_None;
+            Py_INCREF(Py_None);
+        }
+    }
+%}
+
 %pythoncode %{
     def _FieldValueMap__get(self, key, default=None):
         if key in self:
@@ -109,21 +124,6 @@
 %typemap(in, numinputs=0) swss::Selectable ** (swss::Selectable *temp) {
     $1 = &temp;
 }
-
-%typemap(out) std::shared_ptr<std::string> %{
-    {
-        std::shared_ptr<std::string>& p = static_cast<std::shared_ptr<std::string>&>($1);
-        if(p)
-        {
-            $result = PyUnicode_FromStringAndSize(p->c_str(), p->size());
-        }
-        else
-        {
-            $result = Py_None;
-            Py_INCREF(Py_None);
-        }
-    }
-%}
 
 %typemap(argout) swss::Selectable ** {
     PyObject* temp = NULL;
