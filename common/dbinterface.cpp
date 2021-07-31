@@ -55,7 +55,7 @@ bool DBInterface::exists(const string& dbName, const std::string& key)
     return m_redisClient.at(dbName).exists(key);
 }
 
-std::string DBInterface::get(const std::string& dbName, const std::string& hash, const std::string& key, bool blocking)
+std::shared_ptr<std::string> DBInterface::get(const std::string& dbName, const std::string& hash, const std::string& key, bool blocking)
 {
     auto innerfunc = [&]
     {
@@ -67,9 +67,9 @@ std::string DBInterface::get(const std::string& dbName, const std::string& hash,
             throw UnavailableDataError(message, hash);
         }
         const std::string& value = *pvalue;
-        return value == "None" ? "" : value;
+        return value == "None" ? shared_ptr<string>() : make_shared<string>(value);
     };
-    return blockable<std::string>(innerfunc, dbName, blocking);
+    return blockable<shared_ptr<string>>(innerfunc, dbName, blocking);
 }
 
 bool DBInterface::hexists(const std::string& dbName, const std::string& hash, const std::string& key)
@@ -77,31 +77,30 @@ bool DBInterface::hexists(const std::string& dbName, const std::string& hash, co
     return m_redisClient.at(dbName).hexists(hash, key);
 }
 
-std::map<std::string, std::string> DBInterface::get_all(const std::string& dbName, const std::string& hash, bool blocking)
+std::map<std::string, std::shared_ptr<std::string>> DBInterface::get_all(const std::string& dbName, const std::string& hash, bool blocking)
 {
     auto innerfunc = [&]
     {
-        std::map<std::string, std::string> map;
-        m_redisClient.at(dbName).hgetall(hash, std::inserter(map, map.end()));
+        map<string, string> table;
+        m_redisClient.at(dbName).hgetall(hash, std::inserter(table, table.end()));
 
-        if (map.empty())
+        if (table.empty())
         {
             std::string message = "Key '{" + hash + "}' unavailable in database '{" + dbName + "}'";
             SWSS_LOG_WARN("%s", message.c_str());
             throw UnavailableDataError(message, hash);
         }
-        for (auto& i : map)
+        map<string, shared_ptr<string>> ret;
+        for (auto& i : table)
         {
-            std::string& value = i.second;
-            if (value == "None")
-            {
-                value = "";
-            }
+            auto& key = i.first;
+            auto& value = i.second;
+            ret.emplace(key, value == "None" ? shared_ptr<string>() : make_shared<string>(value));
         }
 
-        return map;
+        return ret;
     };
-    return blockable<std::map<std::string, std::string>>(innerfunc, dbName, blocking);
+    return blockable<map<string, shared_ptr<string>>>(innerfunc, dbName, blocking);
 }
 
 std::vector<std::string> DBInterface::keys(const std::string& dbName, const char *pattern, bool blocking)
