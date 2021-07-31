@@ -41,6 +41,7 @@
 %include <std_vector.i>
 %include <std_pair.i>
 %include <std_map.i>
+%include <std_shared_ptr.i>
 %include <typemaps.i>
 %include <stdint.i>
 %include <exception.i>
@@ -108,6 +109,21 @@
 %typemap(in, numinputs=0) swss::Selectable ** (swss::Selectable *temp) {
     $1 = &temp;
 }
+
+%typemap(out) std::shared_ptr<std::string> %{
+    {
+        std::shared_ptr<std::string>& p = static_cast<std::shared_ptr<std::string>&>($1);
+        if(p)
+        {
+            $result = PyUnicode_FromStringAndSize(p->c_str(), p->size());
+        }
+        else
+        {
+            $result = Py_None;
+            Py_INCREF(Py_None);
+        }
+    }
+%}
 
 %typemap(argout) swss::Selectable ** {
     PyObject* temp = NULL;
