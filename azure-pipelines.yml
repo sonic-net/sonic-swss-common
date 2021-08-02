@@ -43,6 +43,7 @@ stages:
         cd /usr/src/gtest && sudo cmake . && sudo make
       displayName: "Install dependencies"
     - script: |
+        ./autogen.sh
         dpkg-buildpackage -rfakeroot -us -uc -b -j$(nproc) && cp ../*.deb .
       displayName: "Compile sonic swss common"
     - publish: $(System.DefaultWorkingDirectory)/
