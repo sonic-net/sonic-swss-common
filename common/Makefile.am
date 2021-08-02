@@ -1,4 +1,3 @@
-include $(top_srcdir)/aminclude_static.am
 INCLUDES = -I $(top_srcdir)
 
 lib_LTLIBRARIES = libswsscommon.la
