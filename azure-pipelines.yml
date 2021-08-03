@@ -56,6 +56,7 @@ stages:
       sonic_slave: sonic-slave-buster
       artifact_name: sonic-swss-common
       run_unit_test: true
+      archive_gcov: true
 
 - stage: BuildArm
   dependsOn: Build
