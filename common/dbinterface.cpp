@@ -67,9 +67,9 @@ std::shared_ptr<std::string> DBInterface::get(const std::string& dbName, const s
             throw UnavailableDataError(message, hash);
         }
         const std::string& value = *pvalue;
-        return value == "None" ? shared_ptr<string>() : make_shared<string>(value);
+        return value == "None" ? std::shared_ptr<std::string>() : std::make_shared<std::string>(value);
     };
-    return blockable<shared_ptr<string>>(innerfunc, dbName, blocking);
+    return blockable<std::shared_ptr<std::string>>(innerfunc, dbName, blocking);
 }
 
 bool DBInterface::hexists(const std::string& dbName, const std::string& hash, const std::string& key)
