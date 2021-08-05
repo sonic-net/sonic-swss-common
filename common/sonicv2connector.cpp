@@ -74,7 +74,7 @@ std::pair<int, std::vector<std::string>> SonicV2Connector_Native::scan(const std
     return m_dbintf.scan(db_name, cursor, match, count);
 }
 
-std::string SonicV2Connector_Native::get(const std::string& db_name, const std::string& _hash, const std::string& key, bool blocking)
+std::shared_ptr<std::string> SonicV2Connector_Native::get(const std::string& db_name, const std::string& _hash, const std::string& key, bool blocking)
 {
     return m_dbintf.get(db_name, _hash, key, blocking);
 }
