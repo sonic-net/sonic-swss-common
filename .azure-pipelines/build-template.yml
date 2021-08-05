@@ -58,13 +58,7 @@ jobs:
   - script: |
       set -ex
       ./autogen.sh
-      # First pass
-      fakeroot debian/rules binary
-      # Second pass
-      ./configure --enable-code-coverage
-      make clean
-      # Note: if first pass is missing, below command will invoke `dh_auto_configure` automatically, and override above manual configure
-      fakeroot debian/rules CFLAGS="" CXXFLAGS="" binary && cp ../*.deb .
+      fakeroot debian/rules DEB_CONFIGURE_EXTRA_FLAGS='--enable-code-coverage' CFLAGS="" CXXFLAGS="" binary && cp ../*.deb .
     displayName: "Compile sonic swss common with coverage enabled"
   - ${{ if eq(parameters.run_unit_test, true) }}:
     - script: |
