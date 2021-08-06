@@ -7,11 +7,11 @@
 namespace swss
 {
     template <typename K, typename V>
-        class ConcurentMap
+        class ConcurrentMap
         {
             public:
 
-                ConcurentMap() = default;
+                ConcurrentMap() = default;
 
             public:
 
@@ -61,8 +61,8 @@ namespace swss
 
             private:
 
-                ConcurentMap(const ConcurentMap&);
-                ConcurentMap& operator=(const ConcurentMap&);
+                ConcurrentMap(const ConcurrentMap&);
+                ConcurrentMap& operator=(const ConcurrentMap&);
 
             private:
 

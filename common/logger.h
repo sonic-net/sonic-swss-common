@@ -9,7 +9,7 @@
 #include <mutex>
 #include <functional>
 
-#include "concurentmap.h"
+#include "concurrentmap.h"
 
 namespace swss {
 
@@ -147,12 +147,12 @@ private:
     void terminateSettingThread();
     void restartSettingThread();
 
-    typedef ConcurentMap<std::string, std::pair<PriorityChangeNotify, OutputChangeNotify>> LogSettingChangeObservers;
+    typedef ConcurrentMap<std::string, std::pair<PriorityChangeNotify, OutputChangeNotify>> LogSettingChangeObservers;
 
     LogSettingChangeObservers m_settingChangeObservers;
-    ConcurentMap<std::string, std::string> m_currentPrios;
+    ConcurrentMap<std::string, std::string> m_currentPrios;
     std::atomic<Priority> m_minPrio = { SWSS_NOTICE };
-    ConcurentMap<std::string, std::string> m_currentOutputs;
+    ConcurrentMap<std::string, std::string> m_currentOutputs;
     std::atomic<Output> m_output = { SWSS_SYSLOG };
     std::unique_ptr<std::thread> m_settingThread;
     std::mutex m_mutex;
