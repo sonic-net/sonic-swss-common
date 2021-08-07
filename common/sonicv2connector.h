@@ -35,7 +35,7 @@ public:
 
     std::pair<int, std::vector<std::string>> scan(const std::string& db_name, int cursor = 0, const char *match = "", uint32_t count = 10);
 
-    std::string get(const std::string& db_name, const std::string& _hash, const std::string& key, bool blocking=false);
+    std::shared_ptr<std::string> get(const std::string& db_name, const std::string& _hash, const std::string& key, bool blocking=false);
 
     bool hexists(const std::string& db_name, const std::string& _hash, const std::string& key);
 
@@ -81,9 +81,6 @@ private:
             for db_name in self.get_db_list():
                 # set a database name as a constant value attribute.
                 setattr(self, db_name, db_name)
-                getmethod = lambda self: db_name
-                SonicV2Connector.__swig_getmethods__[db_name] = getmethod
-                SonicV2Connector.__swig_setmethods__[db_name] = None
 
         @property
         def namespace(self):

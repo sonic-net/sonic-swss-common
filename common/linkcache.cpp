@@ -77,5 +77,13 @@ string LinkCache::ifindexToName(int ifindex)
 
 struct rtnl_link* LinkCache::getLinkByName(const char *name)
 {
-    return rtnl_link_get_by_name(m_link_cache, name);
+    struct rtnl_link* link = NULL;
+    link = rtnl_link_get_by_name(m_link_cache, name);
+    if(NULL == link)
+    {
+        /* Trying to refill cache */
+        nl_cache_refill(m_nl_sock ,m_link_cache);
+        link = rtnl_link_get_by_name(m_link_cache, name);
+    }
+    return link;
 }
