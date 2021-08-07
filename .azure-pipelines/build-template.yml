@@ -76,10 +76,10 @@ jobs:
 
         sudo ./tests/tests && redis-cli FLUSHALL && pytest
 
+        gcovr -r ./ -x -o coverage.xml
         cd common
         mkdir -p htmlcov
         gcovr -r ./ --html --html-details -o htmlcov/index.html
-        gcovr -r ./ -x -o coverage.xml
       displayName: "Run swss common unit tests"
   - publish: $(System.DefaultWorkingDirectory)/
     artifact: ${{ parameters.artifact_name }}
@@ -96,6 +96,6 @@ jobs:
     - task: PublishCodeCoverageResults@1
       inputs:
         codeCoverageTool: Cobertura
-        summaryFileLocation: '$(System.DefaultWorkingDirectory)/common/coverage.xml'
-        reportDirectory: '$(System.DefaultWorkingDirectory)/htmlcov/'
+        summaryFileLocation: '$(System.DefaultWorkingDirectory)/coverage.xml'
+        reportDirectory: '$(System.DefaultWorkingDirectory)/common/htmlcov/'
       displayName: 'Publish test coverage'
