@@ -18,10 +18,12 @@ include /usr/share/dpkg/default.mk
 
 DEBIAN_DIST_CODENAME := $(shell lsb_release -sc | sed -e 's/\#/ /g')
 
-ifneq (,$(findstring bullseye,$(DEBIAN_DIST_CODENAME)))
-CONFIGURE_ARGS = --disable-python2
-else
+# For Debian jessie, stretch, and buster, and Ubuntu bionic and focal, build
+# Python 2 bindings.
+ifneq (,$(filter jessie stretch buster bionic focal,$(DEBIAN_DIST_CODENAME)))
 CONFIGURE_ARGS = --enable-python2
+else
+CONFIGURE_ARGS = --disable-python2
 endif
 
 # main packaging script based on dh7 syntax
