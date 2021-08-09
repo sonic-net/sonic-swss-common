@@ -56,7 +56,7 @@ bool DBInterface::exists(const string& dbName, const std::string& key)
     return m_redisClient.at(dbName).exists(key);
 }
 
-std::string DBInterface::get(const std::string& dbName, const std::string& hash, const std::string& key, bool blocking)
+std::shared_ptr<std::string> DBInterface::get(const std::string& dbName, const std::string& hash, const std::string& key, bool blocking)
 {
     auto innerfunc = [&]
     {
@@ -68,9 +68,9 @@ std::string DBInterface::get(const std::string& dbName, const std::string& hash,
             throw UnavailableDataError(message, hash);
         }
         const std::string& value = *pvalue;
-        return value == "None" ? "" : value;
+        return value == "None" ? std::shared_ptr<std::string>() : std::make_shared<std::string>(value);
     };
-    return blockable<std::string>(innerfunc, dbName, blocking);
+    return blockable<std::shared_ptr<std::string>>(innerfunc, dbName, blocking);
 }
 
 bool DBInterface::hexists(const std::string& dbName, const std::string& hash, const std::string& key)
