@@ -328,7 +328,7 @@ namespace swss {
 
 #define CFG_CHASSIS_MODULE_TABLE                    "CHASSIS_MODULE"
   
-#define CFG_DHCP_TABLE                              "DHCP"
+#define CFG_DHCP_TABLE                              "DHCP_RELAY"
 
 /***** STATE DATABASE *****/
 
@@ -382,8 +382,7 @@ namespace swss {
 #define STATE_PORT_PERIPHERAL_TABLE                 "PORT_PERIPHERAL_TABLE"
 #define STATE_BUFFER_POOL_TABLE_NAME                "BUFFER_POOL_TABLE"
 #define STATE_BUFFER_PROFILE_TABLE_NAME             "BUFFER_PROFILE_TABLE"
-  
-#define STATE_DHCP6_COUNTER                         "DHCPv6_Counter"
+
 /***** MISC *****/
 
 #define IPV4_NAME "IPv4"
