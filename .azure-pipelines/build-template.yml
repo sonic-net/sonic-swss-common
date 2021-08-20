@@ -27,6 +27,10 @@ parameters:
   type: boolean
   default: false
 
+- name: archive_gcov
+  type: boolean
+  default: false
+
 jobs:
 - job:
   displayName: ${{ parameters.arch }}
@@ -52,11 +56,13 @@ jobs:
         swig3.0
     displayName: "Install dependencies"
   - script: |
+      set -ex
       ./autogen.sh
-      dpkg-buildpackage -us -uc -b -j$(nproc) && cp ../*.deb .
-    displayName: "Compile sonic swss common"
+      fakeroot debian/rules DEB_CONFIGURE_EXTRA_FLAGS='--enable-code-coverage' CFLAGS="" CXXFLAGS="" binary && cp ../*.deb .
+    displayName: "Compile sonic swss common with coverage enabled"
   - ${{ if eq(parameters.run_unit_test, true) }}:
     - script: |
+        set -ex
         sudo pip install Pympler==0.8
         sudo apt-get install -y redis-server
         sudo sed -i 's/notify-keyspace-events ""/notify-keyspace-events AKE/' /etc/redis/redis.conf
@@ -69,7 +75,27 @@ jobs:
         sudo dpkg -i python-swsscommon_*.deb
 
         sudo ./tests/tests && redis-cli FLUSHALL && pytest
+
+        gcovr -r ./ -x -o coverage.xml
+        cd common
+        mkdir -p htmlcov
+        gcovr -r ./ --html --html-details -o htmlcov/index.html
       displayName: "Run swss common unit tests"
   - publish: $(System.DefaultWorkingDirectory)/
     artifact: ${{ parameters.artifact_name }}
     displayName: "Archive swss common debian packages"
+  - ${{ if eq(parameters.archive_gcov, true) }}:
+    - script: |
+        set -ex
+        # Install .NET CORE
+        curl -sSL https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
+        sudo apt-add-repository https://packages.microsoft.com/debian/10/prod
+        sudo apt-get update
+        sudo apt-get install -y dotnet-sdk-5.0
+      displayName: "Install .NET CORE"
+    - task: PublishCodeCoverageResults@1
+      inputs:
+        codeCoverageTool: Cobertura
+        summaryFileLocation: '$(System.DefaultWorkingDirectory)/coverage.xml'
+        reportDirectory: '$(System.DefaultWorkingDirectory)/common/htmlcov/'
+      displayName: 'Publish test coverage'
