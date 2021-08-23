@@ -386,6 +386,8 @@ namespace swss {
 #define STATE_BUFFER_PROFILE_TABLE_NAME             "BUFFER_PROFILE_TABLE"
 #define STATE_DHCPv6_COUNTER_TABLE_NAME             "DHCPv6_COUNTER_TABLE"
 
+#define STATE_BFD_SESSION_TABLE                     "BFD_SESSION_TABLE"
+
 /***** MISC *****/
 
 #define IPV4_NAME "IPv4"
