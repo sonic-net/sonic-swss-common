@@ -40,6 +40,7 @@ namespace swss {
 #define APP_FDB_TABLE_NAME                "FDB_TABLE"
 #define APP_PFC_WD_TABLE_NAME             "PFC_WD_TABLE"
 #define APP_SWITCH_TABLE_NAME             "SWITCH_TABLE"
+#define APP_NEXTHOP_GROUP_TABLE_NAME      "NEXTHOP_GROUP_TABLE"
 
 #define APP_COPP_TABLE_NAME               "COPP_TABLE"
 #define APP_VRF_TABLE_NAME                "VRF_TABLE"
@@ -77,6 +78,7 @@ namespace swss {
 #define APP_STP_BPDU_GUARD_TABLE_NAME       "STP_BPDU_GUARD_TABLE"
 #define APP_MCLAG_FDB_TABLE_NAME            "MCLAG_FDB_TABLE"
 #define APP_ISOLATION_GROUP_TABLE_NAME      "ISOLATION_GROUP_TABLE"
+#define APP_BFD_SESSION_TABLE_NAME          "BFD_SESSION_TABLE"
 
 /***** ASIC DATABASE *****/
 #define ASIC_TEMPERATURE_INFO_TABLE_NAME    "ASIC_TEMPERATURE_INFO"
@@ -176,17 +178,18 @@ namespace swss {
 #define LUA_PLUGIN_TYPE                 "LUA_PLUGIN_TYPE"
 #define SAI_OBJECT_TYPE                 "SAI_OBJECT_TYPE"
 
-#define POLL_INTERVAL_FIELD           "POLL_INTERVAL"
-#define STATS_MODE_FIELD              "STATS_MODE"
-#define STATS_MODE_READ               "STATS_MODE_READ"
-#define STATS_MODE_READ_AND_CLEAR     "STATS_MODE_READ_AND_CLEAR"
-#define QUEUE_PLUGIN_FIELD            "QUEUE_PLUGIN_LIST"
-#define PORT_PLUGIN_FIELD             "PORT_PLUGIN_LIST"
-#define RIF_PLUGIN_FIELD              "RIF_PLUGIN_LIST"
-#define PG_PLUGIN_FIELD               "PG_PLUGIN_LIST"
-#define BUFFER_POOL_PLUGIN_FIELD      "BUFFER_POOL_PLUGIN_LIST"
-#define FLEX_COUNTER_STATUS_FIELD     "FLEX_COUNTER_STATUS"
-#define FLEX_COUNTER_GROUP_TABLE      "FLEX_COUNTER_GROUP_TABLE"
+#define POLL_INTERVAL_FIELD                 "POLL_INTERVAL"
+#define STATS_MODE_FIELD                    "STATS_MODE"
+#define STATS_MODE_READ                     "STATS_MODE_READ"
+#define STATS_MODE_READ_AND_CLEAR           "STATS_MODE_READ_AND_CLEAR"
+#define QUEUE_PLUGIN_FIELD                  "QUEUE_PLUGIN_LIST"
+#define PORT_PLUGIN_FIELD                   "PORT_PLUGIN_LIST"
+#define RIF_PLUGIN_FIELD                    "RIF_PLUGIN_LIST"
+#define PG_PLUGIN_FIELD                     "PG_PLUGIN_LIST"
+#define BUFFER_POOL_PLUGIN_FIELD            "BUFFER_POOL_PLUGIN_LIST"
+#define FLEX_COUNTER_STATUS_FIELD           "FLEX_COUNTER_STATUS"
+#define FLEX_COUNTER_GROUP_TABLE            "FLEX_COUNTER_GROUP_TABLE"
+#define FLEX_COUNTER_DELAY_STATUS_FIELD     "FLEX_COUNTER_DELAY_STATUS"
 
 /***** CONFIGURATION DATABASE *****/
 
@@ -295,7 +298,7 @@ namespace swss {
 #define CFG_MCLAG_TABLE_NAME                        "MCLAG_DOMAIN"
 #define CFG_MCLAG_INTF_TABLE_NAME                   "MCLAG_INTERFACE"
 #define CFG_MCLAG_UNIQUE_IP_TABLE_NAME              "MCLAG_UNIQUE_IP"
-  
+
 #define CFG_PORT_STORM_CONTROL_TABLE_NAME           "PORT_STORM_CONTROL"
 
 #define CFG_RATES_TABLE_NAME                        "RATES"
@@ -327,6 +330,8 @@ namespace swss {
 #define CHASSIS_APP_LAG_MEMBER_TABLE_NAME           "SYSTEM_LAG_MEMBER_TABLE"
 
 #define CFG_CHASSIS_MODULE_TABLE                    "CHASSIS_MODULE"
+  
+#define CFG_DHCP_TABLE                              "DHCP_RELAY"
 
 /***** STATE DATABASE *****/
 
@@ -380,6 +385,10 @@ namespace swss {
 #define STATE_PORT_PERIPHERAL_TABLE                 "PORT_PERIPHERAL_TABLE"
 #define STATE_BUFFER_POOL_TABLE_NAME                "BUFFER_POOL_TABLE"
 #define STATE_BUFFER_PROFILE_TABLE_NAME             "BUFFER_PROFILE_TABLE"
+#define STATE_DHCPv6_COUNTER_TABLE_NAME             "DHCPv6_COUNTER_TABLE"
+
+#define STATE_BFD_SESSION_TABLE                     "BFD_SESSION_TABLE"
+
 /***** MISC *****/
 
 #define IPV4_NAME "IPv4"

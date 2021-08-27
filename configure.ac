@@ -12,6 +12,8 @@ AC_PROG_LIBTOOL
 AC_HEADER_STDC
 AM_PATH_PYTHON
 AM_PATH_PYTHON3
+AX_CODE_COVERAGE
+AX_ADD_AM_MACRO_STATIC([])
 
 AC_CHECK_LIB([hiredis], [redisConnect])
 PKG_CHECK_MODULES([LIBNL], [libnl-3.0 libnl-genl-3.0 libnl-route-3.0 libnl-nf-3.0])
