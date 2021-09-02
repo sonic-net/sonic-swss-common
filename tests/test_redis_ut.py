@@ -203,7 +203,26 @@ def test_DBInterface():
     db.connect("TEST_DB")
     redisclient = db.get_redis_client("TEST_DB")
     redisclient.flushdb()
+
+    # Case: hset and hget normally
     db.set("TEST_DB", "key0", "field1", "value2")
+    val = db.get("TEST_DB", "key0", "field1")
+    assert val == "value2"
+    # Case: hset an empty value
+    db.set("TEST_DB", "kkk3", "field3", "")
+    val = db.get("TEST_DB", "kkk3", "field3")
+    assert val == ""
+    # Case: hset an "None" string value, hget will intepret it as true None (feature)
+    db.set("TEST_DB", "kkk3", "field3", "None")
+    val = db.get("TEST_DB", "kkk3", "field3")
+    assert val == None
+    # hget on an existing key but non-existing field
+    val = db.get("TEST_DB", "kkk3", "missing")
+    assert val == None
+    # hget on an non-existing key and non-existing field
+    val = db.get("TEST_DB", "kkk_missing", "missing")
+    assert val == None
+
     fvs = db.get_all("TEST_DB", "key0")
     assert "field1" in fvs
     assert fvs["field1"] == "value2"
@@ -491,28 +510,12 @@ def test_ConfigDBSubscribe():
         assert data == test_data
         output_data = test_data['field1']
 
-    # the config_db.listen() is a blocking function so could not use that in the tests
-    # this function has similar logic with a way to exit  the listen function
-    def listen_thread_func(config_db):
-        global stop_listen_thread
-        pubsub = config_db.get_redis_client(config_db.db_name).pubsub()
-        pubsub.psubscribe(
-            "__keyspace@{}__:*".format(config_db.get_dbid(config_db.db_name)))
-        time.sleep(2)
-        while True:
-            if stop_listen_thread:
-                break
-            item = pubsub.listen_message()
-            if 'type' in item and item['type'] == 'pmessage':
-                key = item['channel'].split(':', 1)[1]
-                try:
-                    (table, row) = key.split(config_db.TABLE_NAME_SEPARATOR, 1)
-                    if table in config_db.handlers:
-                        client = config_db.get_redis_client(config_db.db_name)
-                        data = config_db.raw_to_typed(client.hgetall(key))
-                        config_db._ConfigDBConnector__fire(table, row, data)
-                except ValueError:
-                    pass  # Ignore non table-formated redis entries
+    def thread_coming_entry():
+        # Note: use a local constructed ConfigDBConnector, and do not reuse Redis connection across threads
+        config_db = ConfigDBConnector()
+        config_db.connect(wait_for_init=False)
+        time.sleep(5)
+        config_db.set_entry(table_name, test_key, test_data)
 
     config_db = ConfigDBConnector()
     config_db.connect(wait_for_init=False)
@@ -522,11 +525,27 @@ def test_ConfigDBSubscribe():
                         data: test_handler(key, data))
     assert table_name in config_db.handlers
 
-    thread = Thread(target=listen_thread_func, args=(config_db,))
+    thread = Thread(target=thread_coming_entry)
     thread.start()
-    time.sleep(5)
-    config_db.set_entry(table_name, test_key, test_data)
-    stop_listen_thread = True
+    pubsub = config_db.get_redis_client(config_db.db_name).pubsub()
+    pubsub.psubscribe(
+        "__keyspace@{}__:*".format(config_db.get_dbid(config_db.db_name)))
+    time.sleep(2)
+    while True:
+        if not thread.is_alive():
+            break
+        item = pubsub.listen_message()
+        if 'type' in item and item['type'] == 'pmessage':
+            key = item['channel'].split(':', 1)[1]
+            try:
+                (table, row) = key.split(config_db.TABLE_NAME_SEPARATOR, 1)
+                if table in config_db.handlers:
+                    client = config_db.get_redis_client(config_db.db_name)
+                    data = config_db.raw_to_typed(client.hgetall(key))
+                    config_db._ConfigDBConnector__fire(table, row, data)
+            except ValueError:
+                pass  # Ignore non table-formated redis entries
+
     thread.join()
     assert output_data == test_data['field1']
 
