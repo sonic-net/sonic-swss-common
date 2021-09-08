@@ -51,7 +51,7 @@ public:
     void formatHDEL(const std::string& key, const std::vector<std::string>& fields);
 
     /* Format EXPIRE key field command */
-    void formatEXPIRE(const std::string& key, const int32_t& ttl);
+    void formatEXPIRE(const std::string& key, const int& ttl);
 
     const char *c_str() const;
 
