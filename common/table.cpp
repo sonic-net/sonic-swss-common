@@ -123,7 +123,7 @@ void Table::hset(const string &key, const std::string &field, const std::string 
 }
 
 void Table::set(const string &key, const vector<FieldValueTuple> &values,
-                const string& /*op*/, const string& /*prefix*/)
+                const int &ttl, const string& /*op*/, const string& /*prefix*/)
 {
     if (values.size() == 0)
         return;
@@ -132,23 +132,6 @@ void Table::set(const string &key, const vector<FieldValueTuple> &values,
     cmd.formatHMSET(getKeyName(key), values.begin(), values.end());
 
     m_pipe->push(cmd, REDIS_REPLY_STATUS);
-    if (!m_buffered)
-    {
-        m_pipe->flush();
-    }
-}
-
-void Table::set(const string &key, const vector<FieldValueTuple> &values,
-                const int32_t &ttl, const string& /*op*/, const string& /*prefix*/)
-{
-    if (values.size() == 0)
-        return;
-
-    RedisCommand cmd;
-    cmd.formatHMSET(getKeyName(key), values.begin(), values.end());
-
-    m_pipe->push(cmd, REDIS_REPLY_STATUS);
-
     if (!m_buffered)
     {
         m_pipe->flush();
