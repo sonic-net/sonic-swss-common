@@ -132,10 +132,6 @@ void Table::set(const string &key, const vector<FieldValueTuple> &values,
     cmd.formatHMSET(getKeyName(key), values.begin(), values.end());
 
     m_pipe->push(cmd, REDIS_REPLY_STATUS);
-    if (!m_buffered)
-    {
-        m_pipe->flush();
-    }
 
     if (ttl != DEFAULT_DB_TTL)
     {
@@ -143,11 +139,10 @@ void Table::set(const string &key, const vector<FieldValueTuple> &values,
       cmd.formatEXPIRE(getKeyName(key), ttl);
 
       m_pipe->push(cmd, REDIS_REPLY_INTEGER);
-
-      if (!m_buffered)
-      {
-          m_pipe->flush();
-      }
+    }
+    if (!m_buffered)
+    {
+        m_pipe->flush();
     }
 }
 
