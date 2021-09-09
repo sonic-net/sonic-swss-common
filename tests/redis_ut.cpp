@@ -709,6 +709,50 @@ TEST(Table, table_separator_test)
     TableBasicTest("TABLE_UT_TEST", false);
 }
 
+TEST(Table, ttl_test)
+{
+    string tableName = "TABLE_UT_TEST";
+    DBConnector db("TEST_DB", 0, true);
+    RedisPipeline pipeline(&db);
+    Table t(&pipeline, tableName, true);
+
+    clearDB();
+    cout << "Starting table manipulations" << endl;
+
+    string key_1 = "a";
+    string key_2 = "b";
+    vector<FieldValueTuple> values;
+
+    for (int i = 1; i < 4; i++)
+    {
+        string field = "field_" + to_string(i);
+        string value = to_string(i);
+        values.push_back(make_pair(field, value));
+    }
+    
+    int64_t initial_a_ttl = -1, initial_b_ttl = 200;
+    cout << "- Step 1. SET with custom ttl" << endl;
+    cout << "Set key [a] field_1:1 field_2:2 field_3:3 infinite ttl" << endl;
+    cout << "Set key [b] field_1:1 field_2:2 field_3:3 200 seconds ttl" << endl;
+
+    t.set(key_1, values, initial_a_ttl);
+    t.set(key_2, values, initial_b_ttl);
+    t.flush();
+ 
+    cout << "- Step 2. GET_TTL_VALUES" << endl;
+    
+    int64_t a_ttl = 0, b_ttl = 0;
+    // Expect that we find the two entries confgured in the DB
+    EXPECT_EQ(true, t.ttl(key_1, a_ttl));
+    EXPECT_EQ(true, t.ttl(key_2, b_ttl));
+    
+    // Expect that TTL values are the ones configured earlier
+    EXPECT_EQ(a_ttl, initial_a_ttl);
+    EXPECT_EQ(b_ttl, initial_b_ttl);
+
+    cout << "Done." << endl;
+}
+
 TEST(ProducerConsumer, Prefix)
 {
     std::string tableName = "tableName";
