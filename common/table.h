@@ -176,9 +176,9 @@ public:
     /* Set an entry in the DB directly and configure its TTL, if provided (op not in use) */
     virtual void set(const std::string &key,
                      const std::vector<FieldValueTuple> &values,
-                     const int &ttl = DEFAULT_DB_TTL,
                      const std::string &op = "",
-                     const std::string &prefix = EMPTY_PREFIX);
+                     const std::string &prefix = EMPTY_PREFIX,
+                     const int64_t &ttl = DEFAULT_DB_TTL);
 
     /* Delete an entry in the table */
     virtual void del(const std::string &key,
