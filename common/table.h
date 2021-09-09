@@ -165,7 +165,7 @@ public:
 };
 
 /* The default time to live for a DB entry is infinite */
-static constexpr int DEFAULT_DB_TTL = -1;
+static constexpr int64_t DEFAULT_DB_TTL = -1;
 
 class Table : public TableBase, public TableEntryEnumerable {
 public:
