@@ -123,7 +123,7 @@ void Table::hset(const string &key, const std::string &field, const std::string 
 }
 
 void Table::set(const string &key, const vector<FieldValueTuple> &values,
-                const int &ttl, const string& /*op*/, const string& /*prefix*/)
+                const string& /*op*/, const string& /*prefix*/, const int64_t &ttl)
 {
     if (values.size() == 0)
         return;
