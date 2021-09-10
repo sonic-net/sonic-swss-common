@@ -735,8 +735,8 @@ TEST(Table, ttl_test)
     cout << "Set key [a] field_1:1 field_2:2 field_3:3 infinite ttl" << endl;
     cout << "Set key [b] field_1:1 field_2:2 field_3:3 200 seconds ttl" << endl;
 
-    t.set(key_1, values, initial_a_ttl);
-    t.set(key_2, values, initial_b_ttl);
+    t.set(key_1, values, "", "", initial_a_ttl);
+    t.set(key_2, values, "", "", initial_b_ttl);
     t.flush();
  
     cout << "- Step 2. GET_TTL_VALUES" << endl;

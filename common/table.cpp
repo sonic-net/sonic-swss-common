@@ -142,27 +142,20 @@ void Table::set(const string &key, const vector<FieldValueTuple> &values,
 //       to existing set() command once sonic-swss's mock_table.cpp and other
 //       dependencies can be updated to use the extended new default set())
 void Table::set(const string &key, const vector<FieldValueTuple> &values,
-                const int64_t &ttl, const string& /*op*/, const string& /*prefix*/)
+                const string &op, const string &prefix, const int64_t &ttl)
 {
-    if (values.size() == 0)
-        return;
-
-    RedisCommand cmd;
-    // @Qi Luo not directly reusing default set() here as it will require we
-    // do a 2nd ->flush() call again.
-    cmd.formatHMSET(getKeyName(key), values.begin(), values.end());
-
-    m_pipe->push(cmd, REDIS_REPLY_STATUS);
-
+    set(key, values, op, prefix);
+    
     if (ttl != DEFAULT_DB_TTL)
     {
         // Configure the expire time for the entry that was just added
+        RedisCommand cmd;
         cmd.formatEXPIRE(getKeyName(key), ttl);
         m_pipe->push(cmd, REDIS_REPLY_INTEGER);
-    }
-    if (!m_buffered)
-    {
-        m_pipe->flush();
+        if (!m_buffered)
+        {
+            m_pipe->flush();
+        }
     }
 }
 

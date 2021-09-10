@@ -181,10 +181,10 @@ public:
 
     /* Set an entry in the DB directly and configure ttl for it (op not in use) */
     virtual void set(const std::string &key,
-                     const std::vector<FieldValueTuple> &values,
-                     const int64_t &ttl, 
-                     const std::string &op = "",
-                     const std::string &prefix = EMPTY_PREFIX);   
+                     const std::vector<FieldValueTuple> &values, 
+                     const std::string &op,
+                     const std::string &prefix,
+                     const int64_t &ttl);   
 
     /* Delete an entry in the table */
     virtual void del(const std::string &key,
