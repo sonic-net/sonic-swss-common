@@ -2,7 +2,7 @@
 #include <cstring>
 #include <array>
 #include <net/if.h>
-#include "ifcommon.h"
+#include "subintf.h"
 
 using namespace swss;
 
@@ -54,7 +54,7 @@ subIntf::subIntf(const std::string &ifName)
     }
 }
 
-bool subIntf::isValid()
+bool subIntf::isValid() const
 {
     if (subIfIdx == "")
     {
@@ -68,12 +68,12 @@ bool subIntf::isValid()
     return true;
 }
 
-std::string subIntf::parentIntf()
+std::string subIntf::parentIntf() const
 {
     return parentIf;
 }
 
-int subIntf::subIntfIdx()
+int subIntf::subIntfIdx() const
 {
     uint16_t id;
     try
@@ -91,7 +91,7 @@ int subIntf::subIntfIdx()
     return id;
 }
 
-std::string subIntf::longName()
+std::string subIntf::longName() const
 {
     if (isValid() == false)
         return "";
@@ -99,7 +99,7 @@ std::string subIntf::longName()
     return (parentIf + VLAN_SUB_INTERFACE_SEPARATOR + subIfIdx);
 }
 
-std::string subIntf::shortName()
+std::string subIntf::shortName() const
 {
     if (isValid() == false)
         return "";
@@ -107,14 +107,7 @@ std::string subIntf::shortName()
     return (parentIfShortName + VLAN_SUB_INTERFACE_SEPARATOR + subIfIdx);
 }
 
-bool subIntf::isShortName()
+bool subIntf::isShortName() const
 {
-    if (isCompressed == true)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+    return ((isCompressed == true) ? true : false);
 }
