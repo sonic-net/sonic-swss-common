@@ -178,6 +178,7 @@ namespace swss {
 #define SWITCH_DEBUG_COUNTER_ID_LIST    "SWITCH_DEBUG_COUNTER_ID_LIST"
 #define MACSEC_SA_ATTR_ID_LIST          "MACSEC_SA_ATTR_ID_LIST"
 #define TUNNEL_ATTR_ID_LIST             "TUNNEL_ATTR_ID_LIST"
+#define ACL_COUNTER_ATTR_ID_LIST        "ACL_COUNTER_ATTR_ID_LIST"
 #define PLUGIN_TABLE                    "PLUGIN_TABLE"
 #define LUA_PLUGIN_TYPE                 "LUA_PLUGIN_TYPE"
 #define SAI_OBJECT_TYPE                 "SAI_OBJECT_TYPE"
@@ -335,7 +336,7 @@ namespace swss {
 #define CHASSIS_APP_LAG_MEMBER_TABLE_NAME           "SYSTEM_LAG_MEMBER_TABLE"
 
 #define CFG_CHASSIS_MODULE_TABLE                    "CHASSIS_MODULE"
-  
+
 #define CFG_DHCP_TABLE                              "DHCP_RELAY"
 
 /***** STATE DATABASE *****/
