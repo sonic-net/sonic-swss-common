@@ -113,7 +113,8 @@ jobs:
           echo "Skipped, the coverage files not found"
           exit 0
         fi
-        diff-cover $converage_files --ignore-unstaged --compare-branch=$compare_branch --html-report=.coverage/htmlcov/index.html --json-report=.coverage/diff-cover.json
+        diff-cover $converage_files --ignore-unstaged --compare-branch=$compare_branch --html-report=.coverage/htmlcov/index.html
+        diff-cover $converage_files --ignore-unstaged --compare-branch=$compare_branch --json-report=.coverage/diff-cover.json
         echo "##vso[task.setvariable variable=disable.coverage.autogenerate;]true"
         echo "##vso[task.setvariable variable=has.coverage.files;]true"
       displayName: "Show diff coverage"
