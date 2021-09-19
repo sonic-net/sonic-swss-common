@@ -164,6 +164,9 @@ public:
     void getContent(std::vector<KeyOpFieldsValuesTuple> &tuples);
 };
 
+/* The default time to live for a DB entry is infinite */
+static constexpr int64_t DEFAULT_DB_TTL = -1;
+
 class Table : public TableBase, public TableEntryEnumerable {
 public:
     Table(const DBConnector *db, const std::string &tableName);
@@ -175,10 +178,20 @@ public:
                      const std::vector<FieldValueTuple> &values,
                      const std::string &op = "",
                      const std::string &prefix = EMPTY_PREFIX);
+
+    /* Set an entry in the DB directly and configure ttl for it (op not in use) */
+    virtual void set(const std::string &key,
+                     const std::vector<FieldValueTuple> &values, 
+                     const std::string &op,
+                     const std::string &prefix,
+                     const int64_t &ttl);   
+
     /* Delete an entry in the table */
     virtual void del(const std::string &key,
                      const std::string &op = "",
                      const std::string &prefix = EMPTY_PREFIX);
+    /* Get the configured ttl value for key */
+    bool ttl(const std::string &key, int64_t &reply_value);
 
 #ifdef SWIG
     // SWIG interface file (.i) globally rename map C++ `del` to python `delete`,
