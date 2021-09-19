@@ -163,9 +163,7 @@ public:
 
 #ifdef SWIG
     %pythoncode %{
-        __swig_getmethods__["namespace"] = getNamespace
-        __swig_setmethods__["namespace"] = None
-        if _newclass: namespace = property(getNamespace, None)
+        namespace = property(getNamespace)
     %}
 #endif
 

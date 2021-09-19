@@ -41,6 +41,7 @@
 %include <std_vector.i>
 %include <std_pair.i>
 %include <std_map.i>
+%include <std_shared_ptr.i>
 %include <typemaps.i>
 %include <stdint.i>
 %include <exception.i>
@@ -87,6 +88,21 @@
 %template(ScanResult) std::pair<int64_t, std::vector<std::string>>;
 %template(GetTableResult) std::map<std::string, std::map<std::string, std::string>>;
 %template(GetConfigResult) std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>;
+
+%typemap(out) std::shared_ptr<std::string> %{
+    {
+        auto& p = static_cast<std::shared_ptr<std::string>&>($1);
+        if(p)
+        {
+            $result = PyUnicode_FromStringAndSize(p->c_str(), p->size());
+        }
+        else
+        {
+            $result = Py_None;
+            Py_INCREF(Py_None);
+        }
+    }
+%}
 
 %pythoncode %{
     def _FieldValueMap__get(self, key, default=None):

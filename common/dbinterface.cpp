@@ -1,4 +1,5 @@
 #include <chrono>
+#include <cstring>
 #include <utility>
 #include <hiredis/hiredis.h>
 #include "dbinterface.h"
@@ -55,7 +56,7 @@ bool DBInterface::exists(const string& dbName, const std::string& key)
     return m_redisClient.at(dbName).exists(key);
 }
 
-std::string DBInterface::get(const std::string& dbName, const std::string& hash, const std::string& key, bool blocking)
+std::shared_ptr<std::string> DBInterface::get(const std::string& dbName, const std::string& hash, const std::string& key, bool blocking)
 {
     auto innerfunc = [&]
     {
@@ -67,9 +68,9 @@ std::string DBInterface::get(const std::string& dbName, const std::string& hash,
             throw UnavailableDataError(message, hash);
         }
         const std::string& value = *pvalue;
-        return value == "None" ? "" : value;
+        return value == "None" ? std::shared_ptr<std::string>() : std::make_shared<std::string>(value);
     };
-    return blockable<std::string>(innerfunc, dbName, blocking);
+    return blockable<std::shared_ptr<std::string>>(innerfunc, dbName, blocking);
 }
 
 bool DBInterface::hexists(const std::string& dbName, const std::string& hash, const std::string& key)
@@ -247,6 +248,7 @@ bool DBInterface::_unavailable_data_handler(const std::string& dbName, const cha
         auto& channel = keyspace_notification_channels.at(dbName);
         auto ctx = channel->getContext();
         redisReply *reply;
+        ctx->err = REDIS_OK; // Stop later redisGetReply early return on no data after first redisReply timeout
         int rc = redisGetReply(ctx, reinterpret_cast<void**>(&reply));
         if (rc == REDIS_ERR && ctx->err == REDIS_ERR_IO && errno == EAGAIN)
         {
@@ -293,7 +295,7 @@ void DBInterface::_subscribe_keyspace_notification(const std::string& dbName)
     pubsub->psubscribe(KEYSPACE_PATTERN);
 
     // Set the timeout of the pubsub channel, so future redisGetReply will be impacted
-    struct timeval tv = { 0, (suseconds_t)(1000 * PUB_SUB_NOTIFICATION_TIMEOUT) };
+    struct timeval tv = { PUB_SUB_NOTIFICATION_TIMEOUT, 0 };
     int rc = redisSetTimeout(pubsub->getContext(), tv);
     if (rc != REDIS_OK)
     {
