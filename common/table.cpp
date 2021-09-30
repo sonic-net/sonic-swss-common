@@ -123,18 +123,53 @@ void Table::hset(const string &key, const std::string &field, const std::string 
 }
 
 void Table::set(const string &key, const vector<FieldValueTuple> &values,
-                const string& /*op*/, const string& /*prefix*/)
+                const string &op, const string &prefix)
+{
+    set(key, values, op, prefix, DEFAULT_DB_TTL);
+}
+
+// TODO: Implement this without overloading(add an additional ttl param
+//       to existing set() command once sonic-swss's mock_table.cpp and other
+//       dependencies can be updated to use the extended new default set())
+void Table::set(const string &key, const vector<FieldValueTuple> &values,
+                const string &op, const string &prefix, const int64_t &ttl)
 {
     if (values.size() == 0)
         return;
 
     RedisCommand cmd;
+    
     cmd.formatHMSET(getKeyName(key), values.begin(), values.end());
-
     m_pipe->push(cmd, REDIS_REPLY_STATUS);
+    
+    if (ttl != DEFAULT_DB_TTL)
+    {
+        // Configure the expire time for the entry that was just added
+        cmd.formatEXPIRE(getKeyName(key), ttl);
+        m_pipe->push(cmd, REDIS_REPLY_INTEGER);
+    }
+
     if (!m_buffered)
     {
         m_pipe->flush();
+    }
+}
+
+bool Table::ttl(const string &key, int64_t &reply_value)
+{
+    RedisCommand cmd_ttl;
+    cmd_ttl.formatTTL(getKeyName(key));
+    RedisReply r = m_pipe->push(cmd_ttl);
+    redisReply *reply = r.getContext();
+
+    if (reply != NULL)
+    {
+        reply_value = reply->integer;
+        return true;
+    }
+    else
+    {
+        return false;
     }
 }
 
