@@ -627,11 +627,6 @@ int64_t DBConnector::del(const string &key)
 bool DBConnector::exists(const string &key)
 {
     RedisCommand rexists;
-    if (key.find_first_of(" \t") != string::npos)
-    {
-        SWSS_LOG_ERROR("EXISTS failed, invalid space or tab in single key: %s", key.c_str());
-        throw runtime_error("EXISTS failed, invalid space or tab in single key");
-    }
     rexists.format("EXISTS %s", key.c_str());
     RedisReply r(this, rexists, REDIS_REPLY_INTEGER);
     return r.getContext()->integer > 0;

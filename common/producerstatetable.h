@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <vector>
 #include "table.h"
 #include "redispipeline.h"
 
@@ -35,6 +36,16 @@ public:
     %}
 #endif
 
+    // Batched version of set() and del().
+    // The batched methods don't include (or use) op and prefix. They are
+    // written for specific use case only. The consumer logic (or batch size)
+    // might need to change if the producer does batched operations.
+
+    // In set(), the op is ignored.
+    void set(const std::vector<KeyOpFieldsValuesTuple>& values);
+
+    void del(const std::vector<std::string>& keys);
+
     void flush();
 
     int64_t count();
@@ -51,6 +62,8 @@ private:
     RedisPipeline *m_pipe;
     std::string m_shaSet;
     std::string m_shaDel;
+    std::string m_shaBatchedSet;
+    std::string m_shaBatchedDel;
     std::string m_shaClear;
     std::string m_shaApplyView;
     TableDump m_tempViewState;

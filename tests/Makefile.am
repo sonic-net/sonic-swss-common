@@ -33,6 +33,7 @@ tests_SOURCES = redis_ut.cpp                \
                 stringutility_ut.cpp        \
                 redisutility_ut.cpp         \
                 boolean_ut.cpp              \
+                status_code_util_test.cpp   \
                 main.cpp
 
 tests_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_GTEST) $(LIBNL_CFLAGS)
