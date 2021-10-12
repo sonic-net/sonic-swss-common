@@ -98,7 +98,7 @@
             "instance" : "redis"
         },
         "APPL_STATE_DB" : {
-            "id" : 63,
+            "id" : 14,
             "separator": ":",
             "instance" : "redis"
         }
