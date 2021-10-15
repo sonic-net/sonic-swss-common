@@ -80,6 +80,8 @@ namespace swss {
 #define APP_ISOLATION_GROUP_TABLE_NAME      "ISOLATION_GROUP_TABLE"
 #define APP_BFD_SESSION_TABLE_NAME          "BFD_SESSION_TABLE"
 
+#define APP_SAG_TABLE_NAME                  "SAG_TABLE"
+
 /***** ASIC DATABASE *****/
 #define ASIC_TEMPERATURE_INFO_TABLE_NAME    "ASIC_TEMPERATURE_INFO"
 
@@ -335,9 +337,10 @@ namespace swss {
 #define CHASSIS_APP_LAG_MEMBER_TABLE_NAME           "SYSTEM_LAG_MEMBER_TABLE"
 
 #define CFG_CHASSIS_MODULE_TABLE                    "CHASSIS_MODULE"
-  
+
 #define CFG_DHCP_TABLE                              "DHCP_RELAY"
 
+#define CFG_SAG_TABLE_NAME                          "SAG"
 /***** STATE DATABASE *****/
 
 #define STATE_SWITCH_CAPABILITY_TABLE_NAME          "SWITCH_CAPABILITY_TABLE"
