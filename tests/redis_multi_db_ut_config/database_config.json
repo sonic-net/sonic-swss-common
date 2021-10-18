@@ -92,14 +92,14 @@
             "separator": "|",
             "instance" : "redis"
         },
-        "TEST_DB" : {
-            "id" : 15,
-            "separator": ":",
-            "instance" : "redis"
-        },
         "APPL_STATE_DB" : {
             "id" : 14,
             "separator": "|",
+            "instance" : "redis"
+        },
+        "TEST_DB" : {
+            "id" : 15,
+            "separator": ":",
             "instance" : "redis"
         }
     },
