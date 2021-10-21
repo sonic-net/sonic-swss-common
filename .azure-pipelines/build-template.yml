@@ -35,6 +35,10 @@ jobs:
 - job:
   displayName: ${{ parameters.arch }}
   timeoutInMinutes: ${{ parameters.timeout }}
+  variables:
+    DIFF_COVER_CHECK_THRESHOLD: 0
+    ${{ if eq(parameters.run_unit_test, true) }}:
+      DIFF_COVER_ENABLE: 'true'
 
   pool:
     ${{ if ne(parameters.pool, 'default') }}:
@@ -58,9 +62,19 @@ jobs:
   - script: |
       set -ex
       ./autogen.sh
-      fakeroot debian/rules DEB_CONFIGURE_EXTRA_FLAGS='--enable-code-coverage' CFLAGS="" CXXFLAGS="" binary && cp ../*.deb .
+      fakeroot debian/rules DEB_CONFIGURE_EXTRA_FLAGS='--enable-code-coverage' CFLAGS="" CXXFLAGS="--coverage -fprofile-abs-path" LDFLAGS="--coverage -fprofile-abs-path" binary && cp ../*.deb .
     displayName: "Compile sonic swss common with coverage enabled"
   - ${{ if eq(parameters.run_unit_test, true) }}:
+    - script: |
+        set -ex
+        git clone https://github.com/Spacetown/gcovr.git
+        cd gcovr/
+        git checkout origin/recursive_search_file
+        sudo pip3 install setuptools
+        sudo python3 setup.py install
+        cd ..
+        sudo rm -rf gcovr
+      displayName: "Install gcovr 5.0 with recursive fix"
     - script: |
         set -ex
         sudo pip install Pympler==0.8
@@ -74,12 +88,10 @@ jobs:
         sudo dpkg -i libswsscommon_*.deb
         sudo dpkg -i python-swsscommon_*.deb
 
-        sudo ./tests/tests && redis-cli FLUSHALL && pytest
-
-        gcovr -r ./ -x -o coverage.xml
-        cd common
-        mkdir -p htmlcov
-        gcovr -r ./ --html --html-details -o htmlcov/index.html
+        ./tests/tests
+        redis-cli FLUSHALL
+        pytest --cov=. --cov-report=xml
+        gcovr -r ./  --exclude-unreachable-branches --exclude-throw-branches -x --xml-pretty  -o tests/coverage.xml
       displayName: "Run swss common unit tests"
   - publish: $(System.DefaultWorkingDirectory)/
     artifact: ${{ parameters.artifact_name }}
@@ -96,6 +108,5 @@ jobs:
     - task: PublishCodeCoverageResults@1
       inputs:
         codeCoverageTool: Cobertura
-        summaryFileLocation: '$(System.DefaultWorkingDirectory)/coverage.xml'
-        reportDirectory: '$(System.DefaultWorkingDirectory)/common/htmlcov/'
+        summaryFileLocation: '$(System.DefaultWorkingDirectory)/tests/coverage.xml'
       displayName: 'Publish test coverage'
