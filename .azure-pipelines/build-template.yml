@@ -91,7 +91,8 @@ jobs:
         ./tests/tests
         redis-cli FLUSHALL
         pytest --cov=. --cov-report=xml
-        gcovr -r ./ -e ".*/swsscommon_wrap.cpp" --exclude-unreachable-branches --exclude-throw-branches -x --xml-pretty  -o tests/coverage.xml
+        mv coverage.xml tests/coverage.xml
+        gcovr -r ./ -e ".*/swsscommon_wrap.cpp" --exclude-unreachable-branches --exclude-throw-branches -x --xml-pretty  -o coverage.xml
       displayName: "Run swss common unit tests"
   - publish: $(System.DefaultWorkingDirectory)/
     artifact: ${{ parameters.artifact_name }}
@@ -108,5 +109,5 @@ jobs:
     - task: PublishCodeCoverageResults@1
       inputs:
         codeCoverageTool: Cobertura
-        summaryFileLocation: '$(System.DefaultWorkingDirectory)/tests/coverage.xml'
+        summaryFileLocation: '$(System.DefaultWorkingDirectory)/coverage.xml'
       displayName: 'Publish test coverage'
