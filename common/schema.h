@@ -273,6 +273,7 @@ namespace swss {
 #define CFG_PFC_PRIORITY_TO_QUEUE_MAP_TABLE_NAME    "MAP_PFC_PRIORITY_TO_QUEUE"
 #define CFG_TC_TO_QUEUE_MAP_TABLE_NAME              "TC_TO_QUEUE_MAP"
 #define CFG_DSCP_TO_TC_MAP_TABLE_NAME               "DSCP_TO_TC_MAP"
+#define CFG_MPLS_TC_TO_TC_MAP_TABLE_NAME            "MPLS_TC_TO_TC_MAP"
 #define CFG_SCHEDULER_TABLE_NAME                    "SCHEDULER"
 #define CFG_PORT_QOS_MAP_TABLE_NAME                 "PORT_QOS_MAP"
 #define CFG_WRED_PROFILE_TABLE_NAME                 "WRED_PROFILE"
