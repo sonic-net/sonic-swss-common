@@ -415,7 +415,8 @@ namespace swss {
 #define STATE_BUFFER_PROFILE_TABLE_NAME             "BUFFER_PROFILE_TABLE"
 #define STATE_DHCPv6_COUNTER_TABLE_NAME             "DHCPv6_COUNTER_TABLE"
 
-#define STATE_BFD_SESSION_TABLE                     "BFD_SESSION_TABLE"
+#define STATE_BFD_SESSION_TABLE_NAME                "BFD_SESSION_TABLE"
+#define STATE_ROUTE_TABLE_NAME                      "ROUTE_TABLE"
 
 /***** MISC *****/
 
