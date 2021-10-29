@@ -282,6 +282,9 @@ namespace swss {
 #define CFG_VNET_RT_TABLE_NAME                      "VNET_ROUTE"
 #define CFG_VNET_RT_TUNNEL_TABLE_NAME               "VNET_ROUTE_TUNNEL"
 
+#define CFG_NVGRE_TUNNEL_TABLE_NAME                 "NVGRE_TUNNEL"
+#define CFG_NVGRE_TUNNEL_MAP_TABLE_NAME             "NVGRE_TUNNEL_MAP"
+
 #define CFG_PASS_THROUGH_ROUTE_TABLE_NAME           "PASS_THROUGH_ROUTE_TABLE"
 #define CFG_SFLOW_TABLE_NAME                        "SFLOW"
 #define CFG_SFLOW_SESSION_TABLE_NAME                "SFLOW_SESSION"
