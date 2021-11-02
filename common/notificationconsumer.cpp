@@ -154,6 +154,7 @@ void swss::NotificationConsumer::pop(std::string &op, std::string &data, std::ve
     std::string msg = m_queue.front();
     m_queue.pop();
 
+    values.clear();
     JSon::readJson(msg, values);
 
     FieldValueTuple fvt = values.at(0);
@@ -167,15 +168,16 @@ void swss::NotificationConsumer::pop(std::string &op, std::string &data, std::ve
 void swss::NotificationConsumer::pops(std::deque<KeyOpFieldsValuesTuple> &vkco)
 {
     SWSS_LOG_ENTER();
-    std::string op;
-    std::string data;
-    std::vector<FieldValueTuple> values;
 
     vkco.clear();
     while(!m_queue.empty())
     {
         while(!m_queue.empty())
         {
+            std::string op;
+            std::string data;
+            std::vector<FieldValueTuple> values;
+
             pop(op, data, values);
             vkco.emplace_back(data, op, values);
         }
