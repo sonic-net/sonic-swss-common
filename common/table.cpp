@@ -29,7 +29,7 @@ const TableNameSeparatorMap TableBase::tableNameSeparatorMap = {
    { PFC_WD_DB,           TABLE_NAME_SEPARATOR_COLON },
    { FLEX_COUNTER_DB,     TABLE_NAME_SEPARATOR_COLON },
    { STATE_DB,            TABLE_NAME_SEPARATOR_VBAR  },
-   { APPL_STATE_DB,       TABLE_NAME_SEPARATOR_VBAR }
+   { APPL_STATE_DB,       TABLE_NAME_SEPARATOR_COLON }
 };
 
 Table::Table(const DBConnector *db, const string &tableName)

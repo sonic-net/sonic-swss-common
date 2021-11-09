@@ -94,7 +94,7 @@
         },
         "APPL_STATE_DB" : {
             "id" : 14,
-            "separator": "|",
+            "separator": ":",
             "instance" : "redis"
         },
         "TEST_DB" : {
