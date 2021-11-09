@@ -48,35 +48,6 @@ ProducerStateTable::ProducerStateTable(RedisPipeline *pipeline, const string &ta
         "end\n";
     m_shaDel = m_pipe->loadRedisScript(luaDel);
 
-    string luaBatchedSet =
-        "local added = 0\n"
-        "local idx = 2\n"
-        "for i = 0, #KEYS - 4 do\n"
-        "    added = added + redis.call('SADD', KEYS[2], KEYS[4 + i])\n"
-        "    for j = 0, tonumber(ARGV[idx]) - 1 do\n"
-        "        local attr = ARGV[idx + j * 2 + 1]\n"
-        "        local val = ARGV[idx + j * 2 + 2]\n"
-        "        redis.call('HSET', KEYS[3] .. KEYS[4 + i], attr, val)\n"
-        "    end\n"
-        "    idx = idx + tonumber(ARGV[idx]) * 2 + 1\n"
-        "end\n"
-        "if added > 0 then \n"
-        "    redis.call('PUBLISH', KEYS[1], ARGV[1])\n"
-        "end\n";
-    m_shaBatchedSet = m_pipe->loadRedisScript(luaBatchedSet);
-
-    string luaBatchedDel =
-        "local added = 0\n"
-        "for i = 0, #KEYS - 5 do\n"
-        "    added = added + redis.call('SADD', KEYS[2], KEYS[5 + i])\n"
-        "    redis.call('SADD', KEYS[3], KEYS[5 + i])\n"
-        "    redis.call('DEL', KEYS[4] .. KEYS[5 + i])\n"
-        "end\n"
-        "if added > 0 then \n"
-        "    redis.call('PUBLISH', KEYS[1], ARGV[1])\n"
-        "end\n";
-    m_shaBatchedDel = m_pipe->loadRedisScript(luaBatchedDel);
-
     string luaClear =
         "redis.call('DEL', KEYS[1])\n"
         "local keys = redis.call('KEYS', KEYS[2] .. '*')\n"
