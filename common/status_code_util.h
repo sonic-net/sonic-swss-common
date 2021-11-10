@@ -23,7 +23,7 @@ enum class StatusCode
     SWSS_RC_UNKNOWN,
 };
 
-static std::map<StatusCode, std::string> statusCodeMapping = {
+static const std::map<StatusCode, std::string> statusCodeMapping = {
     {StatusCode::SWSS_RC_SUCCESS, "SWSS_RC_SUCCESS"},
     {StatusCode::SWSS_RC_INVALID_PARAM, "SWSS_RC_INVALID_PARAM"},
     {StatusCode::SWSS_RC_DEADLINE_EXCEEDED, "SWSS_RC_DEADLINE_EXCEEDED"},
@@ -39,7 +39,7 @@ static std::map<StatusCode, std::string> statusCodeMapping = {
     {StatusCode::SWSS_RC_UNKNOWN, "SWSS_RC_UNKNOWN"},
 };
 
-static std::map<std::string, StatusCode> StatusCodeLookup = {
+static const std::map<std::string, StatusCode> StatusCodeLookup = {
     {"SWSS_RC_SUCCESS", StatusCode::SWSS_RC_SUCCESS},
     {"SWSS_RC_INVALID_PARAM", StatusCode::SWSS_RC_INVALID_PARAM},
     {"SWSS_RC_DEADLINE_EXCEEDED", StatusCode::SWSS_RC_DEADLINE_EXCEEDED},
@@ -55,7 +55,7 @@ static std::map<std::string, StatusCode> StatusCodeLookup = {
     {"SWSS_RC_UNKNOWN", StatusCode::SWSS_RC_UNKNOWN},
 };
 
-inline std::string statusCodeToStr(const StatusCode &status)
+static inline std::string statusCodeToStr(const StatusCode &status)
 {
     if (statusCodeMapping.find(status) == statusCodeMapping.end())
     {
@@ -64,7 +64,7 @@ inline std::string statusCodeToStr(const StatusCode &status)
     return statusCodeMapping.at(status);
 }
 
-inline StatusCode strToStatusCode(const std::string &status)
+static inline StatusCode strToStatusCode(const std::string &status)
 {
     if (StatusCodeLookup.find(status) == StatusCodeLookup.end())
     {
