@@ -9,7 +9,7 @@ DBGFLAGS = -g -DNDEBUG
 endif
 
 CFLAGS_GTEST =
-LDADD_GTEST = -L/usr/src/gtest -lgtest -lgtest_main
+LDADD_GTEST = -L/usr/src/gtest -lgtest -lgtest_main -lgmock -lgmock_main
 
 tests_SOURCES = redis_ut.cpp                \
                 redis_piped_ut.cpp          \
