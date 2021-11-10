@@ -1,1 +1,3 @@
-usr/lib/python2.7/dist-packages/swsscommon/*
+usr/lib/python2.7/dist-packages/swsscommon/*.py*
+usr/lib/python2.7/dist-packages/swsscommon/*.so*
+usr/lib/python2.7/dist-packages/swsscommon/*.la*
