@@ -9,6 +9,7 @@
 #include <mutex>
 
 #include <hiredis/hiredis.h>
+#include "dbconnectorinterface.h"
 #include "rediscommand.h"
 #include "redisreply.h"
 #define EMPTY_NAMESPACE std::string()
@@ -137,7 +138,7 @@ private:
     redisContext *m_conn;
 };
 
-class DBConnector : public RedisContext
+class DBConnector : public RedisContext, public DBConnectorInterface
 {
 public:
     static constexpr const char *DEFAULT_UNIXSOCKET = "/var/run/redis/redis.sock";
@@ -174,7 +175,7 @@ public:
 
     PubSub *pubsub();
 
-    int64_t del(const std::string &key);
+    int64_t del(const std::string &key) override;
 
 #ifdef SWIG
     // SWIG interface file (.i) globally rename map C++ `del` to python `delete`,
@@ -187,7 +188,7 @@ public:
     %}
 #endif
 
-    bool exists(const std::string &key);
+    bool exists(const std::string &key) override;
 
     int64_t hdel(const std::string &key, const std::string &field);
 
@@ -199,11 +200,14 @@ public:
     ReturnType hgetall(const std::string &key);
 
 #ifndef SWIG
+    std::unordered_map<std::string, std::string> hgetall(
+        const std::string &key) override;
+
     template <typename OutputIterator>
     void hgetall(const std::string &key, OutputIterator result);
 #endif
 
-    std::vector<std::string> keys(const std::string &key);
+    std::vector<std::string> keys(const std::string &key) override;
 
     std::pair<int, std::vector<std::string>> scan(int cursor = 0, const char *match = "", uint32_t count = 10);
 
@@ -217,9 +221,14 @@ public:
 
     void hmset(const std::unordered_map<std::string, std::vector<std::pair<std::string, std::string>>>& multiHash);
 
+    void hmset(const std::string &key,
+               const std::vector<std::pair<std::string, std::string>> &values)
+        override;
+
     std::shared_ptr<std::string> get(const std::string &key);
 
-    std::shared_ptr<std::string> hget(const std::string &key, const std::string &field);
+    std::shared_ptr<std::string> hget(const std::string &key,
+                                      const std::string &field) override;
 
     bool hexists(const std::string &key, const std::string &field);
 

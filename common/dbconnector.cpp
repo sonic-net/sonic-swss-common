@@ -1,5 +1,6 @@
 #include <string.h>
 #include <stdint.h>
+#include <iterator>
 #include <vector>
 #include <unistd.h>
 #include <errno.h>
@@ -748,6 +749,19 @@ int64_t DBConnector::decr(const string &key)
     sdecr.format("DECR %s", key.c_str());
     RedisReply r(this, sdecr, REDIS_REPLY_INTEGER);
     return r.getContext()->integer;
+}
+
+#ifndef SWIG
+std::unordered_map<std::string, std::string> DBConnector::hgetall(
+    const std::string &key){
+  return hgetall<std::unordered_map<std::string, std::string>>(key);
+}
+#endif
+
+void DBConnector::hmset(
+    const std::string &key,
+    const std::vector<std::pair<std::string, std::string>> &values) {
+  hmset(key, values.begin(), values.end());
 }
 
 shared_ptr<string> DBConnector::get(const string &key)

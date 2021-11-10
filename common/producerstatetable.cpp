@@ -358,4 +358,9 @@ void ProducerStateTable::apply_temp_view()
     m_tempViewActive = false;
 }
 
+std::string ProducerStateTable::get_table_name() const
+{
+  return getTableName();
+}
+
 }

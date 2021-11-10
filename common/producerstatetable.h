@@ -1,12 +1,14 @@
 #pragma once
 
 #include <memory>
+
+#include "producerstatetableinterface.h"
 #include "table.h"
 #include "redispipeline.h"
 
 namespace swss {
 
-class ProducerStateTable : public TableBase, public TableName_KeySet
+class ProducerStateTable : public TableBase, public TableName_KeySet, public ProducerStateTableInterface
 {
 public:
     ProducerStateTable(DBConnector *db, const std::string &tableName);
@@ -18,11 +20,11 @@ public:
     virtual void set(const std::string &key,
                      const std::vector<FieldValueTuple> &values,
                      const std::string &op = SET_COMMAND,
-                     const std::string &prefix = EMPTY_PREFIX);
+                     const std::string &prefix = EMPTY_PREFIX) override;
 
     virtual void del(const std::string &key,
                      const std::string &op = DEL_COMMAND,
-                     const std::string &prefix = EMPTY_PREFIX);
+                     const std::string &prefix = EMPTY_PREFIX) override;
 
 #ifdef SWIG
     // SWIG interface file (.i) globally rename map C++ `del` to python `delete`,
@@ -44,6 +46,9 @@ public:
     void create_temp_view();
 
     void apply_temp_view();
+
+    std::string get_table_name() const override;
+
 private:
     bool m_buffered;
     bool m_pipeowned;
