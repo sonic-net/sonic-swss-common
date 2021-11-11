@@ -7,8 +7,6 @@ namespace swss
 namespace acl
 {
 
-namespace
-{
 // ENUM Stage strings
 static constexpr char kStageLookupName[] = "LOOKUP";
 static constexpr char kStageIngressName[] = "INGRESS";
@@ -21,7 +19,6 @@ static constexpr char kFormatMac[] = "MAC";
 static constexpr char kFormatIPv4[] = "IPV4";
 static constexpr char kFormatIPv6[] = "IPV6";
 static constexpr char kFormatString[] = "STRING";
-} // namespace
 
 Stage StageFromName(const std::string &name)
 {
@@ -36,9 +33,9 @@ Stage StageFromName(const std::string &name)
 
 const std::string &StageName(Stage stage)
 {
-    const auto *const kLookupString = new std::string(kStageLookupName);
-    const auto *const kIngressString = new std::string(kStageIngressName);
-    const auto *const kEgressString = new std::string(kStageEgressName);
+    static const auto *const kLookupString = new std::string(kStageLookupName);
+    static const auto *const kIngressString = new std::string(kStageIngressName);
+    static const auto *const kEgressString = new std::string(kStageEgressName);
     switch (stage)
     {
     case Stage::kLookup:
@@ -72,12 +69,12 @@ Format FormatFromName(const std::string &name)
 
 const std::string &FormatName(Format format)
 {
-    const auto *const kNoneString = new std::string(kFormatNone);
-    const auto *const kHexStringString = new std::string(kFormatHexString);
-    const auto *const kMacString = new std::string(kFormatMac);
-    const auto *const kIPv4String = new std::string(kFormatIPv4);
-    const auto *const kIPv6String = new std::string(kFormatIPv6);
-    const auto *const kStringString = new std::string(kFormatString);
+    static const auto *const kNoneString = new std::string(kFormatNone);
+    static const auto *const kHexStringString = new std::string(kFormatHexString);
+    static const auto *const kMacString = new std::string(kFormatMac);
+    static const auto *const kIPv4String = new std::string(kFormatIPv4);
+    static const auto *const kIPv6String = new std::string(kFormatIPv6);
+    static const auto *const kStringString = new std::string(kFormatString);
     switch (format)
     {
     case Format::kNone:
