@@ -23,9 +23,9 @@ DOPACKAGES = $(shell dh_listpackages)
 # For Debian jessie, stretch, and buster, and Ubuntu bionic and focal, build
 # Python 2 bindings. This is controlled by the build profile being used.
 ifneq (,$(filter python-swsscommon,$(DOPACKAGES)))
-DEB_CONFIGURE_EXTRA_FLAGS += --enable-python2
+CONFIGURE_ARGS += --enable-python2
 else
-DEB_CONFIGURE_EXTRA_FLAGS += --disable-python2
+CONFIGURE_ARGS += --disable-python2
 endif
 
 # main packaging script based on dh7 syntax
@@ -35,7 +35,7 @@ endif
 # dh_make generated override targets
 # This is example for Cmake (See https://bugs.debian.org/641051 )
 override_dh_auto_configure:
-	dh_auto_configure -- $(DEB_CONFIGURE_EXTRA_FLAGS)
+	dh_auto_configure -- $(CONFIGURE_ARGS) $(DEB_CONFIGURE_EXTRA_FLAGS)
 #	-DCMAKE_LIBRARY_PATH=$(DEB_HOST_MULTIARCH)
 
 override_dh_clean:
