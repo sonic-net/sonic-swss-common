@@ -91,6 +91,9 @@ jobs:
         sudo dpkg -i python-swsscommon_*.deb
 
         ./tests/tests
+        ./tests/tests_asan
+        ./tests/tests_tsan
+        ./tests/tests_usan
         redis-cli FLUSHALL
         pytest --cov=. --cov-report=xml
         mv coverage.xml tests/coverage.xml
