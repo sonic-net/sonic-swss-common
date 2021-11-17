@@ -39,7 +39,7 @@ stages:
         sudo apt-get install -y python3-pip
         sudo pip3 install pytest
         sudo apt-get install -y python
-        sudo apt-get install cmake libgtest-dev
+        sudo apt-get install cmake libgtest-dev libgmock-dev
         cd /usr/src/gtest && sudo cmake . && sudo make
       displayName: "Install dependencies"
     - script: |

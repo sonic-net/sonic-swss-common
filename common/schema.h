@@ -427,6 +427,8 @@ namespace swss {
 
 #define STATE_BFD_SESSION_TABLE_NAME                "BFD_SESSION_TABLE"
 #define STATE_ROUTE_TABLE_NAME                      "ROUTE_TABLE"
+#define STATE_VNET_RT_TUNNEL_TABLE_NAME             "VNET_ROUTE_TUNNEL_TABLE"
+#define STATE_ADVERTISE_NETWORK_TABLE_NAME          "ADVERTISE_NETWORK_TABLE"
 
 /***** MISC *****/
 

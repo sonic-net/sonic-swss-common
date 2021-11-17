@@ -9,7 +9,7 @@ DBGFLAGS = -g -DNDEBUG
 endif
 
 CFLAGS_GTEST =
-LDADD_GTEST = -L/usr/src/gtest -lgtest -lgtest_main
+LDADD_GTEST = -L/usr/src/gtest -lgtest -lgtest_main -lgmock -lgmock_main
 
 tests_SOURCES = redis_ut.cpp                \
                 redis_piped_ut.cpp          \
@@ -34,6 +34,7 @@ tests_SOURCES = redis_ut.cpp                \
                 redisutility_ut.cpp         \
                 boolean_ut.cpp              \
                 status_code_util_test.cpp   \
+                saiaclschema_ut.cpp         \
                 main.cpp
 
 tests_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_GTEST) $(LIBNL_CFLAGS)
