@@ -39,7 +39,11 @@ AC_ARG_ENABLE(python2,
 esac],[python2=true])
 AM_CONDITIONAL(DEBUG, test x$debug = xtrue)
 AM_CONDITIONAL(PYTHON2, test x$python2 = xtrue)
-AM_CONDITIONAL(ARCH64, test `getconf LONG_BIT` = "64")
+if test x$CONFIGURED_ARCH = xarmhf && test x$CROSS_BUILD_ENVIRON = xy; then
+	AM_CONDITIONAL(ARCH64, false)
+else
+	AM_CONDITIONAL(ARCH64, test `getconf LONG_BIT` = "64")
+fi
 
 AC_PATH_PROGS(SWIG, [swig4.0 swig3.0 swig])
 
