@@ -23,10 +23,10 @@ Install build dependencies:
 
     sudo apt-get install make libtool m4 autoconf dh-exec debhelper cmake pkg-config \
                          libhiredis-dev libnl-3-dev libnl-genl-3-dev libnl-route-3-dev \
-                         libnl-nf-3-dev swig3.0 libpython2.7-dev libpython3-dev libgtest-dev \
-                         libboost-dev
+                         libnl-nf-3-dev swig3.0 libpython2.7-dev libpython3-dev \
+                         libgtest-dev libgmock-dev libboost-dev
 
-Install Google Test DEB package:
+Build and Install Google Test and Mock from DEB source packages:
 
     cd /usr/src/gtest && sudo cmake . && sudo make
 
