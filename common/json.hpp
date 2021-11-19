@@ -5394,7 +5394,7 @@ class basic_json
                 {
                     assert(lhs.m_value.array != nullptr);
                     assert(rhs.m_value.array != nullptr);
-                    return *lhs.m_value.array < *rhs.m_value.array;
+                    return (*lhs.m_value.array) < *rhs.m_value.array;
                 }
                 case value_t::object:
                 {
