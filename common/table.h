@@ -77,7 +77,8 @@ public:
         return m_tableSeparator;
     }
 
-    std::string getChannelName() { return m_tableName + "_CHANNEL"; }
+    std::string getChannelName() { return m_tableName + "_CHANNEL" +
+        + "@" + std::to_string(dbId); }
 private:
     static const std::string TABLE_NAME_SEPARATOR_COLON;
     static const std::string TABLE_NAME_SEPARATOR_VBAR;
