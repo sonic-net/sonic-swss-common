@@ -39,7 +39,7 @@ static inline string value(int index, int keyid)
 {
     if (keyid == 0)
     {
-        return string(); // emtpy
+        return string(); // empty
     }
 
     return string("value ") + to_string(index) + ":" + to_string(keyid);
@@ -204,6 +204,124 @@ TEST(SubscriberStateTable, set)
         KeyOpFieldsValuesTuple kco;
         c.pop(kco);
         EXPECT_EQ(kfvKey(kco), key);
+        EXPECT_EQ(kfvOp(kco), "SET");
+
+        auto fvs = kfvFieldsValues(kco);
+        EXPECT_EQ(fvs.size(), (unsigned int)(maxNumOfFields));
+
+        map<string, string> mm;
+        for (auto fv: fvs)
+        {
+            mm[fvField(fv)] = fvValue(fv);
+        }
+
+        for (int j = 0; j < maxNumOfFields; j++)
+        {
+            EXPECT_EQ(mm[field(index, j)], value(index, j));
+        }
+    }
+}
+
+TEST(SubscriberStateTable, set2_pop1_set1_pop1)
+{
+    clearDB();
+
+    /* Prepare producer */
+    DBConnector db("TEST_DB", 0, true);
+    Table p(&db, testTableName);
+    int maxNumOfFields = 2;
+
+    /* Prepare subscriber */
+    SubscriberStateTable c(&db, testTableName);
+    Select cs;
+    Selectable *selectcs;
+    cs.addSelectable(&c);
+
+    /* Set 1st, 2nd */
+    int index;
+    for (index = 0; index < 2; index++)
+    {
+        vector<FieldValueTuple> fields;
+        for (int j = 0; j < maxNumOfFields; j++)
+        {
+            FieldValueTuple t(field(index, j), value(index, j));
+            fields.push_back(t);
+        }
+        p.set(key(index, 0), fields);
+    }
+
+    /* Pop 1st */
+    index = 0;
+    {
+        int ret = cs.select(&selectcs);
+        EXPECT_EQ(ret, Select::OBJECT);
+        KeyOpFieldsValuesTuple kco;
+        c.pop(kco);
+
+        EXPECT_EQ(kfvKey(kco), key(index, 0));
+        EXPECT_EQ(kfvOp(kco), "SET");
+
+        auto fvs = kfvFieldsValues(kco);
+        EXPECT_EQ(fvs.size(), (unsigned int)(maxNumOfFields));
+
+        map<string, string> mm;
+        for (auto fv: fvs)
+        {
+            mm[fvField(fv)] = fvValue(fv);
+        }
+
+        for (int j = 0; j < maxNumOfFields; j++)
+        {
+            EXPECT_EQ(mm[field(index, j)], value(index, j));
+        }
+    }
+
+    /* Set 3rd */
+    for (index = 2; index < 3; index++)
+    {
+        vector<FieldValueTuple> fields;
+        for (int j = 0; j < maxNumOfFields; j++)
+        {
+            FieldValueTuple t(field(index, j), value(index, j));
+            fields.push_back(t);
+        }
+        p.set(key(index, 0), fields);
+    }
+
+    /* Pop 2nd */
+    index = 1;
+    {
+        int ret = cs.select(&selectcs);
+        EXPECT_EQ(ret, Select::OBJECT);
+        KeyOpFieldsValuesTuple kco;
+        c.pop(kco);
+        EXPECT_EQ(kfvKey(kco), key(index, 0));
+        EXPECT_EQ(kfvOp(kco), "SET");
+
+        auto fvs = kfvFieldsValues(kco);
+        EXPECT_EQ(fvs.size(), (unsigned int)(maxNumOfFields));
+
+        map<string, string> mm;
+        for (auto fv: fvs)
+        {
+            mm[fvField(fv)] = fvValue(fv);
+        }
+
+        for (int j = 0; j < maxNumOfFields; j++)
+        {
+            EXPECT_EQ(mm[field(index, j)], value(index, j));
+        }
+    }
+
+    /* Pop 3rd */
+    index = 2;
+    {
+        // Note: the code before this commit will hang at below select()
+        int ret = cs.select(&selectcs);
+        EXPECT_EQ(ret, Select::OBJECT);
+        KeyOpFieldsValuesTuple kco;
+        c.pop(kco);
+        EXPECT_EQ(kfvKey(kco), key(index, 0));
         EXPECT_EQ(kfvOp(kco), "SET");
 
         auto fvs = kfvFieldsValues(kco);

@@ -1,7 +1,10 @@
 #pragma once
-#include <string.h>
+#include <cstring>
 #include <utility>
 #include <tuple>
+#include <vector>
+#include <string>
+#include <stdexcept>
 
 namespace swss {
 
@@ -46,6 +49,12 @@ public:
 
     /* Format HDEL key multiple fields command */
     void formatHDEL(const std::string& key, const std::vector<std::string>& fields);
+
+    /* Format EXPIRE key ttl command */
+    void formatEXPIRE(const std::string& key, const int64_t& ttl);
+
+    /* Format TTL key command */
+    void formatTTL(const std::string& key);
 
     const char *c_str() const;
 

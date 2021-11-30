@@ -7,7 +7,6 @@
 #include "schema.h"
 #include "logger.h"
 #include "dbconnector.h"
-#include "redisclient.h"
 #include "producerstatetable.h"
 
 using namespace swss;
@@ -108,8 +107,7 @@ int main(int argc, char **argv)
     }
 
     DBConnector db("LOGLEVEL_DB", 0);
-    RedisClient redisClient(&db);
-    auto keys = redisClient.keys("*");
+    auto keys = db.keys("*");
     for (auto& key : keys)
     {
         size_t colonPos = key.find(':');
@@ -125,6 +123,8 @@ int main(int argc, char **argv)
 
     if (print)
     {
+        int errorCount = 0;
+
         if (argc != 2)
         {
             exitWithUsage(EXIT_FAILURE, "-p option does not accept other options");
@@ -134,9 +134,21 @@ int main(int argc, char **argv)
         for (const auto& key : keys)
         {
             const auto redis_key = std::string(key).append(":").append(key);
-            auto level = redisClient.hget(redis_key, DAEMON_LOGLEVEL);
-            std::cout << std::left << std::setw(30) << key << *level << std::endl;
+            auto level = db.hget(redis_key, DAEMON_LOGLEVEL);
+            if (nullptr == level)
+            {
+                std::cerr << std::left << std::setw(30) << key << "Unknown log level" << std::endl;
+                errorCount ++;
+            }
+            else
+            {
+                std::cout << std::left << std::setw(30) << key << *level << std::endl;
+            }
         }
+
+        if (errorCount > 0)
+            return (EXIT_FAILURE);
+
         return (EXIT_SUCCESS);
     }
 

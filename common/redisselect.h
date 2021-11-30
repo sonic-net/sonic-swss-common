@@ -3,6 +3,7 @@
 #include <string>
 #include <memory>
 #include "selectable.h"
+#include "dbconnector.h"
 
 namespace swss {
 
@@ -20,12 +21,15 @@ public:
     bool hasCachedData() override;
     bool initializedWithData() override;
     void updateAfterRead() override;
+    const DBConnector* getDbConnector() const;
 
     /* Create a new redisContext, SELECT DB and SUBSCRIBE */
     void subscribe(DBConnector* db, const std::string &channelName);
 
     /* PSUBSCRIBE */
     void psubscribe(DBConnector* db, const std::string &channelName);
+    /* PUNSUBSCRIBE */
+    void punsubscribe(const std::string &channelName);
 
     void setQueueLength(long long int queueLength);
 

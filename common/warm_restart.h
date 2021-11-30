@@ -6,6 +6,7 @@
 #include "table.h"
 
 #define MAXIMUM_WARMRESTART_TIMER_VALUE 9999
+#define DISABLE_WARMRESTART_TIMER_VALUE MAXIMUM_WARMRESTART_TIMER_VALUE
 
 namespace swss {
 
@@ -16,7 +17,10 @@ public:
     {
         INITIALIZED,
         RESTORED,
+        REPLAYED,
         RECONCILED,
+        WSDISABLED,
+        WSUNKNOWN,
     };
 
     enum DataCheckState
@@ -52,6 +56,9 @@ public:
     static bool isWarmStart(void);
 
     static bool isSystemWarmRebootEnabled(void);
+
+    static void getWarmStartState(const std::string &app_name,
+                                  WarmStartState    &state);
 
     static void setWarmStartState(const std::string &app_name,
                                   WarmStartState     state);

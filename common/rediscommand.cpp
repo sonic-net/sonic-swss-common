@@ -18,6 +18,12 @@ RedisCommand::~RedisCommand()
 
 void RedisCommand::format(const char *fmt, ...)
 {
+    if (temp != nullptr)
+    {
+        redisFreeCommand(temp);
+        temp = nullptr;
+    }
+
     va_list ap;
     va_start(ap, fmt);
     int len = redisvFormatCommand(&temp, fmt, ap);
@@ -31,6 +37,12 @@ void RedisCommand::format(const char *fmt, ...)
 
 void RedisCommand::formatArgv(int argc, const char **argv, const size_t *argvlen)
 {
+    if (temp != nullptr)
+    {
+        redisFreeCommand(temp);
+        temp = nullptr;
+    }
+
     int len = redisFormatCommandArgv(&temp, argc, argv, argvlen);
     if (len == -1) {
         throw std::bad_alloc();
@@ -74,6 +86,18 @@ void RedisCommand::formatHDEL(const std::string& key, const std::vector<std::str
         args.push_back(f.c_str());
     }
     formatArgv(static_cast<int>(args.size()), args.data(), NULL);
+}
+
+/* Format EXPIRE key field command */
+void RedisCommand::formatEXPIRE(const std::string& key, const int64_t& ttl)
+{
+    return format("EXPIRE %s %lld", key.c_str(), ttl);
+}
+
+/* Format TTL key command */
+void RedisCommand::formatTTL(const std::string& key)
+{
+    return format("TTL %s", key.c_str());
 }
 
 const char *RedisCommand::c_str() const

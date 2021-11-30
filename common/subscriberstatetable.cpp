@@ -55,7 +55,7 @@ uint64_t SubscriberStateTable::readData()
         throw std::runtime_error("Unable to read redis reply");
     }
 
-    m_keyspace_event_buffer.push_back(shared_ptr<RedisReply>(make_shared<RedisReply>(reply)));
+    m_keyspace_event_buffer.emplace_back(make_shared<RedisReply>(reply));
 
     /* Try to read data from redis cacher.
      * If data exists put it to event buffer.
@@ -70,7 +70,7 @@ uint64_t SubscriberStateTable::readData()
         status = redisGetReplyFromReader(m_subscribe->getContext(), reinterpret_cast<void**>(&reply));
         if(reply != nullptr && status == REDIS_OK)
         {
-            m_keyspace_event_buffer.push_back(shared_ptr<RedisReply>(make_shared<RedisReply>(reply)));
+            m_keyspace_event_buffer.emplace_back(make_shared<RedisReply>(reply));
         }
     }
     while(reply != nullptr && status == REDIS_OK);
@@ -89,7 +89,7 @@ bool SubscriberStateTable::hasData()
 
 bool SubscriberStateTable::hasCachedData()
 {
-    return m_buffer.size() > 1 || m_keyspace_event_buffer.size() > 1;
+    return m_buffer.size() + m_keyspace_event_buffer.size() > 1;
 }
 
 void SubscriberStateTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, const string& /*prefix*/)
@@ -105,36 +105,28 @@ void SubscriberStateTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, const strin
 
     while (auto event = popEventBuffer())
     {
+
         KeyOpFieldsValuesTuple kco;
         /* if the Key-space notification is empty, try next one. */
-        if (event->getContext()->type == REDIS_REPLY_NIL)
+        auto message = event->getReply<RedisMessage>();
+        if (message.type.empty())
         {
             continue;
         }
 
-        assert(event->getContext()->type == REDIS_REPLY_ARRAY);
-        size_t n = event->getContext()->elements;
-
-        /* Expecting 4 elements for each keyspace pmessage notification */
-        if (n != 4)
-        {
-            SWSS_LOG_ERROR("invalid number of elements %zu for pmessage of %s", n, m_keyspace.c_str());
-            continue;
-        }
         /* The second element should be the original pattern matched */
         auto ctx = event->getContext()->element[1];
-        if (m_keyspace != ctx->str)
+        if (message.pattern != m_keyspace)
         {
-            SWSS_LOG_ERROR("invalid pattern %s returned for pmessage of %s", ctx->str, m_keyspace.c_str());
+            SWSS_LOG_ERROR("invalid pattern %s returned for pmessage of %s", message.pattern.c_str(), m_keyspace.c_str());
             continue;
         }
 
-        ctx = event->getContext()->element[2];
-        string msg(ctx->str);
+        string msg = message.channel;
         size_t pos = msg.find(':');
         if (pos == msg.npos)
         {
-            SWSS_LOG_ERROR("invalid format %s returned for pmessage of %s", ctx->str, m_keyspace.c_str());
+            SWSS_LOG_ERROR("invalid format %s returned for pmessage of %s", msg.c_str(), m_keyspace.c_str());
             continue;
         }
 
@@ -147,8 +139,8 @@ void SubscriberStateTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, const strin
         }
         string key = table_entry.substr(pos + 1);
 
-        ctx = event->getContext()->element[3];
-        if (strcmp("del", ctx->str) == 0)
+        string op = message.data;
+        if ("del" == op)
         {
             kfvKey(kco) = key;
             kfvOp(kco) = DEL_COMMAND;
@@ -157,7 +149,7 @@ void SubscriberStateTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, const strin
         {
             if (!m_table.get(key, kfvFieldsValues(kco)))
             {
-                SWSS_LOG_ERROR("Failed to get content for table key %s", table_entry.c_str());
+                SWSS_LOG_NOTICE("Miss table key %s, possibly outdated", table_entry.c_str());
                 continue;
             }
             kfvKey(kco) = key;

@@ -18,15 +18,18 @@ using json = nlohmann::json;
 const std::string TableBase::TABLE_NAME_SEPARATOR_COLON = ":";
 const std::string TableBase::TABLE_NAME_SEPARATOR_VBAR = "|";
 
+// NOTE: this map is deprecated and will be removed in the future, and new DBs should instead be added to database_config.json
+// Currently it is not used in C++ projects, only used in pyext python, only for backward compatibility purpose
 const TableNameSeparatorMap TableBase::tableNameSeparatorMap = {
-   { APPL_DB,         TABLE_NAME_SEPARATOR_COLON },
-   { ASIC_DB,         TABLE_NAME_SEPARATOR_COLON },
-   { COUNTERS_DB,     TABLE_NAME_SEPARATOR_COLON },
-   { LOGLEVEL_DB,     TABLE_NAME_SEPARATOR_COLON },
-   { CONFIG_DB,       TABLE_NAME_SEPARATOR_VBAR  },
-   { PFC_WD_DB,       TABLE_NAME_SEPARATOR_COLON },
-   { FLEX_COUNTER_DB, TABLE_NAME_SEPARATOR_COLON },
-   { STATE_DB,        TABLE_NAME_SEPARATOR_VBAR  }
+   { APPL_DB,             TABLE_NAME_SEPARATOR_COLON },
+   { ASIC_DB,             TABLE_NAME_SEPARATOR_COLON },
+   { COUNTERS_DB,         TABLE_NAME_SEPARATOR_COLON },
+   { LOGLEVEL_DB,         TABLE_NAME_SEPARATOR_COLON },
+   { CONFIG_DB,           TABLE_NAME_SEPARATOR_VBAR  },
+   { PFC_WD_DB,           TABLE_NAME_SEPARATOR_COLON },
+   { FLEX_COUNTER_DB,     TABLE_NAME_SEPARATOR_COLON },
+   { STATE_DB,            TABLE_NAME_SEPARATOR_VBAR  },
+   { APPL_STATE_DB,       TABLE_NAME_SEPARATOR_COLON }
 };
 
 Table::Table(const DBConnector *db, const string &tableName)
@@ -41,8 +44,6 @@ Table::Table(RedisPipeline *pipeline, const string &tableName, bool buffered)
     , m_pipeowned(false)
     , m_pipe(pipeline)
 {
-    std::string luaScript = loadLuaScript("table_dump.lua");
-    m_shaDump = pipeline->loadRedisScript(luaScript);
 }
 
 Table::~Table()
@@ -123,18 +124,53 @@ void Table::hset(const string &key, const std::string &field, const std::string 
 }
 
 void Table::set(const string &key, const vector<FieldValueTuple> &values,
-                const string& /*op*/, const string& /*prefix*/)
+                const string &op, const string &prefix)
+{
+    set(key, values, op, prefix, DEFAULT_DB_TTL);
+}
+
+// TODO: Implement this without overloading(add an additional ttl param
+//       to existing set() command once sonic-swss's mock_table.cpp and other
+//       dependencies can be updated to use the extended new default set())
+void Table::set(const string &key, const vector<FieldValueTuple> &values,
+                const string &op, const string &prefix, const int64_t &ttl)
 {
     if (values.size() == 0)
         return;
 
     RedisCommand cmd;
+    
     cmd.formatHMSET(getKeyName(key), values.begin(), values.end());
-
     m_pipe->push(cmd, REDIS_REPLY_STATUS);
+    
+    if (ttl != DEFAULT_DB_TTL)
+    {
+        // Configure the expire time for the entry that was just added
+        cmd.formatEXPIRE(getKeyName(key), ttl);
+        m_pipe->push(cmd, REDIS_REPLY_INTEGER);
+    }
+
     if (!m_buffered)
     {
         m_pipe->flush();
+    }
+}
+
+bool Table::ttl(const string &key, int64_t &reply_value)
+{
+    RedisCommand cmd_ttl;
+    cmd_ttl.formatTTL(getKeyName(key));
+    RedisReply r = m_pipe->push(cmd_ttl);
+    redisReply *reply = r.getContext();
+
+    if (reply != NULL)
+    {
+        reply_value = reply->integer;
+        return true;
+    }
+    else
+    {
+        return false;
     }
 }
 
@@ -190,6 +226,7 @@ void Table::dump(TableDump& tableDump)
 
     SWSS_LOG_TIMER("getting");
 
+    lazyLoadRedisScriptFile(m_pipe->getDBConnector(), "table_dump.lua", m_shaDump);
     RedisCommand command;
     command.format("EVALSHA %s 1 %s ''",
             m_shaDump.c_str(),

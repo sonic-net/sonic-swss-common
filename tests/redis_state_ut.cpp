@@ -11,7 +11,6 @@
 #include "common/table.h"
 #include "common/producerstatetable.h"
 #include "common/consumerstatetable.h"
-#include "common/redisclient.h"
 
 using namespace std;
 using namespace swss;
@@ -39,7 +38,7 @@ static inline string field(int i)
 
 static inline string value(int i)
 {
-    if (i == 0) return string(); // emtpy
+    if (i == 0) return string(); // empty
     return string("value ") + to_string(i);
 }
 
@@ -104,7 +103,6 @@ static void consumerWorker(int index)
 {
     string tableName = "UT_REDIS_THREAD_" + to_string(index);
     DBConnector db(TEST_DB, 0, true);
-    RedisClient redisClient(&db);
     ConsumerStateTable c(&db, tableName);
     Select cs;
     Selectable *selectcs;
@@ -124,13 +122,13 @@ static void consumerWorker(int index)
 
             for (auto fv : kfvFieldsValues(kco))
             {
-                string val = *redisClient.hget(tableName + ":" + kfvKey(kco), fvField(fv));
+                string val = *db.hget(tableName + ":" + kfvKey(kco), fvField(fv));
                 EXPECT_EQ(val, fvValue(fv));
             }
         } else if (kfvOp(kco) == "DEL")
         {
             numberOfKeyDeleted++;
-            auto keys = redisClient.keys(tableName + ":" + kfvKey(kco));
+            auto keys = db.keys(tableName + ":" + kfvKey(kco));
             EXPECT_EQ(0UL, keys.size());
         }
 
@@ -479,7 +477,7 @@ TEST(ConsumerStateTable, set_pop_del_set_pop_get)
     EXPECT_EQ(values.size(), (unsigned int)maxNumOfFields);
 
     /*
-     * Third pop operation, consumer received two consectuive signals.
+     * Third pop operation, consumer received two consecutive signals.
      * data depleted upon first one
      */
     /*
@@ -539,7 +537,7 @@ TEST(ConsumerStateTable, view_switch)
         }
         p.set(key(i), fields);
     }
-    // Set opeartions should go into temp view
+    // Set operations should go into temp view
     EXPECT_EQ(p.count(), 0);
     for (int i=0; i<numOfKeysToDel; ++i)
     {

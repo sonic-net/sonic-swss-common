@@ -8,11 +8,13 @@
 #include "common/consumertable.h"
 #include "common/notificationconsumer.h"
 #include "common/notificationproducer.h"
+#include "common/redisclient.h"
 #include "common/select.h"
 #include "common/selectableevent.h"
 #include "common/selectabletimer.h"
 #include "common/table.h"
-#include "common/redisclient.h"
+#include "common/dbinterface.h"
+#include "common/sonicv2connector.h"
 
 using namespace std;
 using namespace swss;
@@ -142,17 +144,29 @@ void clearDB()
     r.checkStatusOK();
 }
 
-void TableBasicTest(string tableName)
+// Add "useDbId" to test connector objects made with dbId/dbName
+void TableBasicTest(string tableName, bool useDbId = false)
 {
 
-    DBConnector db("TEST_DB", 0, true);
-    int dbId = db.getDbId();
+    DBConnector *db;
+    DBConnector db1("TEST_DB", 0, true);
 
-    // Test we can still use dbId to construct a DBConnector
+    int dbId = db1.getDbId();
+
+    // Use dbId to construct a DBConnector
     DBConnector db_dup(dbId, "localhost", 6379, 0);
     cout << "db_dup separator: " << SonicDBConfig::getSeparator(&db_dup) << endl;
 
-    Table t(&db, tableName);
+    if (useDbId)
+    {
+        db = &db_dup;
+    }
+    else
+    {
+        db = &db1;
+    }
+
+    Table t(db, tableName);
 
     clearDB();
     cout << "Starting table manipulations" << endl;
@@ -299,11 +313,24 @@ TEST(DBConnector, RedisClientName)
     EXPECT_EQ(db.getClientName(), client_name);
 }
 
+TEST(DBConnector, DBInterface)
+{
+    DBInterface dbintf;
+    dbintf.set_redis_kwargs("", "127.0.0.1", 6379);
+    dbintf.connect(15, "TEST_DB");
+
+    SonicV2Connector_Native db;
+    db.connect("TEST_DB");
+    db.set("TEST_DB", "key0", "field1", "value2");
+    auto fvs = db.get_all("TEST_DB", "key0");
+    auto rc = fvs.find("field1");
+    EXPECT_NE(rc, fvs.end());
+    EXPECT_EQ(rc->second, "value2");
+}
+
 TEST(DBConnector, RedisClient)
 {
     DBConnector db("TEST_DB", 0, true);
-
-    RedisClient redic(&db);
 
     clearDB();
     cout << "Starting table manipulations" << endl;
@@ -323,11 +350,11 @@ TEST(DBConnector, RedisClient)
     cout << "Set key [a] field_1:1 field_2:2 field_3:3" << endl;
     cout << "Set key [b] field_1:1 field_2:2 field_3:3" << endl;
 
-    redic.hmset(key_1, values.begin(), values.end());
-    redic.hmset(key_2, values.begin(), values.end());
+    db.hmset(key_1, values.begin(), values.end());
+    db.hmset(key_2, values.begin(), values.end());
 
     cout << "- Step 2. GET_TABLE_KEYS" << endl;
-    auto keys = redic.keys("*");
+    auto keys = db.keys("*");
     EXPECT_EQ(keys.size(), (size_t)2);
 
     for (auto k : keys)
@@ -341,7 +368,7 @@ TEST(DBConnector, RedisClient)
     for (auto k : keys)
     {
         cout << "Get key [" << k << "]" << flush;
-        auto fvs = redic.hgetall(k);
+        auto fvs = db.hgetall(k);
         unsigned int size_v = 3;
         EXPECT_EQ(fvs.size(), size_v);
         for (auto fv: fvs)
@@ -362,10 +389,10 @@ TEST(DBConnector, RedisClient)
 
     cout << "- Step 4. HDEL single field" << endl;
     cout << "Delete field_2 under key [a]" << endl;
-    int64_t rval = redic.hdel(key_1, "field_2");
+    int64_t rval = db.hdel(key_1, "field_2");
     EXPECT_EQ(rval, 1);
 
-    auto fvs = redic.hgetall(key_1);
+    auto fvs = db.hgetall(key_1);
     EXPECT_EQ(fvs.size(), 2);
     for (auto fv: fvs)
     {
@@ -386,13 +413,13 @@ TEST(DBConnector, RedisClient)
 
     cout << "- Step 5. DEL" << endl;
     cout << "Delete key [a]" << endl;
-    redic.del(key_1);
+    db.del(key_1);
 
     cout << "- Step 6. GET" << endl;
     cout << "Get key [a] and key [b]" << endl;
-    fvs = redic.hgetall(key_1);
+    fvs = db.hgetall(key_1);
     EXPECT_TRUE(fvs.empty());
-    fvs = redic.hgetall(key_2);
+    fvs = db.hgetall(key_2);
 
     cout << "Get key [b]" << flush;
     for (auto fv: fvs)
@@ -412,10 +439,10 @@ TEST(DBConnector, RedisClient)
 
     cout << "- Step 7. HDEL multiple fields" << endl;
     cout << "Delete field_2, field_3 under key [b]" << endl;
-    rval = redic.hdel(key_2, vector<string>({"field_2", "field_3"}));
+    rval = db.hdel(key_2, vector<string>({"field_2", "field_3"}));
     EXPECT_EQ(rval, 2);
 
-    fvs = redic.hgetall(key_2);
+    fvs = db.hgetall(key_2);
     EXPECT_EQ(fvs.size(), 1);
     for (auto fv: fvs)
     {
@@ -433,10 +460,18 @@ TEST(DBConnector, RedisClient)
 
     cout << "- Step 8. DEL and GET_TABLE_CONTENT" << endl;
     cout << "Delete key [b]" << endl;
-    redic.del(key_2);
-    fvs = redic.hgetall(key_2);
+    db.del(key_2);
+    fvs = db.hgetall(key_2);
 
     EXPECT_TRUE(fvs.empty());
+
+    // Note: ignore deprecated compilation error in unit test
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+    RedisClient client(&db);
+#pragma GCC diagnostic pop
+    bool rc = db.set("testkey", "testvalue");
+    EXPECT_TRUE(rc);
 
     cout << "Done." << endl;
 }
@@ -656,19 +691,66 @@ TEST(DBConnector, selectabletimer)
 
 TEST(Table, basic)
 {
-    TableBasicTest("TABLE_UT_TEST");
+    TableBasicTest("TABLE_UT_TEST", true);
+    TableBasicTest("TABLE_UT_TEST", false);
 }
 
 TEST(Table, separator_in_table_name)
 {
     std::string tableName = "TABLE_UT|TEST";
 
-    TableBasicTest(tableName);
+    TableBasicTest(tableName, true);
+    TableBasicTest(tableName, false);
 }
 
 TEST(Table, table_separator_test)
 {
-    TableBasicTest("TABLE_UT_TEST");
+    TableBasicTest("TABLE_UT_TEST", true);
+    TableBasicTest("TABLE_UT_TEST", false);
+}
+
+TEST(Table, ttl_test)
+{
+    string tableName = "TABLE_UT_TEST";
+    DBConnector db("TEST_DB", 0, true);
+    RedisPipeline pipeline(&db);
+    Table t(&pipeline, tableName, true);
+
+    clearDB();
+    cout << "Starting table manipulations" << endl;
+
+    string key_1 = "a";
+    string key_2 = "b";
+    vector<FieldValueTuple> values;
+
+    for (int i = 1; i < 4; i++)
+    {
+        string field = "field_" + to_string(i);
+        string value = to_string(i);
+        values.push_back(make_pair(field, value));
+    }
+    
+    int64_t initial_a_ttl = -1, initial_b_ttl = 200;
+    cout << "- Step 1. SET with custom ttl" << endl;
+    cout << "Set key [a] field_1:1 field_2:2 field_3:3 infinite ttl" << endl;
+    cout << "Set key [b] field_1:1 field_2:2 field_3:3 200 seconds ttl" << endl;
+
+    t.set(key_1, values, "", "", initial_a_ttl);
+    t.set(key_2, values, "", "", initial_b_ttl);
+    t.flush();
+ 
+    cout << "- Step 2. GET_TTL_VALUES" << endl;
+    
+    int64_t a_ttl = 0, b_ttl = 0;
+    // Expect that we find the two entries confgured in the DB
+    EXPECT_EQ(true, t.ttl(key_1, a_ttl));
+    EXPECT_EQ(true, t.ttl(key_2, b_ttl));
+    
+    // Expect that TTL values are the ones configured earlier
+    EXPECT_EQ(a_ttl, initial_a_ttl);
+    EXPECT_EQ(b_ttl, initial_b_ttl);
+
+    cout << "Done." << endl;
 }
 
 TEST(ProducerConsumer, Prefix)
@@ -926,4 +1008,12 @@ TEST(Select, resultToString)
     auto u = Select::resultToString(5);
 
     ASSERT_EQ(u, "UNKNOWN");
+}
+
+TEST(Connector, hmset)
+{
+    DBConnector db("TEST_DB", 0, true);
+
+    // test empty multi hash
+    db.hmset({});
 }

@@ -4,8 +4,8 @@
 #include "common/producertable.h"
 #include "common/consumertable.h"
 #include "common/redisapi.h"
-#include "common/redisclient.h"
 
+#include <inttypes.h>
 #include <iostream>
 #include <memory>
 #include <thread>
@@ -41,13 +41,13 @@ static void insert(
 
     char buffer[4000];
 
-    sprintf(buffer, "SAI_OBJECT_TYPE_FDB_ENTRY:{\"bvid\":\"oid:0x%lx\",\"mac\":\"00:00:00:00:00:%02X\",\"switch_id\":\"oid:0x%lx\"}", bvId, mac, switchId);
+    sprintf(buffer, "SAI_OBJECT_TYPE_FDB_ENTRY:{\"bvid\":\"oid:0x%" PRIx64 "\",\"mac\":\"00:00:00:00:00:%02X\",\"switch_id\":\"oid:0x%" PRIx64 "\"}", bvId, mac, switchId);
 
     std::string key = buffer;
 
     char port[1000];
 
-    sprintf(port, "oid:0x%lx", portId);
+    sprintf(port, "oid:0x%" PRIx64, portId);
 
     values.emplace_back("SAI_FDB_ENTRY_ATTR_PACKET_ACTION", "SAI_PACKET_ACTION_FORWARD");
     values.emplace_back("SAI_FDB_ENTRY_ATTR_TYPE", (isStatic ? "SAI_FDB_ENTRY_TYPE_STATIC" : "SAI_FDB_ENTRY_TYPE_DYNAMIC"));
@@ -65,9 +65,7 @@ static size_t count()
 {
     DBConnector db("TEST_DB", 0, true);
 
-    RedisClient rc(&db);
-
-    auto keys = rc.keys("ASIC_STATE:*");
+    auto keys = db.keys("ASIC_STATE:*");
 
     return keys.size();
 }
@@ -76,15 +74,13 @@ void print()
 {
     DBConnector db("TEST_DB", 0, true);
 
-    RedisClient rc(&db);
-
-    auto keys = rc.keys("ASIC_STATE:*");
+    auto keys = db.keys("ASIC_STATE:*");
 
     for (auto&k : keys)
     {
         printf("K %s\n", k.c_str());
 
-        auto hash = rc.hgetall(k);
+        auto hash = db.hgetall(k);
 
         for (auto&h: hash)
         {
@@ -98,7 +94,7 @@ static std::string sOid(
 {
     char buffer[100];
 
-    sprintf(buffer, "oid:0x%lx", oid);
+    sprintf(buffer, "oid:0x%" PRIx64, oid);
 
     return buffer;
 }
@@ -145,13 +141,11 @@ static void mac(unsigned char m, bool is)
 {
     DBConnector db("TEST_DB", 0, true);
 
-    RedisClient rc(&db);
-
     char buffer[100];
 
     sprintf(buffer, "*SAI_OBJECT_TYPE_FDB_ENTRY:*\"mac\":\"00:00:00:00:00:%02X\"*", m);
 
-    auto keys = rc.keys(buffer);
+    auto keys = db.keys(buffer);
 
     if (is)
     {

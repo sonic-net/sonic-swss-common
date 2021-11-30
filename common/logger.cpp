@@ -11,13 +11,14 @@
 #include "schema.h"
 #include "select.h"
 #include "dbconnector.h"
-#include "redisclient.h"
 #include "consumerstatetable.h"
 #include "producerstatetable.h"
 
-namespace swss {
+using namespace swss;
 
-void err_exit(const char *fn, int ln, int e, const char *fmt, ...)
+#define MUTEX std::lock_guard<std::mutex> _lock(getInstance().m_mutex);
+
+void swss::err_exit(const char *fn, int ln, int e, const char *fmt, ...)
 {
     va_list ap;
     char buff[1024];
@@ -32,10 +33,32 @@ void err_exit(const char *fn, int ln, int e, const char *fmt, ...)
     abort();
 }
 
-Logger::~Logger() {
-    if (m_settingThread) {
-        m_settingThread->detach();
+Logger::~Logger()
+{
+    terminateSettingThread();
+}
+
+void Logger::terminateSettingThread()
+{
+    // can't be executed under mutex, since it can cause deadlock
+
+    if (m_settingThread)
+    {
+        m_runSettingThread = false;
+
+        m_settingThread->join();
+
+        m_settingThread = nullptr;
     }
+}
+
+void Logger::restartSettingThread()
+{
+    terminateSettingThread();
+
+    m_runSettingThread = true;
+
+    m_settingThread.reset(new std::thread(&Logger::settingThread, this));
 }
 
 const Logger::PriorityStringMap Logger::priorityStringMap = {
@@ -49,7 +72,7 @@ const Logger::PriorityStringMap Logger::priorityStringMap = {
     { "DEBUG", SWSS_DEBUG }
 };
 
-void Logger::swssPrioNotify(const std::string &component, const std::string &prioStr)
+void Logger::swssPrioNotify(const std::string& component, const std::string& prioStr)
 {
     auto& logger = getInstance();
 
@@ -70,7 +93,7 @@ const Logger::OutputStringMap Logger::outputStringMap = {
     { "STDERR", SWSS_STDERR }
 };
 
-void Logger::swssOutputNotify(const std::string &component, const std::string &outputStr)
+void Logger::swssOutputNotify(const std::string& component, const std::string& outputStr)
 {
     auto& logger = getInstance();
 
@@ -85,23 +108,27 @@ void Logger::swssOutputNotify(const std::string &component, const std::string &o
     }
 }
 
-void Logger::linkToDbWithOutput(const std::string &dbName, const PriorityChangeNotify& prioNotify, const std::string& defPrio, const OutputChangeNotify& outputNotify, const std::string& defOutput)
+void Logger::linkToDbWithOutput(
+        const std::string& dbName,
+        const PriorityChangeNotify& prioNotify,
+        const std::string& defPrio,
+        const OutputChangeNotify& outputNotify,
+        const std::string& defOutput)
 {
     auto& logger = getInstance();
 
     // Initialize internal DB with observer
     logger.m_settingChangeObservers.insert(std::make_pair(dbName, std::make_pair(prioNotify, outputNotify)));
+
     DBConnector db("LOGLEVEL_DB", 0);
-    RedisClient redisClient(&db);
-    auto keys = redisClient.keys("*");
 
     std::string key = dbName + ":" + dbName;
     std::string prio, output;
     bool doUpdate = false;
-    auto prioPtr = redisClient.hget(key, DAEMON_LOGLEVEL);
-    auto outputPtr = redisClient.hget(key, DAEMON_LOGOUTPUT);
+    auto prioPtr = db.hget(key, DAEMON_LOGLEVEL);
+    auto outputPtr = db.hget(key, DAEMON_LOGOUTPUT);
 
-    if ( prioPtr == nullptr )
+    if (prioPtr == nullptr)
     {
         prio = defPrio;
         doUpdate = true;
@@ -111,7 +138,7 @@ void Logger::linkToDbWithOutput(const std::string &dbName, const PriorityChangeN
         prio = *prioPtr;
     }
 
-    if ( outputPtr == nullptr )
+    if (outputPtr == nullptr)
     {
         output = defOutput;
         doUpdate = true;
@@ -131,26 +158,26 @@ void Logger::linkToDbWithOutput(const std::string &dbName, const PriorityChangeN
         table.set(dbName, fieldValues);
     }
 
-    logger.m_currentPrios[dbName] = prio;
-    logger.m_currentOutputs[dbName] = output;
+    logger.m_currentPrios.set(dbName, prio);
+    logger.m_currentOutputs.set(dbName, output);
+
     prioNotify(dbName, prio);
     outputNotify(dbName, output);
 }
 
-void Logger::linkToDb(const std::string &dbName, const PriorityChangeNotify& prioNotify, const std::string& defPrio)
+void Logger::linkToDb(const std::string& dbName, const PriorityChangeNotify& prioNotify, const std::string& defPrio)
 {
     linkToDbWithOutput(dbName, prioNotify, defPrio, swssOutputNotify, "SYSLOG");
 }
 
-void Logger::linkToDbNative(const std::string &dbName)
+void Logger::linkToDbNative(const std::string& dbName, const char * defPrio)
 {
-    auto& logger = getInstance();
+    linkToDb(dbName, swssPrioNotify, defPrio);
 
-    linkToDb(dbName, swssPrioNotify, "NOTICE");
-    logger.m_settingThread.reset(new std::thread(&Logger::settingThread, &logger));
+    getInstance().restartSettingThread();
 }
 
-Logger &Logger::getInstance()
+Logger& Logger::getInstance()
 {
     static Logger m_logger;
     return m_logger;
@@ -166,24 +193,32 @@ Logger::Priority Logger::getMinPrio()
     return getInstance().m_minPrio;
 }
 
-[[ noreturn ]] void Logger::settingThread()
+void Logger::settingThread()
 {
     Select select;
     DBConnector db("LOGLEVEL_DB", 0);
-    std::vector<std::shared_ptr<ConsumerStateTable>> selectables(m_settingChangeObservers.size());
+    std::map<std::string, std::shared_ptr<ConsumerStateTable>> selectables;
 
-    for (const auto& i : m_settingChangeObservers)
+    while (m_runSettingThread)
     {
-        std::shared_ptr<ConsumerStateTable> table = std::make_shared<ConsumerStateTable>(&db, i.first);
-        selectables.push_back(table);
-        select.addSelectable(table.get());
-    }
+        if (selectables.size() < m_settingChangeObservers.size())
+        {
+            for (const auto& i : m_settingChangeObservers.getCopy())
+            {
+                const std::string& dbName = i.first;
+                if (selectables.find(dbName) == selectables.end())
+                {
+                    auto table = std::make_shared<ConsumerStateTable>(&db, dbName);
+                    selectables.emplace(dbName, table);
+                    select.addSelectable(table.get());
+                }
+            }
+        }
 
-    while(true)
-    {
         Selectable *selectable = nullptr;
 
-        int ret = select.select(&selectable);
+        /* TODO Resolve latency caused by timeout at initialization. */
+        int ret = select.select(&selectable, 1000); // Timeout if there is no data in 1000 ms.
 
         if (ret == Select::ERROR)
         {
@@ -191,31 +226,38 @@ Logger::Priority Logger::getMinPrio()
             continue;
         }
 
+        if (ret == Select::TIMEOUT)
+        {
+            SWSS_LOG_DEBUG("%s select timeout", __PRETTY_FUNCTION__);
+            continue;
+        }
+
         KeyOpFieldsValuesTuple koValues;
         dynamic_cast<ConsumerStateTable *>(selectable)->pop(koValues);
         std::string key = kfvKey(koValues), op = kfvOp(koValues);
 
-        if ((op != SET_COMMAND) || (m_settingChangeObservers.find(key) == m_settingChangeObservers.end()))
+        if (op != SET_COMMAND || !m_settingChangeObservers.contains(key))
         {
             continue;
         }
 
-        auto values = kfvFieldsValues(koValues);
-        for (const auto& i : values)
-        {
-            const std::string &field = fvField(i), &value = fvValue(i);
-            if ((field == DAEMON_LOGLEVEL) && (value != m_currentPrios[key]))
-            {
-                m_currentPrios[key] = value;
-                m_settingChangeObservers[key].first(key, value);
-            }
-            else if ((field == DAEMON_LOGOUTPUT) && (value != m_currentOutputs[key]))
-            {
-                m_currentOutputs[key] = value;
-                m_settingChangeObservers[key].second(key, value);
-            }
+        const auto& values = kfvFieldsValues(koValues);
 
-            break;
+        for (auto& i : values)
+        {
+            auto& field = fvField(i);
+            auto& value = fvValue(i);
+
+            if ((field == DAEMON_LOGLEVEL) && (value != m_currentPrios.get(key)))
+            {
+                m_currentPrios.set(key, value);
+                m_settingChangeObservers.get(key).first(key, value);
+            }
+            else if ((field == DAEMON_LOGOUTPUT) && (value != m_currentOutputs.get(key)))
+            {
+                m_currentOutputs.set(key, value);
+                m_settingChangeObservers.get(key).second(key, value);
+            }
         }
     }
 }
@@ -233,14 +275,16 @@ void Logger::write(Priority prio, const char *fmt, ...)
 
     if (m_output == SWSS_SYSLOG)
     {
-            vsyslog(prio, fmt, ap);
+        vsyslog(prio, fmt, ap);
     }
     else
     {
         std::stringstream ss;
         ss << std::setw(6) << std::right << priorityToString(prio);
         ss << fmt << std::endl;
-        std::lock_guard<std::mutex> lock(m_mutex);
+
+        MUTEX;
+
         if (m_output == SWSS_STDOUT)
         {
             vprintf(ss.str().c_str(), ap);
@@ -270,7 +314,9 @@ void Logger::wthrow(Priority prio, const char *fmt, ...)
         std::stringstream ss;
         ss << std::setw(6) << std::right << priorityToString(prio);
         ss << fmt << std::endl;
-        std::lock_guard<std::mutex> lock(m_mutex);
+
+        MUTEX;
+
         if (m_output == SWSS_STDOUT)
         {
             vprintf(ss.str().c_str(), ap);
@@ -350,5 +396,3 @@ Logger::ScopeTimer::~ScopeTimer()
 
     Logger::getInstance().write(swss::Logger::SWSS_NOTICE, ":- %s: %s took %lf sec", m_fun, m_msg.c_str(), duration);
 }
-
-};

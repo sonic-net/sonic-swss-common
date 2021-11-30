@@ -35,6 +35,17 @@ public:
                      const std::string &op = DEL_COMMAND,
                      const std::string &prefix = EMPTY_PREFIX);
 
+#ifdef SWIG
+    // SWIG interface file (.i) globally rename map C++ `del` to python `delete`,
+    // but applications already followed the old behavior of auto renamed `_del`.
+    // So we implemented old behavior for backward compatibility
+    // TODO: remove this function after applications use the function name `delete`
+    %pythoncode %{
+        def _del(self, *args, **kwargs):
+            return self.delete(*args, **kwargs)
+    %}
+#endif
+
     void flush();
 
 private:

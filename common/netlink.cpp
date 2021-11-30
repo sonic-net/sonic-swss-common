@@ -35,8 +35,8 @@ NetLink::NetLink(int pri) :
     }
 
     nl_socket_set_nonblocking(m_socket);
-    /* Set socket buffer size to 256KB */
-    nl_socket_set_buffer_size(m_socket, 2097152, 0);
+    /* Set socket buffer size to 3MB */
+    nl_socket_set_buffer_size(m_socket, 3145728, 0);
 }
 
 NetLink::~NetLink()
@@ -90,7 +90,7 @@ uint64_t NetLink::readData()
     if (err < 0)
     {
         if (err == -NLE_NOMEM)
-            SWSS_LOG_ERROR("netlink reports out of memory on reading a netlink socket. High possiblity of a lost message");
+            SWSS_LOG_ERROR("netlink reports out of memory on reading a netlink socket. High possibility of a lost message");
         else if (err == -NLE_AGAIN)
             SWSS_LOG_DEBUG("netlink reports NLE_AGAIN on reading a netlink socket");
         else

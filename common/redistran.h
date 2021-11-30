@@ -2,7 +2,7 @@
 
 #include <system_error>
 #include <deque>
-#include "redisreply.h"
+#include "dbconnector.h"
 #include "rediscommand.h"
 #include "logger.h"
 
@@ -21,7 +21,8 @@ public:
     bool exec();
 
     /* Send a command within a transaction */
-    void enqueue(const std::string &command, int expectedType);
+    void enqueue(const std::string& command, int expectedType);
+    void enqueue(const RedisCommand& command, int expectedType);
 
     redisReply *dequeueReply();
 

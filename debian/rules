@@ -16,19 +16,27 @@ include /usr/share/dpkg/default.mk
 # package maintainers to append LDFLAGS
 #export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
 
+DEBIAN_DIST_CODENAME := $(shell lsb_release -sc | sed -e 's/\#/ /g')
+
+DOPACKAGES = $(shell dh_listpackages)
+
+# For Debian jessie, stretch, and buster, and Ubuntu bionic and focal, build
+# Python 2 bindings. This is controlled by the build profile being used.
+ifneq (,$(filter python-swsscommon,$(DOPACKAGES)))
+CONFIGURE_ARGS += --enable-python2
+else
+CONFIGURE_ARGS += --disable-python2
+endif
 
 # main packaging script based on dh7 syntax
 %:
-	dh $@  --with autotools-dev
+	dh $@  --with autoreconf
 
 # dh_make generated override targets
 # This is example for Cmake (See https://bugs.debian.org/641051 )
-#override_dh_auto_configure:
-#	dh_auto_configure -- \
+override_dh_auto_configure:
+	dh_auto_configure -- $(CONFIGURE_ARGS) $(DEB_CONFIGURE_EXTRA_FLAGS)
 #	-DCMAKE_LIBRARY_PATH=$(DEB_HOST_MULTIARCH)
-
-override_dh_auto_install:
-	dh_auto_install
 
 override_dh_clean:
 	dh_clean

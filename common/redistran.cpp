@@ -1,4 +1,5 @@
 #include "redistran.h"
+#include "dbconnector.h"
 
 namespace swss {
 
@@ -36,7 +37,7 @@ bool RedisTransactioner::exec()
 
     if (size != m_expectedResults.size())
         throw system_error(make_error_code(errc::io_error),
-                "Got to different nuber of answers!");
+                "Got to different number of answers!");
 
     clearResults();
     for (unsigned int i = 0; i < size; i++)
@@ -63,7 +64,14 @@ bool RedisTransactioner::exec()
 }
 
 /* Send a command within a transaction */
-void RedisTransactioner::enqueue(const std::string &command, int expectedType)
+void RedisTransactioner::enqueue(const std::string& command, int expectedType)
+{
+    RedisReply r(m_db, command, REDIS_REPLY_STATUS);
+    r.checkStatusQueued();
+    m_expectedResults.push_back(expectedType);
+}
+
+void RedisTransactioner::enqueue(const RedisCommand& command, int expectedType)
 {
     RedisReply r(m_db, command, REDIS_REPLY_STATUS);
     r.checkStatusQueued();
@@ -72,6 +80,10 @@ void RedisTransactioner::enqueue(const std::string &command, int expectedType)
 
 redisReply *RedisTransactioner::dequeueReply()
 {
+    if (m_results.empty())
+    {
+        return NULL;
+    }
     redisReply *ret = m_results.front();
     m_results.pop_front();
     return ret;
@@ -79,7 +91,10 @@ redisReply *RedisTransactioner::dequeueReply()
 
 void RedisTransactioner::clearResults()
 {
-    if (m_results.empty()) return;
+    if (m_results.empty())
+    {
+        return;
+    }
     for (const auto& r: m_results)
     {
         freeReplyObject(r);

@@ -9,7 +9,7 @@ DBGFLAGS = -g -DNDEBUG
 endif
 
 CFLAGS_GTEST =
-LDADD_GTEST = -L/usr/src/gtest -lgtest -lgtest_main
+LDADD_GTEST = -L/usr/src/gtest -lgtest -lgtest_main -lgmock -lgmock_main
 
 tests_SOURCES = redis_ut.cpp                \
                 redis_piped_ut.cpp          \
@@ -27,9 +27,16 @@ tests_SOURCES = redis_ut.cpp                \
                 selectable_priority.cpp       \
                 warm_restart_ut.cpp         \
                 redis_multi_db_ut.cpp       \
+                logger_ut.cpp               \
+                redis_multi_ns_ut.cpp       \
                 fdb_flush.cpp               \
+                stringutility_ut.cpp        \
+                redisutility_ut.cpp         \
+                boolean_ut.cpp              \
+                status_code_util_test.cpp   \
+                saiaclschema_ut.cpp         \
                 main.cpp
 
 tests_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_GTEST) $(LIBNL_CFLAGS)
 tests_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_GTEST) $(LIBNL_CFLAGS)
-tests_LDADD = $(LDADD_GTEST) -lpthread -L$(top_srcdir)/common -lswsscommon $(LIBNL_LIBS)
+tests_LDADD = $(LDADD_GTEST) -lpthread -L$(top_srcdir)/common -lswsscommon $(LIBNL_LIBS) $(CODE_COVERAGE_LIBS)
