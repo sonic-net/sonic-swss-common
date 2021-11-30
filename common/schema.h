@@ -399,9 +399,7 @@ namespace swss {
 #define STATE_MCLAG_REMOTE_FDB_TABLE_NAME           "MCLAG_REMOTE_FDB_TABLE"
 
 #define STATE_STP_TABLE_NAME                        "STP_TABLE"
-<<<<<<< HEAD
 #define STATE_BUM_STORM_CAPABILITY_NAME             "BUM_STORM_CAPABILITY"
-=======
 
 #define STATE_COPP_GROUP_TABLE_NAME                 "COPP_GROUP_TABLE"
 #define STATE_COPP_TRAP_TABLE_NAME                  "COPP_TRAP_TABLE"
@@ -433,7 +431,6 @@ namespace swss {
 #define STATE_VNET_RT_TUNNEL_TABLE_NAME             "VNET_ROUTE_TUNNEL_TABLE"
 #define STATE_ADVERTISE_NETWORK_TABLE_NAME          "ADVERTISE_NETWORK_TABLE"
 
->>>>>>> master
 /***** MISC *****/
 
 #define IPV4_NAME "IPv4"
