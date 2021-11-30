@@ -258,6 +258,7 @@ namespace swss {
 #define STATE_NAT_RESTORE_TABLE_NAME                "NAT_RESTORE_TABLE"
 
 #define STATE_STP_TABLE_NAME                        "STP_TABLE"
+#define STATE_BUM_STORM_CAPABILITY_NAME             "BUM_STORM_CAPABILITY"
 /***** MISC *****/
 
 #define IPV4_NAME "IPv4"
