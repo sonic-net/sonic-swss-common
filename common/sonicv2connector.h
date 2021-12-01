@@ -35,11 +35,11 @@ public:
 
     std::pair<int, std::vector<std::string>> scan(const std::string& db_name, int cursor = 0, const char *match = "", uint32_t count = 10);
 
-    std::shared_ptr<std::string> get(const std::string& db_name, const std::string& _hash, const std::string& key, bool blocking=false);
+    std::shared_ptr<std::string> get(const std::string& db_name, const std::string& _hash, const std::string& key, bool blocking=false, bool verbose=true);
 
     bool hexists(const std::string& db_name, const std::string& _hash, const std::string& key);
 
-    std::map<std::string, std::string> get_all(const std::string& db_name, const std::string& _hash, bool blocking=false);
+    std::map<std::string, std::string> get_all(const std::string& db_name, const std::string& _hash, bool blocking=false, bool verbose=true);
 
     void hmset(const std::string& db_name, const std::string &key, const std::map<std::string, std::string> &values);
 

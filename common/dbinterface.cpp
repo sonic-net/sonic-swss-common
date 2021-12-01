@@ -56,7 +56,7 @@ bool DBInterface::exists(const string& dbName, const std::string& key)
     return m_redisClient.at(dbName).exists(key);
 }
 
-std::shared_ptr<std::string> DBInterface::get(const std::string& dbName, const std::string& hash, const std::string& key, bool blocking)
+std::shared_ptr<std::string> DBInterface::get(const std::string& dbName, const std::string& hash, const std::string& key, bool blocking, bool verbose)
 {
     auto innerfunc = [&]
     {
@@ -64,7 +64,8 @@ std::shared_ptr<std::string> DBInterface::get(const std::string& dbName, const s
         if (!pvalue)
         {
             std::string message = "Key '" + hash + "' field '" + key + "' unavailable in database '" + dbName + "'";
-            SWSS_LOG_WARN("%s", message.c_str());
+            if (verbose)
+                SWSS_LOG_WARN("%s", message.c_str());
             throw UnavailableDataError(message, hash);
         }
         const std::string& value = *pvalue;
@@ -78,7 +79,7 @@ bool DBInterface::hexists(const std::string& dbName, const std::string& hash, co
     return m_redisClient.at(dbName).hexists(hash, key);
 }
 
-std::map<std::string, std::string> DBInterface::get_all(const std::string& dbName, const std::string& hash, bool blocking)
+std::map<std::string, std::string> DBInterface::get_all(const std::string& dbName, const std::string& hash, bool blocking, bool verbose)
 {
     auto innerfunc = [&]
     {
@@ -88,7 +89,8 @@ std::map<std::string, std::string> DBInterface::get_all(const std::string& dbNam
         if (map.empty())
         {
             std::string message = "Key '{" + hash + "}' unavailable in database '{" + dbName + "}'";
-            SWSS_LOG_WARN("%s", message.c_str());
+            if (verbose)
+                SWSS_LOG_WARN("%s", message.c_str());
             throw UnavailableDataError(message, hash);
         }
         for (auto& i : map)
