@@ -61,3 +61,6 @@ stamp-h1
 ###############
 common/swssloglevel
 tests/tests
+
+# Bazel Build System #
+/bazel-*
