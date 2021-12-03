@@ -35,6 +35,7 @@
 #include "warm_restart.h"
 #include "logger.h"
 #include "configdb.h"
+#include "status_code_util.h"
 %}
 
 %include <std_string.i>
@@ -203,3 +204,4 @@ T castSelectableObj(swss::Selectable *temp)
 %include "warm_restart.h"
 %include "dbinterface.h"
 %include "logger.h"
+%include "status_code_util.h"

@@ -61,6 +61,7 @@ libswsscommon_la_SOURCES = \
     pubsub.cpp                \
     tokenize.cpp              \
     exec.cpp                  \
+    saiaclschema.cpp          \
     subscriberstatetable.cpp  \
     timestamp.cpp             \
     warm_restart.cpp          \
