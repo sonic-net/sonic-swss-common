@@ -3,7 +3,7 @@
 namespace swss {
 
 ConsumerTableBase::ConsumerTableBase(DBConnector *db, const std::string &tableName, int popBatchSize, int pri):
-        TableConsumable(tableName, SonicDBConfig::getSeparator(db), pri),
+        TableConsumable(db->getDbId(), tableName, pri),
         RedisTransactioner(db),
         POP_BATCH_SIZE(popBatchSize)
 {

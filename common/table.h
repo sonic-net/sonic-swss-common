@@ -18,9 +18,6 @@
 
 namespace swss {
 
-// Mapping of DB ID to table name separator string
-typedef std::map<int, std::string> TableNameSeparatorMap;
-
 typedef std::pair<std::string, std::string> FieldValueTuple;
 #define fvField std::get<0>
 #define fvValue std::get<1>
@@ -34,33 +31,17 @@ typedef std::map<std::string,TableMap> TableDump;
 
 class TableBase {
 public:
-#ifndef SWIG
-    __attribute__((deprecated))
-#endif
     TableBase(int dbId, const std::string &tableName)
-        : m_tableName(tableName)
-    {
-        /* Look up table separator for the provided DB */
-        auto it = tableNameSeparatorMap.find(dbId);
-
-        if (it != tableNameSeparatorMap.end())
-        {
-            m_tableSeparator = it->second;
-        }
-        else
-        {
-            SWSS_LOG_NOTICE("Unrecognized database ID. Using default table name separator ('%s')", TABLE_NAME_SEPARATOR_VBAR.c_str());
-            m_tableSeparator = TABLE_NAME_SEPARATOR_VBAR;
-        }
-    }
-
-    TableBase(const std::string &tableName, const std::string &tableSeparator)
-        : m_tableName(tableName), m_tableSeparator(tableSeparator)
+        : m_dbId(dbId)
+        , m_tableName(tableName)
+        , m_tableSeparator(SonicDBConfig::getSeparator(dbId))
     {
         static const std::string legalSeparators = ":|";
-        if (legalSeparators.find(tableSeparator) == std::string::npos)
+        if (legalSeparators.find(m_tableSeparator) == std::string::npos)
             throw std::invalid_argument("Invalid table name separator");
     }
+
+    int getDbId() const { return m_dbId; }
 
     std::string getTableName() const { return m_tableName; }
 
@@ -78,12 +59,12 @@ public:
     }
 
     std::string getChannelName() { return m_tableName + "_CHANNEL" +
-        + "@" + std::to_string(dbId); }
+        + "@" + std::to_string(m_dbId); }
 private:
     static const std::string TABLE_NAME_SEPARATOR_COLON;
     static const std::string TABLE_NAME_SEPARATOR_VBAR;
-    static const TableNameSeparatorMap tableNameSeparatorMap;
 
+    int m_dbId;
     std::string m_tableName;
     std::string m_tableSeparator;
 };
@@ -147,7 +128,8 @@ public:
     /* The default value of pop batch size is 128 */
     static constexpr int DEFAULT_POP_BATCH_SIZE = 128;
 
-    TableConsumable(const std::string &tableName, const std::string &separator, int pri) : TableBase(tableName, separator), RedisSelect(pri) { }
+    TableConsumable(int dbId, const std::string &tableName, int pri) :
+        TableBase(dbId, tableName), RedisSelect(pri) { }
 };
 
 class TableEntryEnumerable {
