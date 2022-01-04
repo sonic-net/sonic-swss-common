@@ -13,7 +13,7 @@ swss::NotificationConsumer::NotificationConsumer(swss::DBConnector *db, const st
     POP_BATCH_SIZE(popBatchSize),
     m_db(db),
     m_subscribe(NULL),
-    m_channel(channel)
+    m_channel(channel + "@" + db->getDbName())
 {
     SWSS_LOG_ENTER();
 

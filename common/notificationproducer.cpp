@@ -1,7 +1,7 @@
 #include "notificationproducer.h"
 
 swss::NotificationProducer::NotificationProducer(swss::DBConnector *db, const std::string &channel):
-    m_db(db), m_channel(channel)
+    m_db(db), m_channel(channel + "@" + db->getDbName())
 {
 }
 
