@@ -56,7 +56,7 @@ bool DBInterface::exists(const string& dbName, const std::string& key)
     return m_redisClient.at(dbName).exists(key);
 }
 
-std::shared_ptr<std::string> DBInterface::get(const std::string& dbName, const std::string& hash, const std::string& key, bool blocking, bool verbose)
+std::shared_ptr<std::string> DBInterface::get(const std::string& dbName, const std::string& hash, const std::string& key, bool blocking)
 {
     auto innerfunc = [&]
     {
@@ -64,8 +64,6 @@ std::shared_ptr<std::string> DBInterface::get(const std::string& dbName, const s
         if (!pvalue)
         {
             std::string message = "Key '" + hash + "' field '" + key + "' unavailable in database '" + dbName + "'";
-            if (verbose)
-                SWSS_LOG_WARN("%s", message.c_str());
             throw UnavailableDataError(message, hash);
         }
         const std::string& value = *pvalue;
@@ -79,7 +77,7 @@ bool DBInterface::hexists(const std::string& dbName, const std::string& hash, co
     return m_redisClient.at(dbName).hexists(hash, key);
 }
 
-std::map<std::string, std::string> DBInterface::get_all(const std::string& dbName, const std::string& hash, bool blocking, bool verbose)
+std::map<std::string, std::string> DBInterface::get_all(const std::string& dbName, const std::string& hash, bool blocking)
 {
     auto innerfunc = [&]
     {
@@ -89,8 +87,6 @@ std::map<std::string, std::string> DBInterface::get_all(const std::string& dbNam
         if (map.empty())
         {
             std::string message = "Key '{" + hash + "}' unavailable in database '{" + dbName + "}'";
-            if (verbose)
-                SWSS_LOG_WARN("%s", message.c_str());
             throw UnavailableDataError(message, hash);
         }
         for (auto& i : map)
@@ -115,7 +111,6 @@ std::vector<std::string> DBInterface::keys(const std::string& dbName, const char
         if (keys.empty())
         {
             std::string message = "DB '{" + dbName + "}' is empty with pattern '" + pattern + "'!";
-            SWSS_LOG_WARN("%s", message.c_str());
             throw UnavailableDataError(message, "hset");
         }
         return keys;
@@ -170,6 +165,7 @@ T DBInterface::blockable(FUNC f, const std::string& dbName, bool blocking)
         {
             if (blocking)
             {
+                SWSS_LOG_WARN("%s", e.what());
                 auto found = keyspace_notification_channels.find(dbName);
                 if (found != keyspace_notification_channels.end())
                 {
