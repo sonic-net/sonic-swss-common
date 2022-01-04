@@ -19,7 +19,7 @@ ProducerTable::ProducerTable(DBConnector *db, const string &tableName)
 }
 
 ProducerTable::ProducerTable(RedisPipeline *pipeline, const string &tableName, bool buffered)
-    : TableBase(pipeline->getDbId(), tableName)
+    : TableBase(tableName, SonicDBConfig::getSeparator(pipeline->getDbName()))
     , TableName_KeyValueOpQueues(tableName)
     , m_buffered(buffered)
     , m_pipeowned(false)
@@ -73,7 +73,7 @@ void ProducerTable::enqueueDbChange(const string &key, const string &value, cons
         "EVALSHA %s 2 %s %s %s %s %s %s",
         m_shaEnque.c_str(),
         getKeyValueOpQueueTableName().c_str(),
-        getChannelName().c_str(),
+        getChannelName(m_pipe->getDbName()).c_str(),
         key.c_str(),
         value.c_str(),
         op.c_str(),

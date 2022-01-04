@@ -20,7 +20,7 @@ ProducerStateTable::ProducerStateTable(DBConnector *db, const string &tableName)
 }
 
 ProducerStateTable::ProducerStateTable(RedisPipeline *pipeline, const string &tableName, bool buffered)
-    : TableBase(pipeline->getDbId(), tableName)
+    : TableBase(tableName, SonicDBConfig::getSeparator(pipeline->getDBConnector()))
     , TableName_KeySet(tableName)
     , m_buffered(buffered)
     , m_pipeowned(false)
@@ -92,7 +92,7 @@ void ProducerStateTable::set(const string &key, const vector<FieldValueTuple> &v
     args.emplace_back("EVALSHA");
     args.emplace_back(m_shaSet);
     args.emplace_back(to_string(values.size() + 2));
-    args.emplace_back(getChannelName());
+    args.emplace_back(getChannelName(m_pipe->getDbName()));
     args.emplace_back(getKeySetName());
 
     args.insert(args.end(), values.size(), getStateHashPrefix() + getKeyName(key));
@@ -133,7 +133,7 @@ void ProducerStateTable::del(const string &key, const string &op /*= DEL_COMMAND
     args.emplace_back("EVALSHA");
     args.emplace_back(m_shaDel);
     args.emplace_back("4");
-    args.emplace_back(getChannelName());
+    args.emplace_back(getChannelName(m_pipe->getDbName()));
     args.emplace_back(getKeySetName());
     args.emplace_back(getStateHashPrefix() + getKeyName(key));
     args.emplace_back(getDelKeySetName());
@@ -307,7 +307,7 @@ void ProducerStateTable::apply_temp_view()
     args.emplace_back("EVALSHA");
     args.emplace_back(m_shaApplyView);
     args.emplace_back(to_string(m_tempViewState.size() + 3));
-    args.emplace_back(getChannelName());
+    args.emplace_back(getChannelName(m_pipe->getDbName()));
     args.emplace_back(getKeySetName());
     args.emplace_back(getDelKeySetName());
 
