@@ -79,10 +79,16 @@ public:
 
     std::string getChannelName() { return m_tableName + "_CHANNEL"; }
 
-    /* Return tagged channel name, most likely tag could be dbId or dbName */
+    /* Return tagged channel name */
     std::string getChannelName(const std::string &tag)
     {
         return m_tableName + "_CHANNEL" + "@" + tag;
+    }
+
+    /* Return tagged channel name, most likely tag number could be dbId */
+    std::string getChannelName(int tag)
+    {
+        return getChannelName(std::to_string(tag));
     }
 private:
     static const std::string TABLE_NAME_SEPARATOR_COLON;
