@@ -64,7 +64,6 @@ std::shared_ptr<std::string> DBInterface::get(const std::string& dbName, const s
         if (!pvalue)
         {
             std::string message = "Key '" + hash + "' field '" + key + "' unavailable in database '" + dbName + "'";
-            SWSS_LOG_WARN("%s", message.c_str());
             throw UnavailableDataError(message, hash);
         }
         const std::string& value = *pvalue;
@@ -88,7 +87,6 @@ std::map<std::string, std::string> DBInterface::get_all(const std::string& dbNam
         if (map.empty())
         {
             std::string message = "Key '{" + hash + "}' unavailable in database '{" + dbName + "}'";
-            SWSS_LOG_WARN("%s", message.c_str());
             throw UnavailableDataError(message, hash);
         }
         for (auto& i : map)
@@ -113,7 +111,6 @@ std::vector<std::string> DBInterface::keys(const std::string& dbName, const char
         if (keys.empty())
         {
             std::string message = "DB '{" + dbName + "}' is empty with pattern '" + pattern + "'!";
-            SWSS_LOG_WARN("%s", message.c_str());
             throw UnavailableDataError(message, "hset");
         }
         return keys;
@@ -168,6 +165,7 @@ T DBInterface::blockable(FUNC f, const std::string& dbName, bool blocking)
         {
             if (blocking)
             {
+                SWSS_LOG_WARN("%s", e.what());
                 auto found = keyspace_notification_channels.find(dbName);
                 if (found != keyspace_notification_channels.end())
                 {
