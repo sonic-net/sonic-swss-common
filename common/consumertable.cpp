@@ -28,7 +28,7 @@ ConsumerTable::ConsumerTable(DBConnector *db, const string &tableName, int popBa
         watch.checkStatusOK();
         multi();
         enqueue(string("LLEN ") + getKeyValueOpQueueTableName(), REDIS_REPLY_INTEGER);
-        subscribe(m_db, getChannelName(m_db->getDbId()));
+        subscribe(m_db, getChannelName());
         enqueue(string("LLEN ") + getKeyValueOpQueueTableName(), REDIS_REPLY_INTEGER);
         bool succ = exec();
         if (succ) break;
