@@ -24,7 +24,7 @@ ConsumerStateTable::ConsumerStateTable(DBConnector *db, const std::string &table
         watch.checkStatusOK();
         multi();
         enqueue(std::string("SCARD ") + getKeySetName(), REDIS_REPLY_INTEGER);
-        subscribe(m_db, getChannelName(m_db->getDbId()));
+        subscribe(m_db, getChannelName());
         bool succ = exec();
         if (succ) break;
     }
