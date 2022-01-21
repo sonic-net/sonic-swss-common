@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <queue>
+#include <memory>
 
 #include <hiredis/hiredis.h>
 
@@ -22,6 +23,7 @@ class NotificationConsumer : public Selectable
 {
 public:
     NotificationConsumer(swss::DBConnector *db, const std::string &channel, int pri = 100, size_t popBatchSize = DEFAULT_NC_POP_BATCH_SIZE);
+    NotificationConsumer(std::shared_ptr<swss::DBConnector> db, const std::string &channel, int pri = 100, size_t popBatchSize = DEFAULT_NC_POP_BATCH_SIZE);
 
     // Pop one or multiple data from the internal queue which fed from redis socket
     // Note:
@@ -49,9 +51,11 @@ private:
     NotificationConsumer(const NotificationConsumer &other);
     NotificationConsumer& operator = (const NotificationConsumer &other);
 
+    void init();
     void processReply(redisReply *reply);
     void subscribe();
 
+    std::shared_ptr<swss::DBConnector> m_db_shrd;
     swss::DBConnector *m_db;
     swss::DBConnector *m_subscribe;
     std::string m_channel;

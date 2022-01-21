@@ -15,6 +15,22 @@ swss::NotificationConsumer::NotificationConsumer(swss::DBConnector *db, const st
     m_subscribe(NULL),
     m_channel(channel)
 {
+    init();
+}
+
+swss::NotificationConsumer::NotificationConsumer(std::shared_ptr<swss::DBConnector> db, const std::string &channel, int pri, size_t popBatchSize):
+    Selectable(pri),
+    POP_BATCH_SIZE(popBatchSize),
+    m_db_shrd(db),
+    m_db(m_db_shrd.get()),
+    m_subscribe(NULL),
+    m_channel(channel)
+{
+    init();
+}
+
+void swss::NotificationConsumer::init()
+{
     SWSS_LOG_ENTER();
 
     while (true)
