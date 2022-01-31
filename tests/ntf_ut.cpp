@@ -81,9 +81,9 @@ TEST(Notifications, pops)
 {
     SWSS_LOG_ENTER();
 
-    swss::DBConnector dbNtf("ASIC_DB", 0, true);
-    swss::NotificationConsumer nc(&dbNtf, "NOTIFICATIONS", 100, (size_t)messages);
-    swss::NotificationProducer notifications(&dbNtf, "NOTIFICATIONS");
+    std::shared_ptr<swss::DBConnector> dbNtf = std::make_shared<swss::DBConnector>("ASIC_DB", 0, true);
+    swss::NotificationConsumer nc(dbNtf, "NOTIFICATIONS", 100, (size_t)messages);
+    swss::NotificationProducer notifications(dbNtf.get(), "NOTIFICATIONS");
 
     std::vector<swss::FieldValueTuple> entry;
     for(int i = 0; i < messages; i++)
