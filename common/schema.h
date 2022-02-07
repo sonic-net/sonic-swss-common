@@ -354,6 +354,8 @@ namespace swss {
 
 #define CFG_MUX_CABLE_TABLE_NAME                    "MUX_CABLE"
 #define CFG_MUX_LINKMGR_TABLE_NAME                  "MUX_LINKMGR"
+#define CFG_LINKMGR_CABLE_TABLE_NAME                "LINKMGR_CABLE"
+#define CFG_LINKMGR_TABLE_NAME                      "LINK_MANAGER"
 
 #define CFG_PEER_SWITCH_TABLE_NAME                  "PEER_SWITCH"
 
