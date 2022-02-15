@@ -1,0 +1,2317 @@
+diff --git a/.azure-pipelines/build-docker-sonic-vs-template.yml b/.azure-pipelines/build-docker-sonic-vs-template.yml
+index b8089d5..7e5cace 100644
+--- a/.azure-pipelines/build-docker-sonic-vs-template.yml
++++ b/.azure-pipelines/build-docker-sonic-vs-template.yml
+@@ -48,10 +48,10 @@ jobs:
+     inputs:
+       source: specific
+       project: build
+-      pipeline: 1
++      pipeline: 142
+       artifact: sonic-buildimage.vs
+       runVersion: 'latestFromBranch'
+-      runBranch: 'refs/heads/master'
++      runBranch: 'refs/heads/202106'
+     displayName: "Download sonic buildimage"
+   - script: |
+       echo $(Build.DefinitionName).$(Build.BuildNumber)
+diff --git a/.azure-pipelines/build-swss-template.yml b/.azure-pipelines/build-swss-template.yml
+index a942e40..f3dbfaf 100644
+--- a/.azure-pipelines/build-swss-template.yml
++++ b/.azure-pipelines/build-swss-template.yml
+@@ -50,6 +50,10 @@ jobs:
+       sudo apt-get install -y libzmq5 libzmq3-dev
+       sudo apt-get install -qq -y \
+           libhiredis-dev \
++          libnl-3-dev \
++          libnl-genl-3-dev \
++          libnl-route-3-dev \
++          libnl-nf-3-dev \
+           swig3.0
+       sudo apt-get install -y libdbus-1-3
+       sudo apt-get install -y libteam-dev \
+@@ -64,24 +68,7 @@ jobs:
+     inputs:
+       artifact: ${{ parameters.sairedis_artifact_name }}
+     displayName: "Download sonic sairedis deb packages"
+-  - task: DownloadPipelineArtifact@2
+-    inputs:
+-      source: specific
+-      project: build
+-      pipeline: 1
+-      artifact: sonic-buildimage.vs
+-      runVersion: 'latestFromBranch'
+-      runBranch: 'refs/heads/master'
+-    displayName: "Download sonic buildimage"
+   - script: |
+-      sudo dpkg -i target/debs/buster/libnl-3-200_*.deb
+-      sudo dpkg -i target/debs/buster/libnl-3-dev_*.deb
+-      sudo dpkg -i target/debs/buster/libnl-genl-3-200_*.deb
+-      sudo dpkg -i target/debs/buster/libnl-genl-3-dev_*.deb
+-      sudo dpkg -i target/debs/buster/libnl-route-3-200_*.deb
+-      sudo dpkg -i target/debs/buster/libnl-route-3-dev_*.deb
+-      sudo dpkg -i target/debs/buster/libnl-nf-3-200_*.deb
+-      sudo dpkg -i target/debs/buster/libnl-nf-3-dev_*.deb
+       sudo dpkg -i libswsscommon_1.0.0_${{ parameters.arch }}.deb
+       sudo dpkg -i libswsscommon-dev_1.0.0_${{ parameters.arch }}.deb
+       sudo dpkg -i libsaivs_*.deb
+@@ -92,7 +79,7 @@ jobs:
+       sudo dpkg -i libsaimetadata-dev_*.deb
+       sudo dpkg -i syncd-vs_*.deb
+     workingDirectory: $(Pipeline.Workspace)
+-    displayName: "Install libnl3, sonic swss common, and sairedis"
++    displayName: "Install sonic swss common and sairedis"
+   - checkout: sonic-swss
+     path: s
+     submodules: true
+diff --git a/.azure-pipelines/build-template.yml b/.azure-pipelines/build-template.yml
+index 8456035..1dd56a2 100644
+--- a/.azure-pipelines/build-template.yml
++++ b/.azure-pipelines/build-template.yml
+@@ -10,8 +10,6 @@ parameters:
+   type: string
+   values:
+   - sonicbld
+-  - sonicbld-arm64
+-  - sonicbld-armhf
+   - default
+   default: default
+ 
+@@ -29,18 +27,10 @@ parameters:
+   type: boolean
+   default: false
+ 
+-- name: archive_gcov
+-  type: boolean
+-  default: false
+-
+ jobs:
+ - job:
+   displayName: ${{ parameters.arch }}
+   timeoutInMinutes: ${{ parameters.timeout }}
+-  variables:
+-    DIFF_COVER_CHECK_THRESHOLD: 50
+-    ${{ if eq(parameters.run_unit_test, true) }}:
+-      DIFF_COVER_ENABLE: 'true'
+ 
+   pool:
+     ${{ if ne(parameters.pool, 'default') }}:
+@@ -62,23 +52,11 @@ jobs:
+         swig3.0
+     displayName: "Install dependencies"
+   - script: |
+-      set -ex
+       ./autogen.sh
+-      fakeroot debian/rules DEB_CONFIGURE_EXTRA_FLAGS='--enable-code-coverage' CFLAGS="" CXXFLAGS="--coverage -fprofile-abs-path" LDFLAGS="--coverage -fprofile-abs-path" binary && cp ../*.deb .
+-    displayName: "Compile sonic swss common with coverage enabled"
++      dpkg-buildpackage -us -uc -b -j$(nproc) && cp ../*.deb .
++    displayName: "Compile sonic swss common"
+   - ${{ if eq(parameters.run_unit_test, true) }}:
+     - script: |
+-        set -ex
+-        git clone https://github.com/Spacetown/gcovr.git
+-        cd gcovr/
+-        git checkout origin/recursive_search_file
+-        sudo pip3 install setuptools
+-        sudo python3 setup.py install
+-        cd ..
+-        sudo rm -rf gcovr
+-      displayName: "Install gcovr 5.0 with recursive fix"
+-    - script: |
+-        set -ex
+         sudo pip install Pympler==0.8
+         sudo apt-get install -y redis-server
+         sudo sed -i 's/notify-keyspace-events ""/notify-keyspace-events AKE/' /etc/redis/redis.conf
+@@ -90,26 +68,8 @@ jobs:
+         sudo dpkg -i libswsscommon_*.deb
+         sudo dpkg -i python-swsscommon_*.deb
+ 
+-        ./tests/tests
+-        redis-cli FLUSHALL
+-        pytest --cov=. --cov-report=xml
+-        mv coverage.xml tests/coverage.xml
+-        gcovr -r ./ -e ".*/swsscommon_wrap.cpp" --exclude-unreachable-branches --exclude-throw-branches -x --xml-pretty  -o coverage.xml
++        sudo ./tests/tests && redis-cli FLUSHALL && pytest
+       displayName: "Run swss common unit tests"
+   - publish: $(System.DefaultWorkingDirectory)/
+     artifact: ${{ parameters.artifact_name }}
+     displayName: "Archive swss common debian packages"
+-  - ${{ if eq(parameters.archive_gcov, true) }}:
+-    - script: |
+-        set -ex
+-        # Install .NET CORE
+-        curl -sSL https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
+-        sudo apt-add-repository https://packages.microsoft.com/debian/10/prod
+-        sudo apt-get update
+-        sudo apt-get install -y dotnet-sdk-5.0
+-      displayName: "Install .NET CORE"
+-    - task: PublishCodeCoverageResults@1
+-      inputs:
+-        codeCoverageTool: Cobertura
+-        summaryFileLocation: '$(System.DefaultWorkingDirectory)/coverage.xml'
+-      displayName: 'Publish test coverage'
+diff --git a/.azure-pipelines/build_and_install_module.sh b/.azure-pipelines/build_and_install_module.sh
+index 493a2f0..4bd026c 100755
+--- a/.azure-pipelines/build_and_install_module.sh
++++ b/.azure-pipelines/build_and_install_module.sh
+@@ -48,9 +48,6 @@ function build_and_install_kmodule()
+     grep NET_TEAM .config.bk >> .config
+     echo CONFIG_NET_VRF=m >> .config
+     echo CONFIG_MACSEC=m >> .config
+-    echo CONFIG_NET_VENDOR_MICROSOFT=y >> .config
+-    echo CONFIG_MICROSOFT_MANA=m >> .config
+-    echo CONFIG_SYSTEM_REVOCATION_LIST=n >> .config
+     make VERSION=$VERSION PATCHLEVEL=$PATCHLEVEL SUBLEVEL=$SUBLEVEL EXTRAVERSION=-${EXTRAVERSION} LOCALVERSION=-${LOCALVERSION} modules_prepare
+     make M=drivers/net/team
+     mv drivers/net/Makefile drivers/net/Makefile.bak
+diff --git a/.azure-pipelines/test-docker-sonic-vs-template.yml b/.azure-pipelines/test-docker-sonic-vs-template.yml
+index 979fe5a..b0a071d 100644
+--- a/.azure-pipelines/test-docker-sonic-vs-template.yml
++++ b/.azure-pipelines/test-docker-sonic-vs-template.yml
+@@ -1,7 +1,7 @@
+ parameters:
+ - name: timeout
+   type: number
+-  default: 240
++  default: 180
+ 
+ - name: log_artifact_name
+   type: string
+diff --git a/.bazelversion b/.bazelversion
+deleted file mode 100644
+index fcdb2e1..0000000
+--- a/.bazelversion
++++ /dev/null
+@@ -1 +0,0 @@
+-4.0.0
+diff --git a/.gitignore b/.gitignore
+index 998df25..7d6b789 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -4,10 +4,6 @@
+ *.lo
+ *.o
+ *.swp
+-*.gcda
+-*.gcno
+-*.gcov
+-*.deb
+ 
+ # Generated Source #
+ ####################
+@@ -61,6 +57,3 @@ stamp-h1
+ ###############
+ common/swssloglevel
+ tests/tests
+-
+-# Bazel Build System #
+-/bazel-*
+diff --git a/BUILD b/BUILD
+deleted file mode 100644
+index d814153..0000000
+--- a/BUILD
++++ /dev/null
+@@ -1,31 +0,0 @@
+-package(default_visibility = ["//visibility:public"])
+-
+-exports_files(["LICENSE"])
+-
+-cc_library(
+-    name = "common",
+-    srcs = glob(["common/*.cpp"], exclude=["common/loglevel.cpp"]),
+-    hdrs = glob([
+-        "common/*.h",
+-        "common/*.hpp",
+-    ]),
+-    copts = [
+-        "-I/usr/include/libnl3", # Expected location in the SONiC build container"
+-    ],
+-    includes = [
+-        "common",
+-    ],
+-    linkopts = ["-lpthread -lhiredis -lnl-genl-3 -lnl-nf-3 -lnl-route-3 -lnl-3"],
+-    visibility = ["//visibility:public"],
+-)
+-
+-cc_library(
+-    name = "libswsscommon",
+-    hdrs = glob([
+-        "common/*.h",
+-        "common/*.hpp",
+-    ]),
+-    include_prefix = "swss",
+-    strip_include_prefix = "common",
+-    deps = [":common"],
+-)
+diff --git a/WORKSPACE b/WORKSPACE
+deleted file mode 100644
+index 38b1a54..0000000
+--- a/WORKSPACE
++++ /dev/null
+@@ -1,31 +0,0 @@
+-workspace(name = "sonic_swss_common")
+-
+-load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+-
+-http_archive(
+-    name = "com_google_absl",
+-    sha256 = "b3744a4f7a249d5eaf2309daad597631ce77ea62e0fc6abffbab4b4c3dc0fc08",
+-    strip_prefix = "abseil-cpp-20200923",
+-    url = "https://github.com/abseil/abseil-cpp/archive/20200923.tar.gz",
+-)
+-
+-http_archive(
+-    name = "com_google_googletest",
+-    sha256 = "9dc9157a9a1551ec7a7e43daea9a694a0bb5fb8bec81235d8a1e6ef64c716dcb",
+-    strip_prefix = "googletest-release-1.10.0",
+-    urls = ["https://github.com/google/googletest/archive/release-1.10.0.tar.gz"],
+-)
+-
+-http_archive(
+-    name = "com_github_google_glog",
+-    sha256 = "f28359aeba12f30d73d9e4711ef356dc842886968112162bc73002645139c39c",
+-    strip_prefix = "glog-0.4.0",
+-    url = "https://github.com/google/glog/archive/v0.4.0.tar.gz",
+-)
+-
+-http_archive(
+-    name = "com_github_gflags_gflags",
+-    sha256 = "34af2f15cf7367513b352bdcd2493ab14ce43692d2dcd9dfc499492966c64dcf",
+-    strip_prefix = "gflags-2.2.2",
+-    url = "https://github.com/gflags/gflags/archive/v2.2.2.tar.gz",
+-)
+diff --git a/azure-pipelines.yml b/azure-pipelines.yml
+index 1f8b3a8..22f8e9b 100644
+--- a/azure-pipelines.yml
++++ b/azure-pipelines.yml
+@@ -13,10 +13,12 @@ resources:
+   - repository: sonic-sairedis
+     type: github
+     name: Azure/sonic-sairedis
++    ref: refs/heads/202106
+     endpoint: build
+   - repository: sonic-swss
+     type: github
+     name: Azure/sonic-swss
++    ref: refs/heads/202106
+     endpoint: build
+ 
+ stages:
+@@ -39,22 +41,12 @@ stages:
+         sudo apt-get install -y python3-pip
+         sudo pip3 install pytest
+         sudo apt-get install -y python
+-        sudo apt-get install cmake libgtest-dev libgmock-dev
++        sudo apt-get install cmake libgtest-dev
+         cd /usr/src/gtest && sudo cmake . && sudo make
+-        ARCH=$(dpkg --print-architecture)
+-        set -x
+-        sudo curl -fsSL -o /usr/local/bin/bazel \
+-            https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-${ARCH}
+-        sudo chmod 755 /usr/local/bin/bazel
+       displayName: "Install dependencies"
+     - script: |
+-        ./autogen.sh
+         dpkg-buildpackage -rfakeroot -us -uc -b -j$(nproc) && cp ../*.deb .
+       displayName: "Compile sonic swss common"
+-    - script: |
+-        bazel build //...
+-        bazel test //...
+-      displayName: "Compile and test all Bazel targets"
+     - publish: $(System.DefaultWorkingDirectory)/
+       artifact: sonic-swss-common.amd64.ubuntu20_04
+       displayName: "Archive swss common debian packages"
+@@ -65,7 +57,6 @@ stages:
+       sonic_slave: sonic-slave-buster
+       artifact_name: sonic-swss-common
+       run_unit_test: true
+-      archive_gcov: true
+ 
+ - stage: BuildArm
+   dependsOn: Build
+@@ -75,7 +66,7 @@ stages:
+     parameters:
+       arch: armhf
+       timeout: 180
+-      pool: sonicbld-armhf
++      pool: sonicbld
+       sonic_slave: sonic-slave-buster-armhf
+       artifact_name: sonic-swss-common.armhf
+ 
+@@ -83,7 +74,7 @@ stages:
+     parameters:
+       arch: arm64
+       timeout: 180
+-      pool: sonicbld-arm64
++      pool: sonicbld
+       sonic_slave: sonic-slave-buster-arm64
+       artifact_name: sonic-swss-common.arm64
+ 
+diff --git a/common/Makefile.am b/common/Makefile.am
+index 4c40055..1e82f97 100644
+--- a/common/Makefile.am
++++ b/common/Makefile.am
+@@ -61,18 +61,17 @@ libswsscommon_la_SOURCES = \
+     pubsub.cpp                \
+     tokenize.cpp              \
+     exec.cpp                  \
+-    saiaclschema.cpp          \
+     subscriberstatetable.cpp  \
+     timestamp.cpp             \
+     warm_restart.cpp          \
+     redisutility.cpp
+ 
+-libswsscommon_la_CXXFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CFLAGS) $(CODE_COVERAGE_CXXFLAGS)
+-libswsscommon_la_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CPPFLAGS) $(CODE_COVERAGE_CPPFLAGS)
+-libswsscommon_la_LIBADD = -lpthread $(LIBNL_LIBS) $(CODE_COVERAGE_LIBS)
++libswsscommon_la_CXXFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CFLAGS)
++libswsscommon_la_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CPPFLAGS)
++libswsscommon_la_LIBADD = -lpthread $(LIBNL_LIBS)
+ 
+ swssloglevel_SOURCES = loglevel.cpp
+ 
+-swssloglevel_CXXFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CODE_COVERAGE_CXXFLAGS)
+-swssloglevel_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CODE_COVERAGE_CPPFLAGS)
+-swssloglevel_LDADD = libswsscommon.la $(CODE_COVERAGE_LIBS)
++swssloglevel_CXXFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON)
++swssloglevel_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON)
++swssloglevel_LDADD = libswsscommon.la
+diff --git a/common/concurrentmap.h b/common/concurrentmap.h
+deleted file mode 100644
+index 56d1411..0000000
+--- a/common/concurrentmap.h
++++ /dev/null
+@@ -1,73 +0,0 @@
+-#pragma once
+-
+-#include <map>
+-#include <string>
+-#include <mutex>
+-
+-namespace swss
+-{
+-    template <typename K, typename V>
+-        class ConcurrentMap
+-        {
+-            public:
+-
+-                ConcurrentMap() = default;
+-
+-            public:
+-
+-                size_t size()
+-                {
+-                    std::lock_guard<std::mutex> _lock(m_mutex);
+-
+-                    return m_map.size();
+-                }
+-
+-                bool contains(const K& key)
+-                {
+-                    std::lock_guard<std::mutex> _lock(m_mutex);
+-
+-                    return m_map.find(key) != m_map.end();
+-                }
+-
+-                void insert(const std::pair<K,V>& pair)
+-                {
+-                    std::lock_guard<std::mutex> _lock(m_mutex);
+-
+-                    m_map.insert(pair);
+-                }
+-
+-                void set(const K& key, const V& value)
+-                {
+-                    std::lock_guard<std::mutex> _lock(m_mutex);
+-
+-                    m_map[key] = value;
+-                }
+-
+-                // return copy
+-                V get(const K& key)
+-                {
+-                    std::lock_guard<std::mutex> _lock(m_mutex);
+-
+-                    return m_map[key];
+-                }
+-
+-                // return copy
+-                std::map<K,V> getCopy()
+-                {
+-                    std::lock_guard<std::mutex> _lock(m_mutex);
+-
+-                    return m_map;
+-                }
+-
+-            private:
+-
+-                ConcurrentMap(const ConcurrentMap&);
+-                ConcurrentMap& operator=(const ConcurrentMap&);
+-
+-            private:
+-
+-                std::map<K,V> m_map;
+-
+-                std::mutex m_mutex;
+-        };
+-}
+diff --git a/common/consumerstatetable.cpp b/common/consumerstatetable.cpp
+index 54c753d..7de44de 100644
+--- a/common/consumerstatetable.cpp
++++ b/common/consumerstatetable.cpp
+@@ -38,11 +38,10 @@ void ConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const st
+ 
+     RedisCommand command;
+     command.format(
+-        "EVALSHA %s 3 %s %s%s %s %d %s",
++        "EVALSHA %s 3 %s %s: %s %d %s",
+         m_shaPop.c_str(),
+         getKeySetName().c_str(),
+         getTableName().c_str(),
+-        getTableNameSeparator().c_str(),
+         getDelKeySetName().c_str(),
+         POP_BATCH_SIZE,
+         getStateHashPrefix().c_str());
+diff --git a/common/database_config.json b/common/database_config.json
+index 67b5cda..1750ca7 100644
+--- a/common/database_config.json
++++ b/common/database_config.json
+@@ -64,17 +64,17 @@
+         },
+         "GB_ASIC_DB" : {
+             "id" : 9,
+-            "separator": ":",
++            "separator": "|",
+             "instance" : "redis"
+         },
+         "GB_COUNTERS_DB" : {
+             "id" : 10,
+-            "separator": ":",
++            "separator": "|",
+             "instance" : "redis"
+         },
+         "GB_FLEX_COUNTER_DB" : {
+             "id" : 11,
+-            "separator": ":",
++            "separator": "|",
+             "instance" : "redis"
+         },
+         "CHASSIS_APP_DB" : {
+@@ -86,11 +86,6 @@
+             "id" : 13,
+             "separator": "|",
+             "instance" : "redis_chassis"
+-        },
+-        "APPL_STATE_DB" : {
+-            "id" : 14,
+-            "separator": ":",
+-            "instance" : "redis"
+         }
+     },
+     "VERSION" : "1.0"
+diff --git a/common/dbconnector.h b/common/dbconnector.h
+index bdd410f..e14fd5b 100644
+--- a/common/dbconnector.h
++++ b/common/dbconnector.h
+@@ -163,7 +163,9 @@ public:
+ 
+ #ifdef SWIG
+     %pythoncode %{
+-        namespace = property(getNamespace)
++        __swig_getmethods__["namespace"] = getNamespace
++        __swig_setmethods__["namespace"] = None
++        if _newclass: namespace = property(getNamespace, None)
+     %}
+ #endif
+ 
+diff --git a/common/dbinterface.cpp b/common/dbinterface.cpp
+index 0043fb4..a088960 100644
+--- a/common/dbinterface.cpp
++++ b/common/dbinterface.cpp
+@@ -1,5 +1,4 @@
+ #include <chrono>
+-#include <cstring>
+ #include <utility>
+ #include <hiredis/hiredis.h>
+ #include "dbinterface.h"
+@@ -64,6 +63,7 @@ std::shared_ptr<std::string> DBInterface::get(const std::string& dbName, const s
+         if (!pvalue)
+         {
+             std::string message = "Key '" + hash + "' field '" + key + "' unavailable in database '" + dbName + "'";
++            SWSS_LOG_WARN("%s", message.c_str());
+             throw UnavailableDataError(message, hash);
+         }
+         const std::string& value = *pvalue;
+@@ -87,6 +87,7 @@ std::map<std::string, std::string> DBInterface::get_all(const std::string& dbNam
+         if (map.empty())
+         {
+             std::string message = "Key '{" + hash + "}' unavailable in database '{" + dbName + "}'";
++            SWSS_LOG_WARN("%s", message.c_str());
+             throw UnavailableDataError(message, hash);
+         }
+         for (auto& i : map)
+@@ -111,6 +112,7 @@ std::vector<std::string> DBInterface::keys(const std::string& dbName, const char
+         if (keys.empty())
+         {
+             std::string message = "DB '{" + dbName + "}' is empty with pattern '" + pattern + "'!";
++            SWSS_LOG_WARN("%s", message.c_str());
+             throw UnavailableDataError(message, "hset");
+         }
+         return keys;
+@@ -165,7 +167,6 @@ T DBInterface::blockable(FUNC f, const std::string& dbName, bool blocking)
+         {
+             if (blocking)
+             {
+-                SWSS_LOG_WARN("%s", e.what());
+                 auto found = keyspace_notification_channels.find(dbName);
+                 if (found != keyspace_notification_channels.end())
+                 {
+diff --git a/common/json.hpp b/common/json.hpp
+index 5152517..b231601 100644
+--- a/common/json.hpp
++++ b/common/json.hpp
+@@ -5394,7 +5394,7 @@ class basic_json
+                 {
+                     assert(lhs.m_value.array != nullptr);
+                     assert(rhs.m_value.array != nullptr);
+-                    return (*lhs.m_value.array) < *rhs.m_value.array;
++                    return *lhs.m_value.array < *rhs.m_value.array;
+                 }
+                 case value_t::object:
+                 {
+diff --git a/common/linkcache.cpp b/common/linkcache.cpp
+index e62cae3..7dc1f91 100644
+--- a/common/linkcache.cpp
++++ b/common/linkcache.cpp
+@@ -77,13 +77,5 @@ string LinkCache::ifindexToName(int ifindex)
+ 
+ struct rtnl_link* LinkCache::getLinkByName(const char *name)
+ {
+-    struct rtnl_link* link = NULL;
+-    link = rtnl_link_get_by_name(m_link_cache, name);
+-    if(NULL == link)
+-    {
+-        /* Trying to refill cache */
+-        nl_cache_refill(m_nl_sock ,m_link_cache);
+-        link = rtnl_link_get_by_name(m_link_cache, name);
+-    }
+-    return link;
++    return rtnl_link_get_by_name(m_link_cache, name);
+ }
+diff --git a/common/logger.cpp b/common/logger.cpp
+index b27cbed..6482cf4 100644
+--- a/common/logger.cpp
++++ b/common/logger.cpp
+@@ -14,11 +14,9 @@
+ #include "consumerstatetable.h"
+ #include "producerstatetable.h"
+ 
+-using namespace swss;
++namespace swss {
+ 
+-#define MUTEX std::lock_guard<std::mutex> _lock(getInstance().m_mutex);
+-
+-void swss::err_exit(const char *fn, int ln, int e, const char *fmt, ...)
++void err_exit(const char *fn, int ln, int e, const char *fmt, ...)
+ {
+     va_list ap;
+     char buff[1024];
+@@ -33,34 +31,13 @@ void swss::err_exit(const char *fn, int ln, int e, const char *fmt, ...)
+     abort();
+ }
+ 
+-Logger::~Logger()
+-{
+-    terminateSettingThread();
+-}
+-
+-void Logger::terminateSettingThread()
+-{
+-    // can't be executed under mutex, since it can cause deadlock
+-
+-    if (m_settingThread)
+-    {
+-        m_runSettingThread = false;
+-
++Logger::~Logger() {
++    if (m_settingThread) {
++        terminateSettingThread = true;
+         m_settingThread->join();
+-
+-        m_settingThread = nullptr;
+     }
+ }
+ 
+-void Logger::restartSettingThread()
+-{
+-    terminateSettingThread();
+-
+-    m_runSettingThread = true;
+-
+-    m_settingThread.reset(new std::thread(&Logger::settingThread, this));
+-}
+-
+ const Logger::PriorityStringMap Logger::priorityStringMap = {
+     { "EMERG", SWSS_EMERG },
+     { "ALERT", SWSS_ALERT },
+@@ -72,7 +49,7 @@ const Logger::PriorityStringMap Logger::priorityStringMap = {
+     { "DEBUG", SWSS_DEBUG }
+ };
+ 
+-void Logger::swssPrioNotify(const std::string& component, const std::string& prioStr)
++void Logger::swssPrioNotify(const std::string &component, const std::string &prioStr)
+ {
+     auto& logger = getInstance();
+ 
+@@ -93,7 +70,7 @@ const Logger::OutputStringMap Logger::outputStringMap = {
+     { "STDERR", SWSS_STDERR }
+ };
+ 
+-void Logger::swssOutputNotify(const std::string& component, const std::string& outputStr)
++void Logger::swssOutputNotify(const std::string &component, const std::string &outputStr)
+ {
+     auto& logger = getInstance();
+ 
+@@ -108,19 +85,14 @@ void Logger::swssOutputNotify(const std::string& component, const std::string& o
+     }
+ }
+ 
+-void Logger::linkToDbWithOutput(
+-        const std::string& dbName,
+-        const PriorityChangeNotify& prioNotify,
+-        const std::string& defPrio,
+-        const OutputChangeNotify& outputNotify,
+-        const std::string& defOutput)
++void Logger::linkToDbWithOutput(const std::string &dbName, const PriorityChangeNotify& prioNotify, const std::string& defPrio, const OutputChangeNotify& outputNotify, const std::string& defOutput)
+ {
+     auto& logger = getInstance();
+ 
+     // Initialize internal DB with observer
+     logger.m_settingChangeObservers.insert(std::make_pair(dbName, std::make_pair(prioNotify, outputNotify)));
+-
+     DBConnector db("LOGLEVEL_DB", 0);
++    auto keys = db.keys("*");
+ 
+     std::string key = dbName + ":" + dbName;
+     std::string prio, output;
+@@ -128,7 +100,7 @@ void Logger::linkToDbWithOutput(
+     auto prioPtr = db.hget(key, DAEMON_LOGLEVEL);
+     auto outputPtr = db.hget(key, DAEMON_LOGOUTPUT);
+ 
+-    if (prioPtr == nullptr)
++    if ( prioPtr == nullptr )
+     {
+         prio = defPrio;
+         doUpdate = true;
+@@ -138,7 +110,7 @@ void Logger::linkToDbWithOutput(
+         prio = *prioPtr;
+     }
+ 
+-    if (outputPtr == nullptr)
++    if ( outputPtr == nullptr )
+     {
+         output = defOutput;
+         doUpdate = true;
+@@ -158,26 +130,26 @@ void Logger::linkToDbWithOutput(
+         table.set(dbName, fieldValues);
+     }
+ 
+-    logger.m_currentPrios.set(dbName, prio);
+-    logger.m_currentOutputs.set(dbName, output);
+-
++    logger.m_currentPrios[dbName] = prio;
++    logger.m_currentOutputs[dbName] = output;
+     prioNotify(dbName, prio);
+     outputNotify(dbName, output);
+ }
+ 
+-void Logger::linkToDb(const std::string& dbName, const PriorityChangeNotify& prioNotify, const std::string& defPrio)
++void Logger::linkToDb(const std::string &dbName, const PriorityChangeNotify& prioNotify, const std::string& defPrio)
+ {
+     linkToDbWithOutput(dbName, prioNotify, defPrio, swssOutputNotify, "SYSLOG");
+ }
+ 
+-void Logger::linkToDbNative(const std::string& dbName, const char * defPrio)
++void Logger::linkToDbNative(const std::string &dbName)
+ {
+-    linkToDb(dbName, swssPrioNotify, defPrio);
++    auto& logger = getInstance();
+ 
+-    getInstance().restartSettingThread();
++    linkToDb(dbName, swssPrioNotify, "NOTICE");
++    logger.m_settingThread.reset(new std::thread(&Logger::settingThread, &logger));
+ }
+ 
+-Logger& Logger::getInstance()
++Logger &Logger::getInstance()
+ {
+     static Logger m_logger;
+     return m_logger;
+@@ -199,13 +171,13 @@ void Logger::settingThread()
+     DBConnector db("LOGLEVEL_DB", 0);
+     std::map<std::string, std::shared_ptr<ConsumerStateTable>> selectables;
+ 
+-    while (m_runSettingThread)
++    while (!terminateSettingThread)
+     {
+         if (selectables.size() < m_settingChangeObservers.size())
+         {
+-            for (const auto& i : m_settingChangeObservers.getCopy())
++            for (const auto& i : m_settingChangeObservers)
+             {
+-                const std::string& dbName = i.first;
++                const std::string &dbName = i.first;
+                 if (selectables.find(dbName) == selectables.end())
+                 {
+                     auto table = std::make_shared<ConsumerStateTable>(&db, dbName);
+@@ -236,28 +208,27 @@ void Logger::settingThread()
+         dynamic_cast<ConsumerStateTable *>(selectable)->pop(koValues);
+         std::string key = kfvKey(koValues), op = kfvOp(koValues);
+ 
+-        if (op != SET_COMMAND || !m_settingChangeObservers.contains(key))
++        if ((op != SET_COMMAND) || (m_settingChangeObservers.find(key) == m_settingChangeObservers.end()))
+         {
+             continue;
+         }
+ 
+-        const auto& values = kfvFieldsValues(koValues);
+-
+-        for (auto& i : values)
++        auto values = kfvFieldsValues(koValues);
++        for (const auto& i : values)
+         {
+-            auto& field = fvField(i);
+-            auto& value = fvValue(i);
+-
+-            if ((field == DAEMON_LOGLEVEL) && (value != m_currentPrios.get(key)))
++            const std::string &field = fvField(i), &value = fvValue(i);
++            if ((field == DAEMON_LOGLEVEL) && (value != m_currentPrios[key]))
+             {
+-                m_currentPrios.set(key, value);
+-                m_settingChangeObservers.get(key).first(key, value);
++                m_currentPrios[key] = value;
++                m_settingChangeObservers[key].first(key, value);
+             }
+-            else if ((field == DAEMON_LOGOUTPUT) && (value != m_currentOutputs.get(key)))
++            else if ((field == DAEMON_LOGOUTPUT) && (value != m_currentOutputs[key]))
+             {
+-                m_currentOutputs.set(key, value);
+-                m_settingChangeObservers.get(key).second(key, value);
++                m_currentOutputs[key] = value;
++                m_settingChangeObservers[key].second(key, value);
+             }
++
++            break;
+         }
+     }
+ }
+@@ -275,16 +246,14 @@ void Logger::write(Priority prio, const char *fmt, ...)
+ 
+     if (m_output == SWSS_SYSLOG)
+     {
+-        vsyslog(prio, fmt, ap);
++            vsyslog(prio, fmt, ap);
+     }
+     else
+     {
+         std::stringstream ss;
+         ss << std::setw(6) << std::right << priorityToString(prio);
+         ss << fmt << std::endl;
+-
+-        MUTEX;
+-
++        std::lock_guard<std::mutex> lock(m_mutex);
+         if (m_output == SWSS_STDOUT)
+         {
+             vprintf(ss.str().c_str(), ap);
+@@ -314,9 +283,7 @@ void Logger::wthrow(Priority prio, const char *fmt, ...)
+         std::stringstream ss;
+         ss << std::setw(6) << std::right << priorityToString(prio);
+         ss << fmt << std::endl;
+-
+-        MUTEX;
+-
++        std::lock_guard<std::mutex> lock(m_mutex);
+         if (m_output == SWSS_STDOUT)
+         {
+             vprintf(ss.str().c_str(), ap);
+@@ -396,3 +363,5 @@ Logger::ScopeTimer::~ScopeTimer()
+ 
+     Logger::getInstance().write(swss::Logger::SWSS_NOTICE, ":- %s: %s took %lf sec", m_fun, m_msg.c_str(), duration);
+ }
++
++};
+diff --git a/common/logger.h b/common/logger.h
+index 1f541bc..205c6dd 100644
+--- a/common/logger.h
++++ b/common/logger.h
+@@ -1,4 +1,5 @@
+-#pragma once
++#ifndef SWSS_COMMON_LOGGER_H
++#define SWSS_COMMON_LOGGER_H
+ 
+ #include <string>
+ #include <chrono>
+@@ -9,8 +10,6 @@
+ #include <mutex>
+ #include <functional>
+ 
+-#include "concurrentmap.h"
+-
+ namespace swss {
+ 
+ #define SWSS_LOG_ERROR(MSG, ...)       swss::Logger::getInstance().write(swss::Logger::SWSS_ERROR,  ":- %s: " MSG, __FUNCTION__, ##__VA_ARGS__)
+@@ -31,7 +30,8 @@ void err_exit(const char *fn, int ln, int e, const char *fmt, ...)
+ #endif
+         ;
+ 
+-#define ABORT_IF_NOT(x, fmt, args...)                       \
++
++#define ABORT_IF_NOT(x, fmt, args...)                      \
+     if (!(x)) {                                             \
+         int e = errno;                                      \
+         err_exit(__FUNCTION__, __LINE__, e, (fmt), ##args); \
+@@ -68,25 +68,18 @@ public:
+         SWSS_STDOUT,
+         SWSS_STDERR
+     };
+-
+     typedef std::map<std::string, Output> OutputStringMap;
+     static const OutputStringMap outputStringMap;
+     typedef std::function<void (std::string component, std::string outputStr)> OutputChangeNotify;
++    typedef std::map<std::string, std::pair<PriorityChangeNotify, OutputChangeNotify>> LogSettingChangeObservers;
+ 
+-    static Logger& getInstance();
++    static Logger &getInstance();
+     static void setMinPrio(Priority prio);
+     static Priority getMinPrio();
+-
+-    static void linkToDbWithOutput(
+-            const std::string& dbName,
+-            const PriorityChangeNotify& prioNotify,
+-            const std::string& defPrio,
+-            const OutputChangeNotify& outputNotify,
+-            const std::string& defOutput);
+-
+-    static void linkToDb(const std::string& dbName, const PriorityChangeNotify& notify, const std::string& defPrio);
++    static void linkToDbWithOutput(const std::string &dbName, const PriorityChangeNotify& prioNotify, const std::string& defPrio, const OutputChangeNotify& outputNotify, const std::string& defOutput);
++    static void linkToDb(const std::string &dbName, const PriorityChangeNotify& notify, const std::string& defPrio);
+     // Must be called after all linkToDb to start select from DB
+-    static void linkToDbNative(const std::string& dbName, const char * defPrio="NOTICE");
++    static void linkToDbNative(const std::string &dbName);
+     void write(Priority prio, const char *fmt, ...)
+ #ifdef __GNUC__
+         __attribute__ ((format (printf, 3, 4)))
+@@ -138,25 +131,23 @@ private:
+     Logger() = default;
+     ~Logger();
+     Logger(const Logger&);
+-    Logger& operator=(const Logger&);
++    Logger &operator=(const Logger&);
+ 
+-    static void swssPrioNotify(const std::string& component, const std::string& prioStr);
+-    static void swssOutputNotify(const std::string& component, const std::string& outputStr);
++    static void swssPrioNotify(const std::string &component, const std::string &prioStr);
++    static void swssOutputNotify(const std::string &component, const std::string &outputStr);
+ 
+     void settingThread();
+-    void terminateSettingThread();
+-    void restartSettingThread();
+-
+-    typedef ConcurrentMap<std::string, std::pair<PriorityChangeNotify, OutputChangeNotify>> LogSettingChangeObservers;
+ 
+     LogSettingChangeObservers m_settingChangeObservers;
+-    ConcurrentMap<std::string, std::string> m_currentPrios;
++    std::map<std::string, std::string> m_currentPrios;
+     std::atomic<Priority> m_minPrio = { SWSS_NOTICE };
+-    ConcurrentMap<std::string, std::string> m_currentOutputs;
++    std::map<std::string, std::string> m_currentOutputs;
+     std::atomic<Output> m_output = { SWSS_SYSLOG };
+     std::unique_ptr<std::thread> m_settingThread;
+     std::mutex m_mutex;
+-    volatile bool m_runSettingThread = true;
++    volatile bool terminateSettingThread = false;
+ };
+ 
+ }
++
++#endif /* SWSS_COMMON_LOGGER_H */
+diff --git a/common/producerstatetable.h b/common/producerstatetable.h
+index 66c5f5e..7042749 100644
+--- a/common/producerstatetable.h
++++ b/common/producerstatetable.h
+@@ -1,7 +1,6 @@
+ #pragma once
+ 
+ #include <memory>
+-#include <vector>
+ #include "table.h"
+ #include "redispipeline.h"
+ 
+diff --git a/common/redisapi.h b/common/redisapi.h
+index d856639..84b5d99 100644
+--- a/common/redisapi.h
++++ b/common/redisapi.h
+@@ -1,7 +1,6 @@
+ #pragma once
+ #include <unistd.h>
+ #include <poll.h>
+-#include <cstring>
+ #include <stdexcept>
+ #include <vector>
+ #include <set>
+diff --git a/common/rediscommand.cpp b/common/rediscommand.cpp
+index 51fe98b..9d36295 100644
+--- a/common/rediscommand.cpp
++++ b/common/rediscommand.cpp
+@@ -88,18 +88,6 @@ void RedisCommand::formatHDEL(const std::string& key, const std::vector<std::str
+     formatArgv(static_cast<int>(args.size()), args.data(), NULL);
+ }
+ 
+-/* Format EXPIRE key field command */
+-void RedisCommand::formatEXPIRE(const std::string& key, const int64_t& ttl)
+-{
+-    return format("EXPIRE %s %lld", key.c_str(), ttl);
+-}
+-
+-/* Format TTL key command */
+-void RedisCommand::formatTTL(const std::string& key)
+-{
+-    return format("TTL %s", key.c_str());
+-}
+-
+ const char *RedisCommand::c_str() const
+ {
+     return temp;
+diff --git a/common/rediscommand.h b/common/rediscommand.h
+index fb96f45..e5f2840 100644
+--- a/common/rediscommand.h
++++ b/common/rediscommand.h
+@@ -1,10 +1,8 @@
+ #pragma once
+-#include <cstring>
++#include <string.h>
+ #include <utility>
+ #include <tuple>
+ #include <vector>
+-#include <string>
+-#include <stdexcept>
+ 
+ namespace swss {
+ 
+@@ -50,12 +48,6 @@ public:
+     /* Format HDEL key multiple fields command */
+     void formatHDEL(const std::string& key, const std::vector<std::string>& fields);
+ 
+-    /* Format EXPIRE key ttl command */
+-    void formatEXPIRE(const std::string& key, const int64_t& ttl);
+-
+-    /* Format TTL key command */
+-    void formatTTL(const std::string& key);
+-
+     const char *c_str() const;
+ 
+     size_t length() const;
+diff --git a/common/saiaclschema.cpp b/common/saiaclschema.cpp
+deleted file mode 100644
+index 2a0cfef..0000000
+--- a/common/saiaclschema.cpp
++++ /dev/null
+@@ -1,332 +0,0 @@
+-#include "saiaclschema.h"
+-
+-#include <stdexcept>
+-
+-namespace swss
+-{
+-namespace acl
+-{
+-
+-// ENUM Stage strings
+-static constexpr char kStageLookupName[] = "LOOKUP";
+-static constexpr char kStageIngressName[] = "INGRESS";
+-static constexpr char kStageEgressName[] = "EGRESS";
+-
+-// ENUM Format strings
+-static constexpr char kFormatNone[] = "NONE";
+-static constexpr char kFormatHexString[] = "HEX_STRING";
+-static constexpr char kFormatMac[] = "MAC";
+-static constexpr char kFormatIPv4[] = "IPV4";
+-static constexpr char kFormatIPv6[] = "IPV6";
+-static constexpr char kFormatString[] = "STRING";
+-
+-Stage StageFromName(const std::string &name)
+-{
+-    if (name == kStageLookupName)
+-        return Stage::kLookup;
+-    if (name == kStageIngressName)
+-        return Stage::kIngress;
+-    if (name == kStageEgressName)
+-        return Stage::kEgress;
+-    throw std::invalid_argument("Unknown stage enum: " + name);
+-}
+-
+-const std::string &StageName(Stage stage)
+-{
+-    static const auto *const kLookupString = new std::string(kStageLookupName);
+-    static const auto *const kIngressString = new std::string(kStageIngressName);
+-    static const auto *const kEgressString = new std::string(kStageEgressName);
+-    switch (stage)
+-    {
+-    case Stage::kLookup:
+-        return *kLookupString;
+-    case Stage::kIngress:
+-        return *kIngressString;
+-    case Stage::kEgress:
+-        return *kEgressString;
+-    default:
+-        break;
+-    }
+-    throw std::invalid_argument(std::string(__func__) + " called with an invalid enum value.");
+-}
+-
+-Format FormatFromName(const std::string &name)
+-{
+-    if (name == kFormatNone)
+-        return Format::kNone;
+-    if (name == kFormatHexString)
+-        return Format::kHexString;
+-    if (name == kFormatMac)
+-        return Format::kMac;
+-    if (name == kFormatIPv4)
+-        return Format::kIPv4;
+-    if (name == kFormatIPv6)
+-        return Format::kIPv6;
+-    if (name == kFormatString)
+-        return Format::kString;
+-    throw std::invalid_argument("Unknown format enum: " + name);
+-}
+-
+-const std::string &FormatName(Format format)
+-{
+-    static const auto *const kNoneString = new std::string(kFormatNone);
+-    static const auto *const kHexStringString = new std::string(kFormatHexString);
+-    static const auto *const kMacString = new std::string(kFormatMac);
+-    static const auto *const kIPv4String = new std::string(kFormatIPv4);
+-    static const auto *const kIPv6String = new std::string(kFormatIPv6);
+-    static const auto *const kStringString = new std::string(kFormatString);
+-    switch (format)
+-    {
+-    case Format::kNone:
+-        return *kNoneString;
+-    case Format::kHexString:
+-        return *kHexStringString;
+-    case Format::kMac:
+-        return *kMacString;
+-    case Format::kIPv4:
+-        return *kIPv4String;
+-    case Format::kIPv6:
+-        return *kIPv6String;
+-    case Format::kString:
+-        return *kStringString;
+-    default:
+-        break;
+-    }
+-    throw std::invalid_argument(std::string(__func__) + " called with an invalid enum value.");
+-}
+-
+-const MatchFieldSchema &MatchFieldSchemaByName(const std::string &match_field_name)
+-{
+-    static const auto *const kMatchFields = new std::unordered_map<std::string, MatchFieldSchema>({
+-        {"SAI_ACL_TABLE_ATTR_FIELD_SRC_IPV6",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kIPv6, .bitwidth = 128}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_SRC_IPV6_WORD3",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kIPv6, .bitwidth = 32}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_SRC_IPV6_WORD2",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kIPv6, .bitwidth = 32}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_SRC_IPV6_WORD1",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kIPv6, .bitwidth = 32}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_SRC_IPV6_WORD0",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kIPv6, .bitwidth = 32}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_DST_IPV6",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kIPv6, .bitwidth = 128}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_DST_IPV6_WORD3",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kIPv6, .bitwidth = 32}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_DST_IPV6_WORD2",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kIPv6, .bitwidth = 32}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_DST_IPV6_WORD1",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kIPv6, .bitwidth = 32}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_DST_IPV6_WORD0",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kIPv6, .bitwidth = 32}},
+-        // SAI_ACL_TABLE_ATTR_FIELD_INNER_SRC_IPV6
+-        // SAI_ACL_TABLE_ATTR_FIELD_INNER_DST_IPV6
+-        {"SAI_ACL_TABLE_ATTR_FIELD_SRC_MAC",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kMac, .bitwidth = 32}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_DST_MAC",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kMac, .bitwidth = 32}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_SRC_IP",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kIPv4, .bitwidth = 32}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_DST_IP",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kIPv4, .bitwidth = 32}},
+-        // SAI_ACL_TABLE_ATTR_FIELD_INNER_SRC_IP
+-        // SAI_ACL_TABLE_ATTR_FIELD_INNER_DST_IP
+-        // SAI_ACL_TABLE_ATTR_FIELD_IN_PORTS
+-        // SAI_ACL_TABLE_ATTR_FIELD_OUT_PORTS
+-        {"SAI_ACL_TABLE_ATTR_FIELD_IN_PORT",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kString, .bitwidth = 0}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_OUT_PORT",
+-         {.stages = {Stage::kIngress, Stage::kEgress}, .format = Format::kString, .bitwidth = 0}},
+-        // SAI_ACL_TABLE_ATTR_FIELD_SRC_PORT
+-        {"SAI_ACL_TABLE_ATTR_FIELD_OUTER_VLAN_ID",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kHexString, .bitwidth = 12}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_OUTER_VLAN_PRI",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kHexString, .bitwidth = 3}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_OUTER_VLAN_CFI",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kHexString, .bitwidth = 1}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_INNER_VLAN_ID",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kHexString, .bitwidth = 12}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_INNER_VLAN_PRI",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kHexString, .bitwidth = 3}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_INNER_VLAN_CFI",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kHexString, .bitwidth = 1}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_L4_SRC_PORT",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kHexString, .bitwidth = 16}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_L4_DST_PORT",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kHexString, .bitwidth = 16}},
+-        // SAI_ACL_TABLE_ATTR_FIELD_INNER_L4_SRC_PORT
+-        // SAI_ACL_TABLE_ATTR_FIELD_INNER_L4_DST_PORT
+-        {"SAI_ACL_TABLE_ATTR_FIELD_ETHER_TYPE",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kHexString, .bitwidth = 16}},
+-        // SAI_ACL_TABLE_ATTR_FIELD_INNER_ETHER_TYPE
+-        {"SAI_ACL_TABLE_ATTR_FIELD_IP_PROTOCOL",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kHexString, .bitwidth = 8}},
+-        // SAI_ACL_TABLE_ATTR_FIELD_INNER_IP_PROTOCOL
+-        // SAI_ACL_TABLE_ATTR_FIELD_IP_IDENTIFICATION
+-        {"SAI_ACL_TABLE_ATTR_FIELD_DSCP",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kHexString, .bitwidth = 6}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_ECN",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kHexString, .bitwidth = 2}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_TTL",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kHexString, .bitwidth = 8}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_TOS",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kHexString, .bitwidth = 8}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_IP_FLAGS",
+-         {.stages = {Stage::kIngress}, .format = Format::kHexString, .bitwidth = 3}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_TCP_FLAGS",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kHexString, .bitwidth = 6}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_ACL_IP_TYPE/ANY",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kHexString, .bitwidth = 1}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_ACL_IP_TYPE/IP",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kHexString, .bitwidth = 1}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_ACL_IP_TYPE/NON_IP",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kHexString, .bitwidth = 1}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_ACL_IP_TYPE/IPV4ANY",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kHexString, .bitwidth = 1}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_ACL_IP_TYPE/NON_IPV4",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kHexString, .bitwidth = 1}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_ACL_IP_TYPE/IPV6ANY",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kHexString, .bitwidth = 1}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_ACL_IP_TYPE/NON_IPV6",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kHexString, .bitwidth = 1}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_ACL_IP_TYPE/ARP",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kHexString, .bitwidth = 1}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_ACL_IP_TYPE/ARP_REQUEST",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kHexString, .bitwidth = 1}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_ACL_IP_TYPE/ARP_REPLY",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kHexString, .bitwidth = 1}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_ACL_IP_FRAG",
+-         {.stages = {Stage::kIngress}, .format = Format::kHexString, .bitwidth = 1}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_IPV6_FLOW_LABEL",
+-         {.stages = {Stage::kIngress}, .format = Format::kHexString, .bitwidth = 20}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_TC",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kHexString, .bitwidth = 8}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_ICMP_TYPE",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kHexString, .bitwidth = 8}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_ICMP_CODE",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kHexString, .bitwidth = 8}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_ICMPV6_TYPE",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kHexString, .bitwidth = 8}},
+-        {"SAI_ACL_TABLE_ATTR_FIELD_ICMPV6_CODE",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kHexString, .bitwidth = 8}},
+-        // SAI_ACL_TABLE_ATTR_FIELD_PACKET_VLAN
+-        // SAI_ACL_TABLE_ATTR_FIELD_TUNNEL_VNI
+-        // SAI_ACL_TABLE_ATTR_FIELD_HAS_VLAN_TAG
+-        // SAI_ACL_TABLE_ATTR_FIELD_MACSEC_SCI
+-        // SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL0_LABEL
+-        // SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL0_TTL
+-        // SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL0_EXP
+-        // SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL0_BOS
+-        // SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL1_LABEL
+-        // SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL1_TTL
+-        // SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL1_EXP
+-        // SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL1_BOS
+-        // SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL2_LABEL
+-        // SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL2_TTL
+-        // SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL2_EXP
+-        // SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL2_BOS
+-        // SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL3_LABEL
+-        // SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL3_TTL
+-        // SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL3_EXP
+-        // SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL3_BOS
+-        // SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL4_LABEL
+-        // SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL4_TTL
+-        // SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL4_EXP
+-        // SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL4_BOS
+-        // SAI_ACL_TABLE_ATTR_FIELD_FDB_DST_USER_META
+-        // SAI_ACL_TABLE_ATTR_FIELD_ROUTE_DST_USER_META
+-        // SAI_ACL_TABLE_ATTR_FIELD_NEIGHBOR_DST_USER_META
+-        // SAI_ACL_TABLE_ATTR_FIELD_PORT_USER_META
+-        // SAI_ACL_TABLE_ATTR_FIELD_VLAN_USER_META
+-        // SAI_ACL_TABLE_ATTR_FIELD_ACL_USER_META
+-        // SAI_ACL_TABLE_ATTR_FIELD_FDB_NPU_META_DST_HIT
+-        // SAI_ACL_TABLE_ATTR_FIELD_NEIGHBOR_NPU_META_DST_HIT
+-        // SAI_ACL_TABLE_ATTR_FIELD_ROUTE_NPU_META_DST_HIT
+-        // SAI_ACL_TABLE_ATTR_FIELD_BTH_OPCODE
+-        // SAI_ACL_TABLE_ATTR_FIELD_AETH_SYNDROME
+-        // SAI_ACL_TABLE_ATTR_FIELD_ACL_RANGE_TYPE
+-        {"SAI_ACL_TABLE_ATTR_FIELD_IPV6_NEXT_HEADER",
+-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kHexString, .bitwidth = 8}},
+-        // SAI_ACL_TABLE_ATTR_FIELD_GRE_KEY
+-        // SAI_ACL_TABLE_ATTR_FIELD_TAM_INT_TYPE
+-    });
+-    auto lookup = kMatchFields->find(match_field_name);
+-    if (lookup == kMatchFields->end())
+-    {
+-        throw std::invalid_argument("Unknown match field: " + match_field_name);
+-    }
+-    return lookup->second;
+-}
+-
+-const ActionSchema &ActionSchemaByName(const std::string &action_name)
+-{
+-    static const auto *const kActions = new std::unordered_map<std::string, ActionSchema>({
+-        {"SAI_ACL_ENTRY_ATTR_ACTION_REDIRECT", {.format = Format::kString, .bitwidth = 0}},
+-        {"SAI_ACL_ENTRY_ATTR_ACTION_ENDPOINT_IP", {.format = Format::kIPv4, .bitwidth = 32}},
+-        // SAI_ACL_ENTRY_ATTR_ACTION_REDIRECT_LIST
+-        // SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION
+-        {"SAI_ACL_ENTRY_ATTR_ACTION_FLOOD", {.format = Format::kNone, .bitwidth = 0}},
+-        // SAI_ACL_ENTRY_ATTR_ACTION_COUNTER
+-        {"SAI_ACL_ENTRY_ATTR_ACTION_MIRROR_INGRESS", {.format = Format::kString, .bitwidth = 0}},
+-        {"SAI_ACL_ENTRY_ATTR_ACTION_MIRROR_EGRESS", {.format = Format::kString, .bitwidth = 0}},
+-        // SAI_ACL_ENTRY_ATTR_ACTION_SET_POLICER
+-        {"SAI_ACL_ENTRY_ATTR_ACTION_DECREMENT_TTL", {.format = Format::kHexString, .bitwidth = 1}},
+-        {"SAI_ACL_ENTRY_ATTR_ACTION_SET_TC", {.format = Format::kHexString, .bitwidth = 8}},
+-        // SAI_ACL_ENTRY_ATTR_ACTION_SET_PACKET_COLOR
+-        {"SAI_ACL_ENTRY_ATTR_ACTION_SET_INNER_VLAN_ID", {.format = Format::kHexString, .bitwidth = 12}},
+-        {"SAI_ACL_ENTRY_ATTR_ACTION_SET_INNER_VLAN_PRI", {.format = Format::kHexString, .bitwidth = 3}},
+-        {"SAI_ACL_ENTRY_ATTR_ACTION_SET_OUTER_VLAN_ID", {.format = Format::kHexString, .bitwidth = 12}},
+-        {"SAI_ACL_ENTRY_ATTR_ACTION_SET_OUTER_VLAN_PRI", {.format = Format::kHexString, .bitwidth = 3}},
+-        {"SAI_ACL_ENTRY_ATTR_ACTION_ADD_VLAN_ID", {.format = Format::kHexString, .bitwidth = 12}},
+-        {"SAI_ACL_ENTRY_ATTR_ACTION_ADD_VLAN_PRI", {.format = Format::kHexString, .bitwidth = 3}},
+-        {"SAI_ACL_ENTRY_ATTR_ACTION_SET_SRC_MAC", {.format = Format::kMac, .bitwidth = 48}},
+-        {"SAI_ACL_ENTRY_ATTR_ACTION_SET_DST_MAC", {.format = Format::kMac, .bitwidth = 48}},
+-        // SAI_ACL_ENTRY_ATTR_ACTION_SET_SRC_IP
+-        // SAI_ACL_ENTRY_ATTR_ACTION_SET_DST_IP
+-        // SAI_ACL_ENTRY_ATTR_ACTION_SET_SRC_IPV6
+-        // SAI_ACL_ENTRY_ATTR_ACTION_SET_DST_IPV6
+-        {"SAI_ACL_ENTRY_ATTR_ACTION_SET_DSCP", {.format = Format::kHexString, .bitwidth = 6}},
+-        {"SAI_ACL_ENTRY_ATTR_ACTION_SET_ECN", {.format = Format::kHexString, .bitwidth = 2}},
+-        {"SAI_ACL_ENTRY_ATTR_ACTION_SET_L4_SRC_PORT", {.format = Format::kHexString, .bitwidth = 16}},
+-        {"SAI_ACL_ENTRY_ATTR_ACTION_SET_L4_DST_PORT", {.format = Format::kHexString, .bitwidth = 16}},
+-        // SAI_ACL_ENTRY_ATTR_ACTION_INGRESS_SAMPLEPACKET_ENABLE
+-        // SAI_ACL_ENTRY_ATTR_ACTION_EGRESS_SAMPLEPACKET_ENABLE
+-        // SAI_ACL_ENTRY_ATTR_ACTION_SET_ACL_META_DATA
+-        // SAI_ACL_ENTRY_ATTR_ACTION_EGRESS_BLOCK_PORT_LIST
+-        // SAI_ACL_ENTRY_ATTR_ACTION_SET_USER_TRAP_ID
+-        {"SAI_ACL_ENTRY_ATTR_ACTION_SET_DO_NOT_LEARN", {.format = Format::kNone, .bitwidth = 0}},
+-        // SAI_ACL_ENTRY_ATTR_ACTION_ACL_DTEL_FLOW_OP
+-        // SAI_ACL_ENTRY_ATTR_ACTION_DTEL_INT_SESSION
+-        // SAI_ACL_ENTRY_ATTR_ACTION_DTEL_DROP_REPORT_ENABLE
+-        // SAI_ACL_ENTRY_ATTR_ACTION_DTEL_TAIL_DROP_REPORT_ENABLE
+-        // SAI_ACL_ENTRY_ATTR_ACTION_DTEL_FLOW_SAMPLE_PERCENT
+-        // SAI_ACL_ENTRY_ATTR_ACTION_DTEL_REPORT_ALL_PACKETS
+-        // SAI_ACL_ENTRY_ATTR_ACTION_NO_NAT
+-        // SAI_ACL_ENTRY_ATTR_ACTION_INT_INSERT
+-        // SAI_ACL_ENTRY_ATTR_ACTION_INT_DELETE
+-        // SAI_ACL_ENTRY_ATTR_ACTION_INT_REPORT_FLOW
+-        // SAI_ACL_ENTRY_ATTR_ACTION_INT_REPORT_DROPS
+-        // SAI_ACL_ENTRY_ATTR_ACTION_INT_REPORT_TAIL_DROPS
+-        // SAI_ACL_ENTRY_ATTR_ACTION_TAM_INT_OBJECT
+-        // SAI_ACL_ENTRY_ATTR_ACTION_SET_ISOLATION_GROUP
+-        // SAI_ACL_ENTRY_ATTR_ACTION_MACSEC_FLOW
+-        {"SAI_PACKET_ACTION_DROP", {.format = Format::kNone, .bitwidth = 0}},
+-        {"SAI_PACKET_ACTION_FORWARD", {.format = Format::kNone, .bitwidth = 0}},
+-        // SAI_PACKET_ACTION_COPY
+-        // SAI_PACKET_ACTION_COPY_CANCEL
+-        {"SAI_PACKET_ACTION_TRAP", {.format = Format::kNone, .bitwidth = 0}},
+-        {"SAI_PACKET_ACTION_LOG", {.format = Format::kNone, .bitwidth = 0}},
+-        // SAI_PACKET_ACTION_DENY
+-        // SAI_PACKET_ACTION_TRANSIT
+-        {"QOS_QUEUE", {.format = Format::kString, .bitwidth = 0}},
+-    });
+-
+-    auto lookup = kActions->find(action_name);
+-    if (lookup == kActions->end())
+-    {
+-        throw std::invalid_argument("Unknown action: " + action_name);
+-    }
+-    return lookup->second;
+-}
+-
+-} // namespace acl
+-} // namespace swss
+diff --git a/common/saiaclschema.h b/common/saiaclschema.h
+deleted file mode 100644
+index 156148b..0000000
+--- a/common/saiaclschema.h
++++ /dev/null
+@@ -1,89 +0,0 @@
+-#ifndef SONIC_SWSS_COMMON_COMMON_SAIACLSCHEMA_H_
+-#define SONIC_SWSS_COMMON_COMMON_SAIACLSCHEMA_H_
+-
+-#include <set>
+-#include <string>
+-#include <unordered_map>
+-
+-// This file describes the AppDB ACL schema values between the P4RT app and
+-// OrchAgent and the capabilities of OrchAgent.
+-
+-namespace swss
+-{
+-namespace acl
+-{
+-
+-// Enumeration of ACL stages.
+-enum class Stage
+-{
+-    kLookup,
+-    kIngress,
+-    kEgress
+-};
+-
+-// Enumeration of expected data formats for match fields and action parameters.
+-enum class Format
+-{
+-    kNone,      // No value is expected (e.g. DROP action).
+-    kHexString, // Numerical value represented as hexadecimal. "0x1234"
+-    kMac,       // MAC address. "11:22:33:44:55:66"
+-    kIPv4,      // IPv4 address in canonical format. "128.0.0.1"
+-    kIPv6,      // IPv6 address in canonical format. "2002:1:128::"
+-    kString     // String value. "Port0"
+-};
+-
+-// Schema information for deciphering match fields.
+-struct MatchFieldSchema
+-{
+-    std::set<Stage> stages; // Stages where this match field can be used.
+-    Format format;          // Expected format for this match field in AppDB.
+-    int bitwidth;           // Bitwidth of the match field (if not string).
+-};
+-
+-// Schema information for deciphering actions and action parameters.
+-struct ActionSchema
+-{
+-    Format format; // Expected format for the action parameter in AppDB.
+-    int bitwidth;  // Bitwidth of the action parameter (if not string & not none).
+-};
+-
+-// Returns the SAI stage enum matching the AppDB name.
+-// "LOOKUP"  --> SAI_ACL_STAGE_LOOKUP (Not yet standard)
+-// "INGRESS" --> SAI_ACL_STAGE_INGRESS
+-// "EGRESS"  --> SAI_ACL_STAGE_EGRESS
+-//
+-// Throws std::invalid_argument if the name does not match a stage.
+-Stage StageFromName(const std::string &name);
+-
+-// Returns the AppDB name for a SAI stage enum. See StageFromName.
+-const std::string &StageName(Stage stage);
+-
+-// Returns the Format enum matching the AppDB format name.
+-// "HEX_STRING" --> kHexString
+-// "MAC"        --> kMac
+-// "IP"         --> kIP
+-// "IPV6"       --> kIPv6
+-// "IPV4"       --> kIPv4
+-// "STRING"     --> kString
+-//
+-// Throws std::invalid_argument if the name does not match a Format.
+-Format FormatFromName(const std::string &name);
+-
+-// Returns the AppDB format name for a Format enum.
+-const std::string &FormatName(Format format);
+-
+-// Returns the schema for a match field.
+-//
+-// Throws std::invalid_argument for unknown match fields and match fields
+-// without schemas.
+-const MatchFieldSchema &MatchFieldSchemaByName(const std::string &match_field_name);
+-
+-// Returns the schema for a action.
+-//
+-// Throws std::invalid_argument for unknown actions and actions without schemas.
+-const ActionSchema &ActionSchemaByName(const std::string &action_name);
+-
+-} // namespace acl
+-} // namespace swss
+-
+-#endif // SONIC_SWSS_COMMON_COMMON_SAIACLSCHEMA_H_
+diff --git a/common/schema.h b/common/schema.h
+index ac46f89..e0e7df1 100644
+--- a/common/schema.h
++++ b/common/schema.h
+@@ -22,7 +22,6 @@ namespace swss {
+ #define GB_FLEX_COUNTER_DB  11
+ #define CHASSIS_APP_DB      12
+ #define CHASSIS_STATE_DB    13
+-#define APPL_STATE_DB       14
+ 
+ /***** APPLICATION DATABASE *****/
+ 
+@@ -41,18 +40,6 @@ namespace swss {
+ #define APP_FDB_TABLE_NAME                "FDB_TABLE"
+ #define APP_PFC_WD_TABLE_NAME             "PFC_WD_TABLE"
+ #define APP_SWITCH_TABLE_NAME             "SWITCH_TABLE"
+-#define APP_NEXTHOP_GROUP_TABLE_NAME      "NEXTHOP_GROUP_TABLE"
+-#define APP_CLASS_BASED_NEXT_HOP_GROUP_TABLE_NAME "CLASS_BASED_NEXT_HOP_GROUP_TABLE"
+-
+-#define APP_P4RT_TABLE_NAME                   "P4RT_TABLE"
+-#define APP_P4RT_ROUTER_INTERFACE_TABLE_NAME  "FIXED_ROUTER_INTERFACE_TABLE"
+-#define APP_P4RT_NEIGHBOR_TABLE_NAME          "FIXED_NEIGHBOR_TABLE"
+-#define APP_P4RT_NEXTHOP_TABLE_NAME           "FIXED_NEXTHOP_TABLE"
+-#define APP_P4RT_WCMP_GROUP_TABLE_NAME        "FIXED_WCMP_GROUP_TABLE"
+-#define APP_P4RT_IPV4_TABLE_NAME              "FIXED_IPV4_TABLE"
+-#define APP_P4RT_IPV6_TABLE_NAME              "FIXED_IPV6_TABLE"
+-#define APP_P4RT_ACL_TABLE_DEFINITION_NAME    "ACL_TABLE_DEFINITION_TABLE"
+-#define APP_P4RT_MIRROR_SESSION_TABLE_NAME    "FIXED_MIRROR_SESSION_TABLE"
+ 
+ #define APP_COPP_TABLE_NAME               "COPP_TABLE"
+ #define APP_VRF_TABLE_NAME                "VRF_TABLE"
+@@ -68,7 +55,6 @@ namespace swss {
+ #define APP_NEIGH_SUPPRESS_VLAN_TABLE_NAME   "SUPPRESS_VLAN_NEIGH_TABLE"
+ #define APP_PASS_THROUGH_ROUTE_TABLE_NAME "PASS_THROUGH_ROUTE_TABLE"
+ #define APP_ACL_TABLE_TABLE_NAME          "ACL_TABLE_TABLE"
+-#define APP_ACL_TABLE_TYPE_TABLE_NAME     "ACL_TABLE_TYPE_TABLE"
+ #define APP_ACL_RULE_TABLE_NAME           "ACL_RULE_TABLE"
+ #define APP_SFLOW_TABLE_NAME              "SFLOW_TABLE"
+ #define APP_SFLOW_SESSION_TABLE_NAME      "SFLOW_SESSION_TABLE"
+@@ -91,9 +77,6 @@ namespace swss {
+ #define APP_STP_BPDU_GUARD_TABLE_NAME       "STP_BPDU_GUARD_TABLE"
+ #define APP_MCLAG_FDB_TABLE_NAME            "MCLAG_FDB_TABLE"
+ #define APP_ISOLATION_GROUP_TABLE_NAME      "ISOLATION_GROUP_TABLE"
+-#define APP_BFD_SESSION_TABLE_NAME          "BFD_SESSION_TABLE"
+-
+-#define APP_FC_TO_NHG_INDEX_MAP_TABLE_NAME   "FC_TO_NHG_INDEX_MAP_TABLE"
+ 
+ /***** ASIC DATABASE *****/
+ #define ASIC_TEMPERATURE_INFO_TABLE_NAME    "ASIC_TEMPERATURE_INFO"
+@@ -120,9 +103,6 @@ namespace swss {
+ 
+ #define APP_NEIGH_RESOLVE_TABLE_NAME        "NEIGH_RESOLVE_TABLE"
+ 
+-#define APP_SRV6_SID_LIST_TABLE_NAME        "SRV6_SID_LIST_TABLE"
+-#define APP_SRV6_MY_SID_TABLE_NAME          "SRV6_MY_SID_TABLE"
+-
+ /***** TO BE REMOVED *****/
+ 
+ #define APP_TC_TO_QUEUE_MAP_TABLE_NAME  "TC_TO_QUEUE_MAP_TABLE"
+@@ -149,19 +129,12 @@ namespace swss {
+ #define COUNTERS_PG_INDEX_MAP               "COUNTERS_PG_INDEX_MAP"
+ #define COUNTERS_RIF_TYPE_MAP               "COUNTERS_RIF_TYPE_MAP"
+ #define COUNTERS_RIF_NAME_MAP               "COUNTERS_RIF_NAME_MAP"
+-#define COUNTERS_TRAP_NAME_MAP              "COUNTERS_TRAP_NAME_MAP"
+ #define COUNTERS_CRM_TABLE                  "CRM"
+ #define COUNTERS_BUFFER_POOL_NAME_MAP       "COUNTERS_BUFFER_POOL_NAME_MAP"
+ #define COUNTERS_SWITCH_NAME_MAP            "COUNTERS_SWITCH_NAME_MAP"
+ #define COUNTERS_MACSEC_NAME_MAP            "COUNTERS_MACSEC_NAME_MAP"
+-#define COUNTERS_MACSEC_FLOW_TX_NAME_MAP    "COUNTERS_MACSEC_FLOW_TX_NAME_MAP"
+-#define COUNTERS_MACSEC_FLOW_RX_NAME_MAP    "COUNTERS_MACSEC_FLOW_RX_NAME_MAP"
+-#define COUNTERS_MACSEC_SA_TX_NAME_MAP      "COUNTERS_MACSEC_SA_TX_NAME_MAP"
+-#define COUNTERS_MACSEC_SA_RX_NAME_MAP      "COUNTERS_MACSEC_SA_RX_NAME_MAP"
+ #define COUNTERS_DEBUG_NAME_PORT_STAT_MAP   "COUNTERS_DEBUG_NAME_PORT_STAT_MAP"
+ #define COUNTERS_DEBUG_NAME_SWITCH_STAT_MAP "COUNTERS_DEBUG_NAME_SWITCH_STAT_MAP"
+-#define COUNTERS_TUNNEL_TYPE_MAP            "COUNTERS_TUNNEL_TYPE_MAP"
+-#define COUNTERS_TUNNEL_NAME_MAP            "COUNTERS_TUNNEL_NAME_MAP"
+ 
+ #define COUNTERS_NAT_TABLE              "COUNTERS_NAT"
+ #define COUNTERS_NAPT_TABLE             "COUNTERS_NAPT"
+@@ -197,14 +170,8 @@ namespace swss {
+ #define PG_COUNTER_ID_LIST              "PG_COUNTER_ID_LIST"
+ #define PG_ATTR_ID_LIST                 "PG_ATTR_ID_LIST"
+ #define RIF_COUNTER_ID_LIST             "RIF_COUNTER_ID_LIST"
+-#define TUNNEL_COUNTER_ID_LIST          "TUNNEL_COUNTER_ID_LIST"
+ #define SWITCH_DEBUG_COUNTER_ID_LIST    "SWITCH_DEBUG_COUNTER_ID_LIST"
+-#define MACSEC_FLOW_COUNTER_ID_LIST     "MACSEC_FLOW_COUNTER_ID_LIST"
+-#define MACSEC_SA_COUNTER_ID_LIST       "MACSEC_SA_COUNTER_ID_LIST"
+ #define MACSEC_SA_ATTR_ID_LIST          "MACSEC_SA_ATTR_ID_LIST"
+-#define TUNNEL_ATTR_ID_LIST             "TUNNEL_ATTR_ID_LIST"
+-#define ACL_COUNTER_ATTR_ID_LIST        "ACL_COUNTER_ATTR_ID_LIST"
+-#define FLOW_COUNTER_ID_LIST            "FLOW_COUNTER_ID_LIST"
+ #define PLUGIN_TABLE                    "PLUGIN_TABLE"
+ #define LUA_PLUGIN_TYPE                 "LUA_PLUGIN_TYPE"
+ #define SAI_OBJECT_TYPE                 "SAI_OBJECT_TYPE"
+@@ -217,9 +184,7 @@ namespace swss {
+ #define PORT_PLUGIN_FIELD                   "PORT_PLUGIN_LIST"
+ #define RIF_PLUGIN_FIELD                    "RIF_PLUGIN_LIST"
+ #define PG_PLUGIN_FIELD                     "PG_PLUGIN_LIST"
+-#define TUNNEL_PLUGIN_FIELD                 "TUNNEL_PLUGIN_LIST"
+ #define BUFFER_POOL_PLUGIN_FIELD            "BUFFER_POOL_PLUGIN_LIST"
+-#define FLOW_COUNTER_PLUGIN_FIELD           "FLOW_COUNTER_PLUGIN_FIELD"
+ #define FLEX_COUNTER_STATUS_FIELD           "FLEX_COUNTER_STATUS"
+ #define FLEX_COUNTER_GROUP_TABLE            "FLEX_COUNTER_GROUP_TABLE"
+ #define FLEX_COUNTER_DELAY_STATUS_FIELD     "FLEX_COUNTER_DELAY_STATUS"
+@@ -266,30 +231,21 @@ namespace swss {
+ 
+ #define CFG_MIRROR_SESSION_TABLE_NAME "MIRROR_SESSION"
+ #define CFG_ACL_TABLE_TABLE_NAME      "ACL_TABLE"
+-#define CFG_ACL_TABLE_TYPE_TABLE_NAME "ACL_TABLE_TYPE"
+ #define CFG_ACL_RULE_TABLE_NAME       "ACL_RULE"
+ #define CFG_PFC_WD_TABLE_NAME         "PFC_WD"
+ #define CFG_FLEX_COUNTER_TABLE_NAME "FLEX_COUNTER_TABLE"
+ #define CFG_WATERMARK_TABLE_NAME "WATERMARK_TABLE"
+ 
+-#define CFG_PBH_TABLE_TABLE_NAME      "PBH_TABLE"
+-#define CFG_PBH_RULE_TABLE_NAME       "PBH_RULE"
+-#define CFG_PBH_HASH_TABLE_NAME       "PBH_HASH"
+-#define CFG_PBH_HASH_FIELD_TABLE_NAME "PBH_HASH_FIELD"
+-
+ #define CFG_PFC_PRIORITY_TO_PRIORITY_GROUP_MAP_TABLE_NAME "PFC_PRIORITY_TO_PRIORITY_GROUP_MAP"
+ #define CFG_TC_TO_PRIORITY_GROUP_MAP_TABLE_NAME     "TC_TO_PRIORITY_GROUP_MAP"
+ #define CFG_PFC_PRIORITY_TO_QUEUE_MAP_TABLE_NAME    "MAP_PFC_PRIORITY_TO_QUEUE"
+ #define CFG_TC_TO_QUEUE_MAP_TABLE_NAME              "TC_TO_QUEUE_MAP"
+ #define CFG_DSCP_TO_TC_MAP_TABLE_NAME               "DSCP_TO_TC_MAP"
+-#define CFG_MPLS_TC_TO_TC_MAP_TABLE_NAME            "MPLS_TC_TO_TC_MAP"
+ #define CFG_SCHEDULER_TABLE_NAME                    "SCHEDULER"
+ #define CFG_PORT_QOS_MAP_TABLE_NAME                 "PORT_QOS_MAP"
+ #define CFG_WRED_PROFILE_TABLE_NAME                 "WRED_PROFILE"
+ #define CFG_QUEUE_TABLE_NAME                        "QUEUE"
+ #define CFG_DOT1P_TO_TC_MAP_TABLE_NAME              "DOT1P_TO_TC_MAP"
+-#define CFG_DSCP_TO_FC_MAP_TABLE_NAME               "DSCP_TO_FC_MAP"
+-#define CFG_EXP_TO_FC_MAP_TABLE_NAME                "EXP_TO_FC_MAP"
+ 
+ #define CFG_BUFFER_POOL_TABLE_NAME                  "BUFFER_POOL"
+ #define CFG_BUFFER_PROFILE_TABLE_NAME               "BUFFER_PROFILE"
+@@ -314,9 +270,6 @@ namespace swss {
+ #define CFG_VNET_RT_TABLE_NAME                      "VNET_ROUTE"
+ #define CFG_VNET_RT_TUNNEL_TABLE_NAME               "VNET_ROUTE_TUNNEL"
+ 
+-#define CFG_NVGRE_TUNNEL_TABLE_NAME                 "NVGRE_TUNNEL"
+-#define CFG_NVGRE_TUNNEL_MAP_TABLE_NAME             "NVGRE_TUNNEL_MAP"
+-
+ #define CFG_PASS_THROUGH_ROUTE_TABLE_NAME           "PASS_THROUGH_ROUTE_TABLE"
+ #define CFG_SFLOW_TABLE_NAME                        "SFLOW"
+ #define CFG_SFLOW_SESSION_TABLE_NAME                "SFLOW_SESSION"
+@@ -338,7 +291,7 @@ namespace swss {
+ #define CFG_MCLAG_TABLE_NAME                        "MCLAG_DOMAIN"
+ #define CFG_MCLAG_INTF_TABLE_NAME                   "MCLAG_INTERFACE"
+ #define CFG_MCLAG_UNIQUE_IP_TABLE_NAME              "MCLAG_UNIQUE_IP"
+-
++  
+ #define CFG_PORT_STORM_CONTROL_TABLE_NAME           "PORT_STORM_CONTROL"
+ 
+ #define CFG_RATES_TABLE_NAME                        "RATES"
+@@ -371,12 +324,9 @@ namespace swss {
+ 
+ #define CFG_CHASSIS_MODULE_TABLE                    "CHASSIS_MODULE"
+ 
+-#define CFG_DHCP_TABLE                              "DHCP_RELAY"
+-
+ /***** STATE DATABASE *****/
+ 
+ #define STATE_SWITCH_CAPABILITY_TABLE_NAME          "SWITCH_CAPABILITY_TABLE"
+-#define STATE_ACL_STAGE_CAPABILITY_TABLE_NAME       "ACL_STAGE_CAPABILITY_TABLE"
+ #define STATE_PORT_TABLE_NAME                       "PORT_TABLE"
+ #define STATE_LAG_TABLE_NAME                        "LAG_TABLE"
+ #define STATE_VLAN_TABLE_NAME                       "VLAN_TABLE"
+@@ -426,13 +376,6 @@ namespace swss {
+ #define STATE_PORT_PERIPHERAL_TABLE                 "PORT_PERIPHERAL_TABLE"
+ #define STATE_BUFFER_POOL_TABLE_NAME                "BUFFER_POOL_TABLE"
+ #define STATE_BUFFER_PROFILE_TABLE_NAME             "BUFFER_PROFILE_TABLE"
+-#define STATE_DHCPv6_COUNTER_TABLE_NAME             "DHCPv6_COUNTER_TABLE"
+-
+-#define STATE_BFD_SESSION_TABLE_NAME                "BFD_SESSION_TABLE"
+-#define STATE_ROUTE_TABLE_NAME                      "ROUTE_TABLE"
+-#define STATE_VNET_RT_TUNNEL_TABLE_NAME             "VNET_ROUTE_TUNNEL_TABLE"
+-#define STATE_ADVERTISE_NETWORK_TABLE_NAME          "ADVERTISE_NETWORK_TABLE"
+-
+ /***** MISC *****/
+ 
+ #define IPV4_NAME "IPv4"
+diff --git a/common/sonicv2connector.h b/common/sonicv2connector.h
+index 541b583..6f21c9d 100644
+--- a/common/sonicv2connector.h
++++ b/common/sonicv2connector.h
+@@ -81,6 +81,9 @@ private:
+             for db_name in self.get_db_list():
+                 # set a database name as a constant value attribute.
+                 setattr(self, db_name, db_name)
++                getmethod = lambda self: db_name
++                SonicV2Connector.__swig_getmethods__[db_name] = getmethod
++                SonicV2Connector.__swig_setmethods__[db_name] = None
+ 
+         @property
+         def namespace(self):
+diff --git a/common/status_code_util.h b/common/status_code_util.h
+deleted file mode 100644
+index e1c4f8d..0000000
+--- a/common/status_code_util.h
++++ /dev/null
+@@ -1,76 +0,0 @@
+-#pragma once
+-
+-#include <map>
+-#include <string>
+-
+-namespace swss
+-{
+-
+-enum class StatusCode
+-{
+-    SWSS_RC_SUCCESS,
+-    SWSS_RC_INVALID_PARAM,
+-    SWSS_RC_DEADLINE_EXCEEDED,
+-    SWSS_RC_UNAVAIL,
+-    SWSS_RC_NOT_FOUND,
+-    SWSS_RC_NO_MEMORY,
+-    SWSS_RC_EXISTS,
+-    SWSS_RC_PERMISSION_DENIED,
+-    SWSS_RC_FULL,
+-    SWSS_RC_IN_USE,
+-    SWSS_RC_INTERNAL,
+-    SWSS_RC_UNIMPLEMENTED,
+-    SWSS_RC_UNKNOWN,
+-};
+-
+-static const std::map<StatusCode, std::string> statusCodeMapping = {
+-    {StatusCode::SWSS_RC_SUCCESS, "SWSS_RC_SUCCESS"},
+-    {StatusCode::SWSS_RC_INVALID_PARAM, "SWSS_RC_INVALID_PARAM"},
+-    {StatusCode::SWSS_RC_DEADLINE_EXCEEDED, "SWSS_RC_DEADLINE_EXCEEDED"},
+-    {StatusCode::SWSS_RC_UNAVAIL, "SWSS_RC_UNAVAIL"},
+-    {StatusCode::SWSS_RC_NOT_FOUND, "SWSS_RC_NOT_FOUND"},
+-    {StatusCode::SWSS_RC_NO_MEMORY, "SWSS_RC_NO_MEMORY"},
+-    {StatusCode::SWSS_RC_EXISTS, "SWSS_RC_EXISTS"},
+-    {StatusCode::SWSS_RC_PERMISSION_DENIED, "SWSS_RC_PERMISSION_DENIED"},
+-    {StatusCode::SWSS_RC_FULL, "SWSS_RC_FULL"},
+-    {StatusCode::SWSS_RC_IN_USE, "SWSS_RC_IN_USE"},
+-    {StatusCode::SWSS_RC_INTERNAL, "SWSS_RC_INTERNAL"},
+-    {StatusCode::SWSS_RC_UNIMPLEMENTED, "SWSS_RC_UNIMPLEMENTED"},
+-    {StatusCode::SWSS_RC_UNKNOWN, "SWSS_RC_UNKNOWN"},
+-};
+-
+-static const std::map<std::string, StatusCode> StatusCodeLookup = {
+-    {"SWSS_RC_SUCCESS", StatusCode::SWSS_RC_SUCCESS},
+-    {"SWSS_RC_INVALID_PARAM", StatusCode::SWSS_RC_INVALID_PARAM},
+-    {"SWSS_RC_DEADLINE_EXCEEDED", StatusCode::SWSS_RC_DEADLINE_EXCEEDED},
+-    {"SWSS_RC_UNAVAIL", StatusCode::SWSS_RC_UNAVAIL},
+-    {"SWSS_RC_NOT_FOUND", StatusCode::SWSS_RC_NOT_FOUND},
+-    {"SWSS_RC_NO_MEMORY", StatusCode::SWSS_RC_NO_MEMORY},
+-    {"SWSS_RC_EXISTS", StatusCode::SWSS_RC_EXISTS},
+-    {"SWSS_RC_PERMISSION_DENIED", StatusCode::SWSS_RC_PERMISSION_DENIED},
+-    {"SWSS_RC_FULL", StatusCode::SWSS_RC_FULL},
+-    {"SWSS_RC_IN_USE", StatusCode::SWSS_RC_IN_USE},
+-    {"SWSS_RC_INTERNAL", StatusCode::SWSS_RC_INTERNAL},
+-    {"SWSS_RC_UNIMPLEMENTED", StatusCode::SWSS_RC_UNIMPLEMENTED},
+-    {"SWSS_RC_UNKNOWN", StatusCode::SWSS_RC_UNKNOWN},
+-};
+-
+-static inline std::string statusCodeToStr(const StatusCode &status)
+-{
+-    if (statusCodeMapping.find(status) == statusCodeMapping.end())
+-    {
+-        return "SWSS_RC_UNKNOWN";
+-    }
+-    return statusCodeMapping.at(status);
+-}
+-
+-static inline StatusCode strToStatusCode(const std::string &status)
+-{
+-    if (StatusCodeLookup.find(status) == StatusCodeLookup.end())
+-    {
+-        return StatusCode::SWSS_RC_UNKNOWN;
+-    }
+-    return StatusCodeLookup.at(status);
+-}
+-
+-} // namespace swss
+\ No newline at end of file
+diff --git a/common/table.cpp b/common/table.cpp
+index cc2234d..5eb4c7d 100644
+--- a/common/table.cpp
++++ b/common/table.cpp
+@@ -28,8 +28,7 @@ const TableNameSeparatorMap TableBase::tableNameSeparatorMap = {
+    { CONFIG_DB,           TABLE_NAME_SEPARATOR_VBAR  },
+    { PFC_WD_DB,           TABLE_NAME_SEPARATOR_COLON },
+    { FLEX_COUNTER_DB,     TABLE_NAME_SEPARATOR_COLON },
+-   { STATE_DB,            TABLE_NAME_SEPARATOR_VBAR  },
+-   { APPL_STATE_DB,       TABLE_NAME_SEPARATOR_COLON }
++   { STATE_DB,            TABLE_NAME_SEPARATOR_VBAR  }
+ };
+ 
+ Table::Table(const DBConnector *db, const string &tableName)
+@@ -124,56 +123,21 @@ void Table::hset(const string &key, const std::string &field, const std::string
+ }
+ 
+ void Table::set(const string &key, const vector<FieldValueTuple> &values,
+-                const string &op, const string &prefix)
+-{
+-    set(key, values, op, prefix, DEFAULT_DB_TTL);
+-}
+-
+-// TODO: Implement this without overloading(add an additional ttl param
+-//       to existing set() command once sonic-swss's mock_table.cpp and other
+-//       dependencies can be updated to use the extended new default set())
+-void Table::set(const string &key, const vector<FieldValueTuple> &values,
+-                const string &op, const string &prefix, const int64_t &ttl)
++                const string& /*op*/, const string& /*prefix*/)
+ {
+     if (values.size() == 0)
+         return;
+ 
+     RedisCommand cmd;
+-    
+     cmd.formatHMSET(getKeyName(key), values.begin(), values.end());
+-    m_pipe->push(cmd, REDIS_REPLY_STATUS);
+-    
+-    if (ttl != DEFAULT_DB_TTL)
+-    {
+-        // Configure the expire time for the entry that was just added
+-        cmd.formatEXPIRE(getKeyName(key), ttl);
+-        m_pipe->push(cmd, REDIS_REPLY_INTEGER);
+-    }
+ 
++    m_pipe->push(cmd, REDIS_REPLY_STATUS);
+     if (!m_buffered)
+     {
+         m_pipe->flush();
+     }
+ }
+ 
+-bool Table::ttl(const string &key, int64_t &reply_value)
+-{
+-    RedisCommand cmd_ttl;
+-    cmd_ttl.formatTTL(getKeyName(key));
+-    RedisReply r = m_pipe->push(cmd_ttl);
+-    redisReply *reply = r.getContext();
+-
+-    if (reply != NULL)
+-    {
+-        reply_value = reply->integer;
+-        return true;
+-    }
+-    else
+-    {
+-        return false;
+-    }
+-}
+-
+ void Table::del(const string &key, const string& /* op */, const string& /*prefix*/)
+ {
+     RedisCommand del_key;
+diff --git a/common/table.h b/common/table.h
+index 6dcc120..577f8c3 100644
+--- a/common/table.h
++++ b/common/table.h
+@@ -164,9 +164,6 @@ public:
+     void getContent(std::vector<KeyOpFieldsValuesTuple> &tuples);
+ };
+ 
+-/* The default time to live for a DB entry is infinite */
+-static constexpr int64_t DEFAULT_DB_TTL = -1;
+-
+ class Table : public TableBase, public TableEntryEnumerable {
+ public:
+     Table(const DBConnector *db, const std::string &tableName);
+@@ -178,20 +175,10 @@ public:
+                      const std::vector<FieldValueTuple> &values,
+                      const std::string &op = "",
+                      const std::string &prefix = EMPTY_PREFIX);
+-
+-    /* Set an entry in the DB directly and configure ttl for it (op not in use) */
+-    virtual void set(const std::string &key,
+-                     const std::vector<FieldValueTuple> &values, 
+-                     const std::string &op,
+-                     const std::string &prefix,
+-                     const int64_t &ttl);   
+-
+     /* Delete an entry in the table */
+     virtual void del(const std::string &key,
+                      const std::string &op = "",
+                      const std::string &prefix = EMPTY_PREFIX);
+-    /* Get the configured ttl value for key */
+-    bool ttl(const std::string &key, int64_t &reply_value);
+ 
+ #ifdef SWIG
+     // SWIG interface file (.i) globally rename map C++ `del` to python `delete`,
+diff --git a/configure.ac b/configure.ac
+index ff909b1..a108f11 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -12,8 +12,6 @@ AC_PROG_LIBTOOL
+ AC_HEADER_STDC
+ AM_PATH_PYTHON
+ AM_PATH_PYTHON3
+-AX_CODE_COVERAGE
+-AX_ADD_AM_MACRO_STATIC([])
+ 
+ AC_CHECK_LIB([hiredis], [redisConnect])
+ PKG_CHECK_MODULES([LIBNL], [libnl-3.0 libnl-genl-3.0 libnl-route-3.0 libnl-nf-3.0])
+@@ -30,22 +28,10 @@ AC_ARG_ENABLE(debug,
+ 	no)  debug=false ;;
+ 	*) AC_MSG_ERROR(bad value ${enableval} for --enable-debug) ;;
+ esac],[debug=false])
+-AC_ARG_ENABLE(python2,
+-[  --enable-python2     Generate Python 2 bindings],
+-[case "${enableval}" in
+-	yes) python2=true ;;
+-	no)  python2=false ;;
+-	*) AC_MSG_ERROR(bad value ${enableval} for --enable-python2) ;;
+-esac],[python2=true])
+ AM_CONDITIONAL(DEBUG, test x$debug = xtrue)
+-AM_CONDITIONAL(PYTHON2, test x$python2 = xtrue)
+-if test x$CONFIGURED_ARCH = xarmhf && test x$CROSS_BUILD_ENVIRON = xy; then
+-	AM_CONDITIONAL(ARCH64, false)
+-else
+-	AM_CONDITIONAL(ARCH64, test `getconf LONG_BIT` = "64")
+-fi
++AM_CONDITIONAL(ARCH64, test `getconf LONG_BIT` = "64")
+ 
+-AC_PATH_PROGS(SWIG, [swig4.0 swig3.0 swig])
++AC_PATH_PROG(SWIG, [swig3.0])
+ 
+ CFLAGS_COMMON=""
+ CFLAGS_COMMON+=" -ansi"
+diff --git a/debian/control b/debian/control
+index 215c109..b8c47fc 100644
+--- a/debian/control
++++ b/debian/control
+@@ -2,7 +2,7 @@ Source: sonic
+ Maintainer: Shuotian Cheng <shuche@microsoft.com>
+ Section: net
+ Priority: optional
+-Build-Depends: dh-exec (>=0.3), debhelper (>= 9), autotools-dev, libboost-dev | libboost1.71-dev | libboost1.74-dev
++Build-Depends: dh-exec (>=0.3), debhelper (>= 9), autotools-dev, libboost-dev | libboost1.71-dev
+ Standards-Version: 1.0.0
+ 
+ Package: libswsscommon
+@@ -19,13 +19,12 @@ Description: debugging symbols for libswsscommon library.
+ 
+ Package: libswsscommon-dev
+ Architecture: any
+-Depends: libswsscommon (= ${binary:Version}), libboost-dev | libboost1.71-dev | libboost1.74-dev
++Depends: libswsscommon (= ${binary:Version}), libboost-dev | libboost1.71-dev
+ Section: libdevel
+ Description: This package contains development files for Switch State Service.
+ 
+ Package: python-swsscommon
+ Architecture: any
+-Build-Profiles: <!nopython2>
+ Depends: ${shlibs:Depends}, ${misc:Pre-Depends}
+ Section: libs
+ Description: This package contains Switch State Service common Python2 library.
+diff --git a/debian/rules b/debian/rules
+index 7890ad2..eab9a2b 100755
+--- a/debian/rules
++++ b/debian/rules
+@@ -16,28 +16,20 @@ include /usr/share/dpkg/default.mk
+ # package maintainers to append LDFLAGS
+ #export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
+ 
+-DEBIAN_DIST_CODENAME := $(shell lsb_release -sc | sed -e 's/\#/ /g')
+-
+-DOPACKAGES = $(shell dh_listpackages)
+-
+-# For Debian jessie, stretch, and buster, and Ubuntu bionic and focal, build
+-# Python 2 bindings. This is controlled by the build profile being used.
+-ifneq (,$(filter python-swsscommon,$(DOPACKAGES)))
+-CONFIGURE_ARGS += --enable-python2
+-else
+-CONFIGURE_ARGS += --disable-python2
+-endif
+ 
+ # main packaging script based on dh7 syntax
+ %:
+-	dh $@  --with autoreconf
++	dh $@  --with autotools-dev
+ 
+ # dh_make generated override targets
+ # This is example for Cmake (See https://bugs.debian.org/641051 )
+-override_dh_auto_configure:
+-	dh_auto_configure -- $(CONFIGURE_ARGS) $(DEB_CONFIGURE_EXTRA_FLAGS)
++#override_dh_auto_configure:
++#	dh_auto_configure -- \
+ #	-DCMAKE_LIBRARY_PATH=$(DEB_HOST_MULTIARCH)
+ 
++override_dh_auto_install:
++	dh_auto_install
++
+ override_dh_clean:
+ 	dh_clean
+ 	rm -f pyext/swsscommon.py pyext/swsscommon_wrap.cpp
+diff --git a/pyext/Makefile.am b/pyext/Makefile.am
+index f7c1915..ceeeba2 100644
+--- a/pyext/Makefile.am
++++ b/pyext/Makefile.am
+@@ -1,6 +1,3 @@
+-SUBDIRS = py3
+-if PYTHON2
+-SUBDIRS += py2
+-endif
++SUBDIRS = py2 py3
+ 
+ ACLOCAL_AMFLAGS = -I m4
+diff --git a/pyext/swsscommon.i b/pyext/swsscommon.i
+index ebf3e65..5380250 100644
+--- a/pyext/swsscommon.i
++++ b/pyext/swsscommon.i
+@@ -35,7 +35,6 @@
+ #include "warm_restart.h"
+ #include "logger.h"
+ #include "configdb.h"
+-#include "status_code_util.h"
+ %}
+ 
+ %include <std_string.i>
+@@ -204,4 +203,3 @@ T castSelectableObj(swss::Selectable *temp)
+ %include "warm_restart.h"
+ %include "dbinterface.h"
+ %include "logger.h"
+-%include "status_code_util.h"
+diff --git a/tests/BUILD b/tests/BUILD
+deleted file mode 100644
+index 5fd538a..0000000
+--- a/tests/BUILD
++++ /dev/null
+@@ -1,23 +0,0 @@
+-package(default_visibility = ["//visibility:public"])
+-
+-cc_test(
+-    name = "status_code_util_test",
+-    srcs = ["status_code_util_test.cpp"],
+-    deps = [
+-        "//:libswsscommon",
+-        "@com_github_google_glog//:glog",
+-        "@com_google_googletest//:gtest",
+-        "@com_google_googletest//:gtest_main",
+-    ],
+-)
+-
+-cc_test(
+-    name = "saiaclschema_ut",
+-    srcs = ["saiaclschema_ut.cpp"],
+-    deps = [
+-        "//:libswsscommon",
+-        "@com_github_google_glog//:glog",
+-        "@com_google_googletest//:gtest",
+-        "@com_google_googletest//:gtest_main",
+-    ],
+-)
+\ No newline at end of file
+diff --git a/tests/Makefile.am b/tests/Makefile.am
+index a84a6df..25827ba 100644
+--- a/tests/Makefile.am
++++ b/tests/Makefile.am
+@@ -9,7 +9,7 @@ DBGFLAGS = -g -DNDEBUG
+ endif
+ 
+ CFLAGS_GTEST =
+-LDADD_GTEST = -L/usr/src/gtest -lgtest -lgtest_main -lgmock -lgmock_main
++LDADD_GTEST = -L/usr/src/gtest -lgtest -lgtest_main
+ 
+ tests_SOURCES = redis_ut.cpp                \
+                 redis_piped_ut.cpp          \
+@@ -33,10 +33,8 @@ tests_SOURCES = redis_ut.cpp                \
+                 stringutility_ut.cpp        \
+                 redisutility_ut.cpp         \
+                 boolean_ut.cpp              \
+-                status_code_util_test.cpp   \
+-                saiaclschema_ut.cpp         \
+                 main.cpp
+ 
+ tests_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_GTEST) $(LIBNL_CFLAGS)
+ tests_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_GTEST) $(LIBNL_CFLAGS)
+-tests_LDADD = $(LDADD_GTEST) -lpthread -L$(top_srcdir)/common -lswsscommon $(LIBNL_LIBS) $(CODE_COVERAGE_LIBS)
++tests_LDADD = $(LDADD_GTEST) -lpthread -L$(top_srcdir)/common -lswsscommon $(LIBNL_LIBS)
+diff --git a/tests/redis_multi_db_ut_config/database_config.json b/tests/redis_multi_db_ut_config/database_config.json
+index c334387..559ebdf 100644
+--- a/tests/redis_multi_db_ut_config/database_config.json
++++ b/tests/redis_multi_db_ut_config/database_config.json
+@@ -92,11 +92,6 @@
+             "separator": "|",
+             "instance" : "redis"
+         },
+-        "APPL_STATE_DB" : {
+-            "id" : 14,
+-            "separator": ":",
+-            "instance" : "redis"
+-        },
+         "TEST_DB" : {
+             "id" : 15,
+             "separator": ":",
+diff --git a/tests/redis_multi_db_ut_config/database_config0.json b/tests/redis_multi_db_ut_config/database_config0.json
+index 8e90fd2..a7f46ce 100644
+--- a/tests/redis_multi_db_ut_config/database_config0.json
++++ b/tests/redis_multi_db_ut_config/database_config0.json
+@@ -72,11 +72,6 @@
+             "separator": "|",
+             "instance" : "redis"
+         },
+-        "APPL_STATE_DB" : {
+-            "id" : 14,
+-            "separator": ":",
+-            "instance" : "redis"
+-        },
+         "TEST_DB" : {
+             "id" : 15,
+             "separator": ":",
+diff --git a/tests/redis_multi_db_ut_config/database_config1.json b/tests/redis_multi_db_ut_config/database_config1.json
+index d83cf3d..4b8d078 100644
+--- a/tests/redis_multi_db_ut_config/database_config1.json
++++ b/tests/redis_multi_db_ut_config/database_config1.json
+@@ -72,11 +72,6 @@
+             "separator": "|",
+             "instance" : "redis"
+         },
+-        "APPL_STATE_DB" : {
+-            "id" : 14,
+-            "separator": ":",
+-            "instance" : "redis"
+-        },
+         "TEST_DB" : {
+             "id" : 15,
+             "separator": ":",
+diff --git a/tests/redis_ut.cpp b/tests/redis_ut.cpp
+index dd6292f..8999a14 100644
+--- a/tests/redis_ut.cpp
++++ b/tests/redis_ut.cpp
+@@ -709,50 +709,6 @@ TEST(Table, table_separator_test)
+     TableBasicTest("TABLE_UT_TEST", false);
+ }
+ 
+-TEST(Table, ttl_test)
+-{
+-    string tableName = "TABLE_UT_TEST";
+-    DBConnector db("TEST_DB", 0, true);
+-    RedisPipeline pipeline(&db);
+-    Table t(&pipeline, tableName, true);
+-
+-    clearDB();
+-    cout << "Starting table manipulations" << endl;
+-
+-    string key_1 = "a";
+-    string key_2 = "b";
+-    vector<FieldValueTuple> values;
+-
+-    for (int i = 1; i < 4; i++)
+-    {
+-        string field = "field_" + to_string(i);
+-        string value = to_string(i);
+-        values.push_back(make_pair(field, value));
+-    }
+-    
+-    int64_t initial_a_ttl = -1, initial_b_ttl = 200;
+-    cout << "- Step 1. SET with custom ttl" << endl;
+-    cout << "Set key [a] field_1:1 field_2:2 field_3:3 infinite ttl" << endl;
+-    cout << "Set key [b] field_1:1 field_2:2 field_3:3 200 seconds ttl" << endl;
+-
+-    t.set(key_1, values, "", "", initial_a_ttl);
+-    t.set(key_2, values, "", "", initial_b_ttl);
+-    t.flush();
+- 
+-    cout << "- Step 2. GET_TTL_VALUES" << endl;
+-    
+-    int64_t a_ttl = 0, b_ttl = 0;
+-    // Expect that we find the two entries confgured in the DB
+-    EXPECT_EQ(true, t.ttl(key_1, a_ttl));
+-    EXPECT_EQ(true, t.ttl(key_2, b_ttl));
+-    
+-    // Expect that TTL values are the ones configured earlier
+-    EXPECT_EQ(a_ttl, initial_a_ttl);
+-    EXPECT_EQ(b_ttl, initial_b_ttl);
+-
+-    cout << "Done." << endl;
+-}
+-
+ TEST(ProducerConsumer, Prefix)
+ {
+     std::string tableName = "tableName";
+diff --git a/tests/saiaclschema_ut.cpp b/tests/saiaclschema_ut.cpp
+deleted file mode 100644
+index fff9158..0000000
+--- a/tests/saiaclschema_ut.cpp
++++ /dev/null
+@@ -1,87 +0,0 @@
+-#include <gmock/gmock.h>
+-#include <gtest/gtest.h>
+-
+-#include <stdexcept>
+-
+-#include "common/saiaclschema.h"
+-
+-namespace swss
+-{
+-namespace acl
+-{
+-namespace
+-{
+-
+-using ::testing::AllOf;
+-using ::testing::Field;
+-using ::testing::UnorderedElementsAre;
+-
+-class FormatTest : public testing::TestWithParam<Format>
+-{
+-};
+-
+-TEST_P(FormatTest, StringConversionIsConsistent)
+-{
+-    EXPECT_EQ(FormatFromName(FormatName(GetParam())), GetParam());
+-}
+-
+-INSTANTIATE_TEST_CASE_P(SaiAclSchemaTest, FormatTest,
+-                        testing::Values(Format::kNone, Format::kHexString, Format::kMac, Format::kIPv4, Format::kIPv6,
+-                                        Format::kString),
+-                        [](const testing::TestParamInfo<FormatTest::ParamType> &param_info) {
+-                            return FormatName(param_info.param);
+-                        });
+-
+-class StageTest : public testing::TestWithParam<Stage>
+-{
+-};
+-
+-TEST_P(StageTest, StringConversionIsConsistent)
+-{
+-    EXPECT_EQ(StageFromName(StageName(GetParam())), GetParam());
+-}
+-
+-INSTANTIATE_TEST_CASE_P(SaiAclSchemaTest, StageTest, testing::Values(Stage::kLookup, Stage::kIngress, Stage::kEgress),
+-                        [](const testing::TestParamInfo<StageTest::ParamType> &param_info) {
+-                            return StageName(param_info.param);
+-                        });
+-
+-TEST(SaiAclSchemaTest, MatchFieldSchemaByNameSucceeds)
+-{
+-    EXPECT_THAT(
+-        MatchFieldSchemaByName("SAI_ACL_TABLE_ATTR_FIELD_SRC_IPV6"),
+-        AllOf(Field(&MatchFieldSchema::stages, UnorderedElementsAre(Stage::kLookup, Stage::kIngress, Stage::kEgress)),
+-              Field(&MatchFieldSchema::format, Format::kIPv6), Field(&MatchFieldSchema::bitwidth, 128)));
+-}
+-
+-TEST(SaiAclSchemaTest, ActionSchemaByNameSucceeds)
+-{
+-    EXPECT_THAT(ActionSchemaByName("SAI_ACL_ENTRY_ATTR_ACTION_SET_INNER_VLAN_ID"),
+-                AllOf(Field(&ActionSchema::format, Format::kHexString), Field(&ActionSchema::bitwidth, 12)));
+-}
+-
+-// Invalid Lookup Tests
+-
+-TEST(SaiAclSchemaTest, InvalidFormatNameThrowsException)
+-{
+-    EXPECT_THROW(FormatFromName("Foo"), std::invalid_argument);
+-}
+-
+-TEST(SaiAclSchemaTest, InvalidStageNameThrowsException)
+-{
+-    EXPECT_THROW(StageFromName("Foo"), std::invalid_argument);
+-}
+-
+-TEST(SaiAclSchemaTest, InvalidMatchFieldNameThrowsException)
+-{
+-    EXPECT_THROW(MatchFieldSchemaByName("Foo"), std::invalid_argument);
+-}
+-
+-TEST(SaiAclSchemaTest, InvalidActionNameThrowsException)
+-{
+-    EXPECT_THROW(ActionSchemaByName("Foo"), std::invalid_argument);
+-}
+-
+-} // namespace
+-} // namespace acl
+-} // namespace swss
+diff --git a/tests/status_code_util_test.cpp b/tests/status_code_util_test.cpp
+deleted file mode 100644
+index bf99a77..0000000
+--- a/tests/status_code_util_test.cpp
++++ /dev/null
+@@ -1,21 +0,0 @@
+-#include "common/status_code_util.h"
+-
+-#include <gtest/gtest.h>
+-
+-namespace
+-{
+-
+-using swss::StatusCode;
+-
+-TEST(StatusCodeUtilTest, StatusCodeUtilTest)
+-{
+-    for (int i = static_cast<int>(StatusCode::SWSS_RC_SUCCESS); i <= static_cast<int>(StatusCode::SWSS_RC_UNKNOWN); ++i)
+-    {
+-        StatusCode original = static_cast<StatusCode>(i);
+-        StatusCode final = swss::strToStatusCode(statusCodeToStr(original));
+-        EXPECT_EQ(original, final);
+-    }
+-    EXPECT_EQ(StatusCode::SWSS_RC_UNKNOWN, swss::strToStatusCode("invalid"));
+-}
+-
+-} // namespace
+\ No newline at end of file
+diff --git a/tests/test_redis_ut.py b/tests/test_redis_ut.py
+index 1bebd2e..3e133ff 100644
+--- a/tests/test_redis_ut.py
++++ b/tests/test_redis_ut.py
+@@ -510,12 +510,28 @@ def test_ConfigDBSubscribe():
+         assert data == test_data
+         output_data = test_data['field1']
+ 
+-    def thread_coming_entry():
+-        # Note: use a local constructed ConfigDBConnector, and do not reuse Redis connection across threads
+-        config_db = ConfigDBConnector()
+-        config_db.connect(wait_for_init=False)
+-        time.sleep(5)
+-        config_db.set_entry(table_name, test_key, test_data)
++    # the config_db.listen() is a blocking function so could not use that in the tests
++    # this function has similar logic with a way to exit  the listen function
++    def listen_thread_func(config_db):
++        global stop_listen_thread
++        pubsub = config_db.get_redis_client(config_db.db_name).pubsub()
++        pubsub.psubscribe(
++            "__keyspace@{}__:*".format(config_db.get_dbid(config_db.db_name)))
++        time.sleep(2)
++        while True:
++            if stop_listen_thread:
++                break
++            item = pubsub.listen_message()
++            if 'type' in item and item['type'] == 'pmessage':
++                key = item['channel'].split(':', 1)[1]
++                try:
++                    (table, row) = key.split(config_db.TABLE_NAME_SEPARATOR, 1)
++                    if table in config_db.handlers:
++                        client = config_db.get_redis_client(config_db.db_name)
++                        data = config_db.raw_to_typed(client.hgetall(key))
++                        config_db._ConfigDBConnector__fire(table, row, data)
++                except ValueError:
++                    pass  # Ignore non table-formated redis entries
+ 
+     config_db = ConfigDBConnector()
+     config_db.connect(wait_for_init=False)
+@@ -525,27 +541,11 @@ def test_ConfigDBSubscribe():
+                         data: test_handler(key, data))
+     assert table_name in config_db.handlers
+ 
+-    thread = Thread(target=thread_coming_entry)
++    thread = Thread(target=listen_thread_func, args=(config_db,))
+     thread.start()
+-    pubsub = config_db.get_redis_client(config_db.db_name).pubsub()
+-    pubsub.psubscribe(
+-        "__keyspace@{}__:*".format(config_db.get_dbid(config_db.db_name)))
+-    time.sleep(2)
+-    while True:
+-        if not thread.is_alive():
+-            break
+-        item = pubsub.listen_message()
+-        if 'type' in item and item['type'] == 'pmessage':
+-            key = item['channel'].split(':', 1)[1]
+-            try:
+-                (table, row) = key.split(config_db.TABLE_NAME_SEPARATOR, 1)
+-                if table in config_db.handlers:
+-                    client = config_db.get_redis_client(config_db.db_name)
+-                    data = config_db.raw_to_typed(client.hgetall(key))
+-                    config_db._ConfigDBConnector__fire(table, row, data)
+-            except ValueError:
+-                pass  # Ignore non table-formated redis entries
+-
++    time.sleep(5)
++    config_db.set_entry(table_name, test_key, test_data)
++    stop_listen_thread = True
+     thread.join()
+     assert output_data == test_data['field1']
+ 
