@@ -72,7 +72,9 @@ protected:
 
         ## Note: callback is difficult to implement by SWIG C++, so keep in python
         def listen(self, start=True):
-            ## Start listen Redis keyspace events and will trigger corresponding handlers when content of a table changes.
+            ## Start listen Redis keyspace event. Use start=False if you need to load in initial data to prevent blackout.
+            ## Then call process(cache) where cache is a dict of {table_name: data} of the initialized data to prevent
+            ## duplicate calls to the callback if the data has not changed. 
             self.pubsub = self.get_redis_client(self.db_name).pubsub()
             self.pubsub.psubscribe("__keyspace@{}__:*".format(self.get_dbid(self.db_name)))
 
