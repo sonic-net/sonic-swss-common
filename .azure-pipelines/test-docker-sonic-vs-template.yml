@@ -34,7 +34,7 @@ jobs:
     displayName: "Checkout sonic-swss"
 
   - script: |
-      set -x
+      set -ex
       ls -l
       sudo sonic-swss-common/.azure-pipelines/build_and_install_module.sh
 
