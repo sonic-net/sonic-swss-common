@@ -447,6 +447,22 @@ namespace swss {
 #define FRONT_PANEL_PORT_PREFIX "Ethernet"
 #define PORTCHANNEL_PREFIX      "PortChannel"
 #define VLAN_PREFIX             "Vlan"
+/*
+ * In order to support different front panel ports prefix, we will
+ * add a regex that contains all the possible prefixes and need to be
+ * adjusted once new front panel prefix is added.
+ * e.g. if we want to add an "SwitchPort" prefix, we will add a new
+ * #define FRONT_PANEL_SWP_PORT_PREFIX "SwitchPort"
+ * and update the regex as follows -
+ * #define FRONT_PANEL_PORT_PREFIX_REGEX "^(" FRONT_PANEL_PORT_PREFIX "|" FRONT_PANEL_SWP_PORT_PREFIX ")"
+ *
+ * IMPORTANT - now checking for front panel prefixes should only be done using a
+ * regex library.
+ * in CPP - import <regex> and use std::regex_match(port_name_str, std::regex(FRONT_PANEL_PORT_REGEX))
+ * in python - import re and use re.match(swsscommon.FRONT_PANEL_PORT_REGEX, port_name_str)
+ */
+#define FRONT_PANEL_PORT_PREFIX_REGEX "^(" FRONT_PANEL_PORT_PREFIX ")"
+#define FRONT_PANEL_PORT_REGEX FRONT_PANEL_PORT_PREFIX_REGEX "(\\d+)"
 
 #define SET_COMMAND "SET"
 #define DEL_COMMAND "DEL"
