@@ -80,6 +80,12 @@ void SonicDBConfig::initializeGlobalConfig(const string &file)
 
     if (m_global_init)
     {
+        if ((*m_global_config_file).compare(file) == 0)
+        {
+            SWSS_LOG_INFO("SonicDBConfig Global config is already initialized with %s", m_global_config_file);
+            return;
+        }
+
         SWSS_LOG_ERROR("SonicDBConfig Global config is already initialized");
         return;
     }
@@ -131,6 +137,7 @@ void SonicDBConfig::initializeGlobalConfig(const string &file)
                 {
                     // Make regular init also done
                     m_init = true;
+                    m_config_file = std::make_shared<std::string>(file);
                 }
 
                 inst_entry.clear();
@@ -159,6 +166,7 @@ void SonicDBConfig::initializeGlobalConfig(const string &file)
 
     // Set it as the global config file is already parsed and init done.
     m_global_init = true;
+    m_global_config_file = std::make_shared<std::string>(file);
 }
 
 void SonicDBConfig::initialize(const string &file)
@@ -172,6 +180,12 @@ void SonicDBConfig::initialize(const string &file)
 
     if (m_init)
     {
+        if ((*m_config_file).compare(file) == 0)
+        {
+            SWSS_LOG_INFO("SonicDBConfig already initialized with %s", m_config_file);
+            return;
+        }
+
         SWSS_LOG_ERROR("SonicDBConfig already initialized");
         throw runtime_error("SonicDBConfig already initialized");
     }
@@ -183,6 +197,7 @@ void SonicDBConfig::initialize(const string &file)
 
     // Set it as the config file is already parsed and init done.
     m_init = true;
+    m_config_file = std::make_shared<std::string>(file);
 }
 
 void SonicDBConfig::validateNamespace(const string &netns)
@@ -399,6 +414,8 @@ unordered_map<string, unordered_map<string, SonicDBInfo>> SonicDBConfig::m_db_in
 unordered_map<string, unordered_map<int, string>> SonicDBConfig::m_db_separator;
 bool SonicDBConfig::m_init = false;
 bool SonicDBConfig::m_global_init = false;
+std::shared_ptr<std::string> SonicDBConfig::m_config_file = std::make_shared<std::string>(EMPTY_CONFIG_FILE);
+std::shared_ptr<std::string> SonicDBConfig::m_global_config_file = std::make_shared<std::string>(EMPTY_CONFIG_FILE);
 
 constexpr const char *RedisContext::DEFAULT_UNIXSOCKET;
 

@@ -12,6 +12,7 @@
 #include "rediscommand.h"
 #include "redisreply.h"
 #define EMPTY_NAMESPACE std::string()
+#define EMPTY_CONFIG_FILE std::string()
 
 namespace swss {
 
@@ -92,6 +93,8 @@ private:
     static std::unordered_map<std::string, std::unordered_map<int, std::string>> m_db_separator;
     static bool m_init;
     static bool m_global_init;
+    static std::shared_ptr<std::string> m_config_file;
+    static std::shared_ptr<std::string> m_global_config_file;
     static void parseDatabaseConfig(const std::string &file,
                                     std::unordered_map<std::string, RedisInstInfo> &inst_entry,
                                     std::unordered_map<std::string, SonicDBInfo> &db_entry,
