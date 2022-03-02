@@ -86,7 +86,7 @@ void SonicDBConfig::initializeGlobalConfig(const string &file)
             return;
         }
 
-        SWSS_LOG_ERROR(SonicDBConfig Global config is already initialized with another file %s", m_global_config_file);
+        SWSS_LOG_ERROR("SonicDBConfig Global config is already initialized with another file %s", m_global_config_file);
         return;
     }
 
