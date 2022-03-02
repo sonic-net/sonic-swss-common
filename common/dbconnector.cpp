@@ -80,13 +80,13 @@ void SonicDBConfig::initializeGlobalConfig(const string &file)
 
     if (m_global_init)
     {
-        if ((*m_global_config_file).compare(file) == 0)
+        if (m_global_config_file->compare(file) == 0)
         {
-            SWSS_LOG_INFO("SonicDBConfig Global config is already initialized with same file %s", (*m_global_config_file).c_str());
+            SWSS_LOG_INFO("SonicDBConfig Global config is already initialized with same file %s", m_global_config_file->c_str());
             return;
         }
 
-        SWSS_LOG_ERROR("SonicDBConfig Global config is already initialized with another file %s", (*m_global_config_file).c_str());
+        SWSS_LOG_ERROR("SonicDBConfig Global config is already initialized with another file %s", m_global_config_file->c_str());
         return;
     }
 
@@ -180,13 +180,13 @@ void SonicDBConfig::initialize(const string &file)
 
     if (m_init)
     {
-        if ((*m_config_file).compare(file) == 0)
+        if (m_config_file->compare(file) == 0)
         {
-            SWSS_LOG_INFO("SonicDBConfig already initialized with same file %s", (*m_config_file).c_str());
+            SWSS_LOG_INFO("SonicDBConfig already initialized with same file %s", m_config_file->c_str());
             return;
         }
 
-        SWSS_LOG_ERROR("SonicDBConfig already initialized with another file %s", (*m_config_file).c_str());
+        SWSS_LOG_ERROR("SonicDBConfig already initialized with another file %s", m_config_file->c_str());
         throw runtime_error("SonicDBConfig already initialized");
     }
 
