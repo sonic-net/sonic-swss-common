@@ -18,11 +18,15 @@ TEST(DBConnector, multi_ns_test)
     vector<string> namespaces;
     vector<string> ns_names;
 
-    // load global config file again, should throw exception with init already done
+    // load same global config file again, should not throw exception with init already done
+    cout<<"INIT: loading same global config file again"<<endl;
+    SonicDBConfig::initializeGlobalConfig(global_existing_file);
+    
+    // load different global config file again, should throw exception with init already done
     try
     {
-        cout<<"INIT: loading local config file again"<<endl;
-        SonicDBConfig::initializeGlobalConfig(global_existing_file);
+        cout<<"INIT: loading different global config file again"<<endl;
+        SonicDBConfig::initializeGlobalConfig("./tests/redis_multi_db_ut_config/other_database_global.json");
     }
     catch (exception &e)
     {

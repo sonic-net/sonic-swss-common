@@ -13,11 +13,15 @@ extern string existing_file;
 
 TEST(DBConnector, multi_db_test)
 {
-    // load local config file again, should throw exception with init already done
+    // load same local config file again, should not throw exception with init already done
+    cout<<"INIT: loading same local config file again"<<endl;
+    SonicDBConfig::initialize(existing_file);
+    
+    // load different global config file again, should throw exception with init already done
     try
     {
-        cout<<"INIT: loading local config file again"<<endl;
-        SonicDBConfig::initialize(existing_file);
+        cout<<"INIT: loading different local config file again"<<endl;
+        SonicDBConfig::initialize("./tests/redis_multi_db_ut_config/other_database_local.json");
     }
     catch (exception &e)
     {
