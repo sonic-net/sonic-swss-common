@@ -14,24 +14,24 @@ jobs:
   pool: sonic-common
 
   steps:
-  - script: |
-      ls -A1 | xargs -I{} sudo rm -rf {}
-    displayName: "Clean workspace"
   - checkout: self
+    clean: true
+    displayName: "Checkout sonic-swss-common"
+  - checkout: sonic-swss
+    clean: true
+    displayName: "Checkout sonic-swss"
+
   - task: DownloadPipelineArtifact@2
     inputs:
       artifact: docker-sonic-vs
+      path: $(Build.SourcesDirectory)/sonic-swss
     displayName: "Download docker sonic vs image"
 
   - task: DownloadPipelineArtifact@2
     inputs:
       artifact: sonic-swss-common.amd64.ubuntu20_04
+      path: $(Build.SourcesDirectory)/sonic-swss
     displayName: "Download sonic swss common deb packages"
-
-  - checkout: self
-    displayName: "Checkout sonic-swss-common"
-  - checkout: sonic-swss
-    displayName: "Checkout sonic-swss"
 
   - script: |
       set -x
@@ -39,8 +39,8 @@ jobs:
       sudo sonic-swss-common/.azure-pipelines/build_and_install_module.sh
 
       sudo apt-get install -y libhiredis0.14
-      sudo dpkg -i --force-confask,confnew ../libswsscommon_1.0.0_amd64.deb || apt-get install -f
-      sudo dpkg -i ../python3-swsscommon_1.0.0_amd64.deb
+      sudo dpkg -i --force-confask,confnew sonic-swss/libswsscommon_1.0.0_amd64.deb || apt-get install -f
+      sudo dpkg -i sonic-swss/python3-swsscommon_1.0.0_amd64.deb
 
       # install packages for vs test
       sudo apt-get install -y net-tools bridge-utils vlan
@@ -50,7 +50,7 @@ jobs:
 
   - script: |
       set -x
-      sudo docker load -i ../docker-sonic-vs.gz
+      sudo docker load -i sonic-swss/docker-sonic-vs.gz
       docker ps
       ip netns list
       pushd sonic-swss/tests
