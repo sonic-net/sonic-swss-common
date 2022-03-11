@@ -326,6 +326,63 @@ void ConfigDBPipeConnector_Native::_delete_table(DBConnector& client, RedisTrans
     }
 }
 
+// Write a table entry to config db
+//    Remove extra fields in the db which are not in the data
+// Args:
+//     table: Table name
+//     key: Key of table entry, or a tuple of keys if it is a multi-key table
+//     data: Table row data in a form of dictionary {'column_key': 'value', ...}
+//           Pass {} as data will delete the entry
+void ConfigDBPipeConnector_Native::set_entry(string table, string key, const map<string, string>& data)
+{
+    auto& client = get_redis_client(m_db_name);
+    DBConnector clientPipe(client);
+    RedisTransactioner pipe(&clientPipe);
+
+    pipe.multi();
+    _set_entry(pipe, table, key, data);
+    pipe.exec();
+}
+
+// Write a table entry to config db
+//    Remove extra fields in the db which are not in the data
+// Args:
+//     pipe: Redis DB pipe
+//     table: Table name
+//     key: Key of table entry, or a tuple of keys if it is a multi-key table
+//     data: Table row data in a form of dictionary {'column_key': 'value', ...}
+//           Pass {} as data will delete the entry
+void ConfigDBPipeConnector_Native::_set_entry(RedisTransactioner& pipe, std::string table, std::string key, const std::map<std::string, std::string>& data)
+{
+    string _hash = to_upper(table) + m_table_name_separator + key;
+    if (data.empty())
+    {
+        RedisCommand sdel;
+        sdel.format("DEL %s", _hash.c_str());
+        pipe.enqueue(sdel, REDIS_REPLY_INTEGER);
+    }
+    else
+    {
+        auto original = get_entry(table, key);
+
+        RedisCommand shmset;
+        shmset.formatHMSET(_hash, data.begin(), data.end());
+        pipe.enqueue(shmset, REDIS_REPLY_STATUS);
+
+        for (auto& it: original)
+        {
+            auto& k = it.first;
+            bool found = data.find(k) != data.end();
+            if (!found)
+            {
+                RedisCommand shdel;
+                shdel.formatHDEL(_hash, k);
+                pipe.enqueue(shdel, REDIS_REPLY_INTEGER);
+            }
+        }
+    }
+}
+
 // Modify a table entry to config db.
 // Args:
 //     table: Table name.

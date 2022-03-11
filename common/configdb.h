@@ -17,8 +17,8 @@ public:
     void db_connect(std::string db_name, bool wait_for_init = false, bool retry_on = false);
     void connect(bool wait_for_init = true, bool retry_on = false);
 
-    void set_entry(std::string table, std::string key, const std::map<std::string, std::string>& data);
-    void mod_entry(std::string table, std::string key, const std::map<std::string, std::string>& data);
+    virtual void set_entry(std::string table, std::string key, const std::map<std::string, std::string>& data);
+    virtual void mod_entry(std::string table, std::string key, const std::map<std::string, std::string>& data);
     std::map<std::string, std::string> get_entry(std::string table, std::string key);
     std::vector<std::string> get_keys(std::string table, bool split = true);
     std::map<std::string, std::map<std::string, std::string>> get_table(std::string table);
@@ -218,6 +218,7 @@ class ConfigDBPipeConnector_Native: public ConfigDBConnector_Native
 public:
     ConfigDBPipeConnector_Native(bool use_unix_socket_path = false, const char *netns = "");
 
+    void set_entry(std::string table, std::string key, const std::map<std::string, std::string>& data) override;
     void mod_config(const std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>& data) override;
     std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> get_config() override;
 
@@ -226,6 +227,7 @@ private:
 
     int _delete_entries(DBConnector& client, RedisTransactioner& pipe, const char *pattern, int cursor);
     void _delete_table(DBConnector& client, RedisTransactioner& pipe, std::string table);
+    void _set_entry(RedisTransactioner& pipe, std::string table, std::string key, const std::map<std::string, std::string>& data);
     void _mod_entry(RedisTransactioner& pipe, std::string table, std::string key, const std::map<std::string, std::string>& data);
     int _get_config(DBConnector& client, RedisTransactioner& pipe, std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>& data, int cursor);
 };
