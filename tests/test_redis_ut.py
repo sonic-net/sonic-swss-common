@@ -398,24 +398,93 @@ def test_ConfigDBPipeConnector():
     config_db = ConfigDBPipeConnector()
     config_db.connect(wait_for_init=False)
     config_db.get_redis_client(config_db.CONFIG_DB).flushdb()
-    config_db.set_entry("TEST_PORT", "Ethernet112", {"alias": "etp1x"})
+
+    #
+    # set_entry
+    #
+
+    # Verify entry set
+    config_db.set_entry("PORT_TABLE", "Ethernet1", {"alias": "etp1x"})
     allconfig = config_db.get_config()
-    assert allconfig["TEST_PORT"]["Ethernet112"]["alias"] == "etp1x"
+    assert allconfig["PORT_TABLE"]["Ethernet1"]["alias"] == "etp1x"
 
-    config_db.set_entry("TEST_PORT", "Ethernet112", {"mtu": "12345"})
-    allconfig =  config_db.get_config()
-    assert "alias" not in allconfig["TEST_PORT"]["Ethernet112"]
-    assert allconfig["TEST_PORT"]["Ethernet112"]["mtu"] == "12345"
+    config_db.set_entry("ACL_TABLE", "EVERFLOW", {"ports": ["Ethernet0", "Ethernet4", "Ethernet8", "Ethernet12"]})
+    allconfig = config_db.get_config()
+    assert allconfig["ACL_TABLE"]["EVERFLOW"]["ports"] == ["Ethernet0", "Ethernet4", "Ethernet8", "Ethernet12"]
 
-    config_db.mod_config(allconfig)
-    allconfig["TEST_PORT"]["Ethernet113"] = None
-    allconfig["TEST_VLAN"] = None
-    config_db.mod_config(allconfig)
-    allconfig.setdefault("ACL_TABLE", {}).setdefault("EVERFLOW", {})["ports"] = ["Ethernet0", "Ethernet4", "Ethernet8"]
+    # Verify entry update
+    config_db.set_entry("PORT_TABLE", "Ethernet1", {"mtu": "12345"})
+    allconfig = config_db.get_config()
+    assert "alias" not in allconfig["PORT_TABLE"]["Ethernet1"]
+    assert allconfig["PORT_TABLE"]["Ethernet1"]["mtu"] == "12345"
+
+    # Verify entry clear
+    config_db.set_entry("PORT_TABLE", "Ethernet1", {})
+    allconfig = config_db.get_config()
+    assert len(allconfig["PORT_TABLE"]["Ethernet1"]) == 0
+
+    # Verify entry delete
+    config_db.set_entry("PORT_TABLE", "Ethernet1", None)
+    config_db.set_entry("ACL_TABLE", "EVERFLOW", None)
+    allconfig = config_db.get_config()
+    assert len(allconfig) == 0
+
+    #
+    # mod_config
+    #
+
+    # Verify entry set
+    allconfig.setdefault("PORT_TABLE", {}).setdefault("Ethernet1", {})
+    allconfig["PORT_TABLE"]["Ethernet1"]["alias"] = "etp1x"
     config_db.mod_config(allconfig)
     allconfig = config_db.get_config()
+    assert allconfig["PORT_TABLE"]["Ethernet1"]["alias"] == "etp1x"
 
-    config_db.delete_table("TEST_PORT")
+    allconfig.setdefault("VLAN_TABLE", {})
+    allconfig["VLAN_TABLE"]["Vlan1"] = {}
+    config_db.mod_config(allconfig)
+    allconfig = config_db.get_config()
+    assert len(allconfig["VLAN_TABLE"]["Vlan1"]) == 0
+
+    allconfig.setdefault("ACL_TABLE", {}).setdefault("EVERFLOW", {})
+    allconfig["ACL_TABLE"]["EVERFLOW"]["ports"] = ["Ethernet0", "Ethernet4", "Ethernet8", "Ethernet12"]
+    config_db.mod_config(allconfig)
+    allconfig = config_db.get_config()
+    assert allconfig["ACL_TABLE"]["EVERFLOW"]["ports"] == ["Ethernet0", "Ethernet4", "Ethernet8", "Ethernet12"]
+
+    # Verify entry delete
+    allconfig["PORT_TABLE"]["Ethernet1"] = None
+    allconfig["VLAN_TABLE"]["Vlan1"] = None
+    allconfig["ACL_TABLE"]["EVERFLOW"] = None
+    config_db.mod_config(allconfig)
+    allconfig = config_db.get_config()
+    assert len(allconfig) == 0
+
+    # Verify table delete
+    for i in range(1, 1001, 1):
+        # Make sure we have enough entries to trigger REDIS_SCAN_BATCH_SIZE
+        allconfig.setdefault("PORT_TABLE", {}).setdefault("Ethernet{}".format(i), {})
+        allconfig["PORT_TABLE"]["Ethernet{}".format(i)]["alias"] = "etp{}x".format(i)
+
+    config_db.mod_config(allconfig)
+    allconfig = config_db.get_config()
+    assert len(allconfig["PORT_TABLE"]) == 1000
+
+    allconfig["PORT_TABLE"] = None
+    config_db.mod_config(allconfig)
+    allconfig = config_db.get_config()
+    assert len(allconfig) == 0
+
+    #
+    # delete_table
+    #
+
+    # Verify direct table delete
+    allconfig.setdefault("PORT_TABLE", {}).setdefault("Ethernet1", {})
+    allconfig["PORT_TABLE"]["Ethernet1"]["alias"] = "etp1x"
+    allconfig.setdefault("ACL_TABLE", {}).setdefault("EVERFLOW", {})
+    allconfig["ACL_TABLE"]["EVERFLOW"]["ports"] = ["Ethernet0", "Ethernet4", "Ethernet8", "Ethernet12"]
+    config_db.delete_table("PORT_TABLE")
     config_db.delete_table("ACL_TABLE")
     allconfig = config_db.get_config()
     assert len(allconfig) == 0
