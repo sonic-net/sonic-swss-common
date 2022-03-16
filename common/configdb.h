@@ -71,16 +71,16 @@ protected:
             return self.getDbName()
 
         ## Note: callback is difficult to implement by SWIG C++, so keep in python
-        def listen(self, start=True):
-            ## Start listen Redis keyspace event. Use start=False if you need to load in initial data to prevent blackout.
-            ## Then call process(cache) where cache is a dict of {table_name: data} of the initialized data to prevent
-            ## duplicate calls to the callback if the data has not changed. 
+        def listen(self, init=None):
+            ## Start listen Redis keyspace event. Pass a callback function to `init` to handle initial table data.
             self.pubsub = self.get_redis_client(self.db_name).pubsub()
             self.pubsub.psubscribe("__keyspace@{}__:*".format(self.get_dbid(self.db_name)))
 
-            if start: self.process()
+            init_data = {}
+            if init:
+                init_data = {tbl: self.get_table(tbl) for tbl, cb in self.handlers.items()}
+                init(init_data)
 
-        def process(self, cache={}):
             while True:
                 item = self.pubsub.listen_message()
                 if item['type'] == 'pmessage':
@@ -90,11 +90,11 @@ protected:
                         if table in self.handlers:
                             client = self.get_redis_client(self.db_name)
                             data = self.raw_to_typed(client.hgetall(key))
-                            if table in cache and row in cache[table]:
-                                if cache[table][row] == data:
+                            if table in init_data and row in init_data[table]:
+                                if init_data[table][row] == data:
                                     continue
                                 else:
-                                    del cache[table][row]
+                                    del init_data[table][row]
                             self.__fire(table, row, data)
                     except ValueError:
                         pass    #Ignore non table-formated redis entries
