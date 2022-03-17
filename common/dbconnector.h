@@ -62,6 +62,7 @@ public:
     static void validateNamespace(const std::string &netns);
     static std::string getDbInst(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
     static int getDbId(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
+    static std::string getDbName(int dbId, const std::string &netns = EMPTY_NAMESPACE);
     static std::string getSeparator(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
     static std::string getSeparator(int dbId, const std::string &netns = EMPTY_NAMESPACE);
     static std::string getSeparator(const DBConnector* db);

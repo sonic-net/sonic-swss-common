@@ -287,6 +287,41 @@ int SonicDBConfig::getDbId(const string &dbName, const string &netns)
     return getDbInfo(dbName, netns).dbId;
 }
 
+string SonicDBConfig::getDbName(int dbId, const string &netns)
+{
+    std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
+
+    if (!m_init)
+        initialize(DEFAULT_SONIC_DB_CONFIG_FILE);
+
+    if (!netns.empty())
+    {
+        if (!m_global_init)
+        {
+            SWSS_LOG_THROW("Initialize global DB config using API SonicDBConfig::initializeGlobalConfig");
+        }
+    }
+
+    auto foundNetns = m_db_info.find(netns);
+    if (foundNetns == m_db_info.end())
+    {
+        string msg = "Namespace " + netns + " is not a valid namespace name in config file";
+        SWSS_LOG_ERROR("%s", msg.c_str());
+        throw out_of_range(msg);
+    }
+    
+    string db_name;
+    auto& infos = foundNetns->second;
+    for ( auto it = infos.begin(); it != infos.end(); ++it ) {
+        auto& db_info = it->second;
+        if (db_info.dbId == dbId) {
+            db_name = it->first;
+            break;
+        }
+    }
+    return db_name;
+}
+
 string SonicDBConfig::getSeparator(const string &dbName, const string &netns)
 {
     return getDbInfo(dbName, netns).separator;
@@ -510,6 +545,7 @@ void DBConnector::select(DBConnector *db)
 DBConnector::DBConnector(const DBConnector &other)
     : RedisContext(other)
     , m_dbId(other.m_dbId)
+    , m_dbName(other.m_dbName)
     , m_namespace(other.m_namespace)
 {
     select(this);
@@ -518,6 +554,7 @@ DBConnector::DBConnector(const DBConnector &other)
 DBConnector::DBConnector(int dbId, const RedisContext& ctx)
     : RedisContext(ctx)
     , m_dbId(dbId)
+    , m_dbName(SonicDBConfig::getDbName(dbId))
     , m_namespace(EMPTY_NAMESPACE)
 {
     select(this);
@@ -526,6 +563,7 @@ DBConnector::DBConnector(int dbId, const RedisContext& ctx)
 DBConnector::DBConnector(int dbId, const string& hostname, int port,
                          unsigned int timeout)
     : m_dbId(dbId)
+    , m_dbName(SonicDBConfig::getDbName(dbId))
     , m_namespace(EMPTY_NAMESPACE)
 {
     struct timeval tv = {0, (suseconds_t)timeout * 1000};
@@ -537,6 +575,7 @@ DBConnector::DBConnector(int dbId, const string& hostname, int port,
 
 DBConnector::DBConnector(int dbId, const string& unixPath, unsigned int timeout)
     : m_dbId(dbId)
+    , m_dbName(SonicDBConfig::getDbName(dbId))
     , m_namespace(EMPTY_NAMESPACE)
 {
     struct timeval tv = {0, (suseconds_t)timeout * 1000};
