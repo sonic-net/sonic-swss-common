@@ -121,9 +121,9 @@ const MatchFieldSchema &MatchFieldSchemaByName(const std::string &match_field_na
         // SAI_ACL_TABLE_ATTR_FIELD_INNER_SRC_IPV6
         // SAI_ACL_TABLE_ATTR_FIELD_INNER_DST_IPV6
         {"SAI_ACL_TABLE_ATTR_FIELD_SRC_MAC",
-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kMac, .bitwidth = 32}},
+         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kMac, .bitwidth = 48}},
         {"SAI_ACL_TABLE_ATTR_FIELD_DST_MAC",
-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kMac, .bitwidth = 32}},
+         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kMac, .bitwidth = 48}},
         {"SAI_ACL_TABLE_ATTR_FIELD_SRC_IP",
          {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kIPv4, .bitwidth = 32}},
         {"SAI_ACL_TABLE_ATTR_FIELD_DST_IP",
