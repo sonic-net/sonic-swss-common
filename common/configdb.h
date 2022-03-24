@@ -104,9 +104,7 @@ protected:
                             client = self.get_redis_client(self.db_name)
                             data = self.raw_to_typed(client.hgetall(key))
                             if table in init_data and row in init_data[table]:
-                                cache_hit = False
-                                if init_data[table][row] == data:
-                                    cache_hit = True
+                                cache_hit = init_data[table][row] == data
                                 del init_data[table][row]
                                 if not init_data[table]:
                                     del init_data[table]
