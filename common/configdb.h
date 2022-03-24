@@ -106,8 +106,9 @@ protected:
                             if table in init_data and row in init_data[table]:
                                 if init_data[table][row] == data:
                                     continue
-                                else:
-                                    del init_data[table][row]
+                                del init_data[table][row]
+                                if not init_data[table]:
+                                    del init_data[table]
                             self.__fire(table, row, data)
                     except ValueError:
                         pass    #Ignore non table-formated redis entries
