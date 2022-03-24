@@ -57,6 +57,7 @@ protected:
 
             ## Note: callback is difficult to implement by SWIG C++, so keep in python
             self.handlers = {}
+            self.fire_init_data = {}
 
         @property
         def KEY_SEPARATOR(self):
@@ -71,15 +72,27 @@ protected:
             return self.getDbName()
 
         ## Note: callback is difficult to implement by SWIG C++, so keep in python
-        def listen(self, init=None):
+        def listen(self, init_data_handler=None):
             ## Start listen Redis keyspace event. Pass a callback function to `init` to handle initial table data.
             self.pubsub = self.get_redis_client(self.db_name).pubsub()
             self.pubsub.psubscribe("__keyspace@{}__:*".format(self.get_dbid(self.db_name)))
+        
+            # Build a cache of data for all subscribed tables that will recieve the initial table data so we dont send duplicate event notifications
+            init_data = {tbl: self.get_table(tbl) for tbl in self.handlers if init_data_handler or self.fire_init_data[tbl]}
 
-            init_data = {}
-            if init:
-                init_data = {tbl: self.get_table(tbl) for tbl, cb in self.handlers.items()}
-                init(init_data)
+            # Function to send initial data as series of updates through individual table callback handlers
+            def load_data(tbl, data):
+                if self.fire_init_data[tbl]:
+                    for row, x in data.items():
+                        self.__fire(tbl, row, x)
+                    return False
+                return True
+
+            init_callback_data = {tbl: data for tbl, data in init_data.items() if load_data(tbl, data)}	
+
+            # Pass all initial data that we DID NOT send as updates to handlers through the init callback if provided by caller
+            if init_data_handler:
+                init_data_handler(init_callback_data)
 
             while True:
                 item = self.pubsub.listen_message()
@@ -164,8 +177,9 @@ protected:
                 handler = self.handlers[table]
                 handler(table, key, data)
 
-        def subscribe(self, table, handler):
+        def subscribe(self, table, handler, fire_init_data=False):
             self.handlers[table] = handler
+            self.fire_init_data[table] = fire_init_data
 
         def unsubscribe(self, table):
             if table in self.handlers:
