@@ -104,11 +104,13 @@ protected:
                             client = self.get_redis_client(self.db_name)
                             data = self.raw_to_typed(client.hgetall(key))
                             if table in init_data and row in init_data[table]:
+                                cache_hit = False
                                 if init_data[table][row] == data:
-                                    continue
+                                    cache_hit = True
                                 del init_data[table][row]
                                 if not init_data[table]:
                                     del init_data[table]
+                                if cache_hit: continue
                             self.__fire(table, row, data)
                     except ValueError:
                         pass    #Ignore non table-formated redis entries
