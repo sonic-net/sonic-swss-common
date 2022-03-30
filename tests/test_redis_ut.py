@@ -586,16 +586,16 @@ def test_ConfigDBInit():
     client.flushdb()
 
     # Init table data
-    config_db.set_entry(table_name_1, test_key, test_data_1)
-    config_db.set_entry(table_name_2, test_key, test_data_2)
+    config_db.set_entry(table_name_1, test_key, test_data)
+    config_db.set_entry(table_name_2, test_key, test_data)
 
     thread = multiprocessing.Process(target=thread_listen, args=(ret_data,))
     thread.start()
     time.sleep(5)
     thread.terminate()
 
-    assert ret_data[table_name_1] == {test_key: test_data_1}
-    assert ret_data[table_name_2] == {test_key: test_data_2}
+    assert ret_data[table_name_1] == {test_key: test_data}
+    assert ret_data[table_name_2] == {test_key: test_data}
 
 
 def test_DBConnectFailure():
