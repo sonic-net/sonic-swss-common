@@ -311,7 +311,7 @@ const ActionSchema &ActionSchemaByName(const std::string &action_name)
         // SAI_ACL_ENTRY_ATTR_ACTION_MACSEC_FLOW
         {"SAI_PACKET_ACTION_DROP", {.format = Format::kNone, .bitwidth = 0}},
         {"SAI_PACKET_ACTION_FORWARD", {.format = Format::kNone, .bitwidth = 0}},
-        // SAI_PACKET_ACTION_COPY
+        {"SAI_PACKET_ACTION_COPY", {.format = Format::kNone, .bitwidth = 0}},
         // SAI_PACKET_ACTION_COPY_CANCEL
         {"SAI_PACKET_ACTION_TRAP", {.format = Format::kNone, .bitwidth = 0}},
         {"SAI_PACKET_ACTION_LOG", {.format = Format::kNone, .bitwidth = 0}},
