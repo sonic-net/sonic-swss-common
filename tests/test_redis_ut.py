@@ -1,6 +1,7 @@
 import os
 import time
 import pytest
+import multiprocessing
 from threading import Thread
 from pympler.tracker import SummaryTracker
 from swsscommon import swsscommon
@@ -620,6 +621,50 @@ def test_ConfigDBSubscribe():
 
     config_db.unsubscribe(table_name)
     assert table_name not in config_db.handlers
+
+def test_ConfigDBInit():
+    table_name_1 = 'TEST_TABLE_1'
+    table_name_2 = 'TEST_TABLE_2'
+    test_key = 'key1'
+    test_data = {'field1': 'value1'}
+    test_data_update = {'field1': 'value2'}
+
+    manager = multiprocessing.Manager()
+    ret_data = manager.dict()
+
+    def test_handler(table, key, data, ret):
+        ret[table] = {key: data}
+
+    def test_init_handler(data, ret):
+        ret.update(data)
+
+    def thread_listen(ret):
+        config_db = ConfigDBConnector()
+        config_db.connect(wait_for_init=False)
+
+        config_db.subscribe(table_name_1, lambda table, key, data: test_handler(table, key, data, ret),
+                            fire_init_data=False)
+        config_db.subscribe(table_name_2, lambda table, key, data: test_handler(table, key, data, ret),
+                            fire_init_data=True)
+
+        config_db.listen(init_data_handler=lambda data: test_init_handler(data, ret))
+
+    config_db = ConfigDBConnector()
+    config_db.connect(wait_for_init=False)
+    client = config_db.get_redis_client(config_db.CONFIG_DB)
+    client.flushdb()
+
+    # Init table data
+    config_db.set_entry(table_name_1, test_key, test_data)
+    config_db.set_entry(table_name_2, test_key, test_data)
+
+    thread = multiprocessing.Process(target=thread_listen, args=(ret_data,))
+    thread.start()
+    time.sleep(5)
+    thread.terminate()
+
+    assert ret_data[table_name_1] == {test_key: test_data}
+    assert ret_data[table_name_2] == {test_key: test_data}
 
 
 def test_DBConnectFailure():
