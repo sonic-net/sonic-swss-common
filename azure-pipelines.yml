@@ -49,7 +49,7 @@ stages:
       displayName: "Install dependencies"
     - script: |
         ./autogen.sh
-        dpkg-buildpackage -rfakeroot -us -uc -b -j$(nproc) && cp ../*.deb .
+        DEB_CXXFLAGS_SET="-O0 -g" dpkg-buildpackage -rfakeroot -us -uc -b -j$(nproc) && cp ../*.deb .
       displayName: "Compile sonic swss common"
     - script: |
         bazel build //...
