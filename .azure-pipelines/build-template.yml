@@ -21,7 +21,6 @@ parameters:
 
 - name: sonic_slave
   type: string
-  default: default
 
 - name: artifact_name
   type: string
@@ -49,9 +48,8 @@ jobs:
     ${{ if eq(parameters.pool, 'default') }}:
       vmImage: 'ubuntu-20.04'
 
-  ${{ if ne(parameters.sonic_slave, 'default') }}:
-    container:
-      image: sonicdev-microsoft.azurecr.io:443/${{ parameters.sonic_slave }}:latest
+  container:
+    image: sonicdev-microsoft.azurecr.io:443/${{ parameters.sonic_slave }}:latest
 
   steps:
   - script: |

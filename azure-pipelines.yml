@@ -67,13 +67,6 @@ stages:
       run_unit_test: true
       archive_gcov: true
 
-  - template: .azure-pipelines/build-template.yml
-    parameters:
-      arch: amd64
-      artifact_name: sonic-swss-common.no-opt
-      run_unit_test: true
-      archive_gcov: true
-
 - stage: BuildArm
   dependsOn: Build
   condition: succeeded('Build')
