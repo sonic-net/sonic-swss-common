@@ -48,6 +48,7 @@ fi
 AC_PATH_PROGS(SWIG, [swig4.0 swig3.0 swig])
 
 CFLAGS_COMMON=""
+CFLAGS_COMMON+=" -lyang"
 CFLAGS_COMMON+=" -ansi"
 CFLAGS_COMMON+=" -fPIC"
 CFLAGS_COMMON+=" -std=c++11"
