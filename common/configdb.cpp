@@ -311,6 +311,8 @@ map<string, map<string, string>> ConfigDBConnector_Native::get_table(string tabl
         row = key.substr(pos + 1);
         data[row] = entry;
     }
+
+    LoadAndAppendDefaultValue(table, data);
     return data;
 }
 
