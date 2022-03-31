@@ -61,8 +61,7 @@ jobs:
         libnl-genl-3-dev \
         libnl-route-3-dev \
         libnl-nf-3-dev \
-        swig3.0 \
-        google-mock
+        swig3.0
     displayName: "Install dependencies"
   - script: |
       set -ex
