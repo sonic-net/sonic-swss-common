@@ -17,10 +17,16 @@ using namespace std;
 using namespace swss;
 
 map<string, lys_node *> table_name_to_data_mapping;
+bool module_loaded = false;
 
 struct ly_ctx * CreateCtxAndLoadAllModules(char* module_path)
 {
     struct ly_ctx *ctx = ly_ctx_new(module_path, LY_CTX_ALLIMPLEMENTED);
+    if (module_loaded)
+    {
+        return ctx;
+    }
+    
     DIR *module_dir = opendir(module_path);
     if (module_dir)
     {
@@ -30,10 +36,10 @@ struct ly_ctx * CreateCtxAndLoadAllModules(char* module_path)
             if (sub_dir->d_type == DT_REG)
             {
                 string file_name(sub_dir->d_name);
-                printf("file_name: %s\n", file_name.c_str());
+                //printf("file_name: %s\n", file_name.c_str());
                 auto pos = file_name.find(".yang");
                 string module_name = file_name.substr(0, pos);
-                printf("%s\n", module_name.c_str());
+                //printf("%s\n", module_name.c_str());
 
                 // load module
                 const struct lys_module *module = ly_ctx_load_module(ctx, module_name.c_str(), "");
@@ -42,10 +48,10 @@ struct ly_ctx * CreateCtxAndLoadAllModules(char* module_path)
                     // every module should always has a top level container same with module name
                     // https://github.com/Azure/SONiC/blob/eeebbf6f8a32e5d989595b0816849e8ef0d15141/doc/mgmt/SONiC_YANG_Model_Guidelines.md
                     struct lys_node *data = module->data;
-                    printf("root node name: %s\n",data->name);
+                    //printf("root node name: %s\n",data->name);
                     data = data->child;
                     string container_name(data->name);
-                    printf("root container name: %s\n",data->name);
+                    //printf("root container name: %s\n",data->name);
                     table_name_to_data_mapping[container_name] = data;
                 }
             }
@@ -53,20 +59,31 @@ struct ly_ctx * CreateCtxAndLoadAllModules(char* module_path)
         closedir(module_dir);
     }
     
+    module_loaded = true;
     return ctx;
 }
 
 void LoadAndAppendDefaultValue(string module_name, map<string, map<string, string>>& data)
 {
-    CreateCtxAndLoadAllModules("/home/liuh/yang/yang-models/");
+    const char* show_default = getenv("CONFIG_DB_DEFAULT_VALUE");
+    if (strcmp(show_default, "TRUE") != 0)
+    {
+        // enable feature with "export CONFIG_DB_DEFAULT_VALUE=TRUE"
+        printf("CONFIG_DB_DEFAULT_VALUE need set to TRUE to show default value.\n");
+        return;
+    }
+    
+    CreateCtxAndLoadAllModules("/usr/local/yang-models/");
 
     auto module_root_container = table_name_to_data_mapping.find(module_name);
     if (module_root_container == table_name_to_data_mapping.end())
     {
+        printf("Not found module_name: %s\n",module_name.c_str());
         return;
     }
     
     // found yang model for the table
+    printf("Found module_name: %s\n",module_name.c_str());
     auto next_child = module_root_container->second->child;
     while (next_child)
     {
@@ -77,11 +94,19 @@ void LoadAndAppendDefaultValue(string module_name, map<string, map<string, strin
             {
                 // Mapping tables in Redis are defined using nested 'list'. Use 'sonic-ext:map-list "true";' to indicate that the 'list' is used for mapping table. The outer 'list' is used for multiple instances of mapping. The inner 'list' is used for mapping entries for each outer list instance.
                 // check if the list if for mapping ConfigDbTable
-                printf("Ext count: %d\n",next_child->ext_size);
+                //printf("Ext count: %d\n",next_child->ext_size);
                 
                 auto table_column = next_child->child;
                 while (table_column)
                 {
+                    if (table_column->nodetype != LYS_LEAF)
+                    {
+                        // TODO: handle uses case here, for example "uses bgpcmn:sonic-bgp-cmn-neigh"
+                        printf("Ignore none leaf child node: %s\n",table_column->name);
+                        table_column = table_column->next;
+                        continue;
+                    }
+                    
                     struct lys_node_leaf *leafnode = (struct lys_node_leaf*)table_column;
                     string column_name(table_column->name);
                     printf("    table column name: %s, default: %s\n",table_column->name, leafnode->dflt);
@@ -92,13 +117,16 @@ void LoadAndAppendDefaultValue(string module_name, map<string, map<string, strin
                         string default_value(leafnode->dflt);
                         for (auto row_iterator = data.begin(); row_iterator != data.end(); ++row_iterator)
                         {
-                            printf("assign default data to: %s\n", row_iterator->first.c_str());
                             auto column = row_iterator->second.find(column_name);
                             if (column == row_iterator->second.end())
                             {
-                                printf("assigned default data to %s: %s\n", column_name.c_str(), default_value.c_str());
+                                printf("assigned default data to row: %s column: %s  value: %s\n", row_iterator->first.c_str(), column_name.c_str(), default_value.c_str());
                                 // when no data from config DB, assign default value to result
                                 row_iterator->second[column_name] = default_value;
+                            }
+                            else
+                            {
+                                printf("Row: %s already has data, column: %s  value: %s\n", row_iterator->first.c_str(), column_name.c_str(), row_iterator->second[column_name].c_str());
                             }
                         }
                     }
@@ -387,6 +415,13 @@ map<string, map<string, map<string, string>>> ConfigDBConnector_Native::get_conf
             data[table_name][row] = entry;
         }
     }
+
+    // merge default value to config
+    for (auto& table : data)
+    {
+        LoadAndAppendDefaultValue(table.first, table.second);
+    }
+
     return data;
 }
 
@@ -631,6 +666,12 @@ map<string, map<string, map<string, string>>> ConfigDBPipeConnector_Native::get_
     while (cur != 0)
     {
         cur = _get_config(client, pipe, data, cur);
+    }
+
+    // merge default value to config
+    for (auto& table : data)
+    {
+        LoadAndAppendDefaultValue(table.first, table.second);
     }
 
     return data;
