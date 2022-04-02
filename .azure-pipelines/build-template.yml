@@ -60,6 +60,7 @@ jobs:
         libnl-route-3-dev \
         libnl-nf-3-dev \
         swig3.0
+      sudo apt-get install -y libgmock-dev
     displayName: "Install dependencies"
   - script: |
       set -ex
