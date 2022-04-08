@@ -217,6 +217,7 @@ namespace swss {
 #define STATS_MODE_READ_AND_CLEAR           "STATS_MODE_READ_AND_CLEAR"
 #define QUEUE_PLUGIN_FIELD                  "QUEUE_PLUGIN_LIST"
 #define PORT_PLUGIN_FIELD                   "PORT_PLUGIN_LIST"
+#define MACSEC_SA_PLUGIN_FIELD              "MACSEC_SA_PLUGIN_LIST"
 #define RIF_PLUGIN_FIELD                    "RIF_PLUGIN_LIST"
 #define PG_PLUGIN_FIELD                     "PG_PLUGIN_LIST"
 #define TUNNEL_PLUGIN_FIELD                 "TUNNEL_PLUGIN_LIST"

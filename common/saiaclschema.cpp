@@ -121,9 +121,9 @@ const MatchFieldSchema &MatchFieldSchemaByName(const std::string &match_field_na
         // SAI_ACL_TABLE_ATTR_FIELD_INNER_SRC_IPV6
         // SAI_ACL_TABLE_ATTR_FIELD_INNER_DST_IPV6
         {"SAI_ACL_TABLE_ATTR_FIELD_SRC_MAC",
-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kMac, .bitwidth = 32}},
+         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kMac, .bitwidth = 48}},
         {"SAI_ACL_TABLE_ATTR_FIELD_DST_MAC",
-         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kMac, .bitwidth = 32}},
+         {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kMac, .bitwidth = 48}},
         {"SAI_ACL_TABLE_ATTR_FIELD_SRC_IP",
          {.stages = {Stage::kLookup, Stage::kIngress, Stage::kEgress}, .format = Format::kIPv4, .bitwidth = 32}},
         {"SAI_ACL_TABLE_ATTR_FIELD_DST_IP",
@@ -311,7 +311,7 @@ const ActionSchema &ActionSchemaByName(const std::string &action_name)
         // SAI_ACL_ENTRY_ATTR_ACTION_MACSEC_FLOW
         {"SAI_PACKET_ACTION_DROP", {.format = Format::kNone, .bitwidth = 0}},
         {"SAI_PACKET_ACTION_FORWARD", {.format = Format::kNone, .bitwidth = 0}},
-        // SAI_PACKET_ACTION_COPY
+        {"SAI_PACKET_ACTION_COPY", {.format = Format::kNone, .bitwidth = 0}},
         // SAI_PACKET_ACTION_COPY_CANCEL
         {"SAI_PACKET_ACTION_TRAP", {.format = Format::kNone, .bitwidth = 0}},
         {"SAI_PACKET_ACTION_LOG", {.format = Format::kNone, .bitwidth = 0}},
