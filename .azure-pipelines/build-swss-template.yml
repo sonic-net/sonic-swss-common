@@ -82,14 +82,16 @@ jobs:
       runVersion: 'latestFromBranch'
       runBranch: 'refs/heads/$(SOURCE_BRANCH)'
       path: $(Build.ArtifactStagingDirectory)/download
+      patterns: |
+        libnl-3*.deb
+        libnl-genl*.deb
+        libnl-route*.deb
+        libnl-nf*.deb
     displayName: "Download common libs"
 
   - script: |
       set -ex
-      find download -name libnl*.deb | xargs -i sudo dpkg -i {}
-      find download -name libswsscommon*.deb | xargs -i sudo dpkg -i {}
-      find download -name libsai*.deb | xargs -i sudo dpkg -i {}
-      find download -name syncd-vs_*.deb | xargs -i sudo dpkg -i {}
+      sudo dpkg -i $(ls download/*.deb)
     workingDirectory: $(Build.ArtifactStagingDirectory)
     displayName: "Install libnl3, sonic swss common, and sairedis"
   - script: |
