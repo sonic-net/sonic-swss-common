@@ -21,6 +21,14 @@ TEST(IpPrefix, ipv4)
     IpPrefix ip4("10.1.1.1/24");
     IpAddress bcast4("10.1.1.255");
     EXPECT_EQ(ip4.getBroadcastIp(), bcast4);
+
+    ip_addr_t ip_addr;
+    ip_addr.family = AF_INET;
+    ip_addr.ip_addr.ipv4_addr = ip1.getIp().getIp().ip_addr.ipv4_addr;
+    IpPrefix ip5(ip_addr, 24);
+    EXPECT_EQ("1.1.1.1/24", ip5.to_string());
+
+    EXPECT_THROW(IpPrefix(ip_addr, 33), invalid_argument);
 }
 
 TEST(IpPrefix, ipv6)
@@ -63,6 +71,13 @@ TEST(IpPrefix, ipv6)
     EXPECT_THROW(IpPrefix("2001:4898:f0:f153:357c:77b2:49c9:627c/-1"), invalid_argument);
     EXPECT_THROW(IpPrefix("2001:4898:f0:f153:357c:77b2:49c9:627c/-2"), invalid_argument);
     EXPECT_THROW(IpPrefix("2001:4898:f0:f153:357c:77b2:49c9:627c/129"), invalid_argument);
+
+    ip_addr_t ip_addr;
+    ip_addr.family = AF_INET6;
+    memcpy(ip_addr.ip_addr.ipv6_addr, ipp1.getIp().getIp().ip_addr.ipv6_addr, 16);
+    IpPrefix ip2(ip_addr, 64);
+    EXPECT_EQ("2001:4898:f0:f153:357c:77b2:49c9:627c/64", ip2.to_string());
+    EXPECT_THROW(IpPrefix(ip_addr, 129), invalid_argument);
 }
 
 TEST(IpPrefix, compare)
