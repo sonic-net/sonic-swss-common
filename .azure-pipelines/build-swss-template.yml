@@ -82,6 +82,7 @@ jobs:
       runVersion: 'latestFromBranch'
       runBranch: 'refs/heads/$(SOURCE_BRANCH)'
       path: $(Build.ArtifactStagingDirectory)/download
+      artifact: common-lib
       patterns: |
         libnl-3*.deb
         libnl-genl*.deb
