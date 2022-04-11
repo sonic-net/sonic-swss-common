@@ -293,6 +293,7 @@ namespace swss {
 #define CFG_DOT1P_TO_TC_MAP_TABLE_NAME              "DOT1P_TO_TC_MAP"
 #define CFG_DSCP_TO_FC_MAP_TABLE_NAME               "DSCP_TO_FC_MAP"
 #define CFG_EXP_TO_FC_MAP_TABLE_NAME                "EXP_TO_FC_MAP"
+#define CFG_TC_TO_DSCP_MAP_TABLE_NAME               "TC_TO_DSCP_MAP"
 
 #define CFG_BUFFER_POOL_TABLE_NAME                  "BUFFER_POOL"
 #define CFG_BUFFER_PROFILE_TABLE_NAME               "BUFFER_PROFILE"
