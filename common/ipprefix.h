@@ -14,6 +14,7 @@ public:
     IpPrefix() = default;
     IpPrefix(const std::string &ipPrefixStr);
     IpPrefix(uint32_t addr, int mask);
+    IpPrefix(const ip_addr_t &ip, int mask);
 
     inline bool isV4() const
     {
