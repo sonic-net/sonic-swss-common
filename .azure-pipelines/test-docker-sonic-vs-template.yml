@@ -40,11 +40,9 @@ jobs:
       sudo sonic-swss-common/.azure-pipelines/build_and_install_module.sh
 
       sudo apt-get install -y libhiredis0.14
-      pushd $(Build.ArtifactStagingDirectory)
-      find download -name libswsscommon*.deb | xargs -i sudo dpkg -i --force-confask,confnew {}
-      apt-get install -f
-      find download -name python3-swsscommon*.deb | xargs -i sudo dpkg -i {}
-      popd
+      sudo dpkg -i --force-confask,confnew $(Build.ArtifactStagingDirectory)/download/libswsscommon_1.0.0_amd64.deb || apt-get install -f
+      sudo dpkg -i $(Build.ArtifactStagingDirectory)/download/python3-swsscommon_1.0.0_amd64.deb
+
       # install packages for vs test
       sudo apt-get install -y net-tools bridge-utils vlan
       sudo apt-get install -y python3-pip
