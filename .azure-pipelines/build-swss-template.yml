@@ -68,12 +68,23 @@ jobs:
     inputs:
       artifact: ${{ parameters.swss_common_artifact_name }}
       path: $(Build.ArtifactStagingDirectory)/download
-    displayName: "Download sonic swss common deb packages"
+      patterns: |
+        libswsscommon_1.0.0_*.deb
+        libswsscommon-dev_1.0.0*.deb
+    displayName: "Download pre-stage built ${{ parameters.swss_common_artifact_name }}"
   - task: DownloadPipelineArtifact@2
     inputs:
       artifact: ${{ parameters.sairedis_artifact_name }}
       path: $(Build.ArtifactStagingDirectory)/download
-    displayName: "Download sonic sairedis deb packages"
+      patterns: |
+        libsaivs_*.deb
+        libsaivs-dev_*.deb
+        libsairedis_*.deb
+        libsairedis-dev_*.deb
+        libsaimetadata_*.deb
+        libsaimetadata-dev_*.deb
+        syncd-vs_*.deb
+    displayName: "Download pre-stage built ${{ parameters.sairedis_artifact_name }}"
   - task: DownloadPipelineArtifact@2
     inputs:
       source: specific
@@ -93,6 +104,7 @@ jobs:
   - script: |
       set -ex
       sudo dpkg -i $(ls download/*.deb)
+      rm -rf download || true
     workingDirectory: $(Build.ArtifactStagingDirectory)
     displayName: "Install libnl3, sonic swss common, and sairedis"
   - script: |
