@@ -54,22 +54,13 @@ stages:
         sudo apt-get install -y python3-pip
         sudo pip3 install pytest
         sudo apt-get install -y python
-        sudo apt-get install cmake libgtest-dev libgmock-dev
+        sudo apt-get install cmake libgtest-dev
         cd /usr/src/gtest && sudo cmake . && sudo make
-        ARCH=$(dpkg --print-architecture)
-        set -x
-        sudo curl -fsSL -o /usr/local/bin/bazel \
-            https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-${ARCH}
-        sudo chmod 755 /usr/local/bin/bazel
       displayName: "Install dependencies"
     - script: |
         ./autogen.sh
         dpkg-buildpackage -rfakeroot -us -uc -b -j$(nproc) && cp ../*.deb .
       displayName: "Compile sonic swss common"
-    - script: |
-        bazel build //...
-        bazel test //...
-      displayName: "Compile and test all Bazel targets"
     - publish: $(System.DefaultWorkingDirectory)/
       artifact: sonic-swss-common.amd64.ubuntu20_04
       displayName: "Archive swss common debian packages"
