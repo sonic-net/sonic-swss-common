@@ -63,16 +63,6 @@ jobs:
   - ${{ if eq(parameters.run_unit_test, true) }}:
     - script: |
         set -ex
-        git clone https://github.com/Spacetown/gcovr.git
-        cd gcovr/
-        git checkout origin/recursive_search_file
-        sudo pip3 install setuptools
-        sudo python3 setup.py install
-        cd ..
-        sudo rm -rf gcovr
-      displayName: "Install gcovr 5.0 with recursive fix"
-    - script: |
-        set -ex
         sudo pip install Pympler==0.8
         sudo apt-get install -y redis-server
         sudo sed -i 's/notify-keyspace-events ""/notify-keyspace-events AKE/' /etc/redis/redis.conf
@@ -86,24 +76,8 @@ jobs:
 
         ./tests/tests
         redis-cli FLUSHALL
-        pytest --cov=. --cov-report=xml
-        mv coverage.xml tests/coverage.xml
-        gcovr -r ./ -e ".*/swsscommon_wrap.cpp" --exclude-unreachable-branches --exclude-throw-branches -x --xml-pretty  -o coverage.xml
+        pytest
       displayName: "Run swss common unit tests"
   - publish: $(System.DefaultWorkingDirectory)/
     artifact: ${{ parameters.artifact_name }}
     displayName: "Archive swss common debian packages"
-  - ${{ if eq(parameters.archive_gcov, true) }}:
-    - script: |
-        set -ex
-        # Install .NET CORE
-        curl -sSL https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
-        sudo apt-add-repository https://packages.microsoft.com/debian/10/prod
-        sudo apt-get update
-        sudo apt-get install -y dotnet-sdk-5.0
-      displayName: "Install .NET CORE"
-    - task: PublishCodeCoverageResults@1
-      inputs:
-        codeCoverageTool: Cobertura
-        summaryFileLocation: '$(System.DefaultWorkingDirectory)/coverage.xml'
-      displayName: 'Publish test coverage'
