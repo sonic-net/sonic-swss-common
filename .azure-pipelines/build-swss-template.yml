@@ -52,6 +52,8 @@ jobs:
   - script: |
       set -ex
       git checkout $(SOURCE_BRANCH)
+      git submodule update
+      git status
     displayName: Set up sonic-swss branch
   - script: |
       sudo apt-get install -y libhiredis0.14 libhiredis-dev

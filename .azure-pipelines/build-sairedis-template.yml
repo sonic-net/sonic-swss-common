@@ -55,6 +55,8 @@ jobs:
   - script: |
       set -ex
       git checkout $(SOURCE_BRANCH)
+      git submodule update
+      git status
     displayName: Set up sonic-sairedis branch
   - script: |
       sudo apt-get install -qq -y \
