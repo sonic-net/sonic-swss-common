@@ -4,20 +4,19 @@
 #define DEFAULT_YANG_MODULE_PATH "/usr/local/yang-models"
 #define EMPTY_STR ""
 
+struct ly_ctx;
 
 // Key information
 typedef std::tuple<std::string, unsigned int> KeyInfo;
 
-// Key information
-typedef std::map<std::string, std::string> DefaultValueInfo;
+// Field name to default value mapping
+typedef std::map<std::string, std::string> FieldDefaultValueMapping;
+typedef std::shared_ptr<FieldDefaultValueMapping> FieldDefaultValueMappingPtr;
 
 // Key info to default value info mapping
-typedef std::map<KeyInfo, std::shared_ptr<DefaultValueInfo> KeyInfoToDefaultValueInfoMapping;
+typedef std::map<KeyInfo, FieldDefaultValueMappingPtr> KeyInfoToDefaultValueInfoMapping;
 
 namespace swss {
-
-class TableInfoBase;
-struct ly_ctx;
 
 class TableInfoBase
 {
@@ -27,7 +26,7 @@ public:
     bool TryAppendDefaultValues(std::string key, std::map<std::string, std::string>& target_values);
 
 protected:
-    virtual bool FindFieldMappingByKey(std::string key, std::map<std::string, std::string> ** founded_mapping_ptr) = 0;
+    virtual bool FindFieldMappingByKey(std::string key, FieldDefaultValueMapping ** founded_mapping_ptr) = 0;
 };
 
 class TableInfoDict : public TableInfoBase
@@ -37,9 +36,9 @@ public:
 
 private:
     // Mapping: key value -> field -> default 
-    std::map<std::string, std::map<std::string, std::string> > defaultValueMapping;
+    std::map<std::string, FieldDefaultValueMappingPtr> defaultValueMapping;
 
-    bool FindFieldMappingByKey(std::string key, std::map<std::string, std::string> ** founded_mapping_ptr);
+    bool FindFieldMappingByKey(std::string key, FieldDefaultValueMapping ** founded_mapping_ptr);
 };
 
 class TableInfoSingleList : public TableInfoBase
@@ -49,9 +48,9 @@ public:
 
 private:
     // Mapping: field -> default 
-    std::map<std::string, std::string> defaultValueMapping;
+    FieldDefaultValueMappingPtr defaultValueMapping;
 
-    bool FindFieldMappingByKey(std::string key, std::map<std::string, std::string> ** founded_mapping_ptr);
+    bool FindFieldMappingByKey(std::string key, FieldDefaultValueMapping ** founded_mapping_ptr);
 };
 
 struct TableInfoMultipleList : public TableInfoBase
@@ -61,7 +60,7 @@ public:
 
 private:
     // Mapping: key field count -> field -> default 
-    std::map<unsigned int, std::map<std::string, std::string> > defaultValueMapping;
+    std::map<unsigned int, FieldDefaultValueMappingPtr> defaultValueMapping;
 
     bool FindFieldMappingByKey(std::string key, std::map<std::string, std::string> ** founded_mapping_ptr);
 };
@@ -69,7 +68,9 @@ private:
 class DefaultValueProvider
 {
 public:
-    DefaultValueProvider& Instance();
+    static DefaultValueProvider& Instance();
+
+    void Initialize(char* module_path);
 
     void AppendDefaultValues(std::string table, std::map<std::string, std::map<std::string, std::string> >& values);
 
@@ -80,12 +81,11 @@ private:
     ~DefaultValueProvider();
 
     //  libyang context
-    struct ly_ctx *context = NULL;
+    struct ly_ctx *context = nullptr;
 
     // The table name to table default value info mapping
     std::map<std::string, std::shared_ptr<TableInfoBase> > default_value_mapping;
 
-    void Initialize(char* module_path = DEFAULT_YANG_MODULE_PATH);
 
     // Load default value info from yang model and append to default value mapping
     void AppendTableInfoToMapping(struct lys_node* table);
@@ -95,8 +95,8 @@ private:
     unsigned int BuildFieldMappingList(struct lys_node* table, KeyInfoToDefaultValueInfoMapping& field_mapping_list);
     
     std::shared_ptr<KeyInfo> GetKeyInfo(struct lys_node* table_child_node);
-    std::shared_ptr<DefaultValueInfo> GetDefaultValueInfo(struct lys_node* table_child_node);
-}
+    FieldDefaultValueMappingPtr GetDefaultValueInfo(struct lys_node* table_child_node);
+};
 
 }
 #endif

@@ -1,3 +1,8 @@
+#include <boost/algorithm/string.hpp>
+#include <map>
+#include <vector>
+#include <iostream>
+#include <string>
 
 #include <dirent.h> 
 #include <stdio.h> 
@@ -10,7 +15,7 @@
 using namespace std;
 using namespace swss;
 
-void ThrowRunTimeError(string &message)
+void ThrowRunTimeError(string message)
 {
     SWSS_LOG_ERROR(message);
     throw std::runtime_error(message);
@@ -23,7 +28,7 @@ TableInfoBase::TableInfoBase()
 
 bool TableInfoBase::TryAppendDefaultValues(string key, map<string, string>& target_values)
 {
-    map<string, string> *field_mapping_ptr;
+    FieldDefaultValueMapping *field_mapping_ptr;
     if (!FindFieldMappingByKey(key, &field_mapping_ptr)) {
         return false;
     }
@@ -52,10 +57,10 @@ TableInfoDict::TableInfoDict(KeyInfoToDefaultValueInfoMapping &field_info_mappin
     }
 }
 
-bool TableInfoDict::FindFieldMappingByKey(string key, map<string, string> ** founded_mapping_ptr)
+bool TableInfoDict::FindFieldMappingByKey(string key, FieldDefaultValueMapping ** founded_mapping_ptr)
 {
     auto key_result = this->defaultValueMapping.find(key);
-    *founded_mapping_ptr = &(key_result->second);
+    *founded_mapping_ptr = key_result->second.get();
     return key_result == this->defaultValueMapping.end();
 }
 
@@ -64,9 +69,9 @@ TableInfoSingleList::TableInfoSingleList(KeyInfoToDefaultValueInfoMapping &field
     this->defaultValueMapping = field_info_mapping.begin()->second;
 }
 
-bool TableInfoSingleList::FindFieldMappingByKey(string key, map<string, string> ** founded_mapping_ptr)
+bool TableInfoSingleList::FindFieldMappingByKey(string key, FieldDefaultValueMapping ** founded_mapping_ptr)
 {
-    *founded_mapping_ptr = &(this->defaultValueMapping);
+    *founded_mapping_ptr = this->defaultValueMapping.get();
     return true;
 }
 
@@ -79,11 +84,11 @@ TableInfoMultipleList::TableInfoMultipleList(KeyInfoToDefaultValueInfoMapping &f
     }
 }
 
-bool TableInfoMultipleList::FindFieldMappingByKey(string key, map<string, string> ** founded_mapping_ptr)
+bool TableInfoMultipleList::FindFieldMappingByKey(string key, FieldDefaultValueMapping ** founded_mapping_ptr)
 {
     unsigned int key_field_count = std::count(key.begin(), key.end(), '|') + 1;
     auto key_result = this->defaultValueMapping.find(key_field_count);
-    *founded_mapping_ptr = &(key_result->second);
+    *founded_mapping_ptr = key_result->second.get();
     return key_result == this->defaultValueMapping.end();
 }
 
@@ -99,7 +104,7 @@ shared_ptr<TableInfoBase> DefaultValueProvider::FindDefaultValueInfo(std::string
     if (find_result == this->default_value_mapping.end())
     {
         SWSS_LOG_WARN("Not found default value info for table: %s\n", table.c_str());
-        return shared_ptr<TableInfoBase>(nullptr);
+        return nullptr;
     }
     
     return find_result->second;
@@ -108,12 +113,12 @@ shared_ptr<TableInfoBase> DefaultValueProvider::FindDefaultValueInfo(std::string
 void DefaultValueProvider::AppendDefaultValues(string table, map<string, map<string, string> >& values)
 {
     auto default_value_info = this->FindDefaultValueInfo(table);
-    if (default_value_info.get() == nullptr)
+    if (default_value_info == nullptr)
     {
         return;
     }
 
-    for (auto& row : data)
+    for (auto& row : values)
     {
         default_value_info->TryAppendDefaultValues(row.first, row.second);
     }
@@ -122,7 +127,7 @@ void DefaultValueProvider::AppendDefaultValues(string table, map<string, map<str
 void DefaultValueProvider::AppendDefaultValues(string table, string key, map<string, string>& values)
 {
     auto default_value_info = this->FindDefaultValueInfo(table);
-    if (default_value_info.get() == nullptr)
+    if (default_value_info == nullptr)
     {
         return;
     }
@@ -134,11 +139,12 @@ DefaultValueProvider::~DefaultValueProvider()
 {
     if (this->context)
     {
-        ly_ctx_destroy(this->context);
+        // set private_destructor to NULL because no any private data
+        ly_ctx_destroy(this->context, NULL);
     }
 }
 
-void DefaultValueProvider::Initialize(char* module_path = DEFAULT_YANG_MODULE_PATH)
+void DefaultValueProvider::Initialize(char* module_path)
 {
     if (this->context)
     {
@@ -169,7 +175,8 @@ void DefaultValueProvider::Initialize(char* module_path = DEFAULT_YANG_MODULE_PA
             if (module->data == NULL)
             {
                 // Every yang file should contains yang model
-                ThrowRunTimeError("Yang file " + file_name + " does not contains any model.\n");
+                SWSS_LOG_WARN("Yang file " + file_name + " does not contains any model.\n");
+                continue;
             }
 
             struct lys_node *top_level_node = module->data;
@@ -203,35 +210,34 @@ std::shared_ptr<KeyInfo> DefaultValueProvider::GetKeyInfo(struct lys_node* table
 {
     unsigned int key_field_count = 0;
     string key_value = "";
-    if (next_child->nodetype == LYS_LIST)
+    if (table_child_node->nodetype == LYS_LIST)
     {
-        SWSS_LOG_DEBUG("child list: %s\n",next_child->name);
-        child_list_count++;
+        SWSS_LOG_DEBUG("child list: %s\n",table_child_node->name);
 
         // when a top level container contains list, the key defined by the 'keys' field.
-        struct lys_node_list *list_node = (struct lys_node_list*)next_child;
+        struct lys_node_list *list_node = (struct lys_node_list*)table_child_node;
         string key(list_node->keys_str);
         key_field_count = std::count(key.begin(), key.end(), '|') + 1;
     }
-    else if (next_child->nodetype == LYS_CONTAINER)
+    else if (table_child_node->nodetype == LYS_CONTAINER)
     {
-        SWSS_LOG_DEBUG("child container name: %s\n",next_child->name);
+        SWSS_LOG_DEBUG("child container name: %s\n",table_child_node->name);
 
         // when a top level container not contains any list, the key is child container name
-        key_value = string(next_child->name);
+        key_value = string(table_child_node->name);
     }
     else
     {
-        return make_shared<KeyInfo>(nullptr)
+        return nullptr;
     }
     
-    return make_shared<KeyInfo>(key_value, key_field_count)
+    return make_shared<KeyInfo>(key_value, key_field_count);
 }
 
-std::shared_ptr<DefaultValueInfo> DefaultValueProvider::GetDefaultValueInfo(struct lys_node* table_child_node)
+FieldDefaultValueMappingPtr DefaultValueProvider::GetDefaultValueInfo(struct lys_node* table_child_node)
 {
     auto field = table_child_node->child;
-    auto field_mapping = make_shared<DefaultValueInfo>();
+    auto field_mapping = make_shared<FieldDefaultValueMapping>();
     while (field)
     {
         if (field->nodetype == LYS_LEAF)
@@ -240,7 +246,7 @@ std::shared_ptr<DefaultValueInfo> DefaultValueProvider::GetDefaultValueInfo(stru
             if (leaf_node->dflt)
             {
                 SWSS_LOG_DEBUG("field: %s, default: %s\n",leaf_node->name, leaf_node->dflt);
-                field_mapping->[string(leaf_node->name)] = string(leaf_node->dflt);
+                (*field_mapping)[string(leaf_node->name)] = string(leaf_node->dflt);
             }
         }
         else if (field->nodetype == LYS_CHOICE)
@@ -276,11 +282,16 @@ unsigned int DefaultValueProvider::BuildFieldMappingList(struct lys_node* table,
     while (next_child)
     {
         // get key from schema
-        shared_ptr<KeyInfo> keyInfo = this->GetKeyInfo(next_child);
-        if (keyInfo.get() == nullptr)
+        auto keyInfo = this->GetKeyInfo(next_child);
+        if (keyInfo == nullptr)
         {
             next_child = next_child->next;
             continue;
+        }
+        else if (std::get<1>(*keyInfo) != 0)
+        {
+            // when key field count not 0, it's a list node.
+            child_list_count++;
         }
 
         // get field name to default value mappings from schema

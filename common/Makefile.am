@@ -33,6 +33,7 @@ libswsscommon_la_SOURCES = \
     configdb.cpp              \
     dbconnector.cpp           \
     dbinterface.cpp           \
+    defaultvalueprovider.cpp  \
     sonicv2connector.cpp      \
     table.cpp                 \
     json.cpp                  \
