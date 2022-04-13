@@ -1,7 +1,7 @@
 parameters:
 - name: timeout
   type: number
-  default: 360
+  default: 180
 
 - name: log_artifact_name
   type: string
@@ -11,12 +11,10 @@ jobs:
   displayName: vstest
   timeoutInMinutes: ${{ parameters.timeout }}
 
-  pool: sonic-common
+  pool:
+    vmImage: 'ubuntu-20.04'
 
   steps:
-  - script: |
-      ls -A1 | xargs -I{} sudo rm -rf {}
-    displayName: "Clean workspace"
   - checkout: self
     clean: true
     displayName: "Checkout sonic-swss-common"
