@@ -7,7 +7,7 @@
 struct ly_ctx;
 
 // Key information
-typedef std::tuple<std::string, unsigned int> KeyInfo;
+typedef std::tuple<std::string, int> KeyInfo;
 
 // Field name to default value mapping
 typedef std::map<std::string, std::string> FieldDefaultValueMapping;
@@ -60,7 +60,7 @@ public:
 
 private:
     // Mapping: key field count -> field -> default 
-    std::map<unsigned int, FieldDefaultValueMappingPtr> defaultValueMapping;
+    std::map<int, FieldDefaultValueMappingPtr> defaultValueMapping;
 
     bool FindFieldMappingByKey(std::string key, std::map<std::string, std::string> ** founded_mapping_ptr);
 };
@@ -91,7 +91,7 @@ private:
 
     std::shared_ptr<TableInfoBase> FindDefaultValueInfo(std::string table);
 
-    unsigned int BuildFieldMappingList(struct lys_node* table, KeyInfoToDefaultValueInfoMapping& field_mapping_list);
+    int BuildFieldMappingList(struct lys_node* table, KeyInfoToDefaultValueInfoMapping& field_mapping_list);
     
     std::shared_ptr<KeyInfo> GetKeyInfo(struct lys_node* table_child_node);
     FieldDefaultValueMappingPtr GetDefaultValueInfo(struct lys_node* table_child_node);

@@ -15,9 +15,10 @@
 using namespace std;
 using namespace swss;
 
-void ThrowRunTimeError(string message)
+
+[[noreturn]] void ThrowRunTimeError(string message)
 {
-    SWSS_LOG_ERROR(message);
+    SWSS_LOG_ERROR("DefaultValueProvider: %s", message.c_str());
     throw std::runtime_error(message);
 }
 
@@ -79,14 +80,14 @@ TableInfoMultipleList::TableInfoMultipleList(KeyInfoToDefaultValueInfoMapping &f
 {
     for (auto& field_mapping : field_info_mapping)
     {
-        unsigned int fieldCount = std::get<1>(field_mapping.first);
+        int fieldCount = std::get<1>(field_mapping.first);
         this->defaultValueMapping[fieldCount] = field_mapping.second;
     }
 }
 
 bool TableInfoMultipleList::FindFieldMappingByKey(string key, FieldDefaultValueMapping ** founded_mapping_ptr)
 {
-    unsigned int key_field_count = std::count(key.begin(), key.end(), '|') + 1;
+    int key_field_count = (int)std::count(key.begin(), key.end(), '|') + 1;
     auto key_result = this->defaultValueMapping.find(key_field_count);
     *founded_mapping_ptr = key_result->second.get();
     return key_result == this->defaultValueMapping.end();
@@ -175,7 +176,7 @@ void DefaultValueProvider::Initialize(char* module_path)
         {
             SWSS_LOG_DEBUG("file_name: %s\n", sub_dir->d_name);
             string file_name(sub_dir->d_name);
-            unsigned int pos = file_name.find(".yang");
+            int pos = (int)file_name.find(".yang");
             string module_name = file_name.substr(0, pos);
 
             const struct lys_module *module = ly_ctx_load_module(
@@ -185,7 +186,7 @@ void DefaultValueProvider::Initialize(char* module_path)
             if (module->data == NULL)
             {
                 // Every yang file should contains yang model
-                SWSS_LOG_WARN("Yang file " + file_name + " does not contains any model.\n");
+                SWSS_LOG_WARN("Yang file %s does not contains any model.\n", sub_dir->d_name);
                 continue;
             }
 
@@ -218,7 +219,7 @@ void DefaultValueProvider::Initialize(char* module_path)
 
 std::shared_ptr<KeyInfo> DefaultValueProvider::GetKeyInfo(struct lys_node* table_child_node)
 {
-    unsigned int key_field_count = 0;
+    int key_field_count = 0;
     string key_value = "";
     if (table_child_node->nodetype == LYS_LIST)
     {
@@ -227,7 +228,7 @@ std::shared_ptr<KeyInfo> DefaultValueProvider::GetKeyInfo(struct lys_node* table
         // when a top level container contains list, the key defined by the 'keys' field.
         struct lys_node_list *list_node = (struct lys_node_list*)table_child_node;
         string key(list_node->keys_str);
-        key_field_count = std::count(key.begin(), key.end(), '|') + 1;
+        key_field_count = (int)std::count(key.begin(), key.end(), '|') + 1;
     }
     else if (table_child_node->nodetype == LYS_CONTAINER)
     {
@@ -284,9 +285,9 @@ FieldDefaultValueMappingPtr DefaultValueProvider::GetDefaultValueInfo(struct lys
     return field_mapping;
 }
 
-unsigned int DefaultValueProvider::BuildFieldMappingList(struct lys_node* table, KeyInfoToDefaultValueInfoMapping &field_info_mapping)
+int DefaultValueProvider::BuildFieldMappingList(struct lys_node* table, KeyInfoToDefaultValueInfoMapping &field_info_mapping)
 {
-    unsigned child_list_count = 0;
+    int child_list_count = 0;
 
     auto next_child = table->child;
     while (next_child)
@@ -318,7 +319,7 @@ void DefaultValueProvider::AppendTableInfoToMapping(struct lys_node* table)
 {
     SWSS_LOG_DEBUG("table name: %s\n",table->name);
     KeyInfoToDefaultValueInfoMapping field_info_mapping;
-    unsigned list_count = this->BuildFieldMappingList(table, field_info_mapping);
+    int list_count = this->BuildFieldMappingList(table, field_info_mapping);
 
     // create container data by list count
     TableInfoBase* table_info_ptr = nullptr;
