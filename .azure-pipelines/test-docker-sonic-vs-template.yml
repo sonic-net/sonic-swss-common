@@ -28,7 +28,7 @@ jobs:
       set -ex
       cd sonic-swss
       git checkout $(SOURCE_BRANCH)
-    displayName: Set up sonic-sairedis branch
+    displayName: Set up sonic-swss branch
   - task: DownloadPipelineArtifact@2
     inputs:
       artifact: docker-sonic-vs
