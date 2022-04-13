@@ -10,8 +10,6 @@ parameters:
   type: string
   values:
   - sonicbld
-  - sonicbld-arm64
-  - sonicbld-armhf
   - default
   default: default
 
@@ -29,18 +27,10 @@ parameters:
   type: boolean
   default: false
 
-- name: archive_gcov
-  type: boolean
-  default: false
-
 jobs:
 - job:
   displayName: ${{ parameters.arch }}
   timeoutInMinutes: ${{ parameters.timeout }}
-  variables:
-    DIFF_COVER_CHECK_THRESHOLD: 50
-    ${{ if eq(parameters.run_unit_test, true) }}:
-      DIFF_COVER_ENABLE: 'true'
 
   pool:
     ${{ if ne(parameters.pool, 'default') }}:
@@ -67,7 +57,7 @@ jobs:
       set -ex
       rm ../*.deb || true
       ./autogen.sh
-      fakeroot debian/rules DEB_CONFIGURE_EXTRA_FLAGS='--enable-code-coverage' CFLAGS="" CXXFLAGS="--coverage -fprofile-abs-path" LDFLAGS="--coverage -fprofile-abs-path" binary
+      dpkg-buildpackage -us -uc -b -j$(nproc)
       mv ../*.deb .
     displayName: "Compile sonic swss common with coverage enabled"
   - ${{ if eq(parameters.run_unit_test, true) }}:
