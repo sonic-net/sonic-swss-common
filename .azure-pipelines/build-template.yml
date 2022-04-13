@@ -10,6 +10,7 @@ parameters:
   type: string
   values:
   - sonicbld
+  - sonic-common
   - default
   default: default
 

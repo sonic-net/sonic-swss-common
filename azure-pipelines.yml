@@ -67,6 +67,7 @@ stages:
   - template: .azure-pipelines/build-template.yml
     parameters:
       arch: amd64
+      pool: sonic-common
       sonic_slave: sonic-slave-buster
       artifact_name: sonic-swss-common
       run_unit_test: true
