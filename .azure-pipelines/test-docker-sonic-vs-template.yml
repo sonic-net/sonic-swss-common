@@ -39,7 +39,7 @@ jobs:
     displayName: "Download pre-stage built sonic-swss-common.amd64.ubuntu20_04"
 
   - script: |
-      set -x
+      set -ex
       ls -l
       sudo sonic-swss-common/.azure-pipelines/build_and_install_module.sh
 
@@ -54,7 +54,7 @@ jobs:
     displayName: "Install dependencies"
 
   - script: |
-      set -x
+      set -ex
       sudo docker load -i $(Build.ArtifactStagingDirectory)/download/docker-sonic-vs.gz
       docker ps
       ip netns list
