@@ -60,7 +60,7 @@ jobs:
       ./autogen.sh
       dpkg-buildpackage -us -uc -b -j$(nproc)
       mv ../*.deb .
-    displayName: "Compile sonic swss common with coverage enabled"
+    displayName: "Compile sonic swss common"
   - ${{ if eq(parameters.run_unit_test, true) }}:
     - script: |
         set -ex
