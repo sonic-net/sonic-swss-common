@@ -4,161 +4,10 @@
 #include "configdb.h"
 #include "pubsub.h"
 #include "converter.h"
-
-#include <dirent.h> 
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <string.h>
-#include <libyang/libyang.h>
+#include "defaultvalueprovider.h"
 
 using namespace std;
 using namespace swss;
-
-map<string, lys_node *> table_name_to_data_mapping;
-bool module_loaded = false;
-
-struct ly_ctx * CreateCtxAndLoadAllModules(char* module_path)
-{
-    struct ly_ctx *ctx = ly_ctx_new(module_path, LY_CTX_ALLIMPLEMENTED);
-    if (module_loaded)
-    {
-        return ctx;
-    }
-    
-    DIR *module_dir = opendir(module_path);
-    if (module_dir)
-    {
-        struct dirent *sub_dir;
-        while ((sub_dir = readdir(module_dir)) != NULL)
-        {
-            if (sub_dir->d_type == DT_REG)
-            {
-                string file_name(sub_dir->d_name);
-                //printf("file_name: %s\n", file_name.c_str());
-                auto pos = file_name.find(".yang");
-                string module_name = file_name.substr(0, pos);
-                //printf("%s\n", module_name.c_str());
-
-                // load module
-                const struct lys_module *module = ly_ctx_load_module(ctx, module_name.c_str(), "");
-                if (module->data)
-                {
-                    // every module should always has a top level container same with module name
-                    // https://github.com/Azure/SONiC/blob/eeebbf6f8a32e5d989595b0816849e8ef0d15141/doc/mgmt/SONiC_YANG_Model_Guidelines.md
-                    struct lys_node *data = module->data;
-                    //printf("root node name: %s\n",data->name);
-                    data = data->child;
-                    string container_name(data->name);
-                    //printf("root container name: %s\n",data->name);
-                    table_name_to_data_mapping[container_name] = data;
-                }
-            }
-        }
-        closedir(module_dir);
-    }
-    
-    module_loaded = true;
-    return ctx;
-}
-
-void LoadAndAppendDefaultValue(string module_name, map<string, map<string, string>>& data)
-{
-    const char* show_default = getenv("CONFIG_DB_DEFAULT_VALUE");
-    if (strcmp(show_default, "TRUE") != 0)
-    {
-        // enable feature with "export CONFIG_DB_DEFAULT_VALUE=TRUE"
-        printf("CONFIG_DB_DEFAULT_VALUE need set to TRUE to show default value.\n");
-        return;
-    }
-    
-    CreateCtxAndLoadAllModules("/usr/local/yang-models/");
-
-    auto module_root_container = table_name_to_data_mapping.find(module_name);
-    if (module_root_container == table_name_to_data_mapping.end())
-    {
-        printf("Not found module_name: %s\n",module_name.c_str());
-        return;
-    }
-    
-    // found yang model for the table
-    printf("Found module_name: %s\n",module_name.c_str());
-    auto next_child = module_root_container->second->child;
-    while (next_child)
-    {
-        printf("Child name: %s\n",next_child->name);
-        switch (next_child->nodetype)
-        {
-            case LYS_LIST:
-            {
-                // Mapping tables in Redis are defined using nested 'list'. Use 'sonic-ext:map-list "true";' to indicate that the 'list' is used for mapping table. The outer 'list' is used for multiple instances of mapping. The inner 'list' is used for mapping entries for each outer list instance.
-                // check if the list if for mapping ConfigDbTable
-                //printf("Ext count: %d\n",next_child->ext_size);
-                
-                auto table_column = next_child->child;
-                while (table_column)
-                {
-                    if (table_column->nodetype != LYS_LEAF)
-                    {
-                        // TODO: handle uses case here, for example "uses bgpcmn:sonic-bgp-cmn-neigh"
-                        printf("Ignore none leaf child node: %s\n",table_column->name);
-                        table_column = table_column->next;
-                        continue;
-                    }
-                    
-                    struct lys_node_leaf *leafnode = (struct lys_node_leaf*)table_column;
-                    string column_name(table_column->name);
-                    printf("    table column name: %s, default: %s\n",table_column->name, leafnode->dflt);
-                    
-                    // assign default value to every row
-                    if (leafnode->dflt)
-                    {
-                        string default_value(leafnode->dflt);
-                        for (auto row_iterator = data.begin(); row_iterator != data.end(); ++row_iterator)
-                        {
-                            auto column = row_iterator->second.find(column_name);
-                            if (column == row_iterator->second.end())
-                            {
-                                printf("assigned default data to row: %s column: %s  value: %s\n", row_iterator->first.c_str(), column_name.c_str(), default_value.c_str());
-                                // when no data from config DB, assign default value to result
-                                row_iterator->second[column_name] = default_value;
-                            }
-                            else
-                            {
-                                printf("Row: %s already has data, column: %s  value: %s\n", row_iterator->first.c_str(), column_name.c_str(), row_iterator->second[column_name].c_str());
-                            }
-                        }
-                    }
-                    
-                    table_column = table_column->next;
-                }
-            }
-            break;
-            case LYS_UNKNOWN:
-            case LYS_CONTAINER:
-            case LYS_CHOICE:
-            case LYS_LEAF:
-            case LYS_LEAFLIST:
-            case LYS_ANYXML:
-            case LYS_CASE:
-            case LYS_NOTIF:
-            case LYS_RPC:
-            case LYS_INPUT:
-            case LYS_OUTPUT:
-            case LYS_GROUPING:
-            case LYS_USES:
-            case LYS_AUGMENT:
-            case LYS_ACTION:
-            case LYS_ANYDATA:
-            case LYS_EXT:
-            default:
-            break;
-        }
-
-        next_child = next_child->next;
-    }
-}
 
 ConfigDBConnector_Native::ConfigDBConnector_Native(bool use_unix_socket_path, const char *netns)
     : SonicV2Connector_Native(use_unix_socket_path, netns)
@@ -339,8 +188,8 @@ map<string, map<string, string>> ConfigDBConnector_Native::get_table(string tabl
         row = key.substr(pos + 1);
         data[row] = entry;
     }
-
-    LoadAndAppendDefaultValue(table, data);
+    
+    DefaultValueProvider::Instance().AppendDefaultValues(table, data);
     return data;
 }
 
@@ -419,9 +268,8 @@ map<string, map<string, map<string, string>>> ConfigDBConnector_Native::get_conf
     // merge default value to config
     for (auto& table : data)
     {
-        LoadAndAppendDefaultValue(table.first, table.second);
+        DefaultValueProvider::Instance().AppendDefaultValues(table.first, table.second);
     }
-
     return data;
 }
 
@@ -671,7 +519,7 @@ map<string, map<string, map<string, string>>> ConfigDBPipeConnector_Native::get_
     // merge default value to config
     for (auto& table : data)
     {
-        LoadAndAppendDefaultValue(table.first, table.second);
+        DefaultValueProvider::Instance().AppendDefaultValues(table.first, table.second);
     }
 
     return data;

@@ -70,8 +70,6 @@ class DefaultValueProvider
 public:
     static DefaultValueProvider& Instance();
 
-    void Initialize(char* module_path);
-
     void AppendDefaultValues(std::string table, std::map<std::string, std::map<std::string, std::string> >& values);
 
     void AppendDefaultValues(std::string table, std::string key, std::map<std::string, std::string>& values);
@@ -86,6 +84,7 @@ private:
     // The table name to table default value info mapping
     std::map<std::string, std::shared_ptr<TableInfoBase> > default_value_mapping;
 
+    void Initialize(char* module_path = DEFAULT_YANG_MODULE_PATH);
 
     // Load default value info from yang model and append to default value mapping
     void AppendTableInfoToMapping(struct lys_node* table);

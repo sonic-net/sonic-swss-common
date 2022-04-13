@@ -112,6 +112,11 @@ shared_ptr<TableInfoBase> DefaultValueProvider::FindDefaultValueInfo(std::string
 
 void DefaultValueProvider::AppendDefaultValues(string table, map<string, map<string, string> >& values)
 {
+    if (this->context == nullptr)
+    {
+        this->Initialize();
+    }
+
     auto default_value_info = this->FindDefaultValueInfo(table);
     if (default_value_info == nullptr)
     {
@@ -126,6 +131,11 @@ void DefaultValueProvider::AppendDefaultValues(string table, map<string, map<str
 
 void DefaultValueProvider::AppendDefaultValues(string table, string key, map<string, string>& values)
 {
+    if (this->context == nullptr)
+    {
+        this->Initialize();
+    }
+
     auto default_value_info = this->FindDefaultValueInfo(table);
     if (default_value_info == nullptr)
     {
