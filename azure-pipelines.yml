@@ -37,7 +37,7 @@ resources:
 parameters:
   - name: debianVersion
     type: string
-    default: bullseye
+    default: buster
 
 stages:
 - stage: Build
