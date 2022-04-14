@@ -80,7 +80,13 @@ bool Table::get(const string &key, vector<FieldValueTuple> &values)
         throw system_error(make_error_code(errc::address_not_available),
                            "Unable to connect netlink socket");
 
-    if (this->getDbId() != CONFIG_DB)
+    size_t pos = key.find("|");
+    if (m_pipe->getDbId() == CONFIG_DB && pos == std::string::npos)
+    {
+        SWSS_LOG_WARN("Table::get key for config DB is %s, can't find a sepreator\n", key.c_str());
+    }
+    
+    if (m_pipe->getDbId() != CONFIG_DB || pos == std::string::npos)
     {
         for (unsigned int i = 0; i < reply->elements; i += 2)
         {
@@ -91,13 +97,15 @@ bool Table::get(const string &key, vector<FieldValueTuple> &values)
     }
 
     // When DB ID is CONFIG_DB, append default value to config DB result.
+    std::string table = key.substr(0, pos);
+    std::string row = key.substr(pos + 1);
     map<string, string> data;
     for (unsigned int i = 0; i < reply->elements; i += 2)
     {
         data[stripSpecialSym(reply->element[i]->str)] = reply->element[i + 1]->str;
     }
 
-    DefaultValueProvider::Instance().AppendDefaultValues(m_tableName, data);
+    DefaultValueProvider::Instance().AppendDefaultValues(table, row, data);
 
     for (auto& field_value_pair : data)
     {

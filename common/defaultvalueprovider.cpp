@@ -54,25 +54,25 @@ TableInfoDict::TableInfoDict(KeyInfoToDefaultValueInfoMapping &field_info_mappin
     for (auto& field_mapping : field_info_mapping)
     {
         string fieldName = std::get<0>(field_mapping.first);
-        this->defaultValueMapping[fieldName] = field_mapping.second;
+        m_default_value_mapping[fieldName] = field_mapping.second;
     }
 }
 
 bool TableInfoDict::FindFieldMappingByKey(string key, FieldDefaultValueMapping ** founded_mapping_ptr)
 {
-    auto key_result = this->defaultValueMapping.find(key);
+    auto key_result = m_default_value_mapping.find(key);
     *founded_mapping_ptr = key_result->second.get();
-    return key_result == this->defaultValueMapping.end();
+    return key_result == m_default_value_mapping.end();
 }
 
 TableInfoSingleList::TableInfoSingleList(KeyInfoToDefaultValueInfoMapping &field_info_mapping)
 {
-    this->defaultValueMapping = field_info_mapping.begin()->second;
+    m_default_value_mapping = field_info_mapping.begin()->second;
 }
 
 bool TableInfoSingleList::FindFieldMappingByKey(string key, FieldDefaultValueMapping ** founded_mapping_ptr)
 {
-    *founded_mapping_ptr = this->defaultValueMapping.get();
+    *founded_mapping_ptr = m_default_value_mapping.get();
     return true;
 }
 
@@ -81,16 +81,16 @@ TableInfoMultipleList::TableInfoMultipleList(KeyInfoToDefaultValueInfoMapping &f
     for (auto& field_mapping : field_info_mapping)
     {
         int fieldCount = std::get<1>(field_mapping.first);
-        this->defaultValueMapping[fieldCount] = field_mapping.second;
+        m_default_value_mapping[fieldCount] = field_mapping.second;
     }
 }
 
 bool TableInfoMultipleList::FindFieldMappingByKey(string key, FieldDefaultValueMapping ** founded_mapping_ptr)
 {
     int key_field_count = (int)std::count(key.begin(), key.end(), '|') + 1;
-    auto key_result = this->defaultValueMapping.find(key_field_count);
+    auto key_result = m_default_value_mapping.find(key_field_count);
     *founded_mapping_ptr = key_result->second.get();
-    return key_result == this->defaultValueMapping.end();
+    return key_result == m_default_value_mapping.end();
 }
 
 DefaultValueProvider& DefaultValueProvider::Instance()
@@ -101,8 +101,8 @@ DefaultValueProvider& DefaultValueProvider::Instance()
 
 shared_ptr<TableInfoBase> DefaultValueProvider::FindDefaultValueInfo(std::string table)
 {
-    auto find_result = this->default_value_mapping.find(table);
-    if (find_result == this->default_value_mapping.end())
+    auto find_result = m_default_value_mapping.find(table);
+    if (find_result == m_default_value_mapping.end())
     {
         SWSS_LOG_WARN("Not found default value info for table: %s\n", table.c_str());
         return nullptr;
@@ -337,5 +337,5 @@ void DefaultValueProvider::AppendTableInfoToMapping(struct lys_node* table)
     }
 
     string table_name(table->name);
-    default_value_mapping[table_name] = shared_ptr<TableInfoBase>(table_info_ptr);
+    m_default_value_mapping[table_name] = shared_ptr<TableInfoBase>(table_info_ptr);
 }

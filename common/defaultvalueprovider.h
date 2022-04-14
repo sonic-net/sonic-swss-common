@@ -1,5 +1,7 @@
 #ifndef __DEFAULTVALUEPROVIDER__
 #define __DEFAULTVALUEPROVIDER__
+#include <map>
+#include <string>
 
 #define DEFAULT_YANG_MODULE_PATH "/usr/local/yang-models"
 #define EMPTY_STR ""
@@ -36,7 +38,7 @@ public:
 
 private:
     // Mapping: key value -> field -> default 
-    std::map<std::string, FieldDefaultValueMappingPtr> defaultValueMapping;
+    std::map<std::string, FieldDefaultValueMappingPtr> m_default_value_mapping;
 
     bool FindFieldMappingByKey(std::string key, FieldDefaultValueMapping ** founded_mapping_ptr);
 };
@@ -48,7 +50,7 @@ public:
 
 private:
     // Mapping: field -> default 
-    FieldDefaultValueMappingPtr defaultValueMapping;
+    FieldDefaultValueMappingPtr m_default_value_mapping;
 
     bool FindFieldMappingByKey(std::string key, FieldDefaultValueMapping ** founded_mapping_ptr);
 };
@@ -60,7 +62,7 @@ public:
 
 private:
     // Mapping: key field count -> field -> default 
-    std::map<int, FieldDefaultValueMappingPtr> defaultValueMapping;
+    std::map<int, FieldDefaultValueMappingPtr> m_default_value_mapping;
 
     bool FindFieldMappingByKey(std::string key, std::map<std::string, std::string> ** founded_mapping_ptr);
 };
@@ -82,7 +84,7 @@ private:
     struct ly_ctx *context = nullptr;
 
     // The table name to table default value info mapping
-    std::map<std::string, std::shared_ptr<TableInfoBase> > default_value_mapping;
+    std::map<std::string, std::shared_ptr<TableInfoBase> > m_default_value_mapping;
 
     void Initialize(char* module_path = DEFAULT_YANG_MODULE_PATH);
 

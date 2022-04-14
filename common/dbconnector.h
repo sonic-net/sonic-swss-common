@@ -5,12 +5,16 @@
 #include <vector>
 #include <unordered_map>
 #include <utility>
+#include <map>
 #include <memory>
 #include <mutex>
 
 #include <hiredis/hiredis.h>
+#include "defaultvalueprovider.h"
 #include "rediscommand.h"
 #include "redisreply.h"
+#include "schema.h"
+#include "logger.h"
 #define EMPTY_NAMESPACE std::string()
 
 namespace swss {
@@ -271,7 +275,13 @@ void DBConnector::hgetall(const std::string &key, OutputIterator result)
 
     auto ctx = r.getContext();
 
-    if (this->getDbId() != CONFIG_DB)
+    size_t pos = key.find("|");
+    if (this->getDbId() == CONFIG_DB && pos == std::string::npos)
+    {
+        SWSS_LOG_WARN("Table::get key for config DB is %s, can't find a sepreator\n", key.c_str());
+    }
+    
+    if (this->getDbId() != CONFIG_DB || pos == std::string::npos)
     {
         for (unsigned int i = 0; i < ctx->elements; i += 2)
         {
@@ -282,15 +292,15 @@ void DBConnector::hgetall(const std::string &key, OutputIterator result)
     }
 
     // When DB ID is CONFIG_DB, append default value to config DB result.
-    size_t pos = key.find("|");
-    string table_name = key.substr(0, pos);
-    map<string, string> data;
+    std::string table = key.substr(0, pos);
+    std::string row = key.substr(pos + 1);
+    std::map<std::string, std::string> data;
     for (unsigned int i = 0; i < ctx->elements; i += 2)
     {
         data[ctx->element[i]->str] = ctx->element[i+1]->str;
     }
 
-    DefaultValueProvider::Instance().AppendDefaultValues(table_name, data);
+    DefaultValueProvider::Instance().AppendDefaultValues(table, row, data);
 
     for (auto& field_value_pair : data)
     {
