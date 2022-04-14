@@ -1,6 +1,7 @@
 import os
 import time
 import pytest
+import multiprocessing
 from threading import Thread
 from pympler.tracker import SummaryTracker
 from swsscommon import swsscommon
@@ -398,24 +399,93 @@ def test_ConfigDBPipeConnector():
     config_db = ConfigDBPipeConnector()
     config_db.connect(wait_for_init=False)
     config_db.get_redis_client(config_db.CONFIG_DB).flushdb()
-    config_db.set_entry("TEST_PORT", "Ethernet112", {"alias": "etp1x"})
+
+    #
+    # set_entry
+    #
+
+    # Verify entry set
+    config_db.set_entry("PORT_TABLE", "Ethernet1", {"alias": "etp1x"})
     allconfig = config_db.get_config()
-    assert allconfig["TEST_PORT"]["Ethernet112"]["alias"] == "etp1x"
+    assert allconfig["PORT_TABLE"]["Ethernet1"]["alias"] == "etp1x"
 
-    config_db.set_entry("TEST_PORT", "Ethernet112", {"mtu": "12345"})
-    allconfig =  config_db.get_config()
-    assert "alias" not in allconfig["TEST_PORT"]["Ethernet112"]
-    assert allconfig["TEST_PORT"]["Ethernet112"]["mtu"] == "12345"
+    config_db.set_entry("ACL_TABLE", "EVERFLOW", {"ports": ["Ethernet0", "Ethernet4", "Ethernet8", "Ethernet12"]})
+    allconfig = config_db.get_config()
+    assert allconfig["ACL_TABLE"]["EVERFLOW"]["ports"] == ["Ethernet0", "Ethernet4", "Ethernet8", "Ethernet12"]
 
-    config_db.mod_config(allconfig)
-    allconfig["TEST_PORT"]["Ethernet113"] = None
-    allconfig["TEST_VLAN"] = None
-    config_db.mod_config(allconfig)
-    allconfig.setdefault("ACL_TABLE", {}).setdefault("EVERFLOW", {})["ports"] = ["Ethernet0", "Ethernet4", "Ethernet8"]
+    # Verify entry update
+    config_db.set_entry("PORT_TABLE", "Ethernet1", {"mtu": "12345"})
+    allconfig = config_db.get_config()
+    assert "alias" not in allconfig["PORT_TABLE"]["Ethernet1"]
+    assert allconfig["PORT_TABLE"]["Ethernet1"]["mtu"] == "12345"
+
+    # Verify entry clear
+    config_db.set_entry("PORT_TABLE", "Ethernet1", {})
+    allconfig = config_db.get_config()
+    assert len(allconfig["PORT_TABLE"]["Ethernet1"]) == 0
+
+    # Verify entry delete
+    config_db.set_entry("PORT_TABLE", "Ethernet1", None)
+    config_db.set_entry("ACL_TABLE", "EVERFLOW", None)
+    allconfig = config_db.get_config()
+    assert len(allconfig) == 0
+
+    #
+    # mod_config
+    #
+
+    # Verify entry set
+    allconfig.setdefault("PORT_TABLE", {}).setdefault("Ethernet1", {})
+    allconfig["PORT_TABLE"]["Ethernet1"]["alias"] = "etp1x"
     config_db.mod_config(allconfig)
     allconfig = config_db.get_config()
+    assert allconfig["PORT_TABLE"]["Ethernet1"]["alias"] == "etp1x"
 
-    config_db.delete_table("TEST_PORT")
+    allconfig.setdefault("VLAN_TABLE", {})
+    allconfig["VLAN_TABLE"]["Vlan1"] = {}
+    config_db.mod_config(allconfig)
+    allconfig = config_db.get_config()
+    assert len(allconfig["VLAN_TABLE"]["Vlan1"]) == 0
+
+    allconfig.setdefault("ACL_TABLE", {}).setdefault("EVERFLOW", {})
+    allconfig["ACL_TABLE"]["EVERFLOW"]["ports"] = ["Ethernet0", "Ethernet4", "Ethernet8", "Ethernet12"]
+    config_db.mod_config(allconfig)
+    allconfig = config_db.get_config()
+    assert allconfig["ACL_TABLE"]["EVERFLOW"]["ports"] == ["Ethernet0", "Ethernet4", "Ethernet8", "Ethernet12"]
+
+    # Verify entry delete
+    allconfig["PORT_TABLE"]["Ethernet1"] = None
+    allconfig["VLAN_TABLE"]["Vlan1"] = None
+    allconfig["ACL_TABLE"]["EVERFLOW"] = None
+    config_db.mod_config(allconfig)
+    allconfig = config_db.get_config()
+    assert len(allconfig) == 0
+
+    # Verify table delete
+    for i in range(1, 1001, 1):
+        # Make sure we have enough entries to trigger REDIS_SCAN_BATCH_SIZE
+        allconfig.setdefault("PORT_TABLE", {}).setdefault("Ethernet{}".format(i), {})
+        allconfig["PORT_TABLE"]["Ethernet{}".format(i)]["alias"] = "etp{}x".format(i)
+
+    config_db.mod_config(allconfig)
+    allconfig = config_db.get_config()
+    assert len(allconfig["PORT_TABLE"]) == 1000
+
+    allconfig["PORT_TABLE"] = None
+    config_db.mod_config(allconfig)
+    allconfig = config_db.get_config()
+    assert len(allconfig) == 0
+
+    #
+    # delete_table
+    #
+
+    # Verify direct table delete
+    allconfig.setdefault("PORT_TABLE", {}).setdefault("Ethernet1", {})
+    allconfig["PORT_TABLE"]["Ethernet1"]["alias"] = "etp1x"
+    allconfig.setdefault("ACL_TABLE", {}).setdefault("EVERFLOW", {})
+    allconfig["ACL_TABLE"]["EVERFLOW"]["ports"] = ["Ethernet0", "Ethernet4", "Ethernet8", "Ethernet12"]
+    config_db.delete_table("PORT_TABLE")
     config_db.delete_table("ACL_TABLE")
     allconfig = config_db.get_config()
     assert len(allconfig) == 0
@@ -551,6 +621,50 @@ def test_ConfigDBSubscribe():
 
     config_db.unsubscribe(table_name)
     assert table_name not in config_db.handlers
+
+def test_ConfigDBInit():
+    table_name_1 = 'TEST_TABLE_1'
+    table_name_2 = 'TEST_TABLE_2'
+    test_key = 'key1'
+    test_data = {'field1': 'value1'}
+    test_data_update = {'field1': 'value2'}
+
+    manager = multiprocessing.Manager()
+    ret_data = manager.dict()
+
+    def test_handler(table, key, data, ret):
+        ret[table] = {key: data}
+
+    def test_init_handler(data, ret):
+        ret.update(data)
+
+    def thread_listen(ret):
+        config_db = ConfigDBConnector()
+        config_db.connect(wait_for_init=False)
+
+        config_db.subscribe(table_name_1, lambda table, key, data: test_handler(table, key, data, ret),
+                            fire_init_data=False)
+        config_db.subscribe(table_name_2, lambda table, key, data: test_handler(table, key, data, ret),
+                            fire_init_data=True)
+
+        config_db.listen(init_data_handler=lambda data: test_init_handler(data, ret))
+
+    config_db = ConfigDBConnector()
+    config_db.connect(wait_for_init=False)
+    client = config_db.get_redis_client(config_db.CONFIG_DB)
+    client.flushdb()
+
+    # Init table data
+    config_db.set_entry(table_name_1, test_key, test_data)
+    config_db.set_entry(table_name_2, test_key, test_data)
+
+    thread = multiprocessing.Process(target=thread_listen, args=(ret_data,))
+    thread.start()
+    time.sleep(5)
+    thread.terminate()
+
+    assert ret_data[table_name_1] == {test_key: test_data}
+    assert ret_data[table_name_2] == {test_key: test_data}
 
 
 def test_DBConnectFailure():
