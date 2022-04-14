@@ -36,7 +36,7 @@ resources:
 
 parameters:
   - name: debian-version
-    value: string
+    type: string
     default: bullseye
 
 stages:
