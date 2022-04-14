@@ -35,7 +35,7 @@ resources:
     endpoint: build
 
 parameters:
-  - name: debian-version
+  - name: debianVersion
     type: string
     default: bullseye
 
@@ -82,7 +82,7 @@ stages:
   - template: .azure-pipelines/build-template.yml
     parameters:
       arch: amd64
-      sonic_slave: sonic-slave-${{ parameters.debian-version }}
+      sonic_slave: sonic-slave-${{ parameters.debianVersion }}
       artifact_name: sonic-swss-common
       run_unit_test: true
       archive_gcov: true
@@ -96,7 +96,7 @@ stages:
       arch: armhf
       timeout: 180
       pool: sonicbld-armhf
-      sonic_slave: sonic-slave-${{ parameters.debian-version }}-armhf
+      sonic_slave: sonic-slave-${{ parameters.debianVersion }}-armhf
       artifact_name: sonic-swss-common.armhf
 
   - template: .azure-pipelines/build-template.yml
@@ -104,7 +104,7 @@ stages:
       arch: arm64
       timeout: 180
       pool: sonicbld-arm64
-      sonic_slave: sonic-slave-${{ parameters.debian-version }}-arm64
+      sonic_slave: sonic-slave-${{ parameters.debianVersion }}-arm64
       artifact_name: sonic-swss-common.arm64
 
 - stage: BuildSairedis
@@ -114,7 +114,7 @@ stages:
   - template: .azure-pipelines/build-sairedis-template.yml
     parameters:
       arch: amd64
-      sonic_slave: sonic-slave-${{ parameters.debian-version }}
+      sonic_slave: sonic-slave-${{ parameters.debianVersion }}
       swss_common_artifact_name: sonic-swss-common
       artifact_name: sonic-sairedis
       syslog_artifact_name: sonic-sairedis.syslog
@@ -126,7 +126,7 @@ stages:
   - template: .azure-pipelines/build-swss-template.yml
     parameters:
       arch: amd64
-      sonic_slave: sonic-slave-${{ parameters.debian-version }}
+      sonic_slave: sonic-slave-${{ parameters.debianVersion }}
       swss_common_artifact_name: sonic-swss-common
       sairedis_artifact_name: sonic-sairedis
       artifact_name: sonic-swss
