@@ -499,6 +499,12 @@ int ConfigDBPipeConnector_Native::_get_config(DBConnector& client, RedisTransact
             string value = r.getChild(i+1)->str;
             dataentry.emplace(field, value);
         }
+
+        // merge default value to config
+        for (auto& table : data)
+        {
+            DefaultValueProvider::Instance().AppendDefaultValues(table_name, dataentry);
+        }
     }
     return cur;
 }
@@ -514,12 +520,6 @@ map<string, map<string, map<string, string>>> ConfigDBPipeConnector_Native::get_
     while (cur != 0)
     {
         cur = _get_config(client, pipe, data, cur);
-    }
-
-    // merge default value to config
-    for (auto& table : data)
-    {
-        DefaultValueProvider::Instance().AppendDefaultValues(table.first, table.second);
     }
 
     return data;

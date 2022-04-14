@@ -271,9 +271,30 @@ void DBConnector::hgetall(const std::string &key, OutputIterator result)
 
     auto ctx = r.getContext();
 
+    if (this->getDbId() != CONFIG_DB)
+    {
+        for (unsigned int i = 0; i < ctx->elements; i += 2)
+        {
+            *result = std::make_pair(ctx->element[i]->str, ctx->element[i+1]->str);
+            ++result;
+        }
+        return;
+    }
+
+    // When DB ID is CONFIG_DB, append default value to config DB result.
+    size_t pos = key.find("|");
+    string table_name = key.substr(0, pos);
+    map<string, string> data;
     for (unsigned int i = 0; i < ctx->elements; i += 2)
     {
-        *result = std::make_pair(ctx->element[i]->str, ctx->element[i+1]->str);
+        data[ctx->element[i]->str] = ctx->element[i+1]->str;
+    }
+
+    DefaultValueProvider::Instance().AppendDefaultValues(table_name, data);
+
+    for (auto& field_value_pair : data)
+    {
+        *result = std::make_pair(field_value_pair.first, field_value_pair.second);
         ++result;
     }
 }

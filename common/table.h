@@ -38,7 +38,7 @@ public:
     __attribute__((deprecated))
 #endif
     TableBase(int dbId, const std::string &tableName)
-        : m_tableName(tableName)
+        : m_tableName(tableName), m_dbId(dbId)
     {
         /* Look up table separator for the provided DB */
         auto it = tableNameSeparatorMap.find(dbId);
@@ -55,7 +55,7 @@ public:
     }
 
     TableBase(const std::string &tableName, const std::string &tableSeparator)
-        : m_tableName(tableName), m_tableSeparator(tableSeparator)
+        : m_tableName(tableName), m_tableSeparator(tableSeparator), m_dbId(dbId)
     {
         static const std::string legalSeparators = ":|";
         if (legalSeparators.find(tableSeparator) == std::string::npos)
@@ -63,6 +63,7 @@ public:
     }
 
     std::string getTableName() const { return m_tableName; }
+    int getDbId() const { return m_dbId; }
 
     /* Return the actual key name as a combination of tableName<table_separator>key */
     std::string getKeyName(const std::string &key)
@@ -97,6 +98,7 @@ private:
 
     std::string m_tableName;
     std::string m_tableSeparator;
+    int m_dbId;
 };
 
 class TableEntryWritable {

@@ -66,6 +66,7 @@ void Table::flush()
 
 bool Table::get(const string &key, vector<FieldValueTuple> &values)
 {
+    // [Hua] TODO: code here dupe with DBConnector::hgetall, check if can reuse it.
     RedisCommand hgetall_key;
     hgetall_key.format("HGETALL %s", getKeyName(key).c_str());
     RedisReply r = m_pipe->push(hgetall_key, REDIS_REPLY_ARRAY);
@@ -79,10 +80,28 @@ bool Table::get(const string &key, vector<FieldValueTuple> &values)
         throw system_error(make_error_code(errc::address_not_available),
                            "Unable to connect netlink socket");
 
+    if (this->getDbId() != CONFIG_DB)
+    {
+        for (unsigned int i = 0; i < reply->elements; i += 2)
+        {
+            values.emplace_back(stripSpecialSym(reply->element[i]->str),
+                                        reply->element[i + 1]->str);
+        }
+        return true;
+    }
+
+    // When DB ID is CONFIG_DB, append default value to config DB result.
+    map<string, string> data;
     for (unsigned int i = 0; i < reply->elements; i += 2)
     {
-        values.emplace_back(stripSpecialSym(reply->element[i]->str),
-                                    reply->element[i + 1]->str);
+        data[stripSpecialSym(reply->element[i]->str)] = reply->element[i + 1]->str;
+    }
+
+    DefaultValueProvider::Instance().AppendDefaultValues(m_tableName, data);
+
+    for (auto& field_value_pair : data)
+    {
+        values.emplace_back(field_value_pair.first, field_value_pair.second);
     }
 
     return true;
