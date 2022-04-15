@@ -22,7 +22,7 @@ dist_swsscommon_DATA = $(EXTRA_CONF_DIST)
 bin_PROGRAMS = swssloglevel
 
 if DEBUG
-DBGFLAGS = -ggdb -DDEBUG
+DBGFLAGS = -ggdb -DDEBUG -g -rdynamic
 else
 DBGFLAGS = -g -DNDEBUG
 endif

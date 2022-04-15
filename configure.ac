@@ -91,8 +91,6 @@ CFLAGS_COMMON+=" -Wno-write-strings"
 CFLAGS_COMMON+=" -Wno-missing-format-attribute"
 CFLAGS_COMMON+=" -Wno-long-long"
 
-CFLAGS_COMMON+=" -g -rdynamic"
-
 AC_SUBST(CFLAGS_COMMON)
 
 AC_CONFIG_FILES([
