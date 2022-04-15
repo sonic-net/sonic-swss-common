@@ -780,7 +780,21 @@ shared_ptr<string> DBConnector::hget(const string &key, const string &field)
 
     if (reply->type == REDIS_REPLY_NIL)
     {
-        return shared_ptr<string>(NULL);
+        if (this->getDbId() != CONFIG_DB)
+        {
+            return shared_ptr<string>(NULL);
+        }
+
+        size_t pos = key.find("|");
+        if (pos == std::string::npos)
+        {
+            SWSS_LOG_WARN("Table::get key for config DB is %s, can't find a sepreator\n", key.c_str());
+            return shared_ptr<string>(NULL);
+        }
+
+        std::string table = key.substr(0, pos);
+        std::string row = key.substr(pos + 1);
+        return DefaultValueProvider::Instance().GetDefaultValue(table, row, field);
     }
 
     if (reply->type == REDIS_REPLY_STRING)

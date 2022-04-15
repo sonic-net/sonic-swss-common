@@ -186,10 +186,12 @@ map<string, map<string, string>> ConfigDBConnector_Native::get_table(string tabl
             continue;
         }
         row = key.substr(pos + 1);
+
+        DefaultValueProvider::Instance().AppendDefaultValues(table, row, const_cast<map<string, string>& >(entry));
+
         data[row] = entry;
     }
     
-    DefaultValueProvider::Instance().AppendDefaultValues(table, data);
     return data;
 }
 
@@ -261,15 +263,12 @@ map<string, map<string, map<string, string>>> ConfigDBConnector_Native::get_conf
 
         if (!entry.empty())
         {
+            DefaultValueProvider::Instance().AppendDefaultValues(table_name, row, const_cast<map<string, string>& >(entry));
+        
             data[table_name][row] = entry;
         }
     }
 
-    // merge default value to config
-    for (auto& table : data)
-    {
-        DefaultValueProvider::Instance().AppendDefaultValues(table.first, table.second);
-    }
     return data;
 }
 
