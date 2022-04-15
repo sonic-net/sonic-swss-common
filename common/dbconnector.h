@@ -275,37 +275,42 @@ void DBConnector::hgetall(const std::string &key, OutputIterator result)
 
     auto ctx = r.getContext();
 
-    size_t pos = key.find("|");
-    if (this->getDbId() == CONFIG_DB && pos == std::string::npos)
-    {
-        SWSS_LOG_WARN("Table::get key for config DB is %s, can't find a sepreator\n", key.c_str());
-    }
-    
-    if (this->getDbId() != CONFIG_DB || pos == std::string::npos)
-    {
-        for (unsigned int i = 0; i < ctx->elements; i += 2)
-        {
-            *result = std::make_pair(ctx->element[i]->str, ctx->element[i+1]->str);
-            ++result;
-        }
-        return;
-    }
-
-    // When DB ID is CONFIG_DB, append default value to config DB result.
-    std::string table = key.substr(0, pos);
-    std::string row = key.substr(pos + 1);
-    std::map<std::string, std::string> data;
     for (unsigned int i = 0; i < ctx->elements; i += 2)
     {
-        data[ctx->element[i]->str] = ctx->element[i+1]->str;
+        *result = std::make_pair(ctx->element[i]->str, ctx->element[i+1]->str);
+        ++result;
     }
 
-    DefaultValueProvider::Instance().AppendDefaultValues(table, row, data);
-
-    for (auto& field_value_pair : data)
+    if (this->getDbId() == CONFIG_DB)
     {
-        *result = std::make_pair(field_value_pair.first, field_value_pair.second);
-        ++result;
+        size_t pos = key.find("|");
+        if (pos == std::string::npos)
+        {
+            SWSS_LOG_WARN("Table::get key for config DB is %s, can't find a sepreator\n", key.c_str());
+        }
+
+        // When DB ID is CONFIG_DB, append default value to config DB result.
+        std::string table = key.substr(0, pos);
+        std::string row = key.substr(pos + 1);
+        std::map<std::string, std::string> values_with_default;
+        std::map<std::string, std::string> existed_values;
+        for (unsigned int i = 0; i < ctx->elements; i += 2)
+        {
+            existed_values[ctx->element[i]->str] = ctx->element[i+1]->str;
+            values_with_default[ctx->element[i]->str] = ctx->element[i+1]->str;
+        }
+
+        DefaultValueProvider::Instance().AppendDefaultValues(table, row, values_with_default);
+
+        for (auto& field_value_pair : values_with_default)
+        {
+            auto find_result = existed_values.find(field_value_pair.first);
+            if (find_result == existed_values.end())
+            {
+                *result = std::make_pair(field_value_pair.first, field_value_pair.second);
+                ++result;
+            }
+        }
     }
 }
 #endif

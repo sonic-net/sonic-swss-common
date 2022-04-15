@@ -95,6 +95,8 @@ bool Table::get(const string &key, vector<FieldValueTuple> &values)
         }
         else
         {
+            std::string table = key.substr(0, pos);
+            std::string row = key.substr(pos + 1);
             DefaultValueProvider::Instance().AppendDefaultValues(table, row, values);
         }
     }
