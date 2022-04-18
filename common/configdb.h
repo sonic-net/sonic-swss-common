@@ -19,12 +19,12 @@ public:
 
     virtual void set_entry(std::string table, std::string key, const std::map<std::string, std::string>& data);
     virtual void mod_entry(std::string table, std::string key, const std::map<std::string, std::string>& data);
-    std::map<std::string, std::string> get_entry(std::string table, std::string key);
+    std::map<std::string, std::string> get_entry(std::string table, std::string key, bool withDefaultValue);
     std::vector<std::string> get_keys(std::string table, bool split = true);
-    std::map<std::string, std::map<std::string, std::string>> get_table(std::string table);
+    std::map<std::string, std::map<std::string, std::string>> get_table(std::string table, bool withDefaultValue);
     void delete_table(std::string table);
     virtual void mod_config(const std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>& data);
-    virtual std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> get_config();
+    virtual std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> get_config(bool withDefaultValue);
 
     std::string getKeySeparator() const;
     std::string getTableNameSeparator() const;
@@ -72,7 +72,7 @@ protected:
             return self.getDbName()
 
         ## Note: callback is difficult to implement by SWIG C++, so keep in python
-        def listen(self, init_data_handler=None):
+        def listen(self, init_data_handler=None, with_default_value=False):
             ## Start listen Redis keyspace event. Pass a callback function to `init` to handle initial table data.
             self.pubsub = self.get_redis_client(self.db_name).pubsub()
             self.pubsub.psubscribe("__keyspace@{}__:*".format(self.get_dbid(self.db_name)))
@@ -246,7 +246,7 @@ public:
 
     void set_entry(std::string table, std::string key, const std::map<std::string, std::string>& data) override;
     void mod_config(const std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>& data) override;
-    std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> get_config() override;
+    std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> get_config(bool withDefaultValue) override;
 
 private:
     static const int64_t REDIS_SCAN_BATCH_SIZE = 30;
@@ -255,7 +255,7 @@ private:
     void _delete_table(DBConnector& client, RedisTransactioner& pipe, std::string table);
     void _set_entry(RedisTransactioner& pipe, std::string table, std::string key, const std::map<std::string, std::string>& data);
     void _mod_entry(RedisTransactioner& pipe, std::string table, std::string key, const std::map<std::string, std::string>& data);
-    int _get_config(DBConnector& client, RedisTransactioner& pipe, std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>& data, int cursor);
+    int _get_config(DBConnector& client, RedisTransactioner& pipe, std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>& data, int cursor, bool withDefaultValue);
 };
 
 #ifdef SWIG

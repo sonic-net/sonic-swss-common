@@ -322,7 +322,7 @@ TEST(DBConnector, DBInterface)
     SonicV2Connector_Native db;
     db.connect("TEST_DB");
     db.set("TEST_DB", "key0", "field1", "value2");
-    auto fvs = db.get_all("TEST_DB", "key0");
+    auto fvs = db.get_all("TEST_DB", "key0", false, false);
     auto rc = fvs.find("field1");
     EXPECT_NE(rc, fvs.end());
     EXPECT_EQ(rc->second, "value2");
@@ -368,7 +368,7 @@ TEST(DBConnector, RedisClient)
     for (auto k : keys)
     {
         cout << "Get key [" << k << "]" << flush;
-        auto fvs = db.hgetall(k);
+        auto fvs = db.hgetall(k, false);
         unsigned int size_v = 3;
         EXPECT_EQ(fvs.size(), size_v);
         for (auto fv: fvs)
@@ -392,7 +392,7 @@ TEST(DBConnector, RedisClient)
     int64_t rval = db.hdel(key_1, "field_2");
     EXPECT_EQ(rval, 1);
 
-    auto fvs = db.hgetall(key_1);
+    auto fvs = db.hgetall(key_1, false);
     EXPECT_EQ(fvs.size(), 2);
     for (auto fv: fvs)
     {
@@ -417,9 +417,9 @@ TEST(DBConnector, RedisClient)
 
     cout << "- Step 6. GET" << endl;
     cout << "Get key [a] and key [b]" << endl;
-    fvs = db.hgetall(key_1);
+    fvs = db.hgetall(key_1, false);
     EXPECT_TRUE(fvs.empty());
-    fvs = db.hgetall(key_2);
+    fvs = db.hgetall(key_2, false);
 
     cout << "Get key [b]" << flush;
     for (auto fv: fvs)
@@ -442,7 +442,7 @@ TEST(DBConnector, RedisClient)
     rval = db.hdel(key_2, vector<string>({"field_2", "field_3"}));
     EXPECT_EQ(rval, 2);
 
-    fvs = db.hgetall(key_2);
+    fvs = db.hgetall(key_2, false);
     EXPECT_EQ(fvs.size(), 1);
     for (auto fv: fvs)
     {
@@ -461,7 +461,7 @@ TEST(DBConnector, RedisClient)
     cout << "- Step 8. DEL and GET_TABLE_CONTENT" << endl;
     cout << "Delete key [b]" << endl;
     db.del(key_2);
-    fvs = db.hgetall(key_2);
+    fvs = db.hgetall(key_2, false);
 
     EXPECT_TRUE(fvs.empty());
 

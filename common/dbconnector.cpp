@@ -771,7 +771,7 @@ shared_ptr<string> DBConnector::get(const string &key)
     throw runtime_error("GET failed, memory exception");
 }
 
-shared_ptr<string> DBConnector::hget(const string &key, const string &field)
+shared_ptr<string> DBConnector::hget(const string &key, const string &field, bool withDefaultValue)
 {
     RedisCommand shget;
     shget.format("HGET %s %s", key.c_str(), field.c_str());
@@ -780,7 +780,7 @@ shared_ptr<string> DBConnector::hget(const string &key, const string &field)
 
     if (reply->type == REDIS_REPLY_NIL)
     {
-        if (this->getDbId() != CONFIG_DB)
+        if (!withDefaultValue || this->getDbId() != CONFIG_DB)
         {
             return shared_ptr<string>(NULL);
         }

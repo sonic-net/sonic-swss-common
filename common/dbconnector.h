@@ -200,11 +200,11 @@ public:
     void del(const std::vector<std::string>& keys);
 
     template <typename ReturnType=std::unordered_map<std::string, std::string>>
-    ReturnType hgetall(const std::string &key);
+    ReturnType hgetall(const std::string &key, bool withDefaultValue);
 
 #ifndef SWIG
     template <typename OutputIterator>
-    void hgetall(const std::string &key, OutputIterator result);
+    void hgetall(const std::string &key, OutputIterator result, bool withDefaultValue);
 #endif
 
     std::vector<std::string> keys(const std::string &key);
@@ -223,7 +223,7 @@ public:
 
     std::shared_ptr<std::string> get(const std::string &key);
 
-    std::shared_ptr<std::string> hget(const std::string &key, const std::string &field);
+    std::shared_ptr<std::string> hget(const std::string &key, const std::string &field, bool withDefaultValue);
 
     bool hexists(const std::string &key, const std::string &field);
 
@@ -258,16 +258,16 @@ private:
 };
 
 template <typename ReturnType>
-ReturnType DBConnector::hgetall(const std::string &key)
+ReturnType DBConnector::hgetall(const std::string &key, bool withDefaultValue)
 {
     ReturnType map;
-    hgetall(key, std::inserter(map, map.end()));
+    hgetall(key, std::inserter(map, map.end()), withDefaultValue);
     return map;
 }
 
 #ifndef SWIG
 template<typename OutputIterator>
-void DBConnector::hgetall(const std::string &key, OutputIterator result)
+void DBConnector::hgetall(const std::string &key, OutputIterator result, bool withDefaultValue)
 {
     RedisCommand shgetall;
     shgetall.format("HGETALL %s", key.c_str());

@@ -122,7 +122,7 @@ static void consumerWorker(int index)
 
             for (auto fv : kfvFieldsValues(kco))
             {
-                string val = *db.hget(tableName + ":" + kfvKey(kco), fvField(fv));
+                string val = *db.hget(tableName + ":" + kfvKey(kco), fvField(fv), false);
                 EXPECT_EQ(val, fvValue(fv));
             }
         } else if (kfvOp(kco) == "DEL")
