@@ -19,11 +19,23 @@ public:
 
     virtual void set_entry(std::string table, std::string key, const std::map<std::string, std::string>& data);
     virtual void mod_entry(std::string table, std::string key, const std::map<std::string, std::string>& data);
+#ifndef SWIG
+    [[deprecated("Please use get_entry(std::string table, std::string key, bool withDefaultValue) instead.")]]
+#endif
+    std::map<std::string, std::string> get_entry(std::string table, std::string key);
     std::map<std::string, std::string> get_entry(std::string table, std::string key, bool withDefaultValue);
     std::vector<std::string> get_keys(std::string table, bool split = true);
+#ifndef SWIG
+    [[deprecated("Please use get_table(std::string table, bool withDefaultValue) instead.")]]
+#endif
+    std::map<std::string, std::map<std::string, std::string>> get_table(std::string table);
     std::map<std::string, std::map<std::string, std::string>> get_table(std::string table, bool withDefaultValue);
     void delete_table(std::string table);
     virtual void mod_config(const std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>& data);
+#ifndef SWIG
+    [[deprecated("Please use get_config(bool withDefaultValue) instead.")]]
+#endif
+    virtual std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> get_config();
     virtual std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> get_config(bool withDefaultValue);
 
     std::string getKeySeparator() const;
@@ -246,6 +258,10 @@ public:
 
     void set_entry(std::string table, std::string key, const std::map<std::string, std::string>& data) override;
     void mod_config(const std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>& data) override;
+#ifndef SWIG
+    [[deprecated("Please use get_config(bool withDefaultValue) instead.")]]
+#endif
+    std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> get_config() override;
     std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> get_config(bool withDefaultValue) override;
 
 private:
@@ -255,6 +271,10 @@ private:
     void _delete_table(DBConnector& client, RedisTransactioner& pipe, std::string table);
     void _set_entry(RedisTransactioner& pipe, std::string table, std::string key, const std::map<std::string, std::string>& data);
     void _mod_entry(RedisTransactioner& pipe, std::string table, std::string key, const std::map<std::string, std::string>& data);
+#ifndef SWIG
+    [[deprecated("Please use _get_config(DBConnector& client, RedisTransactioner& pipe, std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>& data, int cursor, bool withDefaultValue) instead.")]]
+#endif
+    int _get_config(DBConnector& client, RedisTransactioner& pipe, std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>& data, int cursor);
     int _get_config(DBConnector& client, RedisTransactioner& pipe, std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>& data, int cursor, bool withDefaultValue);
 };
 

@@ -32,6 +32,11 @@ class RedisClient
 
         int64_t hdel(const std::string &key, const std::vector<std::string> &fields) { return m_db->hdel(key, fields); }
 
+#ifndef SWIG
+        [[deprecated("Please use hgetall(const std::string &key, bool withDefaultValue) instead.")]]
+#endif
+        std::unordered_map<std::string, std::string> hgetall(const std::string &key) { return hgetall(key, false); }
+
         std::unordered_map<std::string, std::string> hgetall(const std::string &key, bool withDefaultValue) { return m_db->hgetall(key, withDefaultValue); }
 
         template <typename OutputIterator>
@@ -47,6 +52,11 @@ class RedisClient
         void hmset(const std::string &key, InputIterator start, InputIterator stop) { return m_db->hmset(key, start, stop); }
 
         std::shared_ptr<std::string> get(const std::string &key) { return m_db->get(key); }
+
+#ifndef SWIG
+        [[deprecated("Please use hget(const std::string &key, const std::string &field, bool withDefaultValue) instead.")]]
+#endif
+        std::shared_ptr<std::string> hget(const std::string &key, const std::string &field) { return hget(key, field, false); }
 
         std::shared_ptr<std::string> hget(const std::string &key, const std::string &field, bool withDefaultValue) { return m_db->hget(key, field, withDefaultValue); }
 

@@ -199,10 +199,18 @@ public:
 
     void del(const std::vector<std::string>& keys);
 
+    // TODO: [Hua] check if we can remove this method, because in a library, template method could not be export.
+    template <typename ReturnType=std::unordered_map<std::string, std::string>>
+    ReturnType hgetall(const std::string &key);
+
     template <typename ReturnType=std::unordered_map<std::string, std::string>>
     ReturnType hgetall(const std::string &key, bool withDefaultValue);
 
 #ifndef SWIG
+    // TODO: [Hua] check if we can remove this method, because in a library, template method could not be export.
+    template <typename OutputIterator>
+    void hgetall(const std::string &key, OutputIterator result);
+
     template <typename OutputIterator>
     void hgetall(const std::string &key, OutputIterator result, bool withDefaultValue);
 #endif
@@ -222,6 +230,8 @@ public:
     void hmset(const std::unordered_map<std::string, std::vector<std::pair<std::string, std::string>>>& multiHash);
 
     std::shared_ptr<std::string> get(const std::string &key);
+
+    std::shared_ptr<std::string> hget(const std::string &key, const std::string &field);
 
     std::shared_ptr<std::string> hget(const std::string &key, const std::string &field, bool withDefaultValue);
 
@@ -258,6 +268,12 @@ private:
 };
 
 template <typename ReturnType>
+ReturnType DBConnector::hgetall(const std::string &key)
+{
+    return hgetall<ReturnType>(key, false);
+}
+
+template <typename ReturnType>
 ReturnType DBConnector::hgetall(const std::string &key, bool withDefaultValue)
 {
     ReturnType map;
@@ -266,6 +282,12 @@ ReturnType DBConnector::hgetall(const std::string &key, bool withDefaultValue)
 }
 
 #ifndef SWIG
+template<typename OutputIterator>
+void DBConnector::hgetall(const std::string &key, OutputIterator result)
+{
+    hgetall<OutputIterator>(key, result, false);
+}
+
 template<typename OutputIterator>
 void DBConnector::hgetall(const std::string &key, OutputIterator result, bool withDefaultValue)
 {

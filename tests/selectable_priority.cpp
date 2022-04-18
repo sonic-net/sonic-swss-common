@@ -59,7 +59,7 @@ TEST(Priority, set_pri_values)
     RedisSelect rs(105);
     SelectableEvent se(106);
     SelectableTimer st(interval, 107);
-    SubscriberStateTable sst(&db, tableName, DEFAULT_POP_BATCH_SIZE, 108);
+    SubscriberStateTable sst(&db, tableName, false, DEFAULT_POP_BATCH_SIZE, 108);
 
     EXPECT_EQ(nl.getPri(), 101);
     EXPECT_EQ(cst.getPri(), 102);

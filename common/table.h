@@ -166,6 +166,10 @@ public:
     virtual ~TableEntryEnumerable() = default;
 
     /* Get all the field-value tuple of the table entry with the key */
+#ifndef SWIG
+    [[deprecated("Please use get(const std::string &key, std::vector<FieldValueTuple> &values, bool withDefaultValue) instead.")]]
+#endif
+    virtual bool get(const std::string &key, std::vector<FieldValueTuple> &values) = 0;
     virtual bool get(const std::string &key, std::vector<FieldValueTuple> &values, bool withDefaultValue) = 0;
 
     /* get all the keys in the table */
@@ -173,6 +177,10 @@ public:
 
     /* Read the whole table content from the DB directly */
     /* NOTE: Not an atomic function */
+#ifndef SWIG
+    [[deprecated("Please use getContent(std::vector<KeyOpFieldsValuesTuple> &tuples, bool withDefaultValue) instead.")]]
+#endif
+    void getContent(std::vector<KeyOpFieldsValuesTuple> &tuples);
     void getContent(std::vector<KeyOpFieldsValuesTuple> &tuples, bool withDefaultValue);
 };
 
@@ -222,6 +230,10 @@ public:
                       const std::string &prefix = EMPTY_PREFIX);
     /* Read a value from the DB directly */
     /* Returns false if the key doesn't exists */
+#ifndef SWIG
+    [[deprecated("Please use get(const std::string &key, std::vector<FieldValueTuple> &ovalues, bool withDefaultValue) instead.")]]
+#endif
+    virtual bool get(const std::string &key, std::vector<FieldValueTuple> &ovalues);
     virtual bool get(const std::string &key, std::vector<FieldValueTuple> &ovalues, bool withDefaultValue);
 
     virtual bool hget(const std::string &key, const std::string &field,  std::string &value);

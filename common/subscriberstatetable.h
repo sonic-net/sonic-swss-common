@@ -11,6 +11,10 @@ namespace swss {
 class SubscriberStateTable : public ConsumerTableBase
 {
 public:
+#ifndef SWIG
+        [[deprecated("Please use SubscriberStateTable(DBConnector *db, const std::string &tableName, bool withDefaultValue, int popBatchSize = DEFAULT_POP_BATCH_SIZE, int pri = 0) instead.")]]
+#endif
+    SubscriberStateTable(DBConnector *db, const std::string &tableName, int popBatchSize = DEFAULT_POP_BATCH_SIZE, int pri = 0);
     SubscriberStateTable(DBConnector *db, const std::string &tableName, bool withDefaultValue, int popBatchSize = DEFAULT_POP_BATCH_SIZE, int pri = 0);
 
     /* Get all elements available */

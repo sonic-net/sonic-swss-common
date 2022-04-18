@@ -122,6 +122,11 @@ void ConfigDBConnector_Native::mod_entry(string table, string key, const map<str
 // Returns:
 //     Table row data in a form of dictionary {'column_key': 'value', ...}
 //     Empty dictionary if table does not exist or entry does not exist.
+map<string, string> ConfigDBConnector_Native::get_entry(string table, string key)
+{
+    return get_entry(table, key, false);
+}
+
 map<string, string> ConfigDBConnector_Native::get_entry(string table, string key, bool withDefaultValue)
 {
     auto& client = get_redis_client(m_db_name);
@@ -170,6 +175,11 @@ vector<string> ConfigDBConnector_Native::get_keys(string table, bool split)
 //     { 'row_key': {'column_key': value, ...}, ...}
 //     or { ('l1_key', 'l2_key', ...): {'column_key': value, ...}, ...} for a multi-key table.
 //     Empty dictionary if table does not exist.
+map<string, map<string, string>> ConfigDBConnector_Native::get_table(string table)
+{
+    return get_table(table, false);
+}
+
 map<string, map<string, string>> ConfigDBConnector_Native::get_table(string table, bool withDefaultValue)
 {
     auto& client = get_redis_client(m_db_name);
@@ -186,14 +196,6 @@ map<string, map<string, string>> ConfigDBConnector_Native::get_table(string tabl
             continue;
         }
         row = key.substr(pos + 1);
-
-        /*
-        if (withDefaultValue)
-        {
-            // TODO: [Hua] check if following code can be removed because hgetall already return default values.
-            DefaultValueProvider::Instance().AppendDefaultValues(table, row, const_cast<map<string, string>& >(entry));
-        }
-        */
 
         data[row] = entry;
     }
@@ -252,6 +254,11 @@ void ConfigDBConnector_Native::mod_config(const map<string, map<string, map<stri
 //         'MULTI_KEY_TABLE_NAME': { ('l1_key', 'l2_key', ...) : {'column_key': 'value', ...}, ...},
 //         ...
 //     }
+map<string, map<string, map<string, string>>> ConfigDBConnector_Native::get_config()
+{
+    return get_config(false);
+}
+
 map<string, map<string, map<string, string>>> ConfigDBConnector_Native::get_config(bool withDefaultValue)
 {
     auto& client = get_redis_client(m_db_name);
@@ -269,14 +276,6 @@ map<string, map<string, map<string, string>>> ConfigDBConnector_Native::get_conf
 
         if (!entry.empty())
         {
-            /*
-            if (withDefaultValue)
-            {
-                // TODO: [Hua] check if code can remove because hgetall already return default values.
-                DefaultValueProvider::Instance().AppendDefaultValues(table_name, row, const_cast<map<string, string>& >(entry));
-            }
-            */
-        
             data[table_name][row] = entry;
         }
     }
@@ -470,6 +469,11 @@ void ConfigDBPipeConnector_Native::mod_config(const map<string, map<string, map<
 //
 // Returns:
 //     cur: position of next item to scan
+int ConfigDBPipeConnector_Native::_get_config(DBConnector& client, RedisTransactioner& pipe, map<string, map<string, map<string, string>>>& data, int cursor)
+{
+    return _get_config(client, pipe, data, cursor, false);
+}
+
 int ConfigDBPipeConnector_Native::_get_config(DBConnector& client, RedisTransactioner& pipe, map<string, map<string, map<string, string>>>& data, int cursor, bool withDefaultValue)
 {
     auto const& rc = client.scan(cursor, "*", REDIS_SCAN_BATCH_SIZE);
@@ -518,6 +522,11 @@ int ConfigDBPipeConnector_Native::_get_config(DBConnector& client, RedisTransact
         }
     }
     return cur;
+}
+
+map<string, map<string, map<string, string>>> ConfigDBPipeConnector_Native::get_config()
+{
+    return get_config(false);
 }
 
 map<string, map<string, map<string, string>>> ConfigDBPipeConnector_Native::get_config(bool withDefaultValue)

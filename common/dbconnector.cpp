@@ -771,6 +771,11 @@ shared_ptr<string> DBConnector::get(const string &key)
     throw runtime_error("GET failed, memory exception");
 }
 
+shared_ptr<string> DBConnector::hget(const string &key, const string &field)
+{
+    return hget(key, field, false);
+}
+
 shared_ptr<string> DBConnector::hget(const string &key, const string &field, bool withDefaultValue)
 {
     RedisCommand shget;

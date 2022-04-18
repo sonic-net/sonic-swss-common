@@ -56,6 +56,11 @@ bool DBInterface::exists(const string& dbName, const std::string& key)
     return m_redisClient.at(dbName).exists(key);
 }
 
+std::shared_ptr<std::string> DBInterface::get(const std::string& dbName, const std::string& hash, const std::string& key, bool blocking)
+{
+    return get(dbName, hash, key, false, blocking);
+}
+
 std::shared_ptr<std::string> DBInterface::get(const std::string& dbName, const std::string& hash, const std::string& key, bool withDefaultValue, bool blocking)
 {
     auto innerfunc = [&]
@@ -75,6 +80,11 @@ std::shared_ptr<std::string> DBInterface::get(const std::string& dbName, const s
 bool DBInterface::hexists(const std::string& dbName, const std::string& hash, const std::string& key)
 {
     return m_redisClient.at(dbName).hexists(hash, key);
+}
+
+std::map<std::string, std::string> DBInterface::get_all(const std::string& dbName, const std::string& hash, bool blocking)
+{
+    return get_all(dbName, hash, false, blocking);
 }
 
 std::map<std::string, std::string> DBInterface::get_all(const std::string& dbName, const std::string& hash, bool withDefaultValue, bool blocking)

@@ -64,6 +64,11 @@ void Table::flush()
     m_pipe->flush();
 }
 
+bool Table::get(const string &key, vector<FieldValueTuple> &values)
+{
+    return get(key, values, false);
+}
+
 bool Table::get(const string &key, vector<FieldValueTuple> &values, bool withDefaultValue)
 {
     // [Hua] TODO: code here dupe with DBConnector::hgetall, check if can reuse it.
@@ -202,6 +207,11 @@ void Table::hdel(const string &key, const string &field, const string& /* op */,
     RedisCommand cmd;
     cmd.formatHDEL(getKeyName(key), field);
     m_pipe->push(cmd, REDIS_REPLY_INTEGER);
+}
+
+void TableEntryEnumerable::getContent(vector<KeyOpFieldsValuesTuple> &tuples)
+{
+    return getContent(tuples, false);
 }
 
 void TableEntryEnumerable::getContent(vector<KeyOpFieldsValuesTuple> &tuples, bool withDefaultValue)

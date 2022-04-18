@@ -38,9 +38,17 @@ public:
     // Delete all keys which match %pattern from DB
     void delete_all_by_pattern(const std::string& dbName, const std::string& pattern);
     bool exists(const std::string& dbName, const std::string& key);
-    std::shared_ptr<std::string> get(const std::string& dbName, const std::string& hash, const std::string& key, bool withDefaultValue, bool blocking); // blocking = false
+#ifndef SWIG
+    [[deprecated("Please use get(const std::string& dbName, const std::string& hash, const std::string& key, bool withDefaultValue, bool blocking) instead.")]]
+#endif
+    std::shared_ptr<std::string> get(const std::string& dbName, const std::string& hash, const std::string& key, bool blocking = false);
+    std::shared_ptr<std::string> get(const std::string& dbName, const std::string& hash, const std::string& key, bool withDefaultValue, bool blocking);
     bool hexists(const std::string& dbName, const std::string& hash, const std::string& key);
-    std::map<std::string, std::string> get_all(const std::string& dbName, const std::string& hash, bool withDefaultValue, bool blocking);//blocking = false
+#ifndef SWIG
+    [[deprecated("Please use get_all(const std::string& dbName, const std::string& hash, bool withDefaultValue, bool blocking) instead.")]]
+#endif
+    std::map<std::string, std::string> get_all(const std::string& dbName, const std::string& hash, bool blocking = false);
+    std::map<std::string, std::string> get_all(const std::string& dbName, const std::string& hash, bool withDefaultValue, bool blocking);
     std::vector<std::string> keys(const std::string& dbName, const char *pattern = "*", bool blocking = false);
     std::pair<int, std::vector<std::string>> scan(const std::string& db_name, int cursor, const char *match, uint32_t count);
     int64_t publish(const std::string& dbName, const std::string& channel, const std::string& message);
