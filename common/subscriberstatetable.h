@@ -11,7 +11,7 @@ namespace swss {
 class SubscriberStateTable : public ConsumerTableBase
 {
 public:
-    SubscriberStateTable(DBConnector *db, const std::string &tableName, int popBatchSize = DEFAULT_POP_BATCH_SIZE, int pri = 0);
+    SubscriberStateTable(DBConnector *db, const std::string &tableName, bool withDefaultValue, int popBatchSize = DEFAULT_POP_BATCH_SIZE, int pri = 0);
 
     /* Get all elements available */
     void pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const std::string &prefix = EMPTY_PREFIX);
@@ -33,6 +33,7 @@ private:
 
     std::deque<std::shared_ptr<RedisReply>> m_keyspace_event_buffer;
     Table m_table;
+    bool m_withDefaultValue;
 };
 
 }

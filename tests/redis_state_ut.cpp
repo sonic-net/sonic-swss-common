@@ -472,7 +472,7 @@ TEST(ConsumerStateTable, set_pop_del_set_pop_get)
     /* Get data directly from table in redis DB*/
     Table t(&db, tableName);
     vector<FieldValueTuple> values;
-    t.get(key, values);
+    t.get(key, values, false);
     /* size of values should be maxNumOfFields, no "field 1" left from first set */
     EXPECT_EQ(values.size(), (unsigned int)maxNumOfFields);
 

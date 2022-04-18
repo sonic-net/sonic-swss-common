@@ -32,7 +32,7 @@ TEST(Priority, default_pri_values)
     RedisSelect rs;
     SelectableEvent se;
     SelectableTimer st(interval);
-    SubscriberStateTable sst(&db, tableName);
+    SubscriberStateTable sst(&db, tableName, false);
 
     EXPECT_EQ(nl.getPri(), 0);
     EXPECT_EQ(cst.getPri(), 0);

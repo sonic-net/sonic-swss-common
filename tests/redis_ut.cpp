@@ -202,7 +202,7 @@ void TableBasicTest(string tableName, bool useDbId = false)
 
     cout << "- Step 3. GET_TABLE_CONTENT" << endl;
     vector<KeyOpFieldsValuesTuple> tuples;
-    t.getContent(tuples);
+    t.getContent(tuples, false);
 
     cout << "Get total " << tuples.size() << " number of entries" << endl;
     EXPECT_EQ(tuples.size(), (size_t)2);
@@ -234,8 +234,8 @@ void TableBasicTest(string tableName, bool useDbId = false)
 
     cout << "- Step 5. GET" << endl;
     cout << "Get key [a] and key [b]" << endl;
-    EXPECT_EQ(t.get(key_1, values), false);
-    t.get(key_2, values);
+    EXPECT_EQ(t.get(key_1, values, false), false);
+    t.get(key_2, values, false);
 
     cout << "Get key [b]" << flush;
     for (auto fv: values)
@@ -256,7 +256,7 @@ void TableBasicTest(string tableName, bool useDbId = false)
     cout << "- Step 6. DEL and GET_TABLE_CONTENT" << endl;
     cout << "Delete key [b]" << endl;
     t.del(key_2);
-    t.getContent(tuples);
+    t.getContent(tuples, false);
 
     EXPECT_EQ(tuples.size(), unsigned(0));
 

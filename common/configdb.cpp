@@ -187,7 +187,13 @@ map<string, map<string, string>> ConfigDBConnector_Native::get_table(string tabl
         }
         row = key.substr(pos + 1);
 
-        DefaultValueProvider::Instance().AppendDefaultValues(table, row, const_cast<map<string, string>& >(entry));
+        /*
+        if (withDefaultValue)
+        {
+            // TODO: [Hua] check if following code can be removed because hgetall already return default values.
+            DefaultValueProvider::Instance().AppendDefaultValues(table, row, const_cast<map<string, string>& >(entry));
+        }
+        */
 
         data[row] = entry;
     }
@@ -263,7 +269,13 @@ map<string, map<string, map<string, string>>> ConfigDBConnector_Native::get_conf
 
         if (!entry.empty())
         {
-            DefaultValueProvider::Instance().AppendDefaultValues(table_name, row, const_cast<map<string, string>& >(entry));
+            /*
+            if (withDefaultValue)
+            {
+                // TODO: [Hua] check if code can remove because hgetall already return default values.
+                DefaultValueProvider::Instance().AppendDefaultValues(table_name, row, const_cast<map<string, string>& >(entry));
+            }
+            */
         
             data[table_name][row] = entry;
         }

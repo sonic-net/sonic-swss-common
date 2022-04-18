@@ -281,7 +281,7 @@ void DBConnector::hgetall(const std::string &key, OutputIterator result, bool wi
         ++result;
     }
 
-    if (this->getDbId() == CONFIG_DB)
+    if (withDefaultValue && this->getDbId() == CONFIG_DB)
     {
         size_t pos = key.find("|");
         if (pos == std::string::npos)
@@ -292,22 +292,22 @@ void DBConnector::hgetall(const std::string &key, OutputIterator result, bool wi
         // When DB ID is CONFIG_DB, append default value to config DB result.
         std::string table = key.substr(0, pos);
         std::string row = key.substr(pos + 1);
-        std::map<std::string, std::string> values_with_default;
-        std::map<std::string, std::string> existed_values;
+        std::map<std::string, std::string> valuesWithDefault;
+        std::map<std::string, std::string> existedValues;
         for (unsigned int i = 0; i < ctx->elements; i += 2)
         {
-            existed_values[ctx->element[i]->str] = ctx->element[i+1]->str;
-            values_with_default[ctx->element[i]->str] = ctx->element[i+1]->str;
+            existedValues[ctx->element[i]->str] = ctx->element[i+1]->str;
+            valuesWithDefault[ctx->element[i]->str] = ctx->element[i+1]->str;
         }
 
-        DefaultValueProvider::Instance().AppendDefaultValues(table, row, values_with_default);
+        DefaultValueProvider::Instance().AppendDefaultValues(table, row, valuesWithDefault);
 
-        for (auto& field_value_pair : values_with_default)
+        for (auto& fieldValuePair : valuesWithDefault)
         {
-            auto find_result = existed_values.find(field_value_pair.first);
-            if (find_result == existed_values.end())
+            auto findResult = existedValues.find(fieldValuePair.first);
+            if (findResult == existedValues.end())
             {
-                *result = std::make_pair(field_value_pair.first, field_value_pair.second);
+                *result = std::make_pair(fieldValuePair.first, fieldValuePair.second);
                 ++result;
             }
         }

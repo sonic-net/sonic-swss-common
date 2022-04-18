@@ -64,7 +64,7 @@ void Table::flush()
     m_pipe->flush();
 }
 
-bool Table::get(const string &key, vector<FieldValueTuple> &values)
+bool Table::get(const string &key, vector<FieldValueTuple> &values, bool withDefaultValue)
 {
     // [Hua] TODO: code here dupe with DBConnector::hgetall, check if can reuse it.
     RedisCommand hgetall_key;
@@ -86,7 +86,7 @@ bool Table::get(const string &key, vector<FieldValueTuple> &values)
                                     reply->element[i + 1]->str);
     }
 
-    if (m_pipe->getDbId() == CONFIG_DB)
+    if (withDefaultValue && m_pipe->getDbId() == CONFIG_DB)
     {
         size_t pos = key.find("|");
         if (pos == std::string::npos)
@@ -204,7 +204,7 @@ void Table::hdel(const string &key, const string &field, const string& /* op */,
     m_pipe->push(cmd, REDIS_REPLY_INTEGER);
 }
 
-void TableEntryEnumerable::getContent(vector<KeyOpFieldsValuesTuple> &tuples)
+void TableEntryEnumerable::getContent(vector<KeyOpFieldsValuesTuple> &tuples, bool withDefaultValue)
 {
     vector<string> keys;
     getKeys(keys);
@@ -216,7 +216,7 @@ void TableEntryEnumerable::getContent(vector<KeyOpFieldsValuesTuple> &tuples)
         vector<FieldValueTuple> values;
         string op = "";
 
-        get(key, values);
+        get(key, values, withDefaultValue);
         tuples.emplace_back(key, op, values);
     }
 }

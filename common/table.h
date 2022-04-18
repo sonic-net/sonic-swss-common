@@ -166,14 +166,14 @@ public:
     virtual ~TableEntryEnumerable() = default;
 
     /* Get all the field-value tuple of the table entry with the key */
-    virtual bool get(const std::string &key, std::vector<FieldValueTuple> &values) = 0;
+    virtual bool get(const std::string &key, std::vector<FieldValueTuple> &values, bool withDefaultValue) = 0;
 
     /* get all the keys in the table */
     virtual void getKeys(std::vector<std::string> &keys) = 0;
 
     /* Read the whole table content from the DB directly */
     /* NOTE: Not an atomic function */
-    void getContent(std::vector<KeyOpFieldsValuesTuple> &tuples);
+    void getContent(std::vector<KeyOpFieldsValuesTuple> &tuples, bool withDefaultValue);
 };
 
 /* The default time to live for a DB entry is infinite */
@@ -222,7 +222,7 @@ public:
                       const std::string &prefix = EMPTY_PREFIX);
     /* Read a value from the DB directly */
     /* Returns false if the key doesn't exists */
-    virtual bool get(const std::string &key, std::vector<FieldValueTuple> &ovalues);
+    virtual bool get(const std::string &key, std::vector<FieldValueTuple> &ovalues, bool withDefaultValue);
 
     virtual bool hget(const std::string &key, const std::string &field,  std::string &value);
     virtual void hset(const std::string &key,
