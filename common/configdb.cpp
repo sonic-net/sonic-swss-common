@@ -535,6 +535,12 @@ map<string, map<string, map<string, string>>> ConfigDBPipeConnector_Native::get_
     DBConnector clientPipe(client);
     RedisTransactioner pipe(&clientPipe);
 
+    // TODO: [Hua] remove this because only for demo
+    if (DefaultValueProvider::FeatureEnabledByEnvironmentVariable())
+    {
+        withDefaultValue = true;
+    }
+
     map<string, map<string, map<string, string>>> data;
     auto cur = _get_config(client, pipe, data, 0, withDefaultValue);
     while (cur != 0)

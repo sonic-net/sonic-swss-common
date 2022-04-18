@@ -81,6 +81,10 @@ public:
 
     std::shared_ptr<std::string> GetDefaultValue(std::string table, std::string row, std::string field);
 
+#ifdef DEBUG
+    static bool FeatureEnabledByEnvironmentVariable();
+#endif
+
 private:
     DefaultValueProvider();
     ~DefaultValueProvider();

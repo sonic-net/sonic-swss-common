@@ -25,7 +25,7 @@ using namespace swss;
   size_t stackInfoSize = backtrace(stackInfo, TRACE_STACK_SIZE);
 
   // print out all the frames to stderr
-  cerr << "Error: signal " << sig << ":\n" >> endl;
+  cerr << "Error: signal " << sig << ":\n" << endl;
   backtrace_symbols_fd(stackInfo, (int)stackInfoSize, STDERR_FILENO);
   exit(1);
 }
@@ -44,8 +44,8 @@ TableInfoBase::TableInfoBase()
 
 std::shared_ptr<std::string> TableInfoBase::GetDefaultValue(std::string row, std::string field)
 {
-    assert(!string::empty(row));
-    assert(!string::empty(field));
+    assert(!row.empty());
+    assert(!field.empty());
 
     SWSS_LOG_DEBUG("TableInfoBase::GetDefaultValue %s %s\n", row.c_str(), field.c_str());
     FieldDefaultValueMapping *fieldMappingPtr;
@@ -68,7 +68,7 @@ std::shared_ptr<std::string> TableInfoBase::GetDefaultValue(std::string row, std
 // existedValues and targetValues can be same container.
 void TableInfoBase::AppendDefaultValues(string row, FieldValueMapping& existedValues, FieldValueMapping& targetValues)
 {
-    assert(!string::empty(row));
+    assert(!row.empty());
 
     SWSS_LOG_DEBUG("TableInfoBase::AppendDefaultValues %s\n", row.c_str());
     FieldDefaultValueMapping *fieldMappingPtr;
@@ -103,7 +103,7 @@ TableInfoDict::TableInfoDict(KeyInfoToDefaultValueInfoMapping &fieldInfoMapping)
 
 bool TableInfoDict::FindFieldMappingByKey(string row, FieldDefaultValueMapping ** foundedMappingPtr)
 {
-    assert(!string::empty(row));
+    assert(!row.empty());
     assert(foundedMappingPtr != nullptr);
 
     SWSS_LOG_DEBUG("TableInfoDict::FindFieldMappingByKey %s\n", row.c_str());
@@ -119,7 +119,7 @@ TableInfoSingleList::TableInfoSingleList(KeyInfoToDefaultValueInfoMapping &field
 
 bool TableInfoSingleList::FindFieldMappingByKey(string row, FieldDefaultValueMapping ** foundedMappingPtr)
 {
-    assert(!string::empty(row));
+    assert(!row.empty());
     assert(foundedMappingPtr != nullptr);
 
     SWSS_LOG_DEBUG("TableInfoSingleList::FindFieldMappingByKey %s\n", row.c_str());
@@ -139,7 +139,7 @@ TableInfoMultipleList::TableInfoMultipleList(KeyInfoToDefaultValueInfoMapping &f
 
 bool TableInfoMultipleList::FindFieldMappingByKey(string row, FieldDefaultValueMapping ** foundedMappingPtr)
 {
-    assert(!string::empty(row));
+    assert(!row.empty());
     assert(foundedMappingPtr != nullptr);
 
     SWSS_LOG_DEBUG("TableInfoMultipleList::FindFieldMappingByKey %s\n", row.c_str());
@@ -166,7 +166,7 @@ DefaultValueProvider& DefaultValueProvider::Instance()
 
 shared_ptr<TableInfoBase> DefaultValueProvider::FindDefaultValueInfo(std::string table)
 {
-    assert(!string::empty(table));
+    assert(!table.empty());
 
     SWSS_LOG_DEBUG("DefaultValueProvider::FindDefaultValueInfo %s\n", table.c_str());
     auto findResult = m_defaultValueMapping.find(table);
@@ -181,9 +181,9 @@ shared_ptr<TableInfoBase> DefaultValueProvider::FindDefaultValueInfo(std::string
 
 std::shared_ptr<std::string> DefaultValueProvider::GetDefaultValue(std::string table, std::string row, std::string field)
 {
-    assert(!string::empty(table));
-    assert(!string::empty(row));
-    assert(!string::empty(field));
+    assert(!table.empty());
+    assert(!row.empty());
+    assert(!field.empty());
 
     SWSS_LOG_DEBUG("DefaultValueProvider::GetDefaultValue %s %s %s\n", table.c_str(), row.c_str(), field.c_str());
 #ifdef DEBUG
@@ -205,8 +205,8 @@ std::shared_ptr<std::string> DefaultValueProvider::GetDefaultValue(std::string t
 
 void DefaultValueProvider::AppendDefaultValues(std::string table, std::string row, std::vector<std::pair<std::string, std::string> > &values)
 {
-    assert(!string::empty(table));
-    assert(!string::empty(row));
+    assert(!table.empty());
+    assert(!row.empty());
 
     SWSS_LOG_DEBUG("DefaultValueProvider::AppendDefaultValues %s %s\n", table.c_str(), row.c_str());
 #ifdef DEBUG
@@ -240,8 +240,8 @@ void DefaultValueProvider::AppendDefaultValues(std::string table, std::string ro
 
 void DefaultValueProvider::AppendDefaultValues(string table, string row, FieldValueMapping& values)
 {
-    assert(!string::empty(table));
-    assert(!string::empty(row));
+    assert(!table.empty());
+    assert(!row.empty());
 
     SWSS_LOG_DEBUG("DefaultValueProvider::AppendDefaultValues %s %s\n", table.c_str(), row.c_str());
 #ifdef DEBUG
@@ -281,7 +281,7 @@ DefaultValueProvider::~DefaultValueProvider()
 
 void DefaultValueProvider::Initialize(char* modulePath)
 {
-    assert(modulePath != nullptr && !string::empty(modulePath));
+    assert(modulePath != nullptr && strlen(modulePath) != 0);
     assert(m_context == nullptr);
 
     DIR *moduleDir = opendir(modulePath);
