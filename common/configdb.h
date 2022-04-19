@@ -73,7 +73,7 @@ protected:
 
         ## Note: callback is difficult to implement by SWIG C++, so keep in python
         def listen(self, init_data_handler=None):
-            CancellationToken cancellation_token;
+            cancellation_token = CancellationToken();
             return self.listen(cancellation_token, init_data_handler)
 
         ## Note: callback is difficult to implement by SWIG C++, so keep in python
@@ -100,7 +100,7 @@ protected:
                 init_data_handler(init_callback_data)
 
             while not cancellation_token.IsCancled():
-                item = self.pubsub.listen_message()
+                item = self.pubsub.listen_message(cancellation_token)
                 if item['type'] == 'pmessage':
                     key = item['channel'].split(':', 1)[1]
                     try:
