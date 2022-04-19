@@ -1,4 +1,5 @@
 #include "pubsub.h"
+#include "cancellationtoken.h"
 #include "dbconnector.h"
 #include "logger.h"
 #include "redisreply.h"
@@ -79,6 +80,12 @@ bool PubSub::hasCachedData()
 
 map<string, string> PubSub::get_message(double timeout)
 {
+    CancellationToken cancellationToken;
+    return get_message(cancellationToken, timeout);
+}
+
+map<string, string> PubSub::get_message(CancellationToken &cancellationToken, double timeout)
+{
     map<string, string> ret;
     if (!m_subscribe)
     {
@@ -121,8 +128,14 @@ map<string, string> PubSub::get_message(double timeout)
 // due to the `yield` syntax, so we implement this function for blocking listen one message
 std::map<std::string, std::string> PubSub::listen_message()
 {
+    CancellationToken cancellationToken;
+    return listen_message(cancellationToken);
+}
+
+std::map<std::string, std::string> PubSub::listen_message(CancellationToken &cancellationToken)
+{
     const double GET_MESSAGE_INTERVAL = 600.0; // in seconds
-    for (;;)
+    while (!cancellationToken.IsCancled())
     {
         auto ret = get_message(GET_MESSAGE_INTERVAL);
         if (!ret.empty())
@@ -130,6 +143,8 @@ std::map<std::string, std::string> PubSub::listen_message()
             return ret;
         }
     }
+
+    return map<string, string>();
 }
 
 shared_ptr<RedisReply> PubSub::popEventBuffer()

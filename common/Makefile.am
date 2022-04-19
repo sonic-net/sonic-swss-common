@@ -44,6 +44,7 @@ libswsscommon_la_SOURCES = \
     select.cpp                \
     selectableevent.cpp       \
     selectabletimer.cpp       \
+    cancellationtoken.cpp     \
     consumertable.cpp         \
     consumertablebase.cpp     \
     consumerstatetable.cpp    \

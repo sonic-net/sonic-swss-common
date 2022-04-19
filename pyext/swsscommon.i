@@ -36,6 +36,7 @@
 #include "logger.h"
 #include "configdb.h"
 #include "status_code_util.h"
+#include "cancellationtoken.h"
 %}
 
 %include <std_string.i>
@@ -158,6 +159,7 @@ T castSelectableObj(swss::Selectable *temp)
 %include "redispipeline.h"
 %include "redisselect.h"
 %include "redistran.h"
+%include "cancellationtoken.h"
 %include "configdb.h"
 
 %extend swss::DBConnector {

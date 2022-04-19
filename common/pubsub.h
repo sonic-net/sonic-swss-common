@@ -8,6 +8,8 @@
 
 namespace swss {
 
+class CancellationToken;
+
 // This class is to emulate python redis-py class PubSub
 // After SWIG wrapping, it should be used in the same way
 class PubSub : protected RedisSelect
@@ -16,7 +18,9 @@ public:
     explicit PubSub(DBConnector *other);
 
     std::map<std::string, std::string> get_message(double timeout = 0.0);
+    std::map<std::string, std::string> get_message(CancellationToken &cancellationToken, double timeout = 0.0);
     std::map<std::string, std::string> listen_message();
+    std::map<std::string, std::string> listen_message(CancellationToken &cancellationToken);
 
     void psubscribe(const std::string &pattern);
     void punsubscribe(const std::string &pattern);

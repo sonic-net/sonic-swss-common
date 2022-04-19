@@ -87,7 +87,7 @@ void Select::addSelectables(vector<Selectable *> selectables)
     }
 }
 
-int Select::poll_descriptors(Selectable **c, unsigned int timeout)
+int Select::poll_descriptors(Selectable **c, unsigned int timeout, CancellationToken &cancellationToken)
 {
     int sz_selectables = static_cast<int>(m_objects.size());
     std::vector<struct epoll_event> events(sz_selectables);
@@ -97,7 +97,7 @@ int Select::poll_descriptors(Selectable **c, unsigned int timeout)
     {
         ret = ::epoll_wait(m_epoll_fd, events.data(), sz_selectables, timeout);
     }
-    while(ret == -1 && errno == EINTR); // Retry the select if the process was interrupted by a signal
+    while(ret == -1 && errno == EINTR && !cancellationToken.IsCancled()); // Retry the select if the process was interrupted by a signal
 
     if (ret < 0)
         return Select::ERROR;
@@ -150,6 +150,12 @@ int Select::poll_descriptors(Selectable **c, unsigned int timeout)
 
 int Select::select(Selectable **c, int timeout)
 {
+    CancellationToken cancellationToken;
+    return select(c, cancellationToken, timeout);
+}
+
+int Select::select(Selectable **c, CancellationToken &cancellationToken, int timeout)
+{
     SWSS_LOG_ENTER();
 
     int ret;
@@ -157,14 +163,14 @@ int Select::select(Selectable **c, int timeout)
     *c = NULL;
 
     /* check if we have some data */
-    ret = poll_descriptors(c, 0);
+    ret = poll_descriptors(c, 0, cancellationToken);
 
     /* return if we have data, we have an error or desired timeout was 0 */
     if (ret != Select::TIMEOUT || timeout == 0)
         return ret;
 
     /* wait for data */
-    ret = poll_descriptors(c, timeout);
+    ret = poll_descriptors(c, timeout, cancellationToken);
 
     return ret;
 
