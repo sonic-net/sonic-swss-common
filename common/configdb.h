@@ -101,6 +101,10 @@ protected:
 
             while not cancellation_token.IsCancled():
                 item = self.pubsub.listen_message(cancellation_token)
+                if not item.contains('type'):
+                    # When timeout or cancled, item will not contains 'type' 
+                    continue
+
                 if item['type'] == 'pmessage':
                     key = item['channel'].split(':', 1)[1]
                     try:

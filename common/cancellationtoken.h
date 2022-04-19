@@ -9,6 +9,7 @@ public:
     ~CancellationToken();
     bool IsCancled();
     void Cancel();
+    void Reset();
 
 private:
     bool m_cancled;

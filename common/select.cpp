@@ -9,8 +9,6 @@
 #include <unistd.h>
 #include <string.h>
 
-// TODO: [Hua] remove this, this is for test
-#include <iostream>
 
 using namespace std;
 
@@ -96,14 +94,12 @@ int Select::poll_descriptors(Selectable **c, unsigned int timeout, CancellationT
     std::vector<struct epoll_event> events(sz_selectables);
     int ret;
 
-  	// register signal handler
-	signal(SIGINT, sigint_handler);
-
     do
     {
         ret = ::epoll_wait(m_epoll_fd, events.data(), sz_selectables, timeout);
-        // TODO: [Hua] remove this, this is for test
-        cout << "epool_wait finished.." << endl;
+
+        // sleep here make python signal handler not be blocked.
+        sleep(0);
     }
     while(ret == -1 && errno == EINTR && !cancellationToken.IsCancled()); // Retry the select if the process was interrupted by a signal
 
@@ -206,6 +202,9 @@ std::string Select::resultToString(int result)
 
         case swss::Select::TIMEOUT:
             return "TIMEOUT";
+
+        case swss::Select::CANCELLED:
+            return "CANCELLED";
 
         default:
             SWSS_LOG_WARN("unknown select result: %d", result);

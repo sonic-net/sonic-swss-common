@@ -93,7 +93,7 @@ map<string, string> PubSub::get_message(CancellationToken &cancellationToken, do
     }
 
     Selectable *selected;
-    int rc = m_select.select(&selected, int(timeout));
+    int rc = m_select.select(&selected, cancellationToken, int(timeout));
     switch (rc)
     {
         case Select::ERROR:
@@ -138,7 +138,7 @@ std::map<std::string, std::string> PubSub::listen_message(CancellationToken &can
     const double GET_MESSAGE_INTERVAL = 600.0; // in seconds
     while (!cancellationToken.IsCancled())
     {
-        auto ret = get_message(GET_MESSAGE_INTERVAL);
+        auto ret = get_message(cancellationToken, GET_MESSAGE_INTERVAL);
         if (!ret.empty())
         {
             return ret;

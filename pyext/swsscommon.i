@@ -19,6 +19,7 @@
 #include "pubsub.h"
 #include "select.h"
 #include "selectable.h"
+#include "signalhandlerhelper.h"
 #include "rediscommand.h"
 #include "table.h"
 #include "redispipeline.h"
@@ -34,9 +35,9 @@
 #include "notificationproducer.h"
 #include "warm_restart.h"
 #include "logger.h"
+#include "cancellationtoken.h"
 #include "configdb.h"
 #include "status_code_util.h"
-#include "cancellationtoken.h"
 %}
 
 %include <std_string.i>
@@ -155,6 +156,7 @@ T castSelectableObj(swss::Selectable *temp)
 %include "pubsub.h"
 %include "selectable.h"
 %include "select.h"
+%include "signalhandlerhelper.h"
 %include "rediscommand.h"
 %include "redispipeline.h"
 %include "redisselect.h"

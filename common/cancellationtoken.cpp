@@ -22,4 +22,8 @@ void CancellationToken::Cancel()
     m_cancled = true;
 }
 
+void CancellationToken::Reset()
+{
+    m_cancled = false;
+}
 
