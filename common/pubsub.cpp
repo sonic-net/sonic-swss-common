@@ -99,6 +99,7 @@ map<string, string> PubSub::get_message(CancellationToken &cancellationToken, do
         case Select::ERROR:
             throw RedisError("Failed to select", m_subscribe->getContext());
 
+        case Select::CANCELLED:
         case Select::TIMEOUT:
             return ret;
 

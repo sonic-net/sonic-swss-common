@@ -31,6 +31,7 @@ public:
         OBJECT = 0,
         ERROR = 1,
         TIMEOUT = 2,
+        CANCELLED = 3,
     };
 
     int select(Selectable **c, int timeout = -1);
