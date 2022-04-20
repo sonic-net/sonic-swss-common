@@ -74,10 +74,10 @@ protected:
         ## Note: callback is difficult to implement by SWIG C++, so keep in python
         def listen(self, init_data_handler=None):
             cancellation_token = CancellationToken();
-            return self.listen(cancellation_token, init_data_handler)
+            return self.listen_cancellable(cancellation_token, init_data_handler)
 
         ## Note: callback is difficult to implement by SWIG C++, so keep in python
-        def listen(self, cancellation_token, init_data_handler=None):
+        def listen_cancellable(self, cancellation_token, init_data_handler=None):
             ## Start listen Redis keyspace event. Pass a callback function to `init` to handle initial table data.
             self.pubsub = self.get_redis_client(self.db_name).pubsub()
             self.pubsub.psubscribe("__keyspace@{}__:*".format(self.get_dbid(self.db_name)))
