@@ -1,0 +1,18 @@
+usage: sonic-db-cli [-h] [-s] [-n NAMESPACE] db_or_op [cmd ...]
+SONiC DB CLI:
+  ----help                  Help message
+  ----unixsocket            Override use of tcp_port and use unixsocket
+  ----namespace arg (=None) Namespace string to use asic0/asic1.../asicn
+  --db_or_op arg            Database name Or Unary operation(only 
+                            PING/SAVE/FLUSHALL supported)
+  --cmd arg                 Command to execute in database
+
+**sudo** needed for commands accesing a different namespace [-n], or using unixsocket connection [-s]
+
+Example 1: sonic-db-cli -n asic0 CONFIG_DB keys \*
+Example 2: sonic-db-cli -n asic2 APPL_DB HGETALL VLAN_TABLE:Vlan10
+Example 3: sonic-db-cli APPL_DB HGET VLAN_TABLE:Vlan10 mtu
+Example 4: sonic-db-cli -n asic3 APPL_DB EVAL "return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}" 2 k1 k2 v1 v2
+Example 5: sonic-db-cli PING | sonic-db-cli -s PING
+Example 6: sonic-db-cli SAVE | sonic-db-cli -s SAVE
+Example 7: sonic-db-cli FLUSHALL | sonic-db-cli -s FLUSHALL
