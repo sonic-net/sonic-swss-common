@@ -97,13 +97,10 @@ int Select::poll_descriptors(Selectable **c, unsigned int timeout, CancellationT
     do
     {
         ret = ::epoll_wait(m_epoll_fd, events.data(), sz_selectables, timeout);
-
-        // sleep here make python signal handler not be blocked.
-        sleep(0);
     }
-    while(ret == -1 && errno == EINTR && !cancellationToken.IsCancled()); // Retry the select if the process was interrupted by a signal
+    while(ret == -1 && errno == EINTR && !cancellationToken.isCancled()); // Retry the select if the process was interrupted by a signal
 
-    if (cancellationToken.IsCancled())
+    if (cancellationToken.isCancled())
         return Select::CANCELLED;
 
     if (ret < 0)

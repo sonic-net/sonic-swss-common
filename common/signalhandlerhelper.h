@@ -1,5 +1,6 @@
 #pragma once
 #include <map>
+#include <memory>
 
 namespace swss {
 
@@ -14,12 +15,12 @@ class CancellationToken;
 class SignalHandlerHelper
 {
 public:
-    static void RegisterSignalHandler(int signalNumber);
-    static void RegisterCancellationToken(int signalNumber, CancellationToken& token);
-    static void OnSignal(int signalNumber);
+    static void registerSignalHandler(int signalNumber);
+    static void registerCancellationToken(int signalNumber, std::shared_ptr<CancellationToken> token);
+    static void onSignal(int signalNumber);
     
 private:
-    static std::map<int, CancellationToken*> signalTokenMapping;
+    static std::map<int, std::shared_ptr<CancellationToken> > signalTokenMapping;
 };
 
 }

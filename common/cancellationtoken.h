@@ -5,11 +5,10 @@ namespace swss {
 class CancellationToken
 {
 public:
-    CancellationToken();
-    ~CancellationToken();
-    bool IsCancled();
-    void Cancel();
-    void Reset();
+    CancellationToken() noexcept;
+    bool isCancled() const noexcept;
+    void cancel() noexcept;
+    void reset() noexcept;
 
 private:
     bool m_cancled;

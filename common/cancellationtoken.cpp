@@ -2,27 +2,22 @@
 
 using namespace swss;
 
-CancellationToken::CancellationToken()
+CancellationToken::CancellationToken() noexcept
 :m_cancled(false)
 {
 }
 
-CancellationToken::~CancellationToken()
-{
-    Cancel();
-}
-
-bool CancellationToken::IsCancled()
+bool CancellationToken::isCancled() const noexcept
 {
     return m_cancled;
 }
 
-void CancellationToken::Cancel()
+void CancellationToken::cancel() noexcept
 {
     m_cancled = true;
 }
 
-void CancellationToken::Reset()
+void CancellationToken::reset() noexcept
 {
     m_cancled = false;
 }

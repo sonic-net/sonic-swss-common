@@ -49,6 +49,8 @@
 %include <stdint.i>
 %include <exception.i>
 
+%shared_ptr(swss::CancellationToken);
+
 %template(FieldValuePair) std::pair<std::string, std::string>;
 %template(FieldValuePairs) std::vector<std::pair<std::string, std::string>>;
 %template(FieldValueMap) std::map<std::string, std::string>;

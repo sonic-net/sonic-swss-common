@@ -99,7 +99,7 @@ protected:
             if init_data_handler:
                 init_data_handler(init_callback_data)
 
-            while not cancellation_token.IsCancled():
+            while not cancellation_token.isCancled():
                 item = self.pubsub.listen_message(cancellation_token)
                 if not item.has_key('type'):
                     # When timeout or cancled, item will not contains 'type' 

@@ -136,7 +136,7 @@ std::map<std::string, std::string> PubSub::listen_message()
 std::map<std::string, std::string> PubSub::listen_message(CancellationToken &cancellationToken)
 {
     const double GET_MESSAGE_INTERVAL = 600.0; // in seconds
-    while (!cancellationToken.IsCancled())
+    while (!cancellationToken.isCancled())
     {
         auto ret = get_message(cancellationToken, GET_MESSAGE_INTERVAL);
         if (!ret.empty())
