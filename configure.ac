@@ -99,6 +99,7 @@ AC_CONFIG_FILES([
     pyext/py2/Makefile
     pyext/py3/Makefile
     tests/Makefile
+    sonic-db-cli/Makefile
 ])
 
 AC_OUTPUT
