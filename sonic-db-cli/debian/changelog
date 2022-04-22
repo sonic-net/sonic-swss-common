@@ -1,5 +1,0 @@
-sonic-db-cli (1.0.0) unstable; urgency=medium
-
-  * Initial release (Closes: #nnnn)  <nnnn is the bug number of your ITP>
-
- -- Liu Hua <liuh@microsoft.com>  Wed, 06 Apr 2022 09:21:18 +0000

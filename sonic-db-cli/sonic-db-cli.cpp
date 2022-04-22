@@ -1,4 +1,4 @@
-#include <execution>
+//#include <execution>
 #include <iostream>
 
 #include <swss/dbconnector.h>
@@ -127,7 +127,7 @@ void handleAllInstances(
     // Operate All Redis Instances in Parallel
     // TODO: if one of the operations failed, it could fail quickly and not necessary to wait all other operations
     std::for_each(
-        std::execution::par,
+        //std::execution::par,
         dbNames.begin(),
         dbNames.end(),
         [=](auto&& db_name)
