@@ -97,8 +97,8 @@ int Select::poll_descriptors(Selectable **c, unsigned int timeout)
     ret = ::epoll_wait(m_epoll_fd, events.data(), sz_selectables, timeout);
     if (ret == -1 && errno == EINTR)
     {
-        // Return ERRINTR if the epoll_wait was interrupted by a signal
-        return Select::ERRINTR;
+        // Return if the epoll_wait was interrupted by a signal
+        return Select::SIGNALINTR;
     }
 
     if (ret < 0)
@@ -192,8 +192,8 @@ std::string Select::resultToString(int result)
         case swss::Select::TIMEOUT:
             return "TIMEOUT";
 
-        case swss::Select::ERRINTR:
-            return "ERRINTR";
+        case swss::Select::SIGNALINTR:
+            return "SIGNALINTR";
 
         default:
             SWSS_LOG_WARN("unknown select result: %d", result);

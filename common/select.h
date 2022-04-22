@@ -30,7 +30,7 @@ public:
         OBJECT = 0,
         ERROR = 1,
         TIMEOUT = 2,
-        ERRINTR = 3,
+        SIGNALINTR = 3,// Read operation interrupted by a signal
     };
 
     int select(Selectable **c, int timeout = -1);
