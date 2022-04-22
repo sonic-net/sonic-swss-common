@@ -96,8 +96,8 @@ protected:
 
             while True:
                 item = self.pubsub.listen_message()
-                if not item.has_key('type'):
-                    # When timeout or cancled, item will not contains 'type' 
+                if 'type' not in item:
+                    # When timeout or cancelled, item will not contains 'type' 
                     continue
 
                 if item['type'] == 'pmessage':

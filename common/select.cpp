@@ -96,7 +96,10 @@ int Select::poll_descriptors(Selectable **c, unsigned int timeout)
 
     ret = ::epoll_wait(m_epoll_fd, events.data(), sz_selectables, timeout);
     if (ret == -1 && errno == EINTR)
+    {
+        // Return ERRINTR if the epoll_wait was interrupted by a signal
         return Select::ERRINTR;
+    }
 
     if (ret < 0)
         return Select::ERROR;
