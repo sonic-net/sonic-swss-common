@@ -88,20 +88,15 @@ void Select::addSelectables(vector<Selectable *> selectables)
     }
 }
 
-int Select::poll_descriptors(Selectable **c, unsigned int timeout, CancellationToken &cancellationToken)
+int Select::poll_descriptors(Selectable **c, unsigned int timeout)
 {
     int sz_selectables = static_cast<int>(m_objects.size());
     std::vector<struct epoll_event> events(sz_selectables);
     int ret;
 
-    do
-    {
-        ret = ::epoll_wait(m_epoll_fd, events.data(), sz_selectables, timeout);
-    }
-    while(ret == -1 && errno == EINTR && !cancellationToken.isCancled()); // Retry the select if the process was interrupted by a signal
-
-    if (cancellationToken.isCancled())
-        return Select::CANCELLED;
+    ret = ::epoll_wait(m_epoll_fd, events.data(), sz_selectables, timeout);
+    if (ret == -1 && errno == EINTR)
+        return Select::ERRINTR;
 
     if (ret < 0)
         return Select::ERROR;
@@ -154,12 +149,6 @@ int Select::poll_descriptors(Selectable **c, unsigned int timeout, CancellationT
 
 int Select::select(Selectable **c, int timeout)
 {
-    CancellationToken cancellationToken;
-    return select(c, cancellationToken, timeout);
-}
-
-int Select::select(Selectable **c, CancellationToken &cancellationToken, int timeout)
-{
     SWSS_LOG_ENTER();
 
     int ret;
@@ -167,14 +156,14 @@ int Select::select(Selectable **c, CancellationToken &cancellationToken, int tim
     *c = NULL;
 
     /* check if we have some data */
-    ret = poll_descriptors(c, 0, cancellationToken);
+    ret = poll_descriptors(c, 0);
 
     /* return if we have data, we have an error or desired timeout was 0 */
     if (ret != Select::TIMEOUT || timeout == 0)
         return ret;
 
     /* wait for data */
-    ret = poll_descriptors(c, timeout, cancellationToken);
+    ret = poll_descriptors(c, timeout);
 
     return ret;
 
@@ -200,8 +189,8 @@ std::string Select::resultToString(int result)
         case swss::Select::TIMEOUT:
             return "TIMEOUT";
 
-        case swss::Select::CANCELLED:
-            return "CANCELLED";
+        case swss::Select::ERRINTR:
+            return "ERRINTR";
 
         default:
             SWSS_LOG_WARN("unknown select result: %d", result);

@@ -44,7 +44,6 @@ libswsscommon_la_SOURCES = \
     select.cpp                \
     selectableevent.cpp       \
     selectabletimer.cpp       \
-    cancellationtoken.cpp     \
     consumertable.cpp         \
     consumertablebase.cpp     \
     consumerstatetable.cpp    \
@@ -63,7 +62,6 @@ libswsscommon_la_SOURCES = \
     tokenize.cpp              \
     exec.cpp                  \
     saiaclschema.cpp          \
-    signalhandlerhelper.cpp   \
     subscriberstatetable.cpp  \
     timestamp.cpp             \
     warm_restart.cpp          \

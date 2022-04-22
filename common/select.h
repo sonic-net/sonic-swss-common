@@ -7,7 +7,6 @@
 #include <unordered_map>
 #include <set>
 #include <hiredis/hiredis.h>
-#include "cancellationtoken.h"
 #include "selectable.h"
 
 namespace swss {
@@ -31,11 +30,10 @@ public:
         OBJECT = 0,
         ERROR = 1,
         TIMEOUT = 2,
-        CANCELLED = 3,
+        ERRINTR = 3,
     };
 
     int select(Selectable **c, int timeout = -1);
-    int select(Selectable **c, CancellationToken &cancellationToken, int timeout = -1);
     bool isQueueEmpty();
 
     /**
@@ -68,7 +66,7 @@ private:
         }
     };
 
-    int poll_descriptors(Selectable **c, unsigned int timeout, CancellationToken &cancellationToken);
+    int poll_descriptors(Selectable **c, unsigned int timeout);
 
     int m_epoll_fd;
     std::unordered_map<int, Selectable *> m_objects;

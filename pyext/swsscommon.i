@@ -19,7 +19,6 @@
 #include "pubsub.h"
 #include "select.h"
 #include "selectable.h"
-#include "signalhandlerhelper.h"
 #include "rediscommand.h"
 #include "table.h"
 #include "redispipeline.h"
@@ -35,7 +34,6 @@
 #include "notificationproducer.h"
 #include "warm_restart.h"
 #include "logger.h"
-#include "cancellationtoken.h"
 #include "configdb.h"
 #include "status_code_util.h"
 %}
@@ -48,8 +46,6 @@
 %include <typemaps.i>
 %include <stdint.i>
 %include <exception.i>
-
-%shared_ptr(swss::CancellationToken);
 
 %template(FieldValuePair) std::pair<std::string, std::string>;
 %template(FieldValuePairs) std::vector<std::pair<std::string, std::string>>;
@@ -158,12 +154,10 @@ T castSelectableObj(swss::Selectable *temp)
 %include "pubsub.h"
 %include "selectable.h"
 %include "select.h"
-%include "signalhandlerhelper.h"
 %include "rediscommand.h"
 %include "redispipeline.h"
 %include "redisselect.h"
 %include "redistran.h"
-%include "cancellationtoken.h"
 %include "configdb.h"
 
 %extend swss::DBConnector {

@@ -1,5 +1,4 @@
 #include "pubsub.h"
-#include "cancellationtoken.h"
 #include "dbconnector.h"
 #include "logger.h"
 #include "redisreply.h"
@@ -80,27 +79,29 @@ bool PubSub::hasCachedData()
 
 map<string, string> PubSub::get_message(double timeout)
 {
-    CancellationToken cancellationToken;
-    return get_message(cancellationToken, timeout);
+    return get_message_internal(timeout).second;
 }
 
-map<string, string> PubSub::get_message(CancellationToken &cancellationToken, double timeout)
+pair<int, map<string, string> > PubSub::get_message_internal(double timeout)
 {
-    map<string, string> ret;
+    pair<int, map<string, string> > ret;
+    ret.first = Select::OBJECT;
+
     if (!m_subscribe)
     {
         return ret;
     }
 
     Selectable *selected;
-    int rc = m_select.select(&selected, cancellationToken, int(timeout));
+    int rc = m_select.select(&selected, int(timeout));
+    ret.first = rc;
     switch (rc)
     {
         case Select::ERROR:
             throw RedisError("Failed to select", m_subscribe->getContext());
 
-        case Select::CANCELLED:
         case Select::TIMEOUT:
+        case Select::ERRINTR:
             return ret;
 
         case Select::OBJECT:
@@ -118,10 +119,10 @@ map<string, string> PubSub::get_message(CancellationToken &cancellationToken, do
     }
 
     auto message = event->getReply<RedisMessage>();
-    ret["type"] = message.type;
-    ret["pattern"] = message.pattern;
-    ret["channel"] = message.channel;
-    ret["data"] = message.data;
+    ret.second["type"] = message.type;
+    ret.second["pattern"] = message.pattern;
+    ret.second["channel"] = message.channel;
+    ret.second["data"] = message.data;
     return ret;
 }
 
@@ -129,19 +130,13 @@ map<string, string> PubSub::get_message(CancellationToken &cancellationToken, do
 // due to the `yield` syntax, so we implement this function for blocking listen one message
 std::map<std::string, std::string> PubSub::listen_message()
 {
-    CancellationToken cancellationToken;
-    return listen_message(cancellationToken);
-}
-
-std::map<std::string, std::string> PubSub::listen_message(CancellationToken &cancellationToken)
-{
     const double GET_MESSAGE_INTERVAL = 600.0; // in seconds
-    while (!cancellationToken.isCancled())
+    for (;;)
     {
-        auto ret = get_message(cancellationToken, GET_MESSAGE_INTERVAL);
-        if (!ret.empty())
+        auto ret = get_message_internal(GET_MESSAGE_INTERVAL);
+        if (!ret.second.empty() || ret.first == Select::ERRINTR)
         {
-            return ret;
+            return ret.second;
         }
     }
 
