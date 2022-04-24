@@ -3,29 +3,40 @@
 #include <string>
 #include <vector>
 #include <boost/program_options.hpp>
+#include "common/dbconnector.h"
+#include "common/dbinterface.h"
+#include "common/redisreply.h"
 
 namespace po = boost::program_options;
 
 void printUsage(const po::options_description &all_options);
 
-void printRedisReply(redisReply* reply);
+void printRedisReply(swss::RedisReply& reply);
+
+std::string buildRedisOperation(std::vector<std::string>& commands);
+
+int connectDbInterface(
+    swss::DBInterface& dbintf,
+    const std::string& db_name,
+    const std::string& netns,
+    bool isTcpConn);
 
 int executeCommands(
     const std::string& db_name,
     std::vector<std::string>& commands,
-    const std::string& name_space,
-    bool use_unix_socket);
+    const std::string& netns,
+    bool isTcpConn);
 
-void handleSingleOperation(
-    const std::string& name_space,
+int handleSingleOperation(
+    const std::string& netns,
     const std::string& db_name,
     const std::string& operation,
-    bool use_unix_socket);
+    bool isTcpConn);
 
-void handleAllInstances(
-    const std::string& name_space,
+int handleAllInstances(
+    const std::string& netns,
     const std::string& operation,
-    bool use_unix_socket);
+    bool isTcpConn);
 
 int handleOperation(
     const po::options_description &all_options,
