@@ -31,7 +31,7 @@ using namespace swss;
 }
 #endif
 
-[[noreturn]] void ThrowRunTimeError(string message)
+[[noreturn]] void ThrowRunTimeError(string &message)
 {
     SWSS_LOG_ERROR("DefaultValueProvider: %s", message.c_str());
     throw std::runtime_error(message);
@@ -42,7 +42,7 @@ TableInfoBase::TableInfoBase()
     // C++ need this empty ctor
 }
 
-std::shared_ptr<std::string> TableInfoBase::GetDefaultValue(std::string row, std::string field)
+std::shared_ptr<std::string> TableInfoBase::GetDefaultValue(std::string &row, std::string &field)
 {
     assert(!row.empty());
     assert(!field.empty());
@@ -66,7 +66,7 @@ std::shared_ptr<std::string> TableInfoBase::GetDefaultValue(std::string row, std
 }
 
 // existedValues and targetValues can be same container.
-void TableInfoBase::AppendDefaultValues(string row, FieldValueMapping& existedValues, FieldValueMapping& targetValues)
+void TableInfoBase::AppendDefaultValues(string &row, FieldValueMapping& existedValues, FieldValueMapping& targetValues)
 {
     assert(!row.empty());
 
@@ -101,7 +101,7 @@ TableInfoDict::TableInfoDict(KeyInfoToDefaultValueInfoMapping &fieldInfoMapping)
     }
 }
 
-bool TableInfoDict::FindFieldMappingByKey(string row, FieldDefaultValueMapping ** foundedMappingPtr)
+bool TableInfoDict::FindFieldMappingByKey(string &row, FieldDefaultValueMapping ** foundedMappingPtr)
 {
     assert(!row.empty());
     assert(foundedMappingPtr != nullptr);
@@ -117,7 +117,7 @@ TableInfoSingleList::TableInfoSingleList(KeyInfoToDefaultValueInfoMapping &field
     m_defaultValueMapping = fieldInfoMapping.begin()->second;
 }
 
-bool TableInfoSingleList::FindFieldMappingByKey(string row, FieldDefaultValueMapping ** foundedMappingPtr)
+bool TableInfoSingleList::FindFieldMappingByKey(string &row, FieldDefaultValueMapping ** foundedMappingPtr)
 {
     assert(!row.empty());
     assert(foundedMappingPtr != nullptr);
@@ -137,7 +137,7 @@ TableInfoMultipleList::TableInfoMultipleList(KeyInfoToDefaultValueInfoMapping &f
     }
 }
 
-bool TableInfoMultipleList::FindFieldMappingByKey(string row, FieldDefaultValueMapping ** foundedMappingPtr)
+bool TableInfoMultipleList::FindFieldMappingByKey(string &row, FieldDefaultValueMapping ** foundedMappingPtr)
 {
     assert(!row.empty());
     assert(foundedMappingPtr != nullptr);
@@ -164,7 +164,7 @@ DefaultValueProvider& DefaultValueProvider::Instance()
     return instance;
 }
 
-shared_ptr<TableInfoBase> DefaultValueProvider::FindDefaultValueInfo(std::string table)
+shared_ptr<TableInfoBase> DefaultValueProvider::FindDefaultValueInfo(std::string &table)
 {
     assert(!table.empty());
 
@@ -179,7 +179,7 @@ shared_ptr<TableInfoBase> DefaultValueProvider::FindDefaultValueInfo(std::string
     return findResult->second;
 }
 
-std::shared_ptr<std::string> DefaultValueProvider::GetDefaultValue(std::string table, std::string row, std::string field)
+std::shared_ptr<std::string> DefaultValueProvider::GetDefaultValue(std::string &table, std::string &row, std::string &field)
 {
     assert(!table.empty());
     assert(!row.empty());
@@ -203,7 +203,7 @@ std::shared_ptr<std::string> DefaultValueProvider::GetDefaultValue(std::string t
     return defaultValueInfo->GetDefaultValue(row, field);
 }
 
-void DefaultValueProvider::AppendDefaultValues(std::string table, std::string row, std::vector<std::pair<std::string, std::string> > &values)
+void DefaultValueProvider::AppendDefaultValues(std::string &table, std::string &row, std::vector<std::pair<std::string, std::string> > &values)
 {
     assert(!table.empty());
     assert(!row.empty());
@@ -238,7 +238,7 @@ void DefaultValueProvider::AppendDefaultValues(std::string table, std::string ro
     }
 }
 
-void DefaultValueProvider::AppendDefaultValues(string table, string row, FieldValueMapping& values)
+void DefaultValueProvider::AppendDefaultValues(string &table, string &row, FieldValueMapping& values)
 {
     assert(!table.empty());
     assert(!row.empty());

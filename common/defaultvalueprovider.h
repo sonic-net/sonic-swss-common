@@ -26,12 +26,12 @@ class TableInfoBase
 public:
     TableInfoBase();
 
-    void AppendDefaultValues(std::string row, FieldValueMapping& sourceValues, FieldValueMapping& targetValues);
+    void AppendDefaultValues(std::string &row, FieldValueMapping& sourceValues, FieldValueMapping& targetValues);
 
-    std::shared_ptr<std::string> GetDefaultValue(std::string row, std::string field);
+    std::shared_ptr<std::string> GetDefaultValue(std::string &row, std::string &field);
 
 protected:
-    virtual bool FindFieldMappingByKey(std::string row, FieldDefaultValueMapping ** foundedMappingPtr) = 0;
+    virtual bool FindFieldMappingByKey(std::string &row, FieldDefaultValueMapping ** foundedMappingPtr) = 0;
 };
 
 class TableInfoDict : public TableInfoBase
@@ -43,7 +43,7 @@ private:
     // Mapping: key value -> field -> default 
     std::map<std::string, FieldDefaultValueMappingPtr> m_defaultValueMapping;
 
-    bool FindFieldMappingByKey(std::string row, FieldDefaultValueMapping ** foundedMappingPtr);
+    bool FindFieldMappingByKey(std::string &row, FieldDefaultValueMapping ** foundedMappingPtr);
 };
 
 class TableInfoSingleList : public TableInfoBase
@@ -55,7 +55,7 @@ private:
     // Mapping: field -> default 
     FieldDefaultValueMappingPtr m_defaultValueMapping;
 
-    bool FindFieldMappingByKey(std::string row, FieldDefaultValueMapping ** foundedMappingPtr);
+    bool FindFieldMappingByKey(std::string &row, FieldDefaultValueMapping ** foundedMappingPtr);
 };
 
 struct TableInfoMultipleList : public TableInfoBase
@@ -67,7 +67,7 @@ private:
     // Mapping: key field count -> field -> default 
     std::map<int, FieldDefaultValueMappingPtr> m_defaultValueMapping;
 
-    bool FindFieldMappingByKey(std::string row, FieldDefaultValueMapping ** foundedMappingPtr);
+    bool FindFieldMappingByKey(std::string &row, FieldDefaultValueMapping ** foundedMappingPtr);
 };
 
 class DefaultValueProvider
@@ -75,11 +75,11 @@ class DefaultValueProvider
 public:
     static DefaultValueProvider& Instance();
 
-    void AppendDefaultValues(std::string table, std::string row, FieldValueMapping& values);
+    void AppendDefaultValues(std::string &table, std::string &row, FieldValueMapping& values);
 
-    void AppendDefaultValues(std::string table, std::string row, std::vector<std::pair<std::string, std::string> > &values);
+    void AppendDefaultValues(std::string &table, std::string &row, std::vector<std::pair<std::string, std::string> > &values);
 
-    std::shared_ptr<std::string> GetDefaultValue(std::string table, std::string row, std::string field);
+    std::shared_ptr<std::string> GetDefaultValue(std::string &table, std::string &row, std::string &field);
 
 #ifdef DEBUG
     static bool FeatureEnabledByEnvironmentVariable();
@@ -100,7 +100,7 @@ private:
     // Load default value info from yang model and append to default value mapping
     void AppendTableInfoToMapping(struct lys_node* table);
 
-    std::shared_ptr<TableInfoBase> FindDefaultValueInfo(std::string table);
+    std::shared_ptr<TableInfoBase> FindDefaultValueInfo(std::string &table);
 
     int BuildFieldMappingList(struct lys_node* table, KeyInfoToDefaultValueInfoMapping& fieldMappingList);
     
