@@ -97,15 +97,15 @@ jobs:
       path: $(Build.ArtifactStagingDirectory)/download
       artifact: common-lib
       patterns: |
-        libnl-3*.deb
-        libnl-genl*.deb
-        libnl-route*.deb
-        libnl-nf*.deb
+        target/debs/bullseye/libnl-3*.deb
+        target/debs/bullseye/libnl-genl*.deb
+        target/debs/bullseye/libnl-route*.deb
+        target/debs/bullseye/libnl-nf*.deb
     displayName: "Download common libs"
 
   - script: |
       set -ex
-      sudo dpkg -i $(ls download/*.deb)
+      sudo dpkg -i $(find ./download -name *.deb)
       rm -rf download || true
     workingDirectory: $(Build.ArtifactStagingDirectory)
     displayName: "Install libnl3, sonic swss common, and sairedis"
