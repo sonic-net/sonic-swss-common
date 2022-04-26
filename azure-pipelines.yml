@@ -8,9 +8,12 @@ pr:
 - 201???
 
 trigger:
-- master
-- 202???
-- 201???
+  batch: true
+  branches:
+    include:
+    - master
+    - 202???
+    - 201???
 
 # this part need to be set in UI
 schedules:
