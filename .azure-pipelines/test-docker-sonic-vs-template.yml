@@ -14,9 +14,6 @@ jobs:
   pool: sonic-common
 
   steps:
-  - script: |
-      ls -A1 | xargs -I{} sudo rm -rf {}
-    displayName: "Clean workspace"
   - checkout: self
     clean: true
     displayName: "Checkout sonic-swss-common"
