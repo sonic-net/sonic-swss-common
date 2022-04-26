@@ -21,6 +21,9 @@ parameters:
 - name: sonic_slave
   type: string
 
+- name: debian_version
+  type: string
+
 - name: sairedis_artifact_name
   type: string
 
@@ -97,10 +100,10 @@ jobs:
       path: $(Build.ArtifactStagingDirectory)/download
       artifact: common-lib
       patterns: |
-        target/debs/${{ parameters.debianVersion }}/libnl-3*.deb
-        target/debs/${{ parameters.debianVersion }}/libnl-genl*.deb
-        target/debs/${{ parameters.debianVersion }}/libnl-route*.deb
-        target/debs/${{ parameters.debianVersion }}/libnl-nf*.deb
+        target/debs/${{ parameters.debian_version }}/libnl-3*.deb
+        target/debs/${{ parameters.debian_version }}/libnl-genl*.deb
+        target/debs/${{ parameters.debian_version }}/libnl-route*.deb
+        target/debs/${{ parameters.debian_version }}/libnl-nf*.deb
     displayName: "Download common libs"
 
   - script: |
