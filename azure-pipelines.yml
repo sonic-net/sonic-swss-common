@@ -120,7 +120,7 @@ stages:
       swss_common_artifact_name: sonic-swss-common
       sairedis_artifact_name: sonic-sairedis
       artifact_name: sonic-swss
-      debian_version: $${{ parameters.debian_version }}
+      debian_version: ${{ parameters.debian_version }}
 
 - stage: BuildDocker
   dependsOn: BuildSwss
