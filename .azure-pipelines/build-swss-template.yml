@@ -97,10 +97,10 @@ jobs:
       path: $(Build.ArtifactStagingDirectory)/download
       artifact: common-lib
       patterns: |
-        target/debs/buster/libnl-3*.deb
-        target/debs/buster/libnl-genl*.deb
-        target/debs/buster/libnl-route*.deb
-        target/debs/buster/libnl-nf*.deb
+        target/debs/${{ parameters.debianVersion }}/libnl-3*.deb
+        target/debs/${{ parameters.debianVersion }}/libnl-genl*.deb
+        target/debs/${{ parameters.debianVersion }}/libnl-route*.deb
+        target/debs/${{ parameters.debianVersion }}/libnl-nf*.deb
     displayName: "Download common libs"
 
   - script: |
