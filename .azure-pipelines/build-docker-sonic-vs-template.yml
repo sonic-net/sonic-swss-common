@@ -34,7 +34,6 @@ jobs:
   steps:
   - checkout: self
     clean: true
-  - template: template-get-source-branch.yml
   - task: DownloadPipelineArtifact@2
     inputs:
       artifact: ${{ parameters.swss_common_artifact_name }}
@@ -57,7 +56,7 @@ jobs:
       pipeline: Azure.sonic-buildimage.official.vs
       artifact: sonic-buildimage.vs
       runVersion: 'latestFromBranch'
-      runBranch: 'refs/heads/$(SOURCE_BRANCH)'
+      runBranch: 'refs/heads/$(BUILD_BRANCH)'
       path: $(Build.ArtifactStagingDirectory)/download
       patterns: '**/target/docker-sonic-vs.gz'
     displayName: "Download sonic-buildimage docker-sonic-vs"

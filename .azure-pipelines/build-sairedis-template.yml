@@ -51,10 +51,9 @@ jobs:
   - checkout: sonic-sairedis
     submodules: true
     clean: true
-  - template: template-get-source-branch.yml
   - script: |
       set -ex
-      git checkout $(SOURCE_BRANCH)
+      git checkout $(BUILD_BRANCH)
       git submodule update
       git status
     displayName: Set up sonic-sairedis branch
