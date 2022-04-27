@@ -10,7 +10,6 @@
 #include <deque>
 #include "hiredis/hiredis.h"
 #include "dbconnector.h"
-#include "dbdecorator.h"
 #include "redisreply.h"
 #include "redisselect.h"
 #include "redispipeline.h"
