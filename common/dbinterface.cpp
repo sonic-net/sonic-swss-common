@@ -58,14 +58,9 @@ bool DBInterface::exists(const string& dbName, const std::string& key)
 
 std::shared_ptr<std::string> DBInterface::get(const std::string& dbName, const std::string& hash, const std::string& key, bool blocking)
 {
-    return get(dbName, hash, key, false, blocking);
-}
-
-std::shared_ptr<std::string> DBInterface::get(const std::string& dbName, const std::string& hash, const std::string& key, bool withDefaultValue, bool blocking)
-{
     auto innerfunc = [&]
     {
-        auto pvalue = m_redisClient.at(dbName).hget(hash, key, withDefaultValue);
+        auto pvalue = m_redisClient.at(dbName).hget(hash, key);
         if (!pvalue)
         {
             std::string message = "Key '" + hash + "' field '" + key + "' unavailable in database '" + dbName + "'";
@@ -84,15 +79,10 @@ bool DBInterface::hexists(const std::string& dbName, const std::string& hash, co
 
 std::map<std::string, std::string> DBInterface::get_all(const std::string& dbName, const std::string& hash, bool blocking)
 {
-    return get_all(dbName, hash, false, blocking);
-}
-
-std::map<std::string, std::string> DBInterface::get_all(const std::string& dbName, const std::string& hash, bool withDefaultValue, bool blocking)
-{
     auto innerfunc = [&]
     {
         std::map<std::string, std::string> map;
-        m_redisClient.at(dbName).hgetall(hash, std::inserter(map, map.end()), withDefaultValue);
+        m_redisClient.at(dbName).hgetall(hash, std::inserter(map, map.end()));
 
         if (map.empty())
         {

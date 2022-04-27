@@ -1,6 +1,7 @@
 #include <hiredis/hiredis.h>
 #include <system_error>
 
+#include "common/dbdecorator.h"
 #include "common/table.h"
 #include "common/logger.h"
 #include "common/redisreply.h"
@@ -33,16 +34,24 @@ const TableNameSeparatorMap TableBase::tableNameSeparatorMap = {
 };
 
 Table::Table(const DBConnector *db, const string &tableName)
-    : Table(new RedisPipeline(db, 1), tableName, false)
+    : Table(new RedisPipeline(db, 1), tableName, false, nullptr)
 {
     m_pipeowned = true;
+    m_db_decorator = db->getDBDecortor();
 }
 
 Table::Table(RedisPipeline *pipeline, const string &tableName, bool buffered)
+    : Table(pipeline, tableName, buffered, nullptr)
+{
+    // TODO: remove this deprecated ctor
+}
+
+Table::Table(RedisPipeline *pipeline, const string &tableName, bool buffered, std::shared_ptr<DBDecorator> db_decorator)
     : TableBase(tableName, SonicDBConfig::getSeparator(pipeline->getDBConnector()))
     , m_buffered(buffered)
     , m_pipeowned(false)
     , m_pipe(pipeline)
+    , m_db_decorator(db_decorator)
 {
 }
 
@@ -66,12 +75,6 @@ void Table::flush()
 
 bool Table::get(const string &key, vector<FieldValueTuple> &values)
 {
-    return get(key, values, false);
-}
-
-bool Table::get(const string &key, vector<FieldValueTuple> &values, bool withDefaultValue)
-{
-    // [Hua] TODO: code here dupe with DBConnector::hgetall, check if can reuse it.
     RedisCommand hgetall_key;
     hgetall_key.format("HGETALL %s", getKeyName(key).c_str());
     RedisReply r = m_pipe->push(hgetall_key, REDIS_REPLY_ARRAY);
@@ -91,19 +94,10 @@ bool Table::get(const string &key, vector<FieldValueTuple> &values, bool withDef
                                     reply->element[i + 1]->str);
     }
 
-    if (withDefaultValue && m_pipe->getDbId() == CONFIG_DB)
+    // Decorate result because result is not from DBConnection, so it's not decorated
+    if (m_db_decorator)
     {
-        size_t pos = key.find("|");
-        if (pos == std::string::npos)
-        {
-            SWSS_LOG_WARN("Table::get key for config DB is %s, can't find a sepreator\n", key.c_str());
-        }
-        else
-        {
-            std::string table = key.substr(0, pos);
-            std::string row = key.substr(pos + 1);
-            DefaultValueProvider::Instance().AppendDefaultValues(table, row, values);
-        }
+        m_db_decorator->decorate(key, values);
     }
 
     return true;
@@ -211,11 +205,6 @@ void Table::hdel(const string &key, const string &field, const string& /* op */,
 
 void TableEntryEnumerable::getContent(vector<KeyOpFieldsValuesTuple> &tuples)
 {
-    return getContent(tuples, false);
-}
-
-void TableEntryEnumerable::getContent(vector<KeyOpFieldsValuesTuple> &tuples, bool withDefaultValue)
-{
     vector<string> keys;
     getKeys(keys);
 
@@ -226,7 +215,7 @@ void TableEntryEnumerable::getContent(vector<KeyOpFieldsValuesTuple> &tuples, bo
         vector<FieldValueTuple> values;
         string op = "";
 
-        get(key, values, withDefaultValue);
+        get(key, values);
         tuples.emplace_back(key, op, values);
     }
 }

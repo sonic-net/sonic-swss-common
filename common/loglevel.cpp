@@ -134,7 +134,7 @@ int main(int argc, char **argv)
         for (const auto& key : keys)
         {
             const auto redis_key = std::string(key).append(":").append(key);
-            auto level = db.hget(redis_key, DAEMON_LOGLEVEL, false);
+            auto level = db.hget(redis_key, DAEMON_LOGLEVEL);
             if (nullptr == level)
             {
                 std::cerr << std::left << std::setw(30) << key << "Unknown log level" << std::endl;

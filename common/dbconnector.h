@@ -10,6 +10,7 @@
 #include <mutex>
 
 #include <hiredis/hiredis.h>
+#include "dbdecorator.h"
 #include "defaultvalueprovider.h"
 #include "rediscommand.h"
 #include "redisreply.h"
@@ -160,6 +161,7 @@ public:
     DBConnector(const std::string &dbName, unsigned int timeout, bool isTcpConn = false);
     DBConnector(const std::string &dbName, unsigned int timeout, bool isTcpConn, const std::string &netns);
     DBConnector& operator=(const DBConnector&) = delete;
+    virtual ~DBConnector();
 
     int getDbId() const;
     std::string getDbName() const;
@@ -199,20 +201,12 @@ public:
 
     void del(const std::vector<std::string>& keys);
 
-    // TODO: [Hua] check if we can remove this method, because in a library, template method could not be export.
     template <typename ReturnType=std::unordered_map<std::string, std::string>>
     ReturnType hgetall(const std::string &key);
 
-    template <typename ReturnType=std::unordered_map<std::string, std::string>>
-    ReturnType hgetall(const std::string &key, bool withDefaultValue);
-
 #ifndef SWIG
-    // TODO: [Hua] check if we can remove this method, because in a library, template method could not be export.
     template <typename OutputIterator>
     void hgetall(const std::string &key, OutputIterator result);
-
-    template <typename OutputIterator>
-    void hgetall(const std::string &key, OutputIterator result, bool withDefaultValue);
 #endif
 
     std::vector<std::string> keys(const std::string &key);
@@ -232,8 +226,6 @@ public:
     std::shared_ptr<std::string> get(const std::string &key);
 
     std::shared_ptr<std::string> hget(const std::string &key, const std::string &field);
-
-    std::shared_ptr<std::string> hget(const std::string &key, const std::string &field, bool withDefaultValue);
 
     bool hexists(const std::string &key, const std::string &field);
 
@@ -257,6 +249,10 @@ public:
 
     bool flushdb();
 
+    void setDBDecortor(std::shared_ptr<swss::DBDecorator> &db_decorator);
+
+    const std::shared_ptr<swss::DBDecorator> &getDBDecortor() const;
+
 private:
     void setNamespace(const std::string &netns);
 
@@ -265,31 +261,21 @@ private:
     std::string m_namespace;
 
     std::string m_shaRedisMulti;
+
+    std::shared_ptr<DBDecorator> m_db_decorator;
 };
 
 template <typename ReturnType>
 ReturnType DBConnector::hgetall(const std::string &key)
 {
-    return hgetall<ReturnType>(key, false);
-}
-
-template <typename ReturnType>
-ReturnType DBConnector::hgetall(const std::string &key, bool withDefaultValue)
-{
     ReturnType map;
-    hgetall(key, std::inserter(map, map.end()), withDefaultValue);
+    hgetall(key, std::inserter(map, map.end()));
     return map;
 }
 
 #ifndef SWIG
 template<typename OutputIterator>
 void DBConnector::hgetall(const std::string &key, OutputIterator result)
-{
-    hgetall<OutputIterator>(key, result, false);
-}
-
-template<typename OutputIterator>
-void DBConnector::hgetall(const std::string &key, OutputIterator result, bool withDefaultValue)
 {
     RedisCommand shgetall;
     shgetall.format("HGETALL %s", key.c_str());
@@ -303,36 +289,10 @@ void DBConnector::hgetall(const std::string &key, OutputIterator result, bool wi
         ++result;
     }
 
-    if (withDefaultValue && this->getDbId() == CONFIG_DB)
+    auto dbdecortor = this->getDBDecortor();
+    if (dbdecortor)
     {
-        size_t pos = key.find("|");
-        if (pos == std::string::npos)
-        {
-            SWSS_LOG_WARN("Table::get key for config DB is %s, can't find a sepreator\n", key.c_str());
-        }
-
-        // When DB ID is CONFIG_DB, append default value to config DB result.
-        std::string table = key.substr(0, pos);
-        std::string row = key.substr(pos + 1);
-        std::map<std::string, std::string> valuesWithDefault;
-        std::map<std::string, std::string> existedValues;
-        for (unsigned int i = 0; i < ctx->elements; i += 2)
-        {
-            existedValues[ctx->element[i]->str] = ctx->element[i+1]->str;
-            valuesWithDefault[ctx->element[i]->str] = ctx->element[i+1]->str;
-        }
-
-        DefaultValueProvider::Instance().AppendDefaultValues(table, row, valuesWithDefault);
-
-        for (auto& fieldValuePair : valuesWithDefault)
-        {
-            auto findResult = existedValues.find(fieldValuePair.first);
-            if (findResult == existedValues.end())
-            {
-                *result = std::make_pair(fieldValuePair.first, fieldValuePair.second);
-                ++result;
-            }
-        }
+        dbdecortor->decorate(key, ctx, result);
     }
 }
 #endif
@@ -344,6 +304,29 @@ void DBConnector::hmset(const std::string &key, InputIterator start, InputIterat
     shmset.formatHMSET(key, start, stop);
     RedisReply r(this, shmset, REDIS_REPLY_STATUS);
 }
+
+/*
+// TODO: need more discussion about the API design, use may both want get/not get default vaule when running time
+class CfgDBConnector : public DBConnector
+{
+    explicit CfgDBConnector(const DBConnector &other, bool getDefaultValue);
+    CfgDBConnector(int dbId, const RedisContext &ctx, bool getDefaultValue);
+    CfgDBConnector(int dbId, const std::string &hostname, int port, unsigned int timeout, bool getDefaultValue);
+    CfgDBConnector(int dbId, const std::string &unixPath, unsigned int timeout, bool getDefaultValue);
+    CfgDBConnector(const std::string &dbName, unsigned int timeout, bool getDefaultValue, bool isTcpConn = false);
+    CfgDBConnector(const std::string &dbName, unsigned int timeout, bool isTcpConn, const std::string &netns, bool getDefaultValue);
+    CfgDBConnector& operator=(const DBConnector&) = delete;
+    CfgDBConnector& operator=(const CfgDBConnector&) = delete;
+    
+    ~CfgDBConnector();
+
+    std::shared_ptr<DBDecorator> getDBDecortor() const override;
+
+private:
+    bool m_get_default_value;
+    std::shared_ptr<DBDecorator> m_db_decorator;
+};
+*/
 
 }
 #endif

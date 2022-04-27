@@ -122,7 +122,7 @@ static void consumerWorker(int index)
 
             for (auto fv : kfvFieldsValues(kco))
             {
-                string val = *db.hget(tableName + ":" + kfvKey(kco), fvField(fv), false);
+                string val = *db.hget(tableName + ":" + kfvKey(kco), fvField(fv));
                 EXPECT_EQ(val, fvValue(fv));
             }
         } else if (kfvOp(kco) == "DEL")
@@ -472,7 +472,7 @@ TEST(ConsumerStateTable, set_pop_del_set_pop_get)
     /* Get data directly from table in redis DB*/
     Table t(&db, tableName);
     vector<FieldValueTuple> values;
-    t.get(key, values, false);
+    t.get(key, values);
     /* size of values should be maxNumOfFields, no "field 1" left from first set */
     EXPECT_EQ(values.size(), (unsigned int)maxNumOfFields);
 

@@ -323,7 +323,7 @@ TEST(Table, piped_test)
     string tableName = "TABLE_UT_TEST";
     DBConnector db("TEST_DB", 0, true);
     RedisPipeline pipeline(&db);
-    Table t(&pipeline, tableName, true);
+    Table t(&pipeline, tableName, true, nullptr);
 
     clearDB();
     cout << "Starting table manipulations" << endl;
@@ -349,7 +349,7 @@ TEST(Table, piped_test)
 
     cout << "- Step 2. GET_TABLE_CONTENT" << endl;
     vector<KeyOpFieldsValuesTuple> tuples;
-    t.getContent(tuples, false);
+    t.getContent(tuples);
 
     cout << "Get total " << tuples.size() << " number of entries" << endl;
     EXPECT_EQ(tuples.size(), (size_t)2);
@@ -381,8 +381,8 @@ TEST(Table, piped_test)
 
     cout << "- Step 4. GET" << endl;
     cout << "Get key [a] and key [b]" << endl;
-    EXPECT_EQ(t.get(key_1, values, false), false);
-    t.get(key_2, values, false);
+    EXPECT_EQ(t.get(key_1, values), false);
+    t.get(key_2, values);
 
     cout << "Get key [b]" << flush;
     for (auto fv: values)
@@ -403,7 +403,7 @@ TEST(Table, piped_test)
     cout << "- Step 5. DEL and GET_TABLE_CONTENT" << endl;
     cout << "Delete key [b]" << endl;
     t.del(key_2);
-    t.getContent(tuples, false);
+    t.getContent(tuples);
 
     EXPECT_EQ(tuples.size(), unsigned(0));
 

@@ -15,15 +15,9 @@ using namespace std;
 namespace swss {
 
 SubscriberStateTable::SubscriberStateTable(DBConnector *db, const string &tableName, int popBatchSize, int pri)
-    : SubscriberStateTable(db, tableName, false, popBatchSize, pri)
-{
-}
-
-SubscriberStateTable::SubscriberStateTable(DBConnector *db, const string &tableName, bool withDefaultValue, int popBatchSize, int pri)
     : ConsumerTableBase(db, tableName, popBatchSize, pri), m_table(db, tableName)
 {
     m_keyspace = "__keyspace@";
-    m_withDefaultValue = withDefaultValue;
 
     m_keyspace += to_string(db->getDbId()) + "__:" + tableName + m_table.getTableNameSeparator() + "*";
 
@@ -39,7 +33,7 @@ SubscriberStateTable::SubscriberStateTable(DBConnector *db, const string &tableN
         kfvKey(kco) = key;
         kfvOp(kco) = SET_COMMAND;
 
-        if (!m_table.get(key, kfvFieldsValues(kco), m_withDefaultValue))
+        if (!m_table.get(key, kfvFieldsValues(kco)))
         {
             continue;
         }
@@ -153,7 +147,7 @@ void SubscriberStateTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, const strin
         }
         else
         {
-            if (!m_table.get(key, kfvFieldsValues(kco), m_withDefaultValue))
+            if (!m_table.get(key, kfvFieldsValues(kco)))
             {
                 SWSS_LOG_NOTICE("Miss table key %s, possibly outdated", table_entry.c_str());
                 continue;

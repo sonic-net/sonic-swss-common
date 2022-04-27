@@ -2,6 +2,7 @@
 
 #include <string>
 #include <map>
+#include <memory>
 #include "sonicv2connector.h"
 #include "redistran.h"
 
@@ -12,41 +13,37 @@ class ConfigDBConnector_Native : public SonicV2Connector_Native
 public:
     static constexpr const char *INIT_INDICATOR = "CONFIG_DB_INITIALIZED";
 
+#ifndef SWIG
+    [[deprecated("Please use ConfigDBConnector_Native(bool use_unix_socket_path = false, const char *netns = "", bool get_default_value = false) instead.")]]
+#endif
     ConfigDBConnector_Native(bool use_unix_socket_path = false, const char *netns = "");
+    ConfigDBConnector_Native(bool get_default_value, bool use_unix_socket_path = false, const char *netns = "");
 
     void db_connect(std::string db_name, bool wait_for_init = false, bool retry_on = false);
     void connect(bool wait_for_init = true, bool retry_on = false);
 
     virtual void set_entry(std::string table, std::string key, const std::map<std::string, std::string>& data);
     virtual void mod_entry(std::string table, std::string key, const std::map<std::string, std::string>& data);
-#ifndef SWIG
-    [[deprecated("Please use get_entry(std::string table, std::string key, bool withDefaultValue) instead.")]]
-#endif
     std::map<std::string, std::string> get_entry(std::string table, std::string key);
-    std::map<std::string, std::string> get_entry(std::string table, std::string key, bool withDefaultValue);
     std::vector<std::string> get_keys(std::string table, bool split = true);
-#ifndef SWIG
-    [[deprecated("Please use get_table(std::string table, bool withDefaultValue) instead.")]]
-#endif
     std::map<std::string, std::map<std::string, std::string>> get_table(std::string table);
-    std::map<std::string, std::map<std::string, std::string>> get_table(std::string table, bool withDefaultValue);
     void delete_table(std::string table);
     virtual void mod_config(const std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>& data);
-#ifndef SWIG
-    [[deprecated("Please use get_config(bool withDefaultValue) instead.")]]
-#endif
     virtual std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> get_config();
-    virtual std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> get_config(bool withDefaultValue);
 
     std::string getKeySeparator() const;
     std::string getTableNameSeparator() const;
     std::string getDbName() const;
+
+    DBConnector& get_redis_client(const std::string& db_name) override;
 
 protected:
     std::string m_table_name_separator = "|";
     std::string m_key_separator = "|";
 
     std::string m_db_name;
+    bool m_get_default_value;
+    std::shared_ptr<DBDecorator> m_db_decorator;
 };
 
 #ifdef SWIG
@@ -60,7 +57,12 @@ protected:
                 raise ValueError('decode_responses must be True if specified, False is not supported')
             if namespace is None:
                 namespace = ''
-            super(ConfigDBConnector, self).__init__(use_unix_socket_path = use_unix_socket_path, namespace = namespace)
+
+            get_default_value = False
+            if 'get_default_value' in kwargs and kwargs.pop('get_default_value') == True:
+                get_default_value = True
+
+            super(ConfigDBConnector, self).__init__(get_default_value = get_default_value, use_unix_socket_path = use_unix_socket_path, namespace = namespace)
 
             # Trick: to achieve static/instance method "overload", we must use initize the function in ctor
             # ref: https://stackoverflow.com/a/28766809/2514803
@@ -84,7 +86,7 @@ protected:
             return self.getDbName()
 
         ## Note: callback is difficult to implement by SWIG C++, so keep in python
-        def listen(self, init_data_handler=None, with_default_value=False):
+        def listen(self, init_data_handler=None):
             ## Start listen Redis keyspace event. Pass a callback function to `init` to handle initial table data.
             self.pubsub = self.get_redis_client(self.db_name).pubsub()
             self.pubsub.psubscribe("__keyspace@{}__:*".format(self.get_dbid(self.db_name)))
@@ -254,15 +256,15 @@ protected:
 class ConfigDBPipeConnector_Native: public ConfigDBConnector_Native
 {
 public:
+#ifndef SWIG
+    [[deprecated("Please use ConfigDBPipeConnector_Native(bool get_default_value, bool use_unix_socket_path = false, const char *netns = "") instead.")]]
+#endif
     ConfigDBPipeConnector_Native(bool use_unix_socket_path = false, const char *netns = "");
+    ConfigDBPipeConnector_Native(bool get_default_value, bool use_unix_socket_path = false, const char *netns = "");
 
     void set_entry(std::string table, std::string key, const std::map<std::string, std::string>& data) override;
     void mod_config(const std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>& data) override;
-#ifndef SWIG
-    [[deprecated("Please use get_config(bool withDefaultValue) instead.")]]
-#endif
     std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> get_config() override;
-    std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> get_config(bool withDefaultValue) override;
 
 private:
     static const int64_t REDIS_SCAN_BATCH_SIZE = 30;
@@ -271,11 +273,7 @@ private:
     void _delete_table(DBConnector& client, RedisTransactioner& pipe, std::string table);
     void _set_entry(RedisTransactioner& pipe, std::string table, std::string key, const std::map<std::string, std::string>& data);
     void _mod_entry(RedisTransactioner& pipe, std::string table, std::string key, const std::map<std::string, std::string>& data);
-#ifndef SWIG
-    [[deprecated("Please use _get_config(DBConnector& client, RedisTransactioner& pipe, std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>& data, int cursor, bool withDefaultValue) instead.")]]
-#endif
     int _get_config(DBConnector& client, RedisTransactioner& pipe, std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>& data, int cursor);
-    int _get_config(DBConnector& client, RedisTransactioner& pipe, std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>& data, int cursor, bool withDefaultValue);
 };
 
 #ifdef SWIG

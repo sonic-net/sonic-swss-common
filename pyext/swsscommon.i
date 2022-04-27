@@ -14,6 +14,7 @@
 
 #include "schema.h"
 #include "dbconnector.h"
+#include "dbdecorator.h"
 #include "dbinterface.h"
 #include "sonicv2connector.h"
 #include "pubsub.h"
@@ -46,6 +47,9 @@
 %include <typemaps.i>
 %include <stdint.i>
 %include <exception.i>
+
+%shared_ptr(swss::DBDecorator);
+%shared_ptr(swss::ConfigDBDecorator);
 
 %template(FieldValuePair) std::pair<std::string, std::string>;
 %template(FieldValuePairs) std::vector<std::pair<std::string, std::string>>;
@@ -150,6 +154,7 @@ T castSelectableObj(swss::Selectable *temp)
 
 %include "schema.h"
 %include "dbconnector.h"
+%include "dbdecorator.h"
 %include "sonicv2connector.h"
 %include "pubsub.h"
 %include "selectable.h"

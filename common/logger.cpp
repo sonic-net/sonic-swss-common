@@ -125,8 +125,8 @@ void Logger::linkToDbWithOutput(
     std::string key = dbName + ":" + dbName;
     std::string prio, output;
     bool doUpdate = false;
-    auto prioPtr = db.hget(key, DAEMON_LOGLEVEL, false);
-    auto outputPtr = db.hget(key, DAEMON_LOGOUTPUT, false);
+    auto prioPtr = db.hget(key, DAEMON_LOGLEVEL);
+    auto outputPtr = db.hget(key, DAEMON_LOGOUTPUT);
 
     if (prioPtr == nullptr)
     {

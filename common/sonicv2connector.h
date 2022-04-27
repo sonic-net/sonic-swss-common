@@ -25,7 +25,7 @@ public:
 
     std::string get_db_separator(const std::string& db_name);
 
-    DBConnector& get_redis_client(const std::string& db_name);
+    virtual DBConnector& get_redis_client(const std::string& db_name);
 
     int64_t publish(const std::string& db_name, const std::string& channel, const std::string& message);
 
@@ -35,21 +35,11 @@ public:
 
     std::pair<int, std::vector<std::string>> scan(const std::string& db_name, int cursor = 0, const char *match = "", uint32_t count = 10);
 
-#ifndef SWIG
-    [[deprecated("Please use get(const std::string& db_name, const std::string& _hash, const std::string& key, bool withDefaultValue, bool blocking) instead.")]]
-#endif
     std::shared_ptr<std::string> get(const std::string& db_name, const std::string& _hash, const std::string& key, bool blocking=false);
-
-    std::shared_ptr<std::string> get(const std::string& db_name, const std::string& _hash, const std::string& key, bool withDefaultValue, bool blocking);
 
     bool hexists(const std::string& db_name, const std::string& _hash, const std::string& key);
 
-#ifndef SWIG
-    [[deprecated("Please use get_all(const std::string& db_name, const std::string& _hash, bool withDefaultValue, bool blocking) instead.")]]
-#endif
     std::map<std::string, std::string> get_all(const std::string& db_name, const std::string& _hash, bool blocking=false);
-
-    std::map<std::string, std::string> get_all(const std::string& db_name, const std::string& _hash, bool withDefaultValue, bool blocking);
 
     void hmset(const std::string& db_name, const std::string &key, const std::map<std::string, std::string> &values);
 

@@ -10,10 +10,28 @@ using namespace std;
 using namespace swss;
 
 ConfigDBConnector_Native::ConfigDBConnector_Native(bool use_unix_socket_path, const char *netns)
+    : ConfigDBConnector_Native(false, use_unix_socket_path, netns)
+{
+}
+
+ConfigDBConnector_Native::ConfigDBConnector_Native(bool get_default_value, bool use_unix_socket_path, const char *netns)
     : SonicV2Connector_Native(use_unix_socket_path, netns)
     , m_table_name_separator("|")
     , m_key_separator("|")
+    , m_get_default_value(get_default_value)
 {
+    // TODO: [Hua] remove this because only for demo#ifdef DEBUG
+#ifdef DEBUG
+    if (DefaultValueProvider::FeatureEnabledByEnvironmentVariable())
+    {
+        m_get_default_value = true;
+    }
+#endif
+
+    if (m_get_default_value)
+    {
+        m_db_decorator = ConfigDBDecorator::Create(m_table_name_separator);
+    }
 }
 
 void ConfigDBConnector_Native::db_connect(string db_name, bool wait_for_init, bool retry_on)
@@ -80,7 +98,7 @@ void ConfigDBConnector_Native::set_entry(string table, string key, const map<str
     }
     else
     {
-        auto original = get_entry(table, key, false);
+        auto original = get_entry(table, key);
         client.hmset(_hash, data.begin(), data.end());
         for (auto& it: original)
         {
@@ -124,14 +142,9 @@ void ConfigDBConnector_Native::mod_entry(string table, string key, const map<str
 //     Empty dictionary if table does not exist or entry does not exist.
 map<string, string> ConfigDBConnector_Native::get_entry(string table, string key)
 {
-    return get_entry(table, key, false);
-}
-
-map<string, string> ConfigDBConnector_Native::get_entry(string table, string key, bool withDefaultValue)
-{
     auto& client = get_redis_client(m_db_name);
     string _hash = to_upper(table) + m_table_name_separator + key;
-    return client.hgetall<map<string, string>>(_hash, withDefaultValue);
+    return client.hgetall<map<string, string>>(_hash);
 }
 
 // Read all keys of a table from config db.
@@ -177,18 +190,13 @@ vector<string> ConfigDBConnector_Native::get_keys(string table, bool split)
 //     Empty dictionary if table does not exist.
 map<string, map<string, string>> ConfigDBConnector_Native::get_table(string table)
 {
-    return get_table(table, false);
-}
-
-map<string, map<string, string>> ConfigDBConnector_Native::get_table(string table, bool withDefaultValue)
-{
     auto& client = get_redis_client(m_db_name);
     string pattern = to_upper(table) + m_table_name_separator + "*";
     const auto& keys = client.keys(pattern);
     map<string, map<string, string>> data;
     for (auto& key: keys)
     {
-        auto const& entry = client.hgetall<map<string, string>>(key, withDefaultValue);
+        auto const& entry = client.hgetall<map<string, string>>(key);
         size_t pos = key.find(m_table_name_separator);
         string row;
         if (pos == string::npos)
@@ -256,11 +264,6 @@ void ConfigDBConnector_Native::mod_config(const map<string, map<string, map<stri
 //     }
 map<string, map<string, map<string, string>>> ConfigDBConnector_Native::get_config()
 {
-    return get_config(false);
-}
-
-map<string, map<string, map<string, string>>> ConfigDBConnector_Native::get_config(bool withDefaultValue)
-{
     auto& client = get_redis_client(m_db_name);
     auto const& keys = client.keys("*");
     map<string, map<string, map<string, string>>> data;
@@ -272,7 +275,7 @@ map<string, map<string, map<string, string>>> ConfigDBConnector_Native::get_conf
         }
         string table_name = key.substr(0, pos);
         string row = key.substr(pos + 1);
-        auto const& entry = client.hgetall<map<string, string>>(key, withDefaultValue);
+        auto const& entry = client.hgetall<map<string, string>>(key);
 
         if (!entry.empty())
         {
@@ -298,8 +301,21 @@ std::string ConfigDBConnector_Native::getDbName() const
     return m_db_name;
 }
 
+
+DBConnector& ConfigDBConnector_Native::get_redis_client(const std::string& db_name)
+{
+    auto& result = SonicV2Connector_Native::get_redis_client(db_name);
+    result.setDBDecortor(m_db_decorator);
+    return result;
+}
+
 ConfigDBPipeConnector_Native::ConfigDBPipeConnector_Native(bool use_unix_socket_path, const char *netns)
-    : ConfigDBConnector_Native(use_unix_socket_path, netns)
+    : ConfigDBConnector_Native(false, use_unix_socket_path, netns)
+{
+}
+
+ConfigDBPipeConnector_Native::ConfigDBPipeConnector_Native(bool get_default_value, bool use_unix_socket_path, const char *netns)
+    : ConfigDBConnector_Native(get_default_value, use_unix_socket_path, netns)
 {
 }
 
@@ -382,7 +398,7 @@ void ConfigDBPipeConnector_Native::_set_entry(RedisTransactioner& pipe, std::str
     }
     else
     {
-        auto original = get_entry(table, key, false);
+        auto original = get_entry(table, key);
 
         RedisCommand shmset;
         shmset.formatHMSET(_hash, data.begin(), data.end());
@@ -471,11 +487,6 @@ void ConfigDBPipeConnector_Native::mod_config(const map<string, map<string, map<
 //     cur: position of next item to scan
 int ConfigDBPipeConnector_Native::_get_config(DBConnector& client, RedisTransactioner& pipe, map<string, map<string, map<string, string>>>& data, int cursor)
 {
-    return _get_config(client, pipe, data, cursor, false);
-}
-
-int ConfigDBPipeConnector_Native::_get_config(DBConnector& client, RedisTransactioner& pipe, map<string, map<string, map<string, string>>>& data, int cursor, bool withDefaultValue)
-{
     auto const& rc = client.scan(cursor, "*", REDIS_SCAN_BATCH_SIZE);
     auto cur = rc.first;
     auto const& keys = rc.second;
@@ -515,10 +526,10 @@ int ConfigDBPipeConnector_Native::_get_config(DBConnector& client, RedisTransact
             dataentry.emplace(field, value);
         }
 
-        // merge default value to config
-        if (withDefaultValue)
+        // Because run Redis command with pipe not use DBConnector, so need decorate result here.
+        if (m_db_decorator)
         {
-            DefaultValueProvider::Instance().AppendDefaultValues(table_name, row, dataentry);
+            m_db_decorator->decorate(key, dataentry);
         }
     }
     return cur;
@@ -526,26 +537,15 @@ int ConfigDBPipeConnector_Native::_get_config(DBConnector& client, RedisTransact
 
 map<string, map<string, map<string, string>>> ConfigDBPipeConnector_Native::get_config()
 {
-    return get_config(false);
-}
-
-map<string, map<string, map<string, string>>> ConfigDBPipeConnector_Native::get_config(bool withDefaultValue)
-{
     auto& client = get_redis_client(m_db_name);
     DBConnector clientPipe(client);
     RedisTransactioner pipe(&clientPipe);
 
-    // TODO: [Hua] remove this because only for demo
-    if (DefaultValueProvider::FeatureEnabledByEnvironmentVariable())
-    {
-        withDefaultValue = true;
-    }
-
     map<string, map<string, map<string, string>>> data;
-    auto cur = _get_config(client, pipe, data, 0, withDefaultValue);
+    auto cur = _get_config(client, pipe, data, 0);
     while (cur != 0)
     {
-        cur = _get_config(client, pipe, data, cur, withDefaultValue);
+        cur = _get_config(client, pipe, data, cur);
     }
 
     return data;

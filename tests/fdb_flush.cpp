@@ -80,7 +80,7 @@ void print()
     {
         printf("K %s\n", k.c_str());
 
-        auto hash = db.hgetall(k, false);
+        auto hash = db.hgetall(k);
 
         for (auto&h: hash)
         {

@@ -217,7 +217,7 @@ void ProducerStateTable::apply_temp_view()
 
     TableDump currentState;
     {
-        Table mainTable(m_pipe, getTableName(), false);
+        Table mainTable(m_pipe, getTableName(), false, nullptr);
         mainTable.dump(currentState);
     }
 

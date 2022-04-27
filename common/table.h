@@ -10,6 +10,7 @@
 #include <deque>
 #include "hiredis/hiredis.h"
 #include "dbconnector.h"
+#include "dbdecorator.h"
 #include "redisreply.h"
 #include "redisselect.h"
 #include "redispipeline.h"
@@ -166,22 +167,14 @@ public:
     virtual ~TableEntryEnumerable() = default;
 
     /* Get all the field-value tuple of the table entry with the key */
-#ifndef SWIG
-    [[deprecated("Please use get(const std::string &key, std::vector<FieldValueTuple> &values, bool withDefaultValue) instead.")]]
-#endif
     virtual bool get(const std::string &key, std::vector<FieldValueTuple> &values) = 0;
-    virtual bool get(const std::string &key, std::vector<FieldValueTuple> &values, bool withDefaultValue) = 0;
 
     /* get all the keys in the table */
     virtual void getKeys(std::vector<std::string> &keys) = 0;
 
     /* Read the whole table content from the DB directly */
     /* NOTE: Not an atomic function */
-#ifndef SWIG
-    [[deprecated("Please use getContent(std::vector<KeyOpFieldsValuesTuple> &tuples, bool withDefaultValue) instead.")]]
-#endif
     void getContent(std::vector<KeyOpFieldsValuesTuple> &tuples);
-    void getContent(std::vector<KeyOpFieldsValuesTuple> &tuples, bool withDefaultValue);
 };
 
 /* The default time to live for a DB entry is infinite */
@@ -190,7 +183,11 @@ static constexpr int64_t DEFAULT_DB_TTL = -1;
 class Table : public TableBase, public TableEntryEnumerable {
 public:
     Table(const DBConnector *db, const std::string &tableName);
+#ifndef SWIG
+    [[deprecated("Please use  Table(RedisPipeline *pipeline, const std::string &tableName, bool buffered, std::shared_ptr<DBDecorator> m_db_decorator instead.")]]
+#endif
     Table(RedisPipeline *pipeline, const std::string &tableName, bool buffered);
+    Table(RedisPipeline *pipeline, const std::string &tableName, bool buffered, std::shared_ptr<DBDecorator> m_db_decorator);
     ~Table() override;
 
     /* Set an entry in the DB directly (op not in use) */
@@ -230,11 +227,7 @@ public:
                       const std::string &prefix = EMPTY_PREFIX);
     /* Read a value from the DB directly */
     /* Returns false if the key doesn't exists */
-#ifndef SWIG
-    [[deprecated("Please use get(const std::string &key, std::vector<FieldValueTuple> &ovalues, bool withDefaultValue) instead.")]]
-#endif
     virtual bool get(const std::string &key, std::vector<FieldValueTuple> &ovalues);
-    virtual bool get(const std::string &key, std::vector<FieldValueTuple> &ovalues, bool withDefaultValue);
 
     virtual bool hget(const std::string &key, const std::string &field,  std::string &value);
     virtual void hset(const std::string &key,
@@ -266,6 +259,7 @@ protected:
      * */
     std::string stripSpecialSym(const std::string &key);
     std::string m_shaDump;
+    std::shared_ptr<DBDecorator> m_db_decorator;
 };
 
 class TableName_KeyValueOpQueues {

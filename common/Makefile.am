@@ -32,6 +32,7 @@ libswsscommon_la_SOURCES = \
     redisreply.cpp            \
     configdb.cpp              \
     dbconnector.cpp           \
+    dbdecorator.cpp           \
     dbinterface.cpp           \
     defaultvalueprovider.cpp  \
     sonicv2connector.cpp      \

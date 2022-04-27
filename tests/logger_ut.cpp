@@ -32,7 +32,7 @@ void prioNotify(const string &component, const string &prioStr)
 void checkLoglevel(DBConnector& db, const string& key, const string& loglevel)
 {
     string redis_key = key + ":" + key;
-    auto level = db.hget(redis_key, DAEMON_LOGLEVEL, false);
+    auto level = db.hget(redis_key, DAEMON_LOGLEVEL);
     EXPECT_FALSE(level == nullptr);
     if (level != nullptr)
     {

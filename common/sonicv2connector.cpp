@@ -76,12 +76,7 @@ std::pair<int, std::vector<std::string>> SonicV2Connector_Native::scan(const std
 
 std::shared_ptr<std::string> SonicV2Connector_Native::get(const std::string& db_name, const std::string& _hash, const std::string& key, bool blocking)
 {
-    return get(db_name, _hash, key, false, blocking);
-}
-
-std::shared_ptr<std::string> SonicV2Connector_Native::get(const std::string& db_name, const std::string& _hash, const std::string& key, bool withDefaultValue, bool blocking)
-{
-    return m_dbintf.get(db_name, _hash, key, withDefaultValue, blocking);
+    return m_dbintf.get(db_name, _hash, key, blocking);
 }
 
 bool SonicV2Connector_Native::hexists(const std::string& db_name, const std::string& _hash, const std::string& key)
@@ -91,12 +86,7 @@ bool SonicV2Connector_Native::hexists(const std::string& db_name, const std::str
 
 std::map<std::string, std::string> SonicV2Connector_Native::get_all(const std::string& db_name, const std::string& _hash, bool blocking)
 {
-    return get_all(db_name, _hash, false, blocking);
-}
-
-std::map<std::string, std::string> SonicV2Connector_Native::get_all(const std::string& db_name, const std::string& _hash, bool withDefaultValue, bool blocking)
-{
-    return m_dbintf.get_all(db_name, _hash, withDefaultValue, blocking);
+    return m_dbintf.get_all(db_name, _hash, blocking);
 }
 
 void SonicV2Connector_Native::hmset(const std::string& db_name, const std::string &key, const std::map<std::string, std::string> &values)
