@@ -41,6 +41,12 @@ parameters:
   - name: debian_version
     type: string
     default: buster
+variables:
+  - name: BUILD_BRANCH
+    ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
+      value: $(System.PullRequest.TargetBranch)
+    ${{ else }}:
+      value: $(Build.SourceBranch)
 
 stages:
 - stage: Build

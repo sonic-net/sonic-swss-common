@@ -20,11 +20,10 @@ jobs:
   - checkout: sonic-swss
     clean: true
     displayName: "Checkout sonic-swss"
-  - template: template-get-source-branch.yml
   - script: |
       set -ex
       cd sonic-swss
-      git checkout $(SOURCE_BRANCH)
+      git checkout $(BUILD_BRANCH)
     displayName: Set up sonic-swss branch
   - task: DownloadPipelineArtifact@2
     inputs:

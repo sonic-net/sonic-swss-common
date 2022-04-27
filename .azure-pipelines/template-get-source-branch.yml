@@ -1,9 +1,0 @@
-steps:
-  - script: |
-      sourceBranch=$(Build.SourceBranchName)
-      if [[ "$(Build.Reason)" == "PullRequest" ]];then
-        sourceBranch=$(System.PullRequest.TargetBranch)
-      fi
-      echo "Download artifact branch: $sourceBranch"
-      echo "##vso[task.setvariable variable=SOURCE_BRANCH]$sourceBranch"
-    displayName: "Set SOURCE_BRANCH variable"
