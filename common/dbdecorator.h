@@ -39,10 +39,10 @@ private:
     
     // decorate will be invoke in template method, but virtual method not support template, so create internal method for common code.
     template<typename OutputIterator>
-    void decorateInternal(const std::string &key, redisReply *&ctx, OutputIterator &result);
+    void _decorate(const std::string &key, redisReply *&ctx, OutputIterator &result);
     
     template<typename OutputIterator>
-    void decorateInternal(const std::string &key, OutputIterator &result);
+    void _decorate(const std::string &key, OutputIterator &result);
 
     std::string m_separator;
 };

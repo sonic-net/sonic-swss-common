@@ -21,7 +21,7 @@ ConfigDBDecorator::ConfigDBDecorator(string separator)
 
 
 template<typename OutputIterator>
-void ConfigDBDecorator::decorateInternal(const std::string &key, OutputIterator &result)
+void ConfigDBDecorator::_decorate(const std::string &key, OutputIterator &result)
 {
     auto tableAndRow = getTableAndRow(key);
     if (POS(tableAndRow) == string::npos)
@@ -34,16 +34,16 @@ void ConfigDBDecorator::decorateInternal(const std::string &key, OutputIterator 
 
 void ConfigDBDecorator::decorate(const string &key, vector<FieldValueTuple> &result)
 {
-    decorateInternal(key, result);
+    _decorate(key, result);
 }
 
 void ConfigDBDecorator::decorate(const string &key, map<string, string> &result)
 {
-    decorateInternal(key, result);
+    _decorate(key, result);
 }
 
 template<typename OutputIterator>
-void ConfigDBDecorator::decorateInternal(const std::string &key, redisReply *&ctx, OutputIterator &result)
+void ConfigDBDecorator::_decorate(const std::string &key, redisReply *&ctx, OutputIterator &result)
 {
     auto tableAndRow = getTableAndRow(key);
     if (POS(tableAndRow) == string::npos)
@@ -75,12 +75,12 @@ void ConfigDBDecorator::decorateInternal(const std::string &key, redisReply *&ct
 
 void ConfigDBDecorator::decorate(const string &key, redisReply *&ctx, insert_iterator<unordered_map<string, string> > &result)
 {
-    decorateInternal(key, ctx, result);
+    _decorate(key, ctx, result);
 }
 
 void ConfigDBDecorator::decorate(const string &key, redisReply *&ctx, insert_iterator<map<string, string> > &result)
 {
-    decorateInternal(key, ctx, result);
+    _decorate(key, ctx, result);
 }
 
 shared_ptr<string> ConfigDBDecorator::decorate(const string &key, const string &field)
