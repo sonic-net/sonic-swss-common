@@ -34,24 +34,17 @@ const TableNameSeparatorMap TableBase::tableNameSeparatorMap = {
 };
 
 Table::Table(const DBConnector *db, const string &tableName)
-    : Table(new RedisPipeline(db, 1), tableName, false, nullptr)
+    : Table(new RedisPipeline(db, 1), tableName, false)
 {
     m_pipeowned = true;
-    m_db_decorator = db->getDBDecortor();
 }
 
 Table::Table(RedisPipeline *pipeline, const string &tableName, bool buffered)
-    : Table(pipeline, tableName, buffered, nullptr)
-{
-    // TODO: remove this deprecated ctor
-}
-
-Table::Table(RedisPipeline *pipeline, const string &tableName, bool buffered, std::shared_ptr<DBDecorator> db_decorator)
     : TableBase(tableName, SonicDBConfig::getSeparator(pipeline->getDBConnector()))
     , m_buffered(buffered)
     , m_pipeowned(false)
     , m_pipe(pipeline)
-    , m_db_decorator(db_decorator)
+    , m_db_decorator(pipeline->getDBConnector()->getDBDecortor())
 {
 }
 

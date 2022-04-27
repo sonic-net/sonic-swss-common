@@ -181,7 +181,7 @@ TEST(SubscriberStateTable, set)
     int maxNumOfFields = 2;
 
     /* Prepare subscriber */
-    SubscriberStateTable c(&db, testTableName, false);
+    SubscriberStateTable c(&db, testTableName);
     Select cs;
     Selectable *selectcs;
     cs.addSelectable(&c);
@@ -232,7 +232,7 @@ TEST(SubscriberStateTable, set2_pop1_set1_pop1)
     int maxNumOfFields = 2;
 
     /* Prepare subscriber */
-    SubscriberStateTable c(&db, testTableName, false);
+    SubscriberStateTable c(&db, testTableName);
     Select cs;
     Selectable *selectcs;
     cs.addSelectable(&c);
@@ -363,7 +363,7 @@ TEST(SubscriberStateTable, pops_intial)
     }
 
     /* Prepare subscriber */
-    SubscriberStateTable c(&db, testTableName, false);
+    SubscriberStateTable c(&db, testTableName);
     Select cs;
     cs.addSelectable(&c);
     std::deque<KeyOpFieldsValuesTuple> entries;
@@ -408,7 +408,7 @@ TEST(SubscriberStateTable, del)
     int maxNumOfFields = 2;
 
     /* Prepare subscriber */
-    SubscriberStateTable c(&db, testTableName, false);
+    SubscriberStateTable c(&db, testTableName);
     Select cs;
     Selectable *selectcs;
     cs.addSelectable(&c);
@@ -475,7 +475,7 @@ TEST(SubscriberStateTable, table_state)
     }
 
     /* Prepare subscriber */
-    SubscriberStateTable c(&db, testTableName, false);
+    SubscriberStateTable c(&db, testTableName);
     Select cs;
     Selectable *selectcs;
     int ret, i = 0;
@@ -583,8 +583,8 @@ TEST(SubscriberStateTable, cachedData)
     }
 
     /* Prepare subscriber */
-    SubscriberStateTable c1(&db, testTableName, false);
-    SubscriberStateTable c2(&db, testTableName2, false);
+    SubscriberStateTable c1(&db, testTableName);
+    SubscriberStateTable c2(&db, testTableName2);
     Select cs;
     Selectable *selectcs;
     cs.addSelectable(&c1);

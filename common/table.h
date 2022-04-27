@@ -183,11 +183,7 @@ static constexpr int64_t DEFAULT_DB_TTL = -1;
 class Table : public TableBase, public TableEntryEnumerable {
 public:
     Table(const DBConnector *db, const std::string &tableName);
-#ifndef SWIG
-    [[deprecated("Please use  Table(RedisPipeline *pipeline, const std::string &tableName, bool buffered, std::shared_ptr<DBDecorator> m_db_decorator instead.")]]
-#endif
     Table(RedisPipeline *pipeline, const std::string &tableName, bool buffered);
-    Table(RedisPipeline *pipeline, const std::string &tableName, bool buffered, std::shared_ptr<DBDecorator> m_db_decorator);
     ~Table() override;
 
     /* Set an entry in the DB directly (op not in use) */

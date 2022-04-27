@@ -322,7 +322,7 @@ TEST(DBConnector, DBInterface)
     SonicV2Connector_Native db;
     db.connect("TEST_DB");
     db.set("TEST_DB", "key0", "field1", "value2");
-    auto fvs = db.get_all("TEST_DB", "key0", false);
+    auto fvs = db.get_all("TEST_DB", "key0");
     auto rc = fvs.find("field1");
     EXPECT_NE(rc, fvs.end());
     EXPECT_EQ(rc->second, "value2");
@@ -714,7 +714,7 @@ TEST(Table, ttl_test)
     string tableName = "TABLE_UT_TEST";
     DBConnector db("TEST_DB", 0, true);
     RedisPipeline pipeline(&db);
-    Table t(&pipeline, tableName, true, nullptr);
+    Table t(&pipeline, tableName, true);
 
     clearDB();
     cout << "Starting table manipulations" << endl;

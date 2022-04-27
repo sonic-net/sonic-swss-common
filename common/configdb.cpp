@@ -4,7 +4,6 @@
 #include "configdb.h"
 #include "pubsub.h"
 #include "converter.h"
-#include "defaultvalueprovider.h"
 
 using namespace std;
 using namespace swss;
@@ -204,10 +203,8 @@ map<string, map<string, string>> ConfigDBConnector_Native::get_table(string tabl
             continue;
         }
         row = key.substr(pos + 1);
-
         data[row] = entry;
     }
-    
     return data;
 }
 
@@ -282,7 +279,6 @@ map<string, map<string, map<string, string>>> ConfigDBConnector_Native::get_conf
             data[table_name][row] = entry;
         }
     }
-
     return data;
 }
 
@@ -305,6 +301,7 @@ std::string ConfigDBConnector_Native::getDbName() const
 DBConnector& ConfigDBConnector_Native::get_redis_client(const std::string& db_name)
 {
     auto& result = SonicV2Connector_Native::get_redis_client(db_name);
+    // TODO: find a better way to attach decorator, because attach decorator here will impact other connector which share same dbconnection, also performance issue.
     result.setDBDecortor(m_db_decorator);
     return result;
 }

@@ -5,17 +5,13 @@
 #include <vector>
 #include <unordered_map>
 #include <utility>
-#include <map>
 #include <memory>
 #include <mutex>
 
 #include <hiredis/hiredis.h>
 #include "dbdecorator.h"
-#include "defaultvalueprovider.h"
 #include "rediscommand.h"
 #include "redisreply.h"
-#include "schema.h"
-#include "logger.h"
 #define EMPTY_NAMESPACE std::string()
 
 namespace swss {
@@ -161,7 +157,6 @@ public:
     DBConnector(const std::string &dbName, unsigned int timeout, bool isTcpConn = false);
     DBConnector(const std::string &dbName, unsigned int timeout, bool isTcpConn, const std::string &netns);
     DBConnector& operator=(const DBConnector&) = delete;
-    virtual ~DBConnector();
 
     int getDbId() const;
     std::string getDbName() const;
@@ -262,7 +257,7 @@ private:
 
     std::string m_shaRedisMulti;
 
-    std::shared_ptr<DBDecorator> m_db_decorator;
+    std::shared_ptr<DBDecorator> m_db_decorator = nullptr;
 };
 
 template <typename ReturnType>

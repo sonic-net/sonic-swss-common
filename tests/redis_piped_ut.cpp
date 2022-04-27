@@ -323,7 +323,7 @@ TEST(Table, piped_test)
     string tableName = "TABLE_UT_TEST";
     DBConnector db("TEST_DB", 0, true);
     RedisPipeline pipeline(&db);
-    Table t(&pipeline, tableName, true, nullptr);
+    Table t(&pipeline, tableName, true);
 
     clearDB();
     cout << "Starting table manipulations" << endl;
