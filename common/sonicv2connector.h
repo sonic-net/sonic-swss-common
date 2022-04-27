@@ -25,7 +25,7 @@ public:
 
     std::string get_db_separator(const std::string& db_name);
 
-    virtual DBConnector& get_redis_client(const std::string& db_name);
+    DBConnector& get_redis_client(const std::string& db_name);
 
     int64_t publish(const std::string& db_name, const std::string& channel, const std::string& message);
 

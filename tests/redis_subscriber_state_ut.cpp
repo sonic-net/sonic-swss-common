@@ -123,7 +123,7 @@ static void producerWorker(int index)
 static void subscriberWorker(int index, int *status)
 {
     DBConnector db("TEST_DB", 0, true);
-    SubscriberStateTable c(&db, testTableName, false);
+    SubscriberStateTable c(&db, testTableName);
     Select cs;
     Selectable *selectcs;
     int numberOfKeysSet = 0;

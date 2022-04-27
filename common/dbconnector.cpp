@@ -512,8 +512,8 @@ DBConnector::DBConnector(const DBConnector &other)
     : RedisContext(other)
     , m_dbId(other.m_dbId)
     , m_namespace(other.m_namespace)
+    , m_db_decorator(other.m_db_decorator)
 {
-    m_db_decorator = nullptr;
     select(this);
 }
 
@@ -521,7 +521,6 @@ DBConnector::DBConnector(int dbId, const RedisContext& ctx)
     : RedisContext(ctx)
     , m_dbId(dbId)
     , m_namespace(EMPTY_NAMESPACE)
-    , m_db_decorator(nullptr)
 {
     select(this);
 }
@@ -530,7 +529,6 @@ DBConnector::DBConnector(int dbId, const string& hostname, int port,
                          unsigned int timeout)
     : m_dbId(dbId)
     , m_namespace(EMPTY_NAMESPACE)
-    , m_db_decorator(nullptr)
 {
     struct timeval tv = {0, (suseconds_t)timeout * 1000};
     struct timeval *ptv = timeout ? &tv : NULL;
@@ -542,7 +540,6 @@ DBConnector::DBConnector(int dbId, const string& hostname, int port,
 DBConnector::DBConnector(int dbId, const string& unixPath, unsigned int timeout)
     : m_dbId(dbId)
     , m_namespace(EMPTY_NAMESPACE)
-    , m_db_decorator(nullptr)
 {
     struct timeval tv = {0, (suseconds_t)timeout * 1000};
     struct timeval *ptv = timeout ? &tv : NULL;
@@ -555,7 +552,6 @@ DBConnector::DBConnector(const string& dbName, unsigned int timeout, bool isTcpC
     : m_dbId(SonicDBConfig::getDbId(dbName, netns))
     , m_dbName(dbName)
     , m_namespace(netns)
-    , m_db_decorator(nullptr)
 {
     struct timeval tv = {0, (suseconds_t)timeout * 1000};
     struct timeval *ptv = timeout ? &tv : NULL;
@@ -575,10 +571,6 @@ DBConnector::DBConnector(const string& dbName, unsigned int timeout, bool isTcpC
     : DBConnector(dbName, timeout, isTcpConn, EMPTY_NAMESPACE)
 {
     // Empty constructor
-}
-
-DBConnector::~DBConnector()
-{
 }
 
 int DBConnector::getDbId() const
@@ -617,6 +609,7 @@ DBConnector *DBConnector::newConnector(unsigned int timeout) const
 
     ret->m_dbName = m_dbName;
     ret->setNamespace(getNamespace());
+    ret->m_db_decorator = m_db_decorator;
 
     return ret;
 }
@@ -790,7 +783,7 @@ shared_ptr<string> DBConnector::hget(const string &key, const string &field)
 
     if (reply->type == REDIS_REPLY_NIL)
     {
-        auto dbdecortor = this->getDBDecortor();
+        auto dbdecortor = this->getDBDecorator();
         if (dbdecortor)
         {
             return dbdecortor->decorate(key, field);
@@ -935,16 +928,17 @@ void DBConnector::del(const std::vector<std::string>& keys)
 }
 
 
-void DBConnector::setDBDecortor(std::shared_ptr<DBDecorator> &db_decorator)
+void DBConnector::setDBDecorator(std::shared_ptr<DBDecorator> &db_decorator)
 {
     m_db_decorator = db_decorator;
 }
 
-const std::shared_ptr<DBDecorator> &DBConnector::getDBDecortor() const
+const std::shared_ptr<DBDecorator> &DBConnector::getDBDecorator() const
 {
     return m_db_decorator;
 }
 
+// TODO: Need discussion connector design, remove following code after discussion.
 /*
 CfgDBConnector::CfgDBConnector(const DBConnector &other, bool getDefaultValue)
     : DBConnector(other)

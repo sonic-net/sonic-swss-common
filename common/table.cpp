@@ -44,7 +44,6 @@ Table::Table(RedisPipeline *pipeline, const string &tableName, bool buffered)
     , m_buffered(buffered)
     , m_pipeowned(false)
     , m_pipe(pipeline)
-    , m_db_decorator(pipeline->getDBConnector()->getDBDecortor())
 {
 }
 
@@ -88,9 +87,10 @@ bool Table::get(const string &key, vector<FieldValueTuple> &values)
     }
 
     // Decorate result because result is not from DBConnection, so it's not decorated
-    if (m_db_decorator)
+    auto& db_decorator = m_pipe->getDBConnector()->getDBDecorator();
+    if (db_decorator != nullptr)
     {
-        m_db_decorator->decorate(key, values);
+        db_decorator->decorate(key, values);
     }
 
     return true;

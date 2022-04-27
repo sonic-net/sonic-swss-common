@@ -35,15 +35,12 @@ public:
     std::string getTableNameSeparator() const;
     std::string getDbName() const;
 
-    DBConnector& get_redis_client(const std::string& db_name) override;
-
 protected:
     std::string m_table_name_separator = "|";
     std::string m_key_separator = "|";
 
     std::string m_db_name;
     bool m_get_default_value;
-    std::shared_ptr<DBDecorator> m_db_decorator;
 };
 
 #ifdef SWIG

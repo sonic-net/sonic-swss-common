@@ -244,9 +244,9 @@ public:
 
     bool flushdb();
 
-    void setDBDecortor(std::shared_ptr<swss::DBDecorator> &db_decorator);
+    void setDBDecorator(std::shared_ptr<swss::DBDecorator> &db_decorator);
 
-    const std::shared_ptr<swss::DBDecorator> &getDBDecortor() const;
+    const std::shared_ptr<swss::DBDecorator> &getDBDecorator() const;
 
 private:
     void setNamespace(const std::string &netns);
@@ -284,7 +284,7 @@ void DBConnector::hgetall(const std::string &key, OutputIterator result)
         ++result;
     }
 
-    auto dbdecortor = this->getDBDecortor();
+    auto dbdecortor = this->getDBDecorator();
     if (dbdecortor)
     {
         dbdecortor->decorate(key, ctx, result);

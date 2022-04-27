@@ -255,7 +255,6 @@ protected:
      * */
     std::string stripSpecialSym(const std::string &key);
     std::string m_shaDump;
-    std::shared_ptr<DBDecorator> m_db_decorator;
 };
 
 class TableName_KeyValueOpQueues {

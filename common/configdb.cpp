@@ -26,11 +26,6 @@ ConfigDBConnector_Native::ConfigDBConnector_Native(bool get_default_value, bool 
         m_get_default_value = true;
     }
 #endif
-
-    if (m_get_default_value)
-    {
-        m_db_decorator = ConfigDBDecorator::Create(m_table_name_separator);
-    }
 }
 
 void ConfigDBConnector_Native::db_connect(string db_name, bool wait_for_init, bool retry_on)
@@ -38,10 +33,17 @@ void ConfigDBConnector_Native::db_connect(string db_name, bool wait_for_init, bo
     m_db_name = db_name;
     m_key_separator = m_table_name_separator = get_db_separator(db_name);
     SonicV2Connector_Native::connect(m_db_name, retry_on);
+    
+    // attach decorator to client
+    auto& client = get_redis_client(m_db_name);
+    if (m_get_default_value)
+    {
+        auto decorator = ConfigDBDecorator::Create(m_table_name_separator);
+        client.setDBDecorator(decorator);
+    }
 
     if (wait_for_init)
     {
-        auto& client = get_redis_client(m_db_name);
         auto pubsub = client.pubsub();
         auto initialized = client.get(INIT_INDICATOR);
         if (!initialized || initialized->empty())
@@ -297,15 +299,6 @@ std::string ConfigDBConnector_Native::getDbName() const
     return m_db_name;
 }
 
-
-DBConnector& ConfigDBConnector_Native::get_redis_client(const std::string& db_name)
-{
-    auto& result = SonicV2Connector_Native::get_redis_client(db_name);
-    // TODO: find a better way to attach decorator, because attach decorator here will impact other connector which share same dbconnection, also performance issue.
-    result.setDBDecortor(m_db_decorator);
-    return result;
-}
-
 ConfigDBPipeConnector_Native::ConfigDBPipeConnector_Native(bool use_unix_socket_path, const char *netns)
     : ConfigDBConnector_Native(false, use_unix_socket_path, netns)
 {
@@ -524,9 +517,10 @@ int ConfigDBPipeConnector_Native::_get_config(DBConnector& client, RedisTransact
         }
 
         // Because run Redis command with pipe not use DBConnector, so need decorate result here.
-        if (m_db_decorator)
+        auto& db_decorator = client.getDBDecorator();
+        if (db_decorator != nullptr)
         {
-            m_db_decorator->decorate(key, dataentry);
+            db_decorator->decorate(key, dataentry);
         }
     }
     return cur;
