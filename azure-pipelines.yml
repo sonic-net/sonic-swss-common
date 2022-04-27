@@ -11,9 +11,9 @@ trigger:
 variables:
 - name: BUILD_BRANCH
   ${{ if eq(variables.Build.Reason, 'PullRequest') }}:
-  value: $(System.PullRequest.TargetBranch)
+    value: $(System.PullRequest.TargetBranch)
   ${{ else }}:
-  value: $(Build.SourceBranch)
+    value: $(Build.SourceBranch)
 
 stages:
 - stage: Build
