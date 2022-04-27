@@ -12,7 +12,7 @@ variables:
 - ${{ if eq(variables.Build.Reason, 'PullRequest') }}:
   - name： BUILD_BRANCH
     value: $(System.PullRequest.TargetBranch)
-- ${{ else }}:
+- ${{ if ne(variables.Build.Reason, 'PullRequest') }}:
   - name: BUILD_BRANCH
     value: $(Build.SourceBranch)
 
