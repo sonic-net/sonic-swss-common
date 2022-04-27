@@ -9,10 +9,11 @@ trigger:
       - "*"
 
 variables:
-- ${{ if eq(variables.Build.Reason, 'PullRequest') }}:
-  - BUILD_BRANCH: $(System.PullRequest.TargetBranch)
-- ${{ if ne(variables.Build.Reason, 'PullRequest') }}:
-  - BUILD_BRANCH: $(Build.SourceBranch)
+- name: BUILD_BRANCH
+  ${{ if eq(variables.Build.Reason, 'PullRequest') }}:
+  value: $(System.PullRequest.TargetBranch)
+  ${{ else }}:
+  value: $(Build.SourceBranch)
 
 stages:
 - stage: Build
