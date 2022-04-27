@@ -8,16 +8,11 @@ trigger:
     include:
       - "*"
 
-resources:
-  repositories:
-  - repository: sonic-sairedis
-    type: github
-    name: Azure/sonic-sairedis
-    endpoint: build
-  - repository: sonic-swss
-    type: github
-    name: Azure/sonic-swss
-    endpoint: build
+variables:
+  - ${{ if eq(variables.Build.Reason, 'PullRequest') }}:
+    BUILD_BRANCH: $(System.PullRequest.TargetBranch)
+  - ${{ else }}:
+    BUILD_BRANCH: $(Build.SourceBranch)
 
 stages:
 - stage: Build
@@ -30,102 +25,4 @@ stages:
 
     steps:
     - script: |
-        sudo apt-get update
-        sudo apt-get install -y make libtool m4 autoconf dh-exec debhelper cmake pkg-config \
-                         libhiredis-dev libnl-3-dev libnl-genl-3-dev libnl-route-3-dev libnl-nf-3-dev swig3.0 \
-                         libpython2.7-dev libboost-dev libboost1.71-dev
-        sudo apt-get install -y sudo
-        sudo apt-get install -y redis-server redis-tools
-        sudo apt-get install -y python3-pip
-        sudo pip3 install pytest
-        sudo apt-get install -y python
-        sudo apt-get install cmake libgtest-dev libgmock-dev
-        cd /usr/src/gtest && sudo cmake . && sudo make
-        ARCH=$(dpkg --print-architecture)
-        set -x
-        sudo curl -fsSL -o /usr/local/bin/bazel \
-            https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-${ARCH}
-        sudo chmod 755 /usr/local/bin/bazel
-      displayName: "Install dependencies"
-    - script: |
-        ./autogen.sh
-        dpkg-buildpackage -rfakeroot -us -uc -b -j$(nproc) && cp ../*.deb .
-      displayName: "Compile sonic swss common"
-    - script: |
-        bazel build //...
-        bazel test //...
-      displayName: "Compile and test all Bazel targets"
-    - publish: $(System.DefaultWorkingDirectory)/
-      artifact: sonic-swss-common.amd64.ubuntu20_04
-      displayName: "Archive swss common debian packages"
-
-  - template: .azure-pipelines/build-template.yml
-    parameters:
-      arch: amd64
-      sonic_slave: sonic-slave-buster
-      artifact_name: sonic-swss-common
-      run_unit_test: true
-      archive_gcov: true
-
-- stage: BuildArm
-  dependsOn: Build
-  condition: succeeded('Build')
-  jobs:
-  - template: .azure-pipelines/build-template.yml
-    parameters:
-      arch: armhf
-      timeout: 180
-      pool: sonicbld-armhf
-      sonic_slave: sonic-slave-buster-armhf
-      artifact_name: sonic-swss-common.armhf
-
-  - template: .azure-pipelines/build-template.yml
-    parameters:
-      arch: arm64
-      timeout: 180
-      pool: sonicbld-arm64
-      sonic_slave: sonic-slave-buster-arm64
-      artifact_name: sonic-swss-common.arm64
-
-- stage: BuildSairedis
-  dependsOn: Build
-  condition: succeeded('Build')
-  jobs:
-  - template: .azure-pipelines/build-sairedis-template.yml
-    parameters:
-      arch: amd64
-      sonic_slave: sonic-slave-buster
-      swss_common_artifact_name: sonic-swss-common
-      artifact_name: sonic-sairedis
-      syslog_artifact_name: sonic-sairedis.syslog
-
-- stage: BuildSwss
-  dependsOn: BuildSairedis
-  condition: succeeded('BuildSairedis')
-  jobs:
-  - template: .azure-pipelines/build-swss-template.yml
-    parameters:
-      arch: amd64
-      sonic_slave: sonic-slave-buster
-      swss_common_artifact_name: sonic-swss-common
-      sairedis_artifact_name: sonic-sairedis
-      artifact_name: sonic-swss
-
-- stage: BuildDocker
-  dependsOn: BuildSwss
-  condition: succeeded('BuildSwss')
-  jobs:
-  - template: .azure-pipelines/build-docker-sonic-vs-template.yml
-    parameters:
-      swss_common_artifact_name: sonic-swss-common
-      sairedis_artifact_name: sonic-sairedis
-      swss_artifact_name: sonic-swss
-      artifact_name: docker-sonic-vs
-
-- stage: Test
-  dependsOn: BuildDocker
-  condition: succeeded('BuildDocker')
-  jobs:
-  - template: .azure-pipelines/test-docker-sonic-vs-template.yml
-    parameters:
-      log_artifact_name: log
+        echo $(BUILD_BRANCH)
