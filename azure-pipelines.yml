@@ -10,7 +10,7 @@ trigger:
 
 variables:
 - name: BUILD_BRANCH
-  ${{ if eq(variables.Build.Reason, 'PullRequest') }}:
+  ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
     value: $(System.PullRequest.TargetBranch)
   ${{ else }}:
     value: $(Build.SourceBranch)
