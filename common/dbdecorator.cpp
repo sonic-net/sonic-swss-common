@@ -14,14 +14,18 @@ using namespace swss;
 #define TABLE(TUPLE)    get<1>(TUPLE)
 #define ROW(TUPLE)      get<2>(TUPLE)
 
-ConfigDBDecorator::ConfigDBDecorator(string separator)
+ConfigDBReadDecorator::ConfigDBReadDecorator(string separator)
     :m_separator(separator)
 {
 }
 
+DBDecoratorType ConfigDBReadDecorator::type()
+{
+    return ReadDecorator;
+}
 
 template<typename OutputIterator>
-void ConfigDBDecorator::_decorate(const std::string &key, OutputIterator &result)
+void ConfigDBReadDecorator::_decorate(const std::string &key, OutputIterator &result)
 {
     auto tableAndRow = getTableAndRow(key);
     if (POS(tableAndRow) == string::npos)
@@ -32,18 +36,18 @@ void ConfigDBDecorator::_decorate(const std::string &key, OutputIterator &result
     DefaultValueProvider::Instance().AppendDefaultValues(TABLE(tableAndRow), ROW(tableAndRow), result);
 }
 
-void ConfigDBDecorator::decorate(const string &key, vector<FieldValueTuple> &result)
+void ConfigDBReadDecorator::decorate(const string &key, vector<FieldValueTuple> &result)
 {
     _decorate(key, result);
 }
 
-void ConfigDBDecorator::decorate(const string &key, map<string, string> &result)
+void ConfigDBReadDecorator::decorate(const string &key, map<string, string> &result)
 {
     _decorate(key, result);
 }
 
 template<typename OutputIterator>
-void ConfigDBDecorator::_decorate(const std::string &key, redisReply *&ctx, OutputIterator &result)
+void ConfigDBReadDecorator::_decorate(const std::string &key, redisReply *&ctx, OutputIterator &result)
 {
     auto tableAndRow = getTableAndRow(key);
     if (POS(tableAndRow) == string::npos)
@@ -73,17 +77,17 @@ void ConfigDBDecorator::_decorate(const std::string &key, redisReply *&ctx, Outp
     }
 }
 
-void ConfigDBDecorator::decorate(const string &key, redisReply *&ctx, insert_iterator<unordered_map<string, string> > &result)
+void ConfigDBReadDecorator::decorate(const string &key, redisReply *&ctx, insert_iterator<unordered_map<string, string> > &result)
 {
     _decorate(key, ctx, result);
 }
 
-void ConfigDBDecorator::decorate(const string &key, redisReply *&ctx, insert_iterator<map<string, string> > &result)
+void ConfigDBReadDecorator::decorate(const string &key, redisReply *&ctx, insert_iterator<map<string, string> > &result)
 {
     _decorate(key, ctx, result);
 }
 
-shared_ptr<string> ConfigDBDecorator::decorate(const string &key, const string &field)
+shared_ptr<string> ConfigDBReadDecorator::decorate(const string &key, const string &field)
 {
     auto tableAndRow = getTableAndRow(key);
     if (POS(tableAndRow) == string::npos)
@@ -94,7 +98,7 @@ shared_ptr<string> ConfigDBDecorator::decorate(const string &key, const string &
     return DefaultValueProvider::Instance().GetDefaultValue(TABLE(tableAndRow), ROW(tableAndRow), field);
 }
 
-tuple<size_t, string, string> ConfigDBDecorator::getTableAndRow(const string &key)
+tuple<size_t, string, string> ConfigDBReadDecorator::getTableAndRow(const string &key)
 {
     string table;
     string row;
@@ -112,7 +116,7 @@ tuple<size_t, string, string> ConfigDBDecorator::getTableAndRow(const string &ke
     return tuple<size_t, string,string>(pos, table, row);
 }
 
-shared_ptr<DBDecorator> ConfigDBDecorator::Create(string separator)
+shared_ptr<DBDecorator> ConfigDBReadDecorator::Create(string separator)
 {
-    return shared_ptr<DBDecorator>(new ConfigDBDecorator(separator));
+    return shared_ptr<DBDecorator>(new ConfigDBReadDecorator(separator));
 }

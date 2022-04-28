@@ -38,7 +38,7 @@ void ConfigDBConnector_Native::db_connect(string db_name, bool wait_for_init, bo
     auto& client = get_redis_client(m_db_name);
     if (m_get_default_value)
     {
-        auto decorator = ConfigDBDecorator::Create(m_table_name_separator);
+        auto decorator = ConfigDBReadDecorator::Create(m_table_name_separator);
         client.setDBDecorator(decorator);
     }
 
@@ -517,7 +517,7 @@ int ConfigDBPipeConnector_Native::_get_config(DBConnector& client, RedisTransact
         }
 
         // Because run Redis command with pipe not use DBConnector, so need decorate result here.
-        auto& db_decorator = client.getDBDecorator();
+        auto& db_decorator = client.getDBDecorator(ReadDecorator);
         if (db_decorator != nullptr)
         {
             db_decorator->decorate(key, dataentry);

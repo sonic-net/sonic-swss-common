@@ -87,7 +87,7 @@ bool Table::get(const string &key, vector<FieldValueTuple> &values)
     }
 
     // Decorate result because result is not from DBConnection, so it's not decorated
-    auto& db_decorator = m_pipe->getDBConnector()->getDBDecorator();
+    auto& db_decorator = m_pipe->getDBConnector()->getDBDecorator(ReadDecorator);
     if (db_decorator != nullptr)
     {
         db_decorator->decorate(key, values);

@@ -19,6 +19,8 @@ namespace swss {
 class DBConnector;
 class PubSub;
 
+typedef std::map<swss::DBDecoratorType, std::shared_ptr<DBDecorator> > DecoratorMapping;
+
 class RedisInstInfo
 {
 public:
@@ -244,9 +246,12 @@ public:
 
     bool flushdb();
 
-    void setDBDecorator(std::shared_ptr<swss::DBDecorator> &db_decorator);
+    // every DBDecoratorType can ony have 1 decorator, set new one will return old one.
+    const std::shared_ptr<swss::DBDecorator> setDBDecorator(std::shared_ptr<swss::DBDecorator> &db_decorator);
 
-    const std::shared_ptr<swss::DBDecorator> &getDBDecorator() const;
+    const std::shared_ptr<swss::DBDecorator> getDBDecorator(swss::DBDecoratorType type) const;
+
+    const DecoratorMapping &getDBDecorators() const;
 
 private:
     void setNamespace(const std::string &netns);
@@ -257,7 +262,7 @@ private:
 
     std::string m_shaRedisMulti;
 
-    std::shared_ptr<DBDecorator> m_db_decorator = nullptr;
+    DecoratorMapping m_db_decorators;
 };
 
 template <typename ReturnType>
@@ -284,7 +289,7 @@ void DBConnector::hgetall(const std::string &key, OutputIterator result)
         ++result;
     }
 
-    auto dbdecortor = this->getDBDecorator();
+    auto dbdecortor = this->getDBDecorator(ReadDecorator);
     if (dbdecortor)
     {
         dbdecortor->decorate(key, ctx, result);

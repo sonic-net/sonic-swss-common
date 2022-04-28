@@ -512,7 +512,7 @@ DBConnector::DBConnector(const DBConnector &other)
     : RedisContext(other)
     , m_dbId(other.m_dbId)
     , m_namespace(other.m_namespace)
-    , m_db_decorator(other.m_db_decorator)
+    , m_db_decorators(other.m_db_decorators)
 {
     select(this);
 }
@@ -609,7 +609,7 @@ DBConnector *DBConnector::newConnector(unsigned int timeout) const
 
     ret->m_dbName = m_dbName;
     ret->setNamespace(getNamespace());
-    ret->m_db_decorator = m_db_decorator;
+    ret->m_db_decorators = m_db_decorators;
 
     return ret;
 }
@@ -783,7 +783,7 @@ shared_ptr<string> DBConnector::hget(const string &key, const string &field)
 
     if (reply->type == REDIS_REPLY_NIL)
     {
-        auto dbdecortor = this->getDBDecorator();
+        auto dbdecortor = this->getDBDecorator(ReadDecorator);
         if (dbdecortor)
         {
             return dbdecortor->decorate(key, field);
@@ -928,14 +928,28 @@ void DBConnector::del(const std::vector<std::string>& keys)
 }
 
 
-void DBConnector::setDBDecorator(std::shared_ptr<DBDecorator> &db_decorator)
+const std::shared_ptr<DBDecorator> DBConnector::setDBDecorator(std::shared_ptr<DBDecorator> &db_decorator)
 {
-    m_db_decorator = db_decorator;
+    auto type = db_decorator->type();
+    auto existed = getDBDecorator(type);
+    m_db_decorators[type] = db_decorator;
+    return existed;
 }
 
-const std::shared_ptr<DBDecorator> &DBConnector::getDBDecorator() const
+const std::shared_ptr<DBDecorator> DBConnector::getDBDecorator(swss::DBDecoratorType type) const
 {
-    return m_db_decorator;
+    auto existed = m_db_decorators.find(type);
+    std::shared_ptr<DBDecorator> existedDecorator = nullptr;
+    if (existed != m_db_decorators.end()) {
+        existedDecorator = existed->second;
+    }
+
+    return existedDecorator;
+}
+
+const DecoratorMapping &DBConnector::getDBDecorators() const
+{
+    return m_db_decorators;
 }
 
 // TODO: Need discussion connector design, remove following code after discussion.

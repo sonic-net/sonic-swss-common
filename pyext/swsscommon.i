@@ -49,7 +49,7 @@
 %include <exception.i>
 
 %shared_ptr(swss::DBDecorator);
-%shared_ptr(swss::ConfigDBDecorator);
+%shared_ptr(swss::ConfigDBReadDecorator);
 
 %template(FieldValuePair) std::pair<std::string, std::string>;
 %template(FieldValuePairs) std::vector<std::pair<std::string, std::string>>;
