@@ -41,13 +41,22 @@ jobs:
   pool:
     ${{ if ne(parameters.pool, 'default') }}:
       name: ${{ parameters.pool }}
-    ${{ if eq(parameters.pool, 'default') }}:
+    ${{ else }}:
       vmImage: 'ubuntu-20.04'
 
   container:
     image: sonicdev-microsoft.azurecr.io:443/${{ parameters.sonic_slave }}:latest
 
   steps:
+  - checkout: sonic-sairedis
+    submodules: true
+    clean: true
+  - script: |
+      set -ex
+      git checkout $(BUILD_BRANCH)
+      git submodule update
+      git status
+    displayName: Set up sonic-sairedis branch
   - script: |
       sudo apt-get install -qq -y \
         qtbase5-dev \
@@ -81,18 +90,21 @@ jobs:
   - task: DownloadPipelineArtifact@2
     inputs:
       artifact: ${{ parameters.swss_common_artifact_name }}
-    displayName: "Download sonic swss common deb packages"
+      path: $(Build.ArtifactStagingDirectory)/download
+    displayName: "Download pre-stage built ${{ parameters.swss_common_artifact_name }}"
   - script: |
-      sudo dpkg -i libswsscommon_1.0.0_${{ parameters.arch }}.deb
-      sudo dpkg -i libswsscommon-dev_1.0.0_${{ parameters.arch }}.deb
-    workingDirectory: $(Pipeline.Workspace)
+      set -ex
+      sudo dpkg -i download/libswsscommon_1.0.0_${{ parameters.arch }}.deb
+      sudo dpkg -i download/libswsscommon-dev_1.0.0_${{ parameters.arch }}.deb
+      rm -rf download || true
+    workingDirectory: $(Build.ArtifactStagingDirectory)
     displayName: "Install sonic swss Common"
-  - checkout: sonic-sairedis
-    path: s
-    submodules: true
   - script: |
+      set -ex
+      rm ../*.deb || true
       ./autogen.sh
-      fakeroot dpkg-buildpackage -b -us -uc -Tbinary-syncd-vs -j$(nproc) && cp ../*.deb .
+      fakeroot dpkg-buildpackage -b -us -uc -Tbinary-syncd-vs -j$(nproc)
+      mv ../*.deb .
     displayName: "Compile sonic sairedis"
   - script: |
       sudo cp azsyslog.conf /etc/rsyslog.conf
