@@ -4,6 +4,13 @@
 
 namespace swss {
 
+// Define signal ID enum for python
+enum Signals
+{
+    SIGNAL_TERM = SIGTERM,
+    SIGNAL_INT = SIGINT
+};
+
 /*
     SignalHandlerHelper class provide a native signal handler.
     Python signal handler have following issue:

@@ -102,12 +102,12 @@ int Select::poll_descriptors(Selectable **c, unsigned int timeout)
         // sleep here make python signal handler not be blocked.
         sleep(0);
     }
-    while(ret == -1 && errno == EINTR && !SignalHandlerHelper::checkSignal(SIGTERM)); // Retry the select if the process was interrupted by a signal
+    while(ret == -1 && errno == EINTR && !SignalHandlerHelper::checkSignal(Signals::SIGNAL_INT)); // Retry the select if the process was interrupted by a signal
 
-    if (SignalHandlerHelper::checkSignal(SIGTERM))
+    if (SignalHandlerHelper::checkSignal(Signals::SIGNAL_INT))
     {
         // Return if the epoll_wait was interrupted by SIGTERM
-        return Select::SIGNALTERM;
+        return Select::SIGNALINT;
     }
 
     if (ret < 0)
@@ -201,8 +201,8 @@ std::string Select::resultToString(int result)
         case swss::Select::TIMEOUT:
             return "TIMEOUT";
 
-        case swss::Select::SIGNALTERM:
-            return "SIGNALTERM";
+        case swss::Select::SIGNALINT:
+            return "SIGNALINT";
 
         default:
             SWSS_LOG_WARN("unknown select result: %d", result);
