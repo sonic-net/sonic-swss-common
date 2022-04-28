@@ -1,6 +1,7 @@
 #include "common/selectable.h"
 #include "common/logger.h"
 #include "common/select.h"
+#include "common/signalhandlerhelper.h"
 #include <algorithm>
 #include <stdio.h>
 #include <sys/time.h>
@@ -94,11 +95,19 @@ int Select::poll_descriptors(Selectable **c, unsigned int timeout)
     std::vector<struct epoll_event> events(sz_selectables);
     int ret;
 
-    ret = ::epoll_wait(m_epoll_fd, events.data(), sz_selectables, timeout);
-    if (ret == -1 && errno == EINTR)
+    do
     {
-        // Return if the epoll_wait was interrupted by a signal
-        return Select::SIGNALINTR;
+        ret = ::epoll_wait(m_epoll_fd, events.data(), sz_selectables, timeout);
+
+        // sleep here make python signal handler not be blocked.
+        sleep(0);
+    }
+    while(ret == -1 && errno == EINTR && !SignalHandlerHelper::checkSignal(SIGTERM)); // Retry the select if the process was interrupted by a signal
+
+    if (SignalHandlerHelper::checkSignal(SIGTERM))
+    {
+        // Return if the epoll_wait was interrupted by SIGTERM
+        return Select::SIGNALTERM;
     }
 
     if (ret < 0)
@@ -192,8 +201,8 @@ std::string Select::resultToString(int result)
         case swss::Select::TIMEOUT:
             return "TIMEOUT";
 
-        case swss::Select::SIGNALINTR:
-            return "SIGNALINTR";
+        case swss::Select::SIGNALTERM:
+            return "SIGNALTERM";
 
         default:
             SWSS_LOG_WARN("unknown select result: %d", result);
