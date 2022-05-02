@@ -2,6 +2,7 @@
 #include <memory>
 #include <thread>
 #include <algorithm>
+#include <deque>
 #include "gtest/gtest.h"
 #include "common/dbconnector.h"
 #include "common/notificationconsumer.h"
@@ -1020,6 +1021,93 @@ TEST(ConsumerStateTable, singlethread)
 
         if (numberOfKeyDeleted == NUMBER_OF_OPS)
             break;
+    }
+
+    EXPECT_LE(numberOfKeysSet, numberOfKeyDeleted);
+    EXPECT_EQ(ret, Select::OBJECT);
+
+    cout << "Done. Waiting for all job to finish " << NUMBER_OF_OPS << " jobs." << endl;
+
+    /* State Queue should be empty */
+    RedisCommand keys;
+    keys.format("KEYS %s*", (c.getStateHashPrefix() + tableName).c_str());
+    RedisReply r(&db, keys, REDIS_REPLY_ARRAY);
+    auto qlen = r.getContext()->elements;
+    EXPECT_EQ(qlen, 0U);
+
+    cout << endl << "Done." << endl;
+}
+
+TEST(ConsumerStateTable, batched)
+{
+    clearDB();
+
+    int index = 0;
+    string tableName = "UT_REDIS_THREAD_" + to_string(index);
+    DBConnector db(TEST_DB, 0, true);
+    ProducerStateTable p(&db, tableName);
+    vector<KeyOpFieldsValuesTuple> set_requests;
+
+    for (int i = 0; i < NUMBER_OF_OPS; i++)
+    {
+        vector<FieldValueTuple> fields;
+        int maxNumOfFields = getMaxFields(i);
+        for (int j = 0; j < maxNumOfFields; j++)
+        {
+            FieldValueTuple t(field(j), value(j));
+            fields.push_back(t);
+        }
+        if ((i % 100) == 0)
+            cout << "+" << flush;
+        set_requests.push_back(KeyOpFieldsValuesTuple({key(i), SET_COMMAND, fields}));
+    }
+    p.set(set_requests);
+
+    // Set the batch size to be NUMBER_OF_OPS, so that we can pop all requests
+    // in one call.
+    ConsumerStateTable c(&db, tableName, NUMBER_OF_OPS);
+    Select cs;
+    Selectable *selectcs;
+    int ret, i = 0;
+    deque<KeyOpFieldsValuesTuple> vkco;
+
+    cs.addSelectable(&c);
+    ret = cs.select(&selectcs);
+    c.pops(vkco);
+    int numberOfKeysSet = 0;
+    for (auto kco : vkco)
+    {
+        EXPECT_EQ(kfvOp(kco), "SET");
+        numberOfKeysSet++;
+        validateFields(kfvKey(kco), kfvFieldsValues(kco));
+
+        if ((i++ % 100) == 0)
+            cout << "-" << flush;
+    }
+
+    EXPECT_LE(numberOfKeysSet, NUMBER_OF_OPS);
+    EXPECT_EQ(ret, Select::OBJECT);
+
+    vector<string> del_requests;
+    for (i = 0; i < NUMBER_OF_OPS; i++)
+    {
+        del_requests.push_back(key(i));
+        if ((i % 100) == 0)
+            cout << "+" << flush;
+    }
+    p.del(del_requests);
+
+    ret = cs.select(&selectcs);
+    vkco.clear();
+    c.pops(vkco);
+    int numberOfKeyDeleted = 0;
+    for (auto kco : vkco)
+    {
+        EXPECT_EQ(kfvOp(kco), "DEL");
+        numberOfKeyDeleted++;
+
+        if ((i++ % 100) == 0)
+            cout << "-" << flush;
     }
 
     EXPECT_LE(numberOfKeysSet, numberOfKeyDeleted);
