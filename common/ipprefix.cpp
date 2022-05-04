@@ -53,6 +53,14 @@ IpPrefix::IpPrefix(uint32_t ipPrefix, int mask) : m_ip(ipPrefix), m_mask(mask)
     }
 }
 
+IpPrefix::IpPrefix(const ip_addr_t &ip, int mask) : m_ip(ip), m_mask(mask)
+{
+    if (!isValid())
+    {
+        throw std::invalid_argument("Invalid IpPrefix from ip structure and mask");
+    }
+}
+
 bool IpPrefix::isValid()
 {
     if (m_mask < 0) return false;

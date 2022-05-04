@@ -3,6 +3,7 @@
 #include <thread>
 #include <algorithm>
 #include <memory>
+#include <deque>
 #include "gtest/gtest.h"
 #include "common/dbconnector.h"
 #include "common/notificationconsumer.h"
@@ -469,7 +470,7 @@ TEST(ConsumerStateTable, async_singlethread)
     EXPECT_EQ(p.count(), 0);
     RedisReply r2(&db, queryCommand.c_str(), REDIS_REPLY_ARRAY);
     EXPECT_EQ(r2.getContext()->elements, (size_t)0);
- 
+
     int numberOfNotification = 0;
     while ((ret = cs.select(&selectcs, 1000)) == Select::OBJECT)
     {
@@ -485,6 +486,155 @@ TEST(ConsumerStateTable, async_singlethread)
 
     // ConsumerStateTable got all the notifications though no real data available.
     EXPECT_EQ(NUMBER_OF_OPS, numberOfNotification);
+    EXPECT_EQ(ret, Select::TIMEOUT);
+
+    cout << "Done. Waiting for all job to finish " << NUMBER_OF_OPS << " jobs." << endl;
+
+    cout << endl << "Done." << endl;
+}
+
+TEST(ConsumerStateTable, async_batched)
+{
+    clearDB();
+
+    int index = 0;
+    string tableName = "UT_REDIS_THREAD_" + to_string(index);
+    DBConnector db(TEST_DB, 0, true);
+    RedisPipeline pipeline(&db);
+    ProducerStateTable p(&pipeline, tableName, true);
+    vector<KeyOpFieldsValuesTuple> set_requests;
+
+    // Do pending data clear test first.
+    for (int i = 0; i < NUMBER_OF_OPS; i++)
+    {
+        vector<FieldValueTuple> fields;
+        int maxNumOfFields = getMaxFields(i);
+        for (int j = 0; j < maxNumOfFields; j++)
+        {
+            FieldValueTuple t(field(j), value(j));
+            fields.push_back(t);
+        }
+        if ((i % 100) == 0)
+            cout << "+" << flush;
+        set_requests.push_back(KeyOpFieldsValuesTuple({key(i), SET_COMMAND, fields}));
+    }
+    p.set(set_requests);
+    p.clear();
+    EXPECT_EQ(p.count(), 0);
+    string queryCommand = "KEYS " + p.getStateHashPrefix() + tableName + p.getTableNameSeparator() + "*";
+    RedisReply r(&db, queryCommand.c_str(), REDIS_REPLY_ARRAY);
+    EXPECT_EQ(r.getContext()->elements, (size_t)0);
+
+    // Set the batch size to be NUMBER_OF_OPS, so that we can pop all requests
+    // in one call.
+    ConsumerStateTable c(&db, tableName, NUMBER_OF_OPS);
+    Select cs;
+    Selectable *selectcs;
+    int ret, i = 0;
+    deque<KeyOpFieldsValuesTuple> vkco;
+
+    cs.addSelectable(&c);
+    ret = cs.select(&selectcs, 1000);
+    EXPECT_EQ(ret, Select::TIMEOUT);
+
+    set_requests.clear();
+    for (i = 0; i < NUMBER_OF_OPS; i++)
+    {
+        vector<FieldValueTuple> fields;
+        int maxNumOfFields = getMaxFields(i);
+        for (int j = 0; j < maxNumOfFields; j++)
+        {
+            FieldValueTuple t(field(j), value(j));
+            fields.push_back(t);
+        }
+        if ((i % 100) == 0)
+            cout << "+" << flush;
+        set_requests.push_back(KeyOpFieldsValuesTuple({key(i), SET_COMMAND, fields}));
+    }
+    p.set(set_requests);
+    p.flush();
+    // KeySet of the ProducerStateTable has data to be picked up by ConsumerStateTable
+    EXPECT_EQ(p.count(), NUMBER_OF_OPS);
+
+    ret = cs.select(&selectcs, 1000);
+    c.pops(vkco);
+    int numberOfKeysSet = 0;
+    for (auto kco : vkco)
+    {
+        EXPECT_EQ(kfvOp(kco), "SET");
+        numberOfKeysSet++;
+        validateFields(kfvKey(kco), kfvFieldsValues(kco));
+
+        if ((i++ % 100) == 0)
+            cout << "-" << flush;
+    }
+    EXPECT_LE(numberOfKeysSet, NUMBER_OF_OPS);
+    EXPECT_EQ(ret, Select::OBJECT);
+    // KeySet of the ProducerStateTable has been emptied by ConsumerStateTable
+    EXPECT_EQ(p.count(), 0);
+
+    vector<string> del_requests;
+    for (i = 0; i < NUMBER_OF_OPS; i++)
+    {
+        del_requests.push_back(key(i));
+        if ((i % 100) == 0)
+            cout << "+" << flush;
+    }
+    p.del(del_requests);
+
+    EXPECT_EQ(p.count(), NUMBER_OF_OPS);
+    p.flush();
+
+    ret = cs.select(&selectcs, 1000);
+    vkco.clear();
+    c.pops(vkco);
+    int numberOfKeyDeleted = 0;
+    for (auto kco : vkco)
+    {
+        EXPECT_EQ(kfvOp(kco), "DEL");
+        numberOfKeyDeleted++;
+
+        if ((i++ % 100) == 0)
+            cout << "-" << flush;
+    }
+    EXPECT_EQ(p.count(), 0);
+
+    EXPECT_LE(numberOfKeysSet, numberOfKeyDeleted);
+    EXPECT_EQ(ret, Select::OBJECT);
+
+    // clear test with consumer already listening
+    del_requests.clear();
+    for (i = 0; i < NUMBER_OF_OPS; i++)
+    {
+        del_requests.push_back(key(i));
+        if ((i % 100) == 0)
+            cout << "+" << flush;
+    }
+    p.del(del_requests);
+
+    EXPECT_EQ(p.count(), NUMBER_OF_OPS);
+    p.flush();
+    p.clear();
+    EXPECT_EQ(p.count(), 0);
+    RedisReply r2(&db, queryCommand.c_str(), REDIS_REPLY_ARRAY);
+    EXPECT_EQ(r2.getContext()->elements, (size_t)0);
+
+    int numberOfNotification = 0;
+    while ((ret = cs.select(&selectcs, 1000)) == Select::OBJECT)
+    {
+        KeyOpFieldsValuesTuple kco;
+        c.pop(kco);
+        // keys have been dropped, expecting empty kco.
+        EXPECT_EQ(kfvOp(kco), "");
+        numberOfNotification++;
+
+        if ((i++ % 100) == 0)
+            cout << "-" << flush;
+    }
+    EXPECT_EQ(p.count(), 0);
+
+    // There is only 1 notification in batched request.
+    EXPECT_EQ(1, numberOfNotification);
     EXPECT_EQ(ret, Select::TIMEOUT);
 
     cout << "Done. Waiting for all job to finish " << NUMBER_OF_OPS << " jobs." << endl;
@@ -580,4 +730,3 @@ TEST(ConsumerStateTable, async_multitable)
 
     cout << endl << "Done." << endl;
 }
-
