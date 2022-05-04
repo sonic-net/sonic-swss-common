@@ -209,7 +209,7 @@ void SonicDBConfig::validateNamespace(const string &netns)
     }
 }
 
-SonicDBInfo& SonicDBConfig::getDbInfo(const std::string &dbName, const std::string &netns)
+std::unordered_map<std::string, SonicDBInfo> SonicDBConfig::getDbEntry(const std::string &netns)
 {
     std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
 
@@ -232,7 +232,34 @@ SonicDBInfo& SonicDBConfig::getDbInfo(const std::string &dbName, const std::stri
         SWSS_LOG_ERROR("%s", msg.c_str());
         throw out_of_range(msg);
     }
-    auto& infos = foundNetns->second;
+    return foundNetns->second;
+}
+
+SonicDBInfo& SonicDBConfig::getDbInfo(const std::string &dbName, const std::string &netns)
+{
+    // std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
+
+    // SWSS_LOG_ENTER();
+
+    // if (!m_init)
+    //     initialize(DEFAULT_SONIC_DB_CONFIG_FILE);
+
+    // if (!netns.empty())
+    // {
+    //     if (!m_global_init)
+    //     {
+    //         SWSS_LOG_THROW("Initialize global DB config using API SonicDBConfig::initializeGlobalConfig");
+    //     }
+    // }
+    // auto foundNetns = m_db_info.find(netns);
+    // if (foundNetns == m_db_info.end())
+    // {
+    //     string msg = "Namespace " + netns + " is not a valid namespace name in config file";
+    //     SWSS_LOG_ERROR("%s", msg.c_str());
+    //     throw out_of_range(msg);
+    // }
+    // auto& infos = foundNetns->second;
+    auto infos = getDbEntry(netns);
     auto foundDb = infos.find(dbName);
     if (foundDb == infos.end())
     {
@@ -289,29 +316,31 @@ int SonicDBConfig::getDbId(const string &dbName, const string &netns)
 
 string SonicDBConfig::getDbName(int dbId, const string &netns)
 {
-    std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
+    // std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
 
-    if (!m_init)
-        initialize(DEFAULT_SONIC_DB_CONFIG_FILE);
+    // if (!m_init)
+    //     initialize(DEFAULT_SONIC_DB_CONFIG_FILE);
 
-    if (!netns.empty())
-    {
-        if (!m_global_init)
-        {
-            SWSS_LOG_THROW("Initialize global DB config using API SonicDBConfig::initializeGlobalConfig");
-        }
-    }
+    // if (!netns.empty())
+    // {
+    //     if (!m_global_init)
+    //     {
+    //         SWSS_LOG_THROW("Initialize global DB config using API SonicDBConfig::initializeGlobalConfig");
+    //     }
+    // }
 
-    auto foundNetns = m_db_info.find(netns);
-    if (foundNetns == m_db_info.end())
-    {
-        string msg = "Namespace " + netns + " is not a valid namespace name in config file";
-        SWSS_LOG_ERROR("%s", msg.c_str());
-        throw out_of_range(msg);
-    }
+    // auto foundNetns = m_db_info.find(netns);
+    // if (foundNetns == m_db_info.end())
+    // {
+    //     string msg = "Namespace " + netns + " is not a valid namespace name in config file";
+    //     SWSS_LOG_ERROR("%s", msg.c_str());
+    //     throw out_of_range(msg);
+    // }
     
+    // string db_name;
+    // auto& infos = foundNetns->second;
     string db_name;
-    auto& infos = foundNetns->second;
+    auto infos = getDbEntry(netns);
     for ( auto it = infos.begin(); it != infos.end(); ++it ) {
         auto& db_info = it->second;
         if (db_info.dbId == dbId) {
