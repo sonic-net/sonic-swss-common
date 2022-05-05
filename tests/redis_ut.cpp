@@ -2,6 +2,7 @@
 #include <memory>
 #include <thread>
 #include <algorithm>
+#include <deque>
 #include "gtest/gtest.h"
 #include "common/dbconnector.h"
 #include "common/producertable.h"
@@ -616,6 +617,81 @@ TEST(DBConnector, notifications)
 
     np.join();
     EXPECT_EQ(value, 2);
+}
+
+void notificationProducerSendsMultipleNotifications()
+{
+    DBConnector db("TEST_DB", 0, true);
+    NotificationProducer np(&db, "UT_REDIS_CHANNEL");
+
+    vector<FieldValueTuple> values;
+    values.push_back({FieldValueTuple("foo", "bar")});
+
+    cout << "Starting sending notification producer" << endl;
+    np.send("a", "b", values);
+
+    values.clear();
+    values.push_back({FieldValueTuple("foo1", "bar1")});
+    values.push_back({FieldValueTuple("foo2", "bar2")});
+    np.send("x", "y", values);
+}
+
+TEST(DBConnector, multipleNotifications)
+{
+    DBConnector db("TEST_DB", 0, true);
+    NotificationConsumer nc(&db, "UT_REDIS_CHANNEL");
+    Select s;
+    s.addSelectable(&nc);
+    Selectable *sel;
+    int value = 1;
+
+    clearDB();
+
+    notificationProducerSendsMultipleNotifications();
+    // Wait long enough so notifications are ready in the notification queue
+    // for consumer.
+    sleep(2);
+
+    int result = s.select(&sel, 2000);
+    if (result == Select::OBJECT)
+    {
+        cout << "Got notification from producer" << endl;
+
+        deque<KeyOpFieldsValuesTuple> entries;
+        nc.pops(entries);
+        EXPECT_EQ(entries.size(), 2);
+
+        for (const auto& entry : entries) {
+            const std::string &op = kfvOp(entry);
+            const std::string &data = kfvKey(entry);
+            vector<FieldValueTuple> fvs = kfvFieldsValues(entry);
+
+            if ((op == "a") && (data == "b"))
+            {
+                EXPECT_EQ(fvs.size(), 1);
+
+                auto v = fvs.at(0);
+                EXPECT_EQ(fvField(v), "foo");
+                EXPECT_EQ(fvValue(v), "bar");
+                ++value;
+            }
+            else if (op == "x" && data == "y")
+            {
+                EXPECT_EQ(fvs.size(), 2);
+
+                auto v = fvs.at(0);
+                EXPECT_EQ(fvField(v), "foo1");
+                EXPECT_EQ(fvValue(v), "bar1");
+
+                v = fvs.at(1);
+                EXPECT_EQ(fvField(v), "foo2");
+                EXPECT_EQ(fvValue(v), "bar2");
+                ++value;
+            }
+        }
+    }
+
+    EXPECT_EQ(value, 3);
 }
 
 void selectableEventThread(Selectable *ev, int *value)
