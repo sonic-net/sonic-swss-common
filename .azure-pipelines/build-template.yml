@@ -45,13 +45,15 @@ jobs:
   pool:
     ${{ if ne(parameters.pool, 'default') }}:
       name: ${{ parameters.pool }}
-    ${{ if eq(parameters.pool, 'default') }}:
+    ${{ else }}:
       vmImage: 'ubuntu-20.04'
 
   container:
     image: sonicdev-microsoft.azurecr.io:443/${{ parameters.sonic_slave }}:latest
 
   steps:
+  - checkout: self
+    clean: true
   - script: |
       sudo apt-get install -qq -y \
         libhiredis-dev \
@@ -63,8 +65,10 @@ jobs:
     displayName: "Install dependencies"
   - script: |
       set -ex
+      rm ../*.deb || true
       ./autogen.sh
-      fakeroot debian/rules DEB_CONFIGURE_EXTRA_FLAGS='--enable-code-coverage' CFLAGS="" CXXFLAGS="--coverage -fprofile-abs-path" LDFLAGS="--coverage -fprofile-abs-path" binary && cp ../*.deb .
+      fakeroot debian/rules DEB_CONFIGURE_EXTRA_FLAGS='--enable-code-coverage' CFLAGS="" CXXFLAGS="--coverage -fprofile-abs-path" LDFLAGS="--coverage -fprofile-abs-path" binary
+      mv ../*.deb .
     displayName: "Compile sonic swss common with coverage enabled"
   - ${{ if eq(parameters.run_unit_test, true) }}:
     - script: |

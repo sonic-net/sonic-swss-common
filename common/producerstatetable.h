@@ -36,6 +36,11 @@ public:
     %}
 #endif
 
+    // Batched version of set() and del().
+    virtual void set(const std::vector<KeyOpFieldsValuesTuple>& values);
+
+    virtual void del(const std::vector<std::string>& keys);
+
     void flush();
 
     int64_t count();
@@ -52,6 +57,8 @@ private:
     RedisPipeline *m_pipe;
     std::string m_shaSet;
     std::string m_shaDel;
+    std::string m_shaBatchedSet;
+    std::string m_shaBatchedDel;
     std::string m_shaClear;
     std::string m_shaApplyView;
     TableDump m_tempViewState;

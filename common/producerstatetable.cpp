@@ -48,6 +48,35 @@ ProducerStateTable::ProducerStateTable(RedisPipeline *pipeline, const string &ta
         "end\n";
     m_shaDel = m_pipe->loadRedisScript(luaDel);
 
+    string luaBatchedSet =
+        "local added = 0\n"
+        "local idx = 2\n"
+        "for i = 0, #KEYS - 4 do\n"
+        "    added = added + redis.call('SADD', KEYS[2], KEYS[4 + i])\n"
+        "    for j = 0, tonumber(ARGV[idx]) - 1 do\n"
+        "        local attr = ARGV[idx + j * 2 + 1]\n"
+        "        local val = ARGV[idx + j * 2 + 2]\n"
+        "        redis.call('HSET', KEYS[3] .. KEYS[4 + i], attr, val)\n"
+        "    end\n"
+        "    idx = idx + tonumber(ARGV[idx]) * 2 + 1\n"
+        "end\n"
+        "if added > 0 then \n"
+        "    redis.call('PUBLISH', KEYS[1], ARGV[1])\n"
+        "end\n";
+    m_shaBatchedSet = m_pipe->loadRedisScript(luaBatchedSet);
+
+    string luaBatchedDel =
+        "local added = 0\n"
+        "for i = 0, #KEYS - 5 do\n"
+        "    added = added + redis.call('SADD', KEYS[2], KEYS[5 + i])\n"
+        "    redis.call('SADD', KEYS[3], KEYS[5 + i])\n"
+        "    redis.call('DEL', KEYS[4] .. KEYS[5 + i])\n"
+        "end\n"
+        "if added > 0 then \n"
+        "    redis.call('PUBLISH', KEYS[1], ARGV[1])\n"
+        "end\n";
+    m_shaBatchedDel = m_pipe->loadRedisScript(luaBatchedDel);
+
     string luaClear =
         "redis.call('DEL', KEYS[1])\n"
         "local keys = redis.call('KEYS', KEYS[2] .. '*')\n"
@@ -141,6 +170,100 @@ void ProducerStateTable::del(const string &key, const string &op /*= DEL_COMMAND
     args.emplace_back(key);
     args.emplace_back("''");
     args.emplace_back("''");
+
+    // Transform data structure
+    vector<const char *> args1;
+    transform(args.begin(), args.end(), back_inserter(args1), [](const string &s) { return s.c_str(); } );
+
+    // Invoke redis command
+    RedisCommand command;
+    command.formatArgv((int)args1.size(), &args1[0], NULL);
+    m_pipe->push(command, REDIS_REPLY_NIL);
+    if (!m_buffered)
+    {
+        m_pipe->flush();
+    }
+}
+
+void ProducerStateTable::set(const std::vector<KeyOpFieldsValuesTuple>& values)
+{
+    if (m_tempViewActive)
+    {
+        // Write to temp view instead of DB
+        for (const auto &value : values)
+        {
+            const std::string &key = kfvKey(value);
+            for (const auto &iv : kfvFieldsValues(value))
+            {
+                m_tempViewState[key][fvField(iv)] = fvValue(iv);
+            }
+        }
+        return;
+    }
+
+    // Assembly redis command args into a string vector
+    vector<string> args;
+    args.emplace_back("EVALSHA");
+    args.emplace_back(m_shaBatchedSet);
+    args.emplace_back(to_string(values.size() + 3));
+    args.emplace_back(getChannelName(m_pipe->getDbId()));
+    args.emplace_back(getKeySetName());
+    args.emplace_back(getStateHashPrefix() + getTableName() + getTableNameSeparator());
+    for (const auto &value : values)
+    {
+        args.emplace_back(kfvKey(value));
+    }
+    args.emplace_back("G");
+    for (const auto &value : values)
+    {
+        args.emplace_back(to_string(kfvFieldsValues(value).size()));
+        for (const auto &iv : kfvFieldsValues(value))
+        {
+            args.emplace_back(fvField(iv));
+            args.emplace_back(fvValue(iv));
+        }
+    }
+
+    // Transform data structure
+    vector<const char *> args1;
+    transform(args.begin(), args.end(), back_inserter(args1), [](const string &s) { return s.c_str(); } );
+
+    // Invoke redis command
+    RedisCommand command;
+    command.formatArgv((int)args1.size(), &args1[0], NULL);
+    m_pipe->push(command, REDIS_REPLY_NIL);
+    if (!m_buffered)
+    {
+        m_pipe->flush();
+    }
+}
+
+void ProducerStateTable::del(const std::vector<std::string>& keys)
+{
+    if (m_tempViewActive)
+    {
+        // Write to temp view instead of DB
+        for (const auto &key : keys)
+        {
+            m_tempViewState.erase(key);
+        }
+        return;
+    }
+
+    // Assembly redis command args into a string vector
+    vector<string> args;
+    args.emplace_back("EVALSHA");
+    args.emplace_back(m_shaBatchedDel);
+    args.emplace_back(to_string(keys.size() + 4));
+    args.emplace_back(getChannelName(m_pipe->getDbId()));
+    args.emplace_back(getKeySetName());
+    args.emplace_back(getDelKeySetName());
+    args.emplace_back(getStateHashPrefix() + getTableName() + getTableNameSeparator());
+    for (const auto &key : keys)
+    {
+        args.emplace_back(key);
+    }
+    args.emplace_back("G");
 
     // Transform data structure
     vector<const char *> args1;
