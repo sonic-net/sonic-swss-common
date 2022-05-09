@@ -1,14 +1,5 @@
-#include <iostream>
-
-#include "common/dbconnector.h"
-#include "common/consumertable.h"
-#include "common/notificationconsumer.h"
 #include "common/select.h"
-#include "common/selectableevent.h"
 #include "common/selectabletimer.h"
-#include "common/subscriberstatetable.h"
-#include "common/netmsg.h"
-#include "common/netlink.h"
 #include "gtest/gtest.h"
 
 using namespace std;
