@@ -82,13 +82,13 @@ map<string, string> PubSub::get_message(double timeout)
     return get_message_internal(timeout).second;
 }
 
-pair<int, map<string, string> > PubSub::get_message_internal(double timeout)
+MessageResultPair PubSub::get_message_internal(double timeout)
 {
-    pair<int, map<string, string> > ret;
-    ret.first = Select::OBJECT;
+    MessageResultPair ret;
 
     if (!m_subscribe)
     {
+        ret.first = Select::ERROR;
         return ret;
     }
 

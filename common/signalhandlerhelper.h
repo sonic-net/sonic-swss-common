@@ -4,6 +4,8 @@
 
 namespace swss {
 
+typedef std::pair<struct sigaction*, struct sigaction*> SigActionPair;
+
 // Define signal ID enum for python
 enum Signals
 {
@@ -21,12 +23,14 @@ class SignalHandlerHelper
 {
 public:
     static void registerSignalHandler(int signalNumber);
+    static void restoreSignalHandler(int signalNumber);
     static void onSignal(int signalNumber);
     static bool checkSignal(int signalNumber);
     static void resetSignal(int signalNumber);
     
 private:
-    static std::map<int, bool> signalStatusMapping;
+    static std::map<int, bool> m_signalStatusMapping;
+    static std::map<int, SigActionPair> m_sigActionMapping;
 };
 
 }

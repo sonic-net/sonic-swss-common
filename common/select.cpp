@@ -98,9 +98,6 @@ int Select::poll_descriptors(Selectable **c, unsigned int timeout)
     do
     {
         ret = ::epoll_wait(m_epoll_fd, events.data(), sz_selectables, timeout);
-
-        // sleep here make python signal handler not be blocked.
-        sleep(0);
     }
     while(ret == -1 && errno == EINTR && !SignalHandlerHelper::checkSignal(Signals::SIGNAL_INT)); // Retry the select if the process was interrupted by a signal
 
