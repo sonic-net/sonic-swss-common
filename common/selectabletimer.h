@@ -24,7 +24,7 @@ public:
 
 private:
     std::mutex m_mutex;
-    bool m_alive;
+    bool m_running;
     int m_tfd;
     itimerspec m_interval;
     itimerspec m_zero;
