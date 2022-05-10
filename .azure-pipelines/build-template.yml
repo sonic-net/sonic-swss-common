@@ -10,6 +10,8 @@ parameters:
   type: string
   values:
   - sonicbld
+  - sonicbld-armhf
+  - sonicbld-arm64
   - sonic-common
   - default
   default: default
