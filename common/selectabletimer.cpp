@@ -21,6 +21,7 @@ SelectableTimer::SelectableTimer(const timespec& interval, int pri)
         SWSS_LOG_THROW("failed to create timerfd, errno: %s", strerror(errno));
     }
     setInterval(interval);
+    m_running = false;
 }
 
 SelectableTimer::~SelectableTimer()
@@ -36,22 +37,40 @@ SelectableTimer::~SelectableTimer()
 
 void SelectableTimer::start()
 {
-    // Set the timer interval and the timer is automatically started
-    int rc = timerfd_settime(m_tfd, 0, &m_interval, NULL);
-    if (rc == -1)
+    m_mutex.lock();
+    if (!m_running)
     {
-        SWSS_LOG_THROW("failed to set timerfd, errno: %s", strerror(errno));
+        // Set the timer interval and the timer is automatically started
+        int rc = timerfd_settime(m_tfd, 0, &m_interval, NULL);
+        if (rc == -1)
+        {
+            SWSS_LOG_THROW("failed to set timerfd, errno: %s", strerror(errno));
+        }
+        else
+        {
+            m_running = true;
+        }
     }
+    m_mutex.unlock();
 }
 
 void SelectableTimer::stop()
 {
-    // Set the timer interval and the timer is automatically started
-    int rc = timerfd_settime(m_tfd, 0, &m_zero, NULL);
-    if (rc == -1)
+    m_mutex.lock();
+    if (m_running)
     {
-        SWSS_LOG_THROW("failed to set timerfd to zero, errno: %s", strerror(errno));
+        // Set the timer interval and the timer is automatically started
+        int rc = timerfd_settime(m_tfd, 0, &m_zero, NULL);
+        if (rc == -1)
+        {
+            SWSS_LOG_THROW("failed to set timerfd to zero, errno: %s", strerror(errno));
+        }
+        else
+        {
+            m_running = false;
+        }
     }
+    m_mutex.unlock();
 }
 
 void SelectableTimer::reset()
