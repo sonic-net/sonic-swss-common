@@ -88,7 +88,7 @@ MessageResultPair PubSub::get_message_internal(double timeout)
 
     if (!m_subscribe)
     {
-        ret.first = Select::ERROR;
+        ret.first = Select::OBJECT;
         return ret;
     }
 
