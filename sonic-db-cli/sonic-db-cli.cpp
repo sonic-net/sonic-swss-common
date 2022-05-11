@@ -1,18 +1,19 @@
 #include <iostream>
+#include <getopt.h>
 #include "sonic-db-cli.h"
 
 using namespace swss;
 using namespace std;
 
-static string g_netns;
-static string g_dbOrOperation;
-const char* emptyStr = "";
-
-void printUsage(const po::options_description &allOptions)
+void printUsage()
 {
     cout << "usage: sonic-db-cli [-h] [-s] [-n NAMESPACE] db_or_op [cmd ...]" << endl;
-    cout << allOptions << endl;
-    
+    cout << "SONiC DB CLI:" << endl;
+    cout << "  --help                  Help message" << endl;
+    cout << "  --unixsocket            Override use of tcp_port and use unixsocket" << endl;
+    cout << "  --namespace arg (=None) Namespace string to use asic0/asic1.../asicn" << endl;
+    cout << "  db_or_op            Database name Or Unary operation(only PING/SAVE/FLUSHALL supported)" << endl;
+    cout << "  cmd                 Command to execute in database" << endl;
     cout << "**sudo** needed for commands accesing a different namespace [-n], or using unixsocket connection [-s]" << endl;
     cout << "" << endl;
     cout << "Example 1: sonic-db-cli -n asic0 CONFIG_DB keys \\*" << endl;
@@ -53,59 +54,44 @@ void printRedisReply(redisReply* reply)
 
 string buildRedisOperation(vector<string>& commands)
 {
-    int argc = (int)commands.size();
-    const char** argv = new const char*[argc];
-    size_t* argvc = new size_t[argc];
-    for (int i = 0; i < argc; i++)
+    vector<const char*> args;
+    for (auto& command : commands)
     {
-        argv[i] = strdup(commands[i].c_str());
-        argvc[i] = commands[i].size();
+        args.push_back(command.c_str());
     }
 
     RedisCommand command;
-    command.formatArgv(argc, argv, argvc);
-
-    for (int i = 0; i < argc; i++)
-    {
-        free(const_cast<char*>(argv[i]));
-    }
-    delete[] argv;
-    delete[] argvc;
+    command.formatArgv((int)args.size(), args.data(), NULL);
 
     return string(command.c_str());
 }
 
-int connectDbInterface(
-    DBInterface& dbintf,
+shared_ptr<DBConnector> connectDbInterface(
     const string& db_name,
     const string& netns,
     bool isTcpConn)
 {
     try
     {
+        int db_id =  SonicDBConfig::getDbId(db_name, netns);
         if (isTcpConn)
         {
-            auto db_hostname = SonicDBConfig::getDbHostname(db_name, netns);
-            auto db_port = SonicDBConfig::getDbPort(db_name, netns);
-            dbintf.set_redis_kwargs("", db_hostname, db_port);
+            auto host = SonicDBConfig::getDbHostname(db_name, netns);
+            auto port = SonicDBConfig::getDbPort(db_name, netns);
+            return make_shared<DBConnector>(db_id, host, port, 0);
         }
         else
         {
             auto db_socket = SonicDBConfig::getDbSock(db_name);
-            dbintf.set_redis_kwargs(db_socket, "", 0);
+            return make_shared<DBConnector>(db_id, db_socket, 0);
         }
-
-        int db_id =  SonicDBConfig::getDbId(db_name, netns);
-        dbintf.connect(db_id, db_name, true);
     }
     catch (const exception& e)
     {
         cerr << "Invalid database name input: " << db_name << endl;
         cerr << e.what() << endl;
-        return 1;
+        return nullptr;
     }
-
-    return 0;
 }
 
 int handleSingleOperation(
@@ -114,15 +100,13 @@ int handleSingleOperation(
     const string& operation,
     bool isTcpConn)
 {
-    DBInterface dbintf;
-    // Need connect DBInterface first then get redis client, because redis client is data member of DBInterface
-    if (connectDbInterface(dbintf, db_name, netns, isTcpConn) != 0)
+    auto client = connectDbInterface(db_name, netns, isTcpConn);
+    if (nullptr == client)
     {
         return 1;
     }
-    auto& client = dbintf.get_redis_client(db_name);
 
-    RedisReply reply(&client, operation);
+    RedisReply reply(client.get(), operation);
     auto replyContext = reply.getContext();
     printRedisReply(replyContext);
 
@@ -158,15 +142,13 @@ int handleAllInstances(
     return 0;
 }
 
-int handleOperation(
-    const po::options_description &allOptions,
-    const po::variables_map &variablesMap)
+int handleOperation(Options &options)
 {
-    if (variablesMap.count("db_or_op"))
+    if (!options.m_db_or_op.empty())
     {
-        auto dbOrOperation = variablesMap["db_or_op"].as<string>();
-        auto netns = variablesMap["--namespace"].as<string>();
-        bool isTcpConn = variablesMap.count("--unixsocket") == 0;
+        auto dbOrOperation = options.m_db_or_op;
+        auto netns = options.m_namespace;
+        bool isTcpConn = !options.m_unixsocket;
         if (netns != "None")
         {
             SonicDBConfig::initializeGlobalConfig(netns);
@@ -177,9 +159,9 @@ int handleOperation(
             isTcpConn = true;
         }
         
-        if (variablesMap.count("cmd"))
+        if (options.m_cmd.size() != 0)
         {
-            auto commands = variablesMap["cmd"].as< vector<string> >();
+            auto commands = options.m_cmd;
             return executeCommands(dbOrOperation, commands, netns, isTcpConn);
         }
         else if (netns.compare("PING") == 0 || netns.compare("SAVE") == 0 || netns.compare("FLUSHALL") == 0)
@@ -190,12 +172,12 @@ int handleOperation(
         }
         else
         {
-            printUsage(allOptions);
+            printUsage();
         }
     }
     else
     {
-        printUsage(allOptions);
+        printUsage();
     }
 
     return 0;
@@ -204,64 +186,100 @@ int handleOperation(
 void parseCliArguments(
     int argc,
     char** argv,
-    po::options_description &allOptions,
-    po::variables_map &variablesMap)
+    Options &options)
 {
-    allOptions.add_options()
-        ("--help,-h", "Help message")
-        ("--unixsocket,-s", "Override use of tcp_port and use unixsocket")
-        ("--namespace,-n", po::value<string>(&g_netns)->default_value("None"), "Namespace string to use asic0/asic1.../asicn")
-        ("db_or_op", po::value<string>(&g_dbOrOperation)->default_value(emptyStr), "Database name Or Unary operation(only PING/SAVE/FLUSHALL supported)")
-        ("cmd", po::value< vector<string> >(), "Command to execute in database")
-    ;
+    // Parse argument with getopt https://man7.org/linux/man-pages/man3/getopt.3.html
+    const char* short_options = "hsn";
+    static struct option long_options[] = {
+       {"help",        optional_argument, NULL,  'h' },
+       {"unixsocket",  optional_argument, NULL,  's' },
+       {"namespace",   optional_argument, NULL,  'n' },
+       // The last element of the array has to be filled with zeros.
+       {0,          0,       0,  0 }
+    };
+    
+    // prevent getopt_long print "invalid option" message.
+    opterr = 0;
 
-    po::positional_options_description positional_opts;
-    positional_opts.add("db_or_op", 1);
-    positional_opts.add("cmd", -1);
+    while(optind < argc)
+    {
+        int opt = getopt_long(argc, argv, short_options, long_options, NULL);
+        if (opt != -1)
+        {
+            switch (opt) {
+                case 'h':
+                    options.m_help = true;
+                    break;
 
-    po::store(po::command_line_parser(argc, argv)
-                 .options(allOptions)
-                 .positional(positional_opts)
-                 .run(),
-             variablesMap);
-    po::notify(variablesMap);
+                case 's':
+                    options.m_unixsocket = true;
+                    break;
+
+                case 'n':
+                    if (optind < argc)
+                    {
+                        options.m_namespace = argv[optind];
+                        optind++;
+                    }
+                    else
+                    {
+                        throw invalid_argument("namespace value is missing.");
+                    }
+                    break;
+
+                default:
+                   // argv contains unknown argument
+                   throw invalid_argument("Unknown argument:" + string(argv[optind]));
+            }
+        }
+        else
+        {
+            // db_or_op and cmd are non-option arguments
+            // db_or_op argument
+            options.m_db_or_op = argv[optind];
+            optind++;
+
+            // cmd arguments
+            while(optind < argc)
+            {
+                auto cmdstr = string(argv[optind]);
+                options.m_cmd.push_back(cmdstr);
+                optind++;
+            }
+        }
+    }
 }
 
-#ifdef TESTING
 int sonic_db_cli(int argc, char** argv)
-#else
-int main(int argc, char** argv)
-#endif
 {
-    po::options_description allOptions("SONiC DB CLI");
-    po::variables_map variablesMap;
-
+    Options options;
     try
     {
-        parseCliArguments(argc, argv, allOptions, variablesMap);
+        parseCliArguments(argc, argv, options);
     }
-    catch (po::error_with_option_name& e)
-    {
-        cerr << "Command Line Syntax Error: " << e.what() << endl;
-        printUsage(allOptions);
-        return -1;
-    }
-    catch (po::error& e)
+    catch (invalid_argument const& e)
     {
         cerr << "Command Line Error: " << e.what() << endl;
-        printUsage(allOptions);
+        printUsage();
+        return -1;
+    }
+    catch (logic_error const& e)
+    {
+        // getopt_long throw logic_error when found a unknown option without value.
+        cerr << "Unknown option without value: " << endl;
+        printUsage();
         return -1;
     }
 
-    if (variablesMap.count("--help"))
+    if (options.m_help)
     {
-        printUsage(allOptions);
+        printUsage();
         return 0;
     }
 
     try
     {
-        return handleOperation(allOptions, variablesMap);
+        return handleOperation(options);
     }
     catch (const exception& e)
     {

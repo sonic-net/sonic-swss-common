@@ -2,21 +2,27 @@
 
 #include <string>
 #include <vector>
-#include <boost/program_options.hpp>
+#include <memory>
 #include "common/dbconnector.h"
 #include "common/dbinterface.h"
 #include "common/redisreply.h"
 
-namespace po = boost::program_options;
+struct Options
+{
+    bool m_help = false;
+    bool m_unixsocket = false;
+    std::string m_namespace;
+    std::string m_db_or_op;
+    std::vector<std::string> m_cmd;
+};
 
-void printUsage(const po::options_description &all_options);
+void printUsage();
 
 void printRedisReply(swss::RedisReply& reply);
 
 std::string buildRedisOperation(std::vector<std::string>& commands);
 
-int connectDbInterface(
-    swss::DBInterface& dbintf,
+std::shared_ptr<swss::DBConnector> connectDbInterface(
     const std::string& db_name,
     const std::string& netns,
     bool isTcpConn);
@@ -38,16 +44,11 @@ int handleAllInstances(
     const std::string& operation,
     bool isTcpConn);
 
-int handleOperation(
-    const po::options_description &all_options,
-    const po::variables_map &variables_map);
+int handleOperation(Options &options);
 
 void parseCliArguments(
     int argc,
     char** argv,
-    po::options_description &all_options,
-    po::variables_map &variables_map);
+    Options &options);
 
-#ifdef TESTING
 int sonic_db_cli(int argc, char** argv);
-#endif
