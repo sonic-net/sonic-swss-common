@@ -1,3 +1,4 @@
+#include <future>
 #include <iostream>
 #include <getopt.h>
 #include "sonic-db-cli.h"
@@ -131,12 +132,7 @@ int handleAllInstances(
     auto db_names = SonicDBConfig::getDbList(netns);
     for (auto& db_name : db_names)
     {
-        int result = handleSingleOperation(netns, db_name, operation, isTcpConn);
-        if (result != 0)
-        {
-            // Stop when any operation failed
-            return result;
-        }
+        std::async(std::launch::async, handleSingleOperation, netns, db_name, operation, isTcpConn);
     }
 
     return 0;
