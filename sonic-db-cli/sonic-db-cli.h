@@ -20,8 +20,6 @@ void printUsage();
 
 void printRedisReply(swss::RedisReply& reply);
 
-std::string buildRedisOperation(std::vector<std::string>& commands);
-
 std::shared_ptr<swss::DBConnector> connectDbInterface(
     const std::string& db_name,
     const std::string& netns,

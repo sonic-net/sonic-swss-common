@@ -34,20 +34,6 @@ void printUsage()
     cout << "Example 7: sonic-db-cli FLUSHALL | sonic-db-cli -s FLUSHALL" << endl;
 }
 
-string buildRedisOperation(vector<string>& commands)
-{
-    vector<const char*> args;
-    for (auto& command : commands)
-    {
-        args.push_back(command.c_str());
-    }
-
-    RedisCommand command;
-    command.formatArgv((int)args.size(), args.data(), NULL);
-
-    return string(command.c_str());
-}
-
 string handleSingleOperation(
     const string& netns,
     const string& db_name,
@@ -168,8 +154,9 @@ int executeCommands(
         return 1;
     }
 
-    auto operation = buildRedisOperation(commands);
-    RedisReply reply(client.get(), operation);
+    RedisCommand command;
+    command.format(commands);
+    RedisReply reply(client.get(), command);
     /*
     sonic-db-cli output format mimic the non-tty mode output format from redis-cli
     based on our usage in SONiC, None and list type output from python API needs to be modified
