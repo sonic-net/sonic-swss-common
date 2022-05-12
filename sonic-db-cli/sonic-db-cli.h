@@ -33,7 +33,7 @@ int executeCommands(
     const std::string& netns,
     bool isTcpConn);
 
-int handleSingleOperation(
+std::string handleSingleOperation(
     const std::string& netns,
     const std::string& db_name,
     const std::string& operation,
@@ -44,11 +44,13 @@ int handleAllInstances(
     const std::string& operation,
     bool isTcpConn);
 
-int handleOperation(Options &options);
-
 void parseCliArguments(
     int argc,
     char** argv,
     Options &options);
 
-int sonic_db_cli(int argc, char** argv);
+int sonic_db_cli(
+    const std::string &config_file,
+    const std::string &global_config_file,
+    int argc,
+    char** argv);

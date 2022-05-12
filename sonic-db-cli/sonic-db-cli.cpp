@@ -1,6 +1,7 @@
 #include <future>
 #include <iostream>
 #include <getopt.h>
+#include <list>
 #include "sonic-db-cli.h"
 
 using namespace swss;
@@ -8,15 +9,22 @@ using namespace std;
 
 void printUsage()
 {
-    cout << "usage: sonic-db-cli [-h] [-s] [-n NAMESPACE] db_or_op [cmd ...]" << endl;
+    cout << "usage: sonic-db-cli [-h] [-s] [-n NAMESPACE] db_or_op [cmd [cmd ...]]" << endl;
+    cout << endl;
     cout << "SONiC DB CLI:" << endl;
-    cout << "  --help                  Help message" << endl;
-    cout << "  --unixsocket            Override use of tcp_port and use unixsocket" << endl;
-    cout << "  --namespace arg (=None) Namespace string to use asic0/asic1.../asicn" << endl;
-    cout << "  db_or_op            Database name Or Unary operation(only PING/SAVE/FLUSHALL supported)" << endl;
-    cout << "  cmd                 Command to execute in database" << endl;
+    cout << endl;
+    cout << "positional arguments:" << endl;
+    cout << "  db_or_op              Database name Or Unary operation(only PING/SAVE/FLUSHALL supported)" << endl;
+    cout << "  cmd                   Command to execute in database" << endl;
+    cout << endl;
+    cout << "optional arguments:" << endl;
+    cout << "  -h, --help            show this help message and exit" << endl;
+    cout << "  -s, --unixsocket      Override use of tcp_port and use unixsocket" << endl;
+    cout << "  -n NAMESPACE, --namespace NAMESPACE" << endl;
+    cout << "                        Namespace string to use asic0/asic1.../asicn" << endl;
+    cout << endl;
     cout << "**sudo** needed for commands accesing a different namespace [-n], or using unixsocket connection [-s]" << endl;
-    cout << "" << endl;
+    cout << endl;
     cout << "Example 1: sonic-db-cli -n asic0 CONFIG_DB keys \\*" << endl;
     cout << "Example 2: sonic-db-cli -n asic2 APPL_DB HGETALL VLAN_TABLE:Vlan10" << endl;
     cout << "Example 3: sonic-db-cli APPL_DB HGET VLAN_TABLE:Vlan10 mtu" << endl;
@@ -24,33 +32,6 @@ void printUsage()
     cout << "Example 5: sonic-db-cli PING | sonic-db-cli -s PING" << endl;
     cout << "Example 6: sonic-db-cli SAVE | sonic-db-cli -s SAVE" << endl;
     cout << "Example 7: sonic-db-cli FLUSHALL | sonic-db-cli -s FLUSHALL" << endl;
-}
-
-void printRedisReply(redisReply* reply)
-{
-    switch(reply->type)
-    {
-    case REDIS_REPLY_INTEGER:
-        cout << reply->integer;
-        break;
-    case REDIS_REPLY_STRING:
-    case REDIS_REPLY_ERROR:
-    case REDIS_REPLY_STATUS:
-    case REDIS_REPLY_NIL:
-        cout << string(reply->str, reply->len);
-        break;
-    case REDIS_REPLY_ARRAY: 
-        for (size_t i = 0; i < reply->elements; i++)
-        {
-            printRedisReply(reply->element[i]);
-        }
-        break;
-    default:
-        cerr << reply->type << endl;
-        throw runtime_error("Unexpected reply type");
-    }
-
-    cout << endl;
 }
 
 string buildRedisOperation(vector<string>& commands)
@@ -67,49 +48,93 @@ string buildRedisOperation(vector<string>& commands)
     return string(command.c_str());
 }
 
-shared_ptr<DBConnector> connectDbInterface(
-    const string& db_name,
-    const string& netns,
-    bool isTcpConn)
-{
-    try
-    {
-        int db_id =  SonicDBConfig::getDbId(db_name, netns);
-        if (isTcpConn)
-        {
-            auto host = SonicDBConfig::getDbHostname(db_name, netns);
-            auto port = SonicDBConfig::getDbPort(db_name, netns);
-            return make_shared<DBConnector>(db_id, host, port, 0);
-        }
-        else
-        {
-            auto db_socket = SonicDBConfig::getDbSock(db_name);
-            return make_shared<DBConnector>(db_id, db_socket, 0);
-        }
-    }
-    catch (const exception& e)
-    {
-        cerr << "Invalid database name input: " << db_name << endl;
-        cerr << e.what() << endl;
-        return nullptr;
-    }
-}
-
-int handleSingleOperation(
+string handleSingleOperation(
     const string& netns,
     const string& db_name,
     const string& operation,
     bool isTcpConn)
 {
-    auto client = connectDbInterface(db_name, netns, isTcpConn);
-    if (nullptr == client)
+    shared_ptr<DBConnector> client;
+    auto host = SonicDBConfig::getDbHostname(db_name, netns);
+    string message = "Could not connect to Redis at " + host + ":";
+    try
+    {
+        auto db_id =  SonicDBConfig::getDbId(db_name, netns);
+        if (!isTcpConn && db_name != "redis_chassis.server")
+        {
+            auto db_socket = SonicDBConfig::getDbSock(db_name);
+            message += db_name + ": Connection refused";
+            client = make_shared<DBConnector>(db_id, db_socket, 0);
+        }
+        else
+        {
+            auto port = SonicDBConfig::getDbPort(db_name, netns);
+            message += port + ": Connection refused";
+            client = make_shared<DBConnector>(db_id, host, port, 0);
+        }
+    }
+    catch (const exception& e)
+    {
+        return message;
+    }
+
+    if (operation == "PING"
+        || operation == "SAVE"
+        || operation == "FLUSHALL")
+    {
+        RedisReply reply(client.get(), operation);
+        auto response = reply.getContext();
+        if (nullptr != response)
+        {
+            return string();
+        }
+    }
+    else
+    {
+        throw std::invalid_argument("Operation " + operation +" is not supported");
+    }
+
+    return message;
+}
+
+int handleAllInstances(
+    const string& netns,
+    const string& operation,
+    bool isTcpConn)
+{
+    auto db_names = SonicDBConfig::getDbList(netns);
+    // Operate All Redis Instances in Parallel
+    // TODO: if one of the operations failed, it could fail quickly and not necessary to wait all other operations
+    list<future<string>> responses;
+    for (auto& db_name : db_names)
+    {
+        future<string> response = std::async(std::launch::async, handleSingleOperation, netns, db_name, operation, isTcpConn);
+        responses.push_back(std::move(response));
+    }
+
+    bool operation_failed = false;
+    for (auto& response : responses)
+    {
+        if (response.get() != "")
+        {
+            cout << response.get() << endl;
+            operation_failed = true;
+        }
+    }
+
+    if (operation_failed)
     {
         return 1;
     }
-
-    RedisReply reply(client.get(), operation);
-    auto replyContext = reply.getContext();
-    printRedisReply(replyContext);
+    
+    if (operation == "PING")
+    {
+        cout << "PONG" << endl;
+    }
+    else
+    {
+        cout << "OK" << endl;
+    }
 
     return 0;
 }
@@ -120,61 +145,37 @@ int executeCommands(
     const string& netns,
     bool isTcpConn)
 {
+    shared_ptr<DBConnector> client = nullptr;
+    try
+    {
+        int db_id =  SonicDBConfig::getDbId(db_name, netns);
+        if (isTcpConn)
+        {
+            auto host = SonicDBConfig::getDbHostname(db_name, netns);
+            auto port = SonicDBConfig::getDbPort(db_name, netns);
+            client = make_shared<DBConnector>(db_id, host, port, 0);
+        }
+        else
+        {
+            auto db_socket = SonicDBConfig::getDbSock(db_name);
+            client = make_shared<DBConnector>(db_id, db_socket, 0);
+        }
+    }
+    catch (const exception& e)
+    {
+        cerr << "Invalid database name input : '" << db_name << "'" << endl;
+        cerr << e.what() << endl;
+        return 1;
+    }
+
     auto operation = buildRedisOperation(commands);
-    return handleSingleOperation(db_name, operation, netns, isTcpConn);
-}
-
-int handleAllInstances(
-    const string& netns,
-    const string& operation,
-    bool isTcpConn)
-{
-    auto db_names = SonicDBConfig::getDbList(netns);
-    for (auto& db_name : db_names)
-    {
-        std::async(std::launch::async, handleSingleOperation, netns, db_name, operation, isTcpConn);
-    }
-
-    return 0;
-}
-
-int handleOperation(Options &options)
-{
-    if (!options.m_db_or_op.empty())
-    {
-        auto dbOrOperation = options.m_db_or_op;
-        auto netns = options.m_namespace;
-        bool isTcpConn = !options.m_unixsocket;
-        if (netns != "None")
-        {
-            SonicDBConfig::initializeGlobalConfig(netns);
-        }
-        else
-        {
-            // Use the tcp connectivity if namespace is local and unixsocket cmd_option is present.
-            isTcpConn = true;
-        }
-        
-        if (options.m_cmd.size() != 0)
-        {
-            auto commands = options.m_cmd;
-            return executeCommands(dbOrOperation, commands, netns, isTcpConn);
-        }
-        else if (netns.compare("PING") == 0 || netns.compare("SAVE") == 0 || netns.compare("FLUSHALL") == 0)
-        {
-            // redis-cli doesn't depend on database_config.json which could raise some exceptions
-            // sonic-db-cli catch all possible exceptions and handle it as a failure case which not return 'OK' or 'PONG'
-            return handleAllInstances(netns, dbOrOperation, isTcpConn);
-        }
-        else
-        {
-            printUsage();
-        }
-    }
-    else
-    {
-        printUsage();
-    }
+    RedisReply reply(client.get(), operation);
+    /*
+    sonic-db-cli output format mimic the non-tty mode output format from redis-cli
+    based on our usage in SONiC, None and list type output from python API needs to be modified
+    with these changes, it is enough for us to mimic redis-cli in SONiC so far since no application uses tty mode redis-cli output
+    */
+    cout << reply.toString() << endl;
 
     return 0;
 }
@@ -196,7 +197,6 @@ void parseCliArguments(
     
     // prevent getopt_long print "invalid option" message.
     opterr = 0;
-
     while(optind < argc)
     {
         int opt = getopt_long(argc, argv, short_options, long_options, NULL);
@@ -231,11 +231,9 @@ void parseCliArguments(
         else
         {
             // db_or_op and cmd are non-option arguments
-            // db_or_op argument
             options.m_db_or_op = argv[optind];
             optind++;
 
-            // cmd arguments
             while(optind < argc)
             {
                 auto cmdstr = string(argv[optind]);
@@ -246,7 +244,11 @@ void parseCliArguments(
     }
 }
 
-int sonic_db_cli(int argc, char** argv)
+int sonic_db_cli(
+    const string &config_file,
+    const string &global_config_file,
+    int argc,
+    char** argv)
 {
     Options options;
     try
@@ -273,19 +275,57 @@ int sonic_db_cli(int argc, char** argv)
         return 0;
     }
 
-    try
+    if (!options.m_db_or_op.empty())
     {
-        return handleOperation(options);
-    }
-    catch (const exception& e)
-    {
-        cerr << "An exception of type " << e.what() << " occurred. Arguments:" << endl;
-        for (int idx = 0; idx < argc; idx++)
+        auto dbOrOperation = options.m_db_or_op;
+        auto netns = options.m_namespace;
+        bool isTcpConn = !options.m_unixsocket;
+        // Load the database config for the namespace
+        if (netns != "None")
         {
-            cerr << argv[idx]  << " ";
+            SonicDBConfig::initializeGlobalConfig(global_config_file);
         }
-        cerr << endl;
-        return 1;
+        else
+        {
+            SonicDBConfig::initializeGlobalConfig(config_file);
+            // Use the tcp connectivity if namespace is local and unixsocket cmd_option is present.
+            isTcpConn = true;
+        }
+        
+        if (options.m_cmd.size() != 0)
+        {
+            auto commands = options.m_cmd;
+            return executeCommands(dbOrOperation, commands, netns, isTcpConn);
+        }
+        else if (dbOrOperation.compare("PING") == 0
+                || dbOrOperation.compare("SAVE") == 0
+                || dbOrOperation.compare("FLUSHALL") == 0)
+        {
+            // redis-cli doesn't depend on database_config.json which could raise some exceptions
+            // sonic-db-cli catch all possible exceptions and handle it as a failure case which not return 'OK' or 'PONG'
+            try
+            {
+                return handleAllInstances(netns, dbOrOperation, isTcpConn);
+            }
+            catch (const exception& e)
+            {
+                cerr << "An exception of type " << e.what() << " occurred. Arguments:" << endl;
+                for (int idx = 0; idx < argc; idx++)
+                {
+                    cerr << argv[idx]  << " ";
+                }
+                cerr << endl;
+                return 1;
+            }
+        }
+        else
+        {
+            printUsage();
+        }
+    }
+    else
+    {
+        printUsage();
     }
 
     return 0;

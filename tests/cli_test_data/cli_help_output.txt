@@ -1,11 +1,16 @@
-usage: sonic-db-cli [-h] [-s] [-n NAMESPACE] db_or_op [cmd ...]
+usage: sonic-db-cli [-h] [-s] [-n NAMESPACE] db_or_op [cmd [cmd ...]]
+
 SONiC DB CLI:
-  ----help                  Help message
-  ----unixsocket            Override use of tcp_port and use unixsocket
-  ----namespace arg (=None) Namespace string to use asic0/asic1.../asicn
-  --db_or_op arg            Database name Or Unary operation(only 
-                            PING/SAVE/FLUSHALL supported)
-  --cmd arg                 Command to execute in database
+
+positional arguments:
+  db_or_op              Database name Or Unary operation(only PING/SAVE/FLUSHALL supported)
+  cmd                   Command to execute in database
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -s, --unixsocket      Override use of tcp_port and use unixsocket
+  -n NAMESPACE, --namespace NAMESPACE
+                        Namespace string to use asic0/asic1.../asicn
 
 **sudo** needed for commands accesing a different namespace [-n], or using unixsocket connection [-s]
 

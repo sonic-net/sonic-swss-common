@@ -20,10 +20,6 @@ PKG_CHECK_MODULES([LIBNL], [libnl-3.0 libnl-genl-3.0 libnl-route-3.0 libnl-nf-3.
         CFLAGS="$CFLAGS $LIBNL_CFLAGS"
         LIBS="$LIBS $LIBNL_LIBS"
 
-dnl Check boost libs: https://www.gnu.org/software/autoconf-archive/The-Macros.html#The-Macros
-AX_BOOST_BASE([1.71], [], AC_MSG_ERROR([boost lib missing]))
-AX_BOOST_PROGRAM_OPTIONS
-
 LDFLAGS="-Wl,--no-undefined $LDFLAGS"
 AC_SUBST([LDFLAGS])
 

@@ -225,4 +225,39 @@ template<> RedisMessage RedisReply::getReply<RedisMessage>()
     return ret;
 }
 
+
+string RedisReply::toString()
+{
+    return toString(getContext());
+}
+
+string RedisReply::toString(redisReply *reply)
+{
+    switch(reply->type)
+    {
+    case REDIS_REPLY_INTEGER:
+        return std::to_string(reply->integer);
+
+    case REDIS_REPLY_STRING:
+    case REDIS_REPLY_ERROR:
+    case REDIS_REPLY_STATUS:
+    case REDIS_REPLY_NIL:
+        return string(reply->str, reply->len);
+
+    case REDIS_REPLY_ARRAY:
+    {
+        stringstream result;
+        for (size_t i = 0; i < reply->elements; i++)
+        {
+            result << toString(reply->element[i]) << endl;
+        }
+        return result.str();
+    }
+
+    default:
+        SWSS_LOG_ERROR("invalid type %d for message", getContext()->type);
+        return string();
+    }
+}
+
 }
