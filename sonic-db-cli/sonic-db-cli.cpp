@@ -297,9 +297,9 @@ int sonic_db_cli(
             auto commands = options.m_cmd;
             return executeCommands(dbOrOperation, commands, netns, isTcpConn);
         }
-        else if (dbOrOperation.compare("PING") == 0
-                || dbOrOperation.compare("SAVE") == 0
-                || dbOrOperation.compare("FLUSHALL") == 0)
+        else if (dbOrOperation == "PING"
+                || dbOrOperation == "SAVE"
+                || dbOrOperation == "FLUSHALL")
         {
             // redis-cli doesn't depend on database_config.json which could raise some exceptions
             // sonic-db-cli catch all possible exceptions and handle it as a failure case which not return 'OK' or 'PONG'
