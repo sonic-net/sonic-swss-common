@@ -22,7 +22,6 @@ std::string readFileContent(std::string file_name)
 std::string runCli(int argc, char** argv)
 {
     optind = 0;
-    std::cout << "set capture" << std::endl;
     testing::internal::CaptureStdout();
     EXPECT_EQ(0, sonic_db_cli(config_file, global_config_file, argc, argv));
     auto output = testing::internal::GetCapturedStdout();
@@ -35,10 +34,7 @@ TEST(sonic_db_cli, test_cli_help)
     args[0] = "sonic-db-cli";
     args[1] = "-h";
 
-    optind = 0;
-    testing::internal::CaptureStdout();
-    EXPECT_EQ(0, sonic_db_cli(config_file, global_config_file, 2, args));
-    auto output = testing::internal::GetCapturedStdout();
+    auto output = runCli(2, args);
     auto expected_output = readFileContent("./tests/cli_test_data/cli_help_output.txt");
     EXPECT_EQ(expected_output, output);
 }
@@ -49,10 +45,7 @@ TEST(sonic_db_cli, test_cli_ping_cmd)
     args[0] = "sonic-db-cli";
     args[1] = "PING";
 
-    optind = 0;
-    testing::internal::CaptureStdout();
-    EXPECT_EQ(0, sonic_db_cli(config_file, global_config_file, 2, args));
-    auto output = testing::internal::GetCapturedStdout();
+    auto output = runCli(2, args);
     EXPECT_EQ("PONG\n", output);
 }
 
@@ -62,10 +55,7 @@ TEST(sonic_db_cli, test_cli_save_cmd)
     args[0] = "sonic-db-cli";
     args[1] = "SAVE";
 
-    optind = 0;
-    testing::internal::CaptureStdout();
-    EXPECT_EQ(0, sonic_db_cli(config_file, global_config_file, 2, args));
-    auto output = testing::internal::GetCapturedStdout();
+    auto output = runCli(2, args);
     EXPECT_EQ("OK\n", output);
 }
 
@@ -75,10 +65,7 @@ TEST(sonic_db_cli, test_cli_flush_cmd)
     args[0] = "sonic-db-cli";
     args[1] = "FLUSHALL";
 
-    optind = 0;
-    testing::internal::CaptureStdout();
-    EXPECT_EQ(0, sonic_db_cli(config_file, global_config_file, 2, args));
-    auto output = testing::internal::GetCapturedStdout();
+    auto output = runCli(2, args);
     EXPECT_EQ("OK\n", output);
 }
 
@@ -105,7 +92,7 @@ TEST(sonic_db_cli, test_cli_run_cmd)
     args[2] = "keys";
     args[3] = "*";
     output = runCli(4, args);
-    EXPECT_EQ("testkey\n\n", output);
+    EXPECT_EQ("testkey\n", output);
 }
 
 TEST(sonic_db_cli, test_cli_multi_ns_cmd)
@@ -133,7 +120,7 @@ TEST(sonic_db_cli, test_cli_multi_ns_cmd)
     args[4] = "keys";
     args[5] = "*";
     output = runCli(6, args);
-    EXPECT_EQ("testkey\n\n", output);
+    EXPECT_EQ("testkey\n", output);
 }
 
 TEST(sonic_db_cli, test_cli_unix_socket_cmd)
@@ -176,7 +163,7 @@ TEST(sonic_db_cli, test_cli_eval_cmd)
     args[9] = "v1";
     args[10] = "v2";
     auto output = runCli(11, args);
-    EXPECT_EQ("k1\nk2\nv1\nv2\n\n", output);
+    EXPECT_EQ("k1\nk2\nv1\nv2\n", output);
 }
 
 void flushDB(char* ns, char* database)
@@ -201,7 +188,7 @@ void generateTestData(char* ns, char* database)
     args[3] = database;
     
     args[4] = "EVAL";
-    args[5] = "local i=0 while (i<10000) do i=i+1 redis.call('SET', i, i) end";
+    args[5] = "local i=0 while (i<100000) do i=i+1 redis.call('SET', i, i) end";
     args[6] = "0";
     optind = 0;
     sonic_db_cli(config_file, global_config_file, 7, args);

@@ -249,7 +249,12 @@ string RedisReply::toString(redisReply *reply)
         stringstream result;
         for (size_t i = 0; i < reply->elements; i++)
         {
-            result << toString(reply->element[i]) << endl;
+            result << toString(reply->element[i]);
+
+            if (i < reply->elements - 1)
+            {
+                result << endl;
+            }
         }
         return result.str();
     }
