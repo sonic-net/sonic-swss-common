@@ -101,9 +101,10 @@ int handleAllInstances(
     bool operation_failed = false;
     for (auto& response : responses)
     {
-        if (response.get() != "")
+        auto respstr = response.get();
+        if (respstr != "")
         {
-            cout << response.get() << endl;
+            cout << respstr << endl;
             operation_failed = true;
         }
     }
@@ -268,15 +269,24 @@ int sonic_db_cli(
         auto netns = options.m_namespace;
         bool isTcpConn = !options.m_unixsocket;
         // Load the database config for the namespace
-        if (netns != "None")
+        if (netns != "None" && !netns.empty())
         {
-            SonicDBConfig::initializeGlobalConfig(global_config_file);
+            // SonicDBConfig may initialized when run cli with UT
+            if (!SonicDBConfig::isGlobalInit())
+            {
+                SonicDBConfig::initializeGlobalConfig(global_config_file);
+            }
         }
         else
         {
-            SonicDBConfig::initializeGlobalConfig(config_file);
+            // SonicDBConfig may initialized when run cli with UT
+            if (!SonicDBConfig::isInit())
+            {
+                SonicDBConfig::initialize(config_file);
+            }
             // Use the tcp connectivity if namespace is local and unixsocket cmd_option is present.
             isTcpConn = true;
+            netns = "";
         }
         
         if (options.m_cmd.size() != 0)
