@@ -33,8 +33,11 @@ typedef map<string, string> map_str_str_t;
 #define XSUB_END_KEY "xsub_path"
 #define XPUB_END_KEY "xpub_path"
 #define REQ_REP_END_KEY "req_rep_path"
-#define REQ_PAIR_KEY "pair_path"
+#define PAIR_END_KEY "pair_path"
 #define STATS_UPD_SECS "stats_upd_secs"
+
+/* init config from file */
+void read_init_config(const char *fname);
 
 /* Provide a key for configurable entity */
 string get_config(const string key);

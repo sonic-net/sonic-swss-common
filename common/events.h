@@ -81,7 +81,7 @@ typedef std::map<std::string, std::string> event_params_t;
  *      timestamp. In the absence, the timestamp is added, transparently.
  *
  */
-void event_publish(event_handle_t handle, const std:string &event_tag,
+void event_publish(event_handle_t handle, const std::string &event_tag,
         const event_params_t *params=NULL);
 
 
@@ -145,9 +145,6 @@ typedef std::string event_str_t;
  *  missed_cnt:
  *      Count of missed events from this sender, before this event. Sum of
  *      missed count from all received events will give the total missed.
- */
-    int missed_cnt;
-
  *
  * return:
  *  0 - On success

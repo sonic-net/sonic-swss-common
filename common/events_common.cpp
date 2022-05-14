@@ -12,13 +12,13 @@ map_str_str_t cfg_data = {
     CFG_VAL(XPUB_END_KEY, "tcp://127.0.0.1:5571"),
     CFG_VAL(REQ_REP_END_KEY, "tcp://127.0.0.1:5572"),
     CFG_VAL(PAIR_END_KEY, "tcp://127.0.0.1:5573"),
-    CFG_VAL(STATS_UPD_SECS, 5)
+    CFG_VAL(STATS_UPD_SECS, "5")
 };
 
 void
-_read_init_config()
+read_init_config(const char *init_cfg_file)
 {
-    ifstream fs (INIT_CFG_PATH);
+    ifstream fs (init_cfg_file);
 
     if (!fs.is_open())
         return;
@@ -28,12 +28,12 @@ _read_init_config()
 
     const auto &data = nlohmann::json::parse(buffer.str());
 
-    const auto it = data.find(EVENTS_KEY);
+    const auto it = data.find(CFG_EVENTS_KEY);
     if (it == data.end())
         return;
 
     const auto edata = *it;
-    for (events_json_data_t::iterator itJ = cfg_data.begin();
+    for (map_str_str_t::iterator itJ = cfg_data.begin();
             itJ != cfg_data.end(); ++itJ) {
         auto itE = edata.find(itJ->first);
         if (itE != edata.end()) {
@@ -50,7 +50,7 @@ get_config(const string key)
     static bool init = false;
 
     if (!init) {
-        _read_init_config();
+        read_init_config(INIT_CFG_PATH);
         init = true;
     }   
     /* Intentionally crash for non-existing key, as this
@@ -74,7 +74,7 @@ get_timestamp()
 
     sfrac << mfrac;
 
-    ss << put_time(ptm, "%b %e %H:%M:%S.") << sfrac.str().substr(0, 6) << "Z";
+    ss << put_time(ptm, "%FT%H:%M:%S.") << sfrac.str().substr(0, 6) << "Z";
     return ss.str();
 }
 
