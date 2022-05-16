@@ -145,6 +145,8 @@ protected:
                 value = typed_data[key]
                 if type(value) is list:
                     raw_data[key+'@'] = ','.join(value)
+                elif type(value) is bool:
+                    raw_data[key] = 'true' if value else 'false'
                 else:
                     raw_data[key] = str(value)
             return raw_data
