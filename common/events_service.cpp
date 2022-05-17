@@ -42,17 +42,6 @@ out:
 int
 event_service:echo_send(const string s)
 {
-    zmq_msg_t msg_req, msg_data;
-    int rc = zmq_msg_init_size(&snd_msg, s.size()+1);
-    RET_ON_ERR(rc == 0, "Failed to init zmq msg for %d bytes", s.size()+1);
-    memcpy((void *)zmq_msg_data(&snd_msg), s.str(), s.size()+1);
-    rc = zmq_msg_send(&snd_msg, m_socket, 0);
-    RET_ON_ERR (rc != -1, "Failed to send to %s", get_config(REQ_REP_END_KEY));
-out:
-    if (rc != 0) {
-        close();
-    }
-    return rc;
 }
 
 
@@ -101,18 +90,73 @@ event_service::cache_read(vector<zmq_msg_t> &lst)
 
 
 int
-event_service::server_read(event_req_type_t &req_code, event_service_data_t &data)
+event_service::channel_read(int &code, vector<string> &data)
 {
-    // TODO
-    reurn 0;
+    int more = 0, rc;
+    size_t more_size = sizeof (more);
+
+    {
+        zmq_msg_t rcv_code;
+
+        zmq_msg_init(&rcv_code);
+        rc = zmq_msg_recv(&rcv_code, m_req_socket, 0);
+       
+        RET_ON_ERR(rc != -1, "Failed to receive code");
+
+        msg_to_int(rcv_code, code);
+        zmq_msg_close(&rcv_code);
+    }
+
+    rc =  zmq_getsockopt (m_socket, ZMQ_RCVMORE, &more, &more_size);
+    RET_ON_ERR(rc == 0, "Failed to get sockopt for  read channel");
+
+
+    if (more) {
+        zmq_msg_t rcv_data;
+
+        zmq_msg_init(&rcv_data);
+        rc = zmq_msg_recv(&rcv_data, m_req_socket, 0); 
+        RET_ON_ERR(rc != -1, "Failed to receive data");
+
+        rc =  zmq_getsockopt (m_socket, ZMQ_RCVMORE, &more, &more_size);
+        RET_ON_ERR(rc == 0, "Failed to get sockopt for  read channel");
+        RET_ON_ERR(!more, "Expecting more than 2 parts");
+
+        msg_to_vec(rcv_data, data);
+        zmq_msg_close(&rcv_data);
+    }
+out:
+    reurn rc;
 }
 
 
 int
-event_service::server_write(int resp_code, event_service_data_t &data)
+event_service::channel_write(int code, vector<string> &data)
 {
-    // TODO
-    reurn 0;
+    zmq_msg_t msg_req, msg_data;
+    int flag = 0;
+
+    int rc = int_to_msg(code,msg_req);
+    RET_ON_ERR(rc == 0, "Failed int (%d) to msg", code);
+
+    if (!data.empty()) {
+        rc = vec_to_msg(code, msg_data);
+        RET_ON_ERR(rc == 0, "Failed vec (%d) to msg", data.size());
+        flag = ZMQ_SNDMORE;
+    }
+
+    rc = zmq_msg_send (&msg_req, m_socket, flag);
+    RET_ON_ERR(rc == 0, "Failed to send code");
+
+    if (flag != 0) {
+        rc = zmq_msg_send (&msg_data, m_socket, 0);
+        RET_ON_ERR(rc == 0, "Failed to send data");
+    }
+
+out:
+    zmq_msg_close(&msg_req);
+    zmq_msg_close(&msg_data);
+    return rc;
 }
 
 int

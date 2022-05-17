@@ -36,7 +36,7 @@ typedef enum {
  *  An internal service is provided for cache handling & miscellaneous.
  *
  *  Clients initialize for init_client and uses the provided services
- *  server code init for server and use server_read & server_write
+ *  server code init for server and use read & write APIs
  */
 class event_service {
     public:
@@ -154,25 +154,27 @@ class event_service {
         int echo_receive(string &s);
 
         /*
-         * Server instance reading request from client
+         * The underlying read for req/resp from client/server
          *
          * Input: None
          *
          * Output:
-         *  req_code - incoming req code
+         *  code -  It is event_req_type_t for request or return code
+         *          for response
          *  data - Data read, if any
          *
          * return:
          *  0   - On success
          *  -1  - On failure
          */
-        int channel_read(event_req_type_t &req_code, vector<string> &data);
+        int channel_read(int &code, vector<string> &data);
 
         /*
-         * Server instance writing respondse to client
+         * The under lying write for req/resp from client/server
          *
          * Input:
-         *  resp_code - Return code for the request
+         *  code -  It is event_req_type_t for request or return code
+         *          for response
          *  data - If any data to be sent along.
          *
          * Output: None
@@ -181,7 +183,7 @@ class event_service {
          *  0   - On success
          *  -1  - On failure
          */
-        int channel_write(int resp_code, vector<string> &data);
+        int channel_write(int code, vector<string> &data);
 
 
         /*

@@ -57,3 +57,12 @@ void map_to_zmsg(const map_str_str_t & data, zmq_msg_t &msg);
 
 void zmsg_to_map(zmq_msg_t &msg, map_str_str_t & data);
 
+#define u32_to_s(u32) std::to_string(u32)
+
+#define s_to_u32(s, u32) { stringstream _ss(s); s >> u32;}
+
+int int_to_msg(uint32_t u, zmq_msg_t &msg);
+void msg_to_int(zmq_msg_t &msg, uint32_t &u);
+
+int vec_to_msg(vector<string> &data, zmq_msg_t &msg);
+void msg_to_vec(zmq_msg_t &msg, vector<string> &data);
