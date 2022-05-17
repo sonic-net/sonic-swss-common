@@ -4,7 +4,7 @@
 
 namespace swss {
 
-typedef std::pair<struct sigaction*, struct sigaction*> SigActionPair;
+typedef std::pair<struct sigaction, struct sigaction> SigActionPair;
 
 // Define signal ID enum for python
 enum Signals

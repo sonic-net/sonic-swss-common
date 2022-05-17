@@ -18,8 +18,11 @@ void SignalHandlerHelper::registerSignalHandler(int signalNumber)
     }
 
     m_signalStatusMapping[signalNumber] = false;
-    auto *old_action = new struct sigaction();
-    auto *new_action = new struct sigaction();
+
+    SigActionPair sig_action_pair;
+    auto *new_action = &sig_action_pair.first;
+    auto *old_action = &sig_action_pair.second;
+
     new_action->sa_handler = SignalHandlerHelper::onSignal;
     sigemptyset(&new_action->sa_mask);
     new_action->sa_flags = 0;
@@ -27,7 +30,6 @@ void SignalHandlerHelper::registerSignalHandler(int signalNumber)
     // always replace old action even old action is ignore signal
     sigaction(signalNumber, new_action, old_action);
 
-    SigActionPair sig_action_pair(new_action, old_action);
     m_sigActionMapping[signalNumber] = sig_action_pair;
 }
 
@@ -41,13 +43,9 @@ void SignalHandlerHelper::restoreSignalHandler(int signalNumber)
         return;
     }
 
-    auto *new_action = result->second.first;
-    auto *old_action = result->second.second;
+    auto *old_action = &result->second.second;
 
     sigaction(signalNumber, old_action, NULL);
-
-    delete new_action;
-    delete old_action;
 }
 
 void SignalHandlerHelper::onSignal(int signalNumber)

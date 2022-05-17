@@ -88,7 +88,7 @@ MessageResultPair PubSub::get_message_internal(double timeout)
 
     if (!m_subscribe)
     {
-        ret.first = Select::OBJECT;
+        ret.first = Select::ERROR;
         return ret;
     }
 
@@ -131,16 +131,17 @@ MessageResultPair PubSub::get_message_internal(double timeout)
 std::map<std::string, std::string> PubSub::listen_message()
 {
     const double GET_MESSAGE_INTERVAL = 600.0; // in seconds
+    MessageResultPair ret;
     for (;;)
     {
-        auto ret = get_message_internal(GET_MESSAGE_INTERVAL);
+        ret = get_message_internal(GET_MESSAGE_INTERVAL);
         if (!ret.second.empty() || ret.first == Select::SIGNALINT)
         {
-            return ret.second;
+            break;
         }
     }
 
-    return map<string, string>();
+    return ret.second;
 }
 
 shared_ptr<RedisReply> PubSub::popEventBuffer()
