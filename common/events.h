@@ -28,12 +28,21 @@ typedef events_base* event_handle_t;
  *      The YANG module name for the event source. All events published with the handle
  *      returned by this call is tagged with this source, transparently. The receiver
  *      could subscribe with this source as filter.
+ *
+ *  block_millisecs -
+ *      Block either until publisher connects successfully or timeout
+ *      whichever earlier.
+ *      0   - No blocling.
+ *      -1  - Block until connected.
+ *      N   - Count in milli seconds to wait.
+ *      NOTE: The connection is to eventd service, which could be down.
  * Return 
  *  Non NULL handle
  *  NULL on failure
  */
 
-event_handle_t events_init_publisher(std::string &event_source);
+event_handle_t events_init_publisher(std::string event_source,
+        int block_millisecs);
 
 /*
  * De-init/free the publisher
@@ -51,6 +60,11 @@ void events_deinit_publisher(event_handle_t &handle);
  * List of event params
  */
 typedef std::map<std::string, std::string> event_params_t;
+
+/*
+ * timestamp param name
+ */
+const string event_ts("timestamp");
 
 /*
  * Publish an event
@@ -79,9 +93,11 @@ typedef std::map<std::string, std::string> event_params_t;
  *  params -
  *      Params associated with event; This may or may not contain
  *      timestamp. In the absence, the timestamp is added, transparently.
+ *      The timestamp should be per rfc3339
+ *      e.g. "2022-08-17T02:39:21.286611Z"
  *
  */
-void event_publish(event_handle_t handle, const std::string &event_tag,
+void event_publish(event_handle_t handle, const std::string event_tag,
         const event_params_t *params=NULL);
 
 

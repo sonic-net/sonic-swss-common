@@ -15,6 +15,11 @@
 using namespace std;
 using namespace chrono;
 
+#define RET_ON_ERR(res, ...) {\
+    if (!(res)) \
+        SWSS_LOG_ERROR(__VA_ARGS__); }
+        goto out;
+
 #define ERR_CHECK(res, ...) {\
     if (!(res)) \
         SWSS_LOG_ERROR(__VA_ARGS__); }
@@ -43,21 +48,6 @@ void read_init_config(const char *fname);
 string get_config(const string key);
 
 const string get_timestamp();
-
-/*
- * events are published as two part zmq message.
- * First part only has the event source, so receivers could
- * filter by source.
- *
- * Second part contains event as defined below.
- *
- * The callers would only see, event_str_t
- */
-typedef struct {
-    event_str_t event;
-    uint32_t runtime_id;
-    uint32_t sequence;
-} internal_event_t;
 
 const string serialize(const map_str_str_t & data);
 

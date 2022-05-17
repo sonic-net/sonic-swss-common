@@ -1,0 +1,43 @@
+1) Using ~/source/sonic-buildimage/c_build.sh 
+2) It uses _upd_cmn.sh to update files
+3) On failure, go to  ~/source/sonic-buildimage/target/debs/bullseye
+4) open libswsscommon_1.0.0_amd64.deb.log
+
+Get failing command. Run from inside src/sonic-swss-common/common. Interestingly c compilation alone works fine outside slave too. 
+NOTE: From within slave you can't copy files from another repo as root of slave is at ~/src/sonic-buildimage
+
+/bin/bash ../libtool  --tag=CXX   --mode=compile g++ -DHAVE_CONFIG_H -I. -I.. -I .. -g -DNDEBUG  -ansi -fPIC -std=c++11 -Wall -Wcast-align -Wcast-qual -Wconversion -Wdisabled-optimization -Werror -Wextra -Wfloat-equal -Wformat=2 -Wformat-nonliteral -Wformat-security -Wformat-y2k -Wimport -Winit-self -Winvalid-pch -Wlong-long -Wmissing-field-initializers -Wmissing-format-attribute -Wmissing-include-dirs -Wmissing-noreturn -Wno-aggregate-return -Wno-padded -Wno-switch-enum -Wno-unused-parameter -Wpacked -Wpointer-arith -Wredundant-decls -Wshadow -Wstack-protector -Wstrict-aliasing=3 -Wswitch -Wswitch-default -Wunreachable-code -Wunused -Wvariadic-macros -Wno-write-strings -Wno-missing-format-attribute -Wno-long-long   -Wdate-time -D_FORTIFY_SOURCE=2 -g -DNDEBUG  -ansi -fPIC -std=c++11 -Wall -Wcast-align -Wcast-qual -Wconversion -Wdisabled-optimization -Werror -Wextra -Wfloat-equal -Wformat=2 -Wformat-nonliteral -Wformat-security -Wformat-y2k -Wimport -Winit-self -Winvalid-pch -Wlong-long -Wmissing-field-initializers -Wmissing-format-attribute -Wmissing-include-dirs -Wmissing-noreturn -Wno-aggregate-return -Wno-padded -Wno-switch-enum -Wno-unused-parameter -Wpacked -Wpointer-arith -Wredundant-decls -Wshadow -Wstack-protector -Wstrict-aliasing=3 -Wswitch -Wswitch-default -Wunreachable-code -Wunused -Wvariadic-macros -Wno-write-strings -Wno-missing-format-attribute -Wno-long-long -I/usr/include/libnl3  -g -O2 -ffile-prefix-map=/sonic/src/sonic-swss-common=. -fstack-protector-strong -Wformat -Werror=format-security -c -o libswsscommon_la-events_common.lo `test -f 'events_common.cpp' || echo './'`events_common.cpp:wq
+
+
+
+
+
+
+localadmin@c7cbc0ba3b64:/sonic$ cat c_build.sh 
+#! /bin/bash
+
+set -x
+
+./_upd_cmn.sh
+
+rm -f target/debs/bullseye/libswsscommon*
+rm -f target/sonic-broadcom.bin target/sonic-aboot-broadcom.swi
+# KEEP_SLAVE_ON=yes SONIC_BUILD_JOBS=7 PASSWORD=password make target/debs/bullseye/libswsscommon_1.0.0_amd64.deb
+KEEP_SLAVE_ON=yes make target/debs/bullseye/libswsscommon_1.0.0_amd64.deb
+# make target/debs/bullseye/libswsscommon_1.0.0_amd64.deb
+#SONIC_BUILD_JOBS=7 PASSWORD=password make target/sonic-broadcom.bin
+# SONIC_BUILD_JOBS=7 PASSWORD=password make target/sonic-aboot-broadcom.swi
+
+
+localadmin@c7cbc0ba3b64:/sonic$ cat _upd_cmn.sh 
+#! /bin/bash
+
+SRCD="/home/localadmin/source/fork/syslog_telemetry/remanava/sonic-swss-common/common"
+DSTD="./src/sonic-swss-common/common"
+
+for i in Makefile.am events.h events_common.cpp events_common.h
+do
+    echo "copying $i"
+    cp ${SRCD}/$i ${DSTD}/$i
+done
+localadmin@c7cbc0ba3b64:/sonic$ 
