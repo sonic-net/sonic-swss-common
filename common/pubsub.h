@@ -32,7 +32,7 @@ public:
 private:
     /* Pop keyspace event from event buffer. Caller should free resources. */
     std::shared_ptr<RedisReply> popEventBuffer();
-    MessageResultPair get_message_internal( double timeout = 0.0);
+    MessageResultPair get_message_internal(double timeout = 0.0);
 
     DBConnector *m_parentConnector;
     Select m_select;
