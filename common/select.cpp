@@ -102,6 +102,7 @@ int Select::poll_descriptors(Selectable **c, unsigned int timeout)
     if (ret < 0)
         return Select::ERROR;
 
+    std::set<Selectable *, Select::cmp> temp_ready;
     for (int i = 0; i < ret; ++i)
     {
         int fd = events[i].data.fd;
@@ -115,14 +116,12 @@ int Select::poll_descriptors(Selectable **c, unsigned int timeout)
             SWSS_LOG_ERROR("readData error: %s", ex.what());
             return Select::ERROR;
         }
-        m_ready.insert(sel);
+        temp_ready.insert(sel);
     }
 
-    while (!m_ready.empty())
+    bool dataReady = false;
+    foreach (auto &sel : temp_ready)
     {
-        auto sel = *m_ready.begin();
-
-        m_ready.erase(sel);
         // we must update clock only when the selector out of the m_ready
         // otherwise we break invariant of the m_ready
         sel->updateLastUsedTime();
@@ -133,19 +132,19 @@ int Select::poll_descriptors(Selectable **c, unsigned int timeout)
         }
 
         *c = sel;
+        c++；
 
         if (sel->hasCachedData())
         {
-            // reinsert Selectable back to the m_ready set, when there're more messages in the cache
+            // insert Selectable to the m_ready set, when there're more messages in the cache
             m_ready.insert(sel);
         }
 
         sel->updateAfterRead();
-
-        return Select::OBJECT;
+        dataReady = true;
     }
 
-    return Select::TIMEOUT;
+    return dataReady ? Select::OBJECT :Select::TIMEOUT;
 }
 
 int Select::select(Selectable **c, int timeout)
