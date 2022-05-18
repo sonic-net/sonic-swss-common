@@ -120,7 +120,7 @@ int Select::poll_descriptors(Selectable **c, unsigned int timeout)
     }
 
     bool dataReady = false;
-    foreach (auto &sel : temp_ready)
+    foreach (auto sel : temp_ready)
     {
         // we must update clock only when the selector out of the m_ready
         // otherwise we break invariant of the m_ready
@@ -131,8 +131,12 @@ int Select::poll_descriptors(Selectable **c, unsigned int timeout)
             continue;
         }
 
-        *c = sel;
-        c++；
+        // SWIG generated code will only allocate 1 Selectable pointer on stack and pass to select() method as 1st parameter
+        // So here can only assign first Selectable pointer to c
+        if (!dataReady)
+        {
+            *c = sel;
+        }
 
         if (sel->hasCachedData())
         {
