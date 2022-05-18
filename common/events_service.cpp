@@ -42,25 +42,27 @@ out:
 int
 event_service:echo_send(const string s)
 {
+    vector<string> l = { s };
+
+    return channel_write(EVENT_ECHO, l);
+
 }
 
 
 int
-event_service::echo_receive(string &outs, bool block)
+event_service::echo_receive(string &outs)
 {
-    zmq_msg_t rcv_msg;
-    
-    zmq_msg_init(&rcv_msg);
+    vector<string> l;
+    int code;
 
-    int rc = zmq_msg_recv(&rcv_msg, m_socket, ZMQ_DONTWAIT);
-    int err = zmq_errno();
-    RET_ON_ERR (rc != -1,
-        "Failed to receive message from echo service err=%d", err);
+    int rc = channel_read(code, l);
+    RET_ON_ERR(rc == 0, "failing to read echo");
 
-    outs = string((const char *)zmq_msg_data(&rcv_msg));
+    RET_ON_ERR (code == 0, "echo receive resp %d not 0", code);
+    RET_ON_ERR (l.size() == 1, "echo received resp size %d is not 1", l.size());
+
+    outs = l[0];
 out:
-    zmq_msg_close(&rcv_msg);
-    close();
     return rc;
 }
 
@@ -68,24 +70,26 @@ out:
 int
 event_service::cache_start()
 {
-    // TODO
-    reurn 0;
+    int rc = send_recv(EVENT_CACHE_START);
+    if (rc == 0) {
+        /* To shadow subscribe connect required for cache start */
+        send_recv(EVENT_ECHO);
+    }
+    return rc;
 }
 
 
 int
 event_service::cache_stop()
 {
-    // TODO
-    reurn 0;
+    return send_recv(EVENT_CACHE_STOP);
 }
 
 
 int
-event_service::cache_read(vector<zmq_msg_t> &lst)
+event_service::cache_read(vector<string> &lst)
 {
-    // TODO
-    reurn 0;
+     return send_recv(EVENT_CACHE_READ, lst);
 }
 
 
@@ -98,12 +102,10 @@ event_service::channel_read(int &code, vector<string> &data)
     {
         zmq_msg_t rcv_code;
 
-        zmq_msg_init(&rcv_code);
         rc = zmq_msg_recv(&rcv_code, m_req_socket, 0);
-       
         RET_ON_ERR(rc != -1, "Failed to receive code");
 
-        msg_to_int(rcv_code, code);
+        zmsg_to_map(rcv_code, code);
         zmq_msg_close(&rcv_code);
     }
 
@@ -114,7 +116,6 @@ event_service::channel_read(int &code, vector<string> &data)
     if (more) {
         zmq_msg_t rcv_data;
 
-        zmq_msg_init(&rcv_data);
         rc = zmq_msg_recv(&rcv_data, m_req_socket, 0); 
         RET_ON_ERR(rc != -1, "Failed to receive data");
 
@@ -122,7 +123,7 @@ event_service::channel_read(int &code, vector<string> &data)
         RET_ON_ERR(rc == 0, "Failed to get sockopt for  read channel");
         RET_ON_ERR(!more, "Expecting more than 2 parts");
 
-        msg_to_vec(rcv_data, data);
+        zmsg_to_map(rcv_data, data);
         zmq_msg_close(&rcv_data);
     }
 out:
@@ -131,16 +132,16 @@ out:
 
 
 int
-event_service::channel_write(int code, vector<string> &data)
+event_service::channel_write(int code, const vector<string> &data)
 {
     zmq_msg_t msg_req, msg_data;
     int flag = 0;
 
-    int rc = int_to_msg(code,msg_req);
+    int rc = map_to_zmsg(code,msg_req);
     RET_ON_ERR(rc == 0, "Failed int (%d) to msg", code);
 
     if (!data.empty()) {
-        rc = vec_to_msg(code, msg_data);
+        rc = map_to_zmsg(code, msg_data);
         RET_ON_ERR(rc == 0, "Failed vec (%d) to msg", data.size());
         flag = ZMQ_SNDMORE;
     }
@@ -159,11 +160,35 @@ out:
     return rc;
 }
 
+
+int
+event_service::send_recv(int code, vector<string> *p = NULL)
+{
+    vector<string> l;
+    int resp;
+
+    if(p == NULL) {
+        p = &l;
+    }
+
+    int rc = channel_write(code, *p);
+    RET_ON_ERR(rc == 0, "failing  to send code=%d", code);
+
+    rc = channel_read(resp, *p);
+    RET_ON_ERR(rc == 0, "failing to read resp for code=%d", code);
+
+    rc = resp;
+    RET_ON_ERR (rc == 0, "echo receive resp %d not 0 for code=%d", resp, code);
+
+out:
+    return rc;
+}
+
+
 int
 event_service::close_service()
 {
     if (m_socket = NULL) { zmq_close(m_socket); m_socket = NULL; }
     return 0;
 }
-
 

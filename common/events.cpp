@@ -91,7 +91,8 @@ EventPublisher::event_publish(const string tag, const event_params_t *params)
     }
     event_data[EVENT_RUNTIME_ID] = m_runtime_id;
 
-    map_to_zmsg(event_data, msg);
+    RET_ON_ERR(map_to_zmsg(event_data, msg) == 0,
+            "Failed to buildmsg data size=%d", event_data.size());
 
     // Send the message
     // First part -- The event-source/pattern

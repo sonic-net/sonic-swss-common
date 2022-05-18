@@ -31,25 +31,14 @@ using namespace std;
 #define EVENT_RUNTIME_ID  "runtime_id"
 #define EVENT_SEQUENCE "sequence"
 
-map<string, string> _internal_event_t = 
-{
-    { EVENT_STR_DATA, "" },
-    { EVENT_RUNTIME_ID, "" },
-    { EVENT_SEQUENCE
+typedef map<string, string> internal_event_t;
+
+tyepdef string runtime_id_t;
+
 internal_event_t internal_event_ref = {
     { EVENT_STR_DATA, "" },
     { EVENT_RUNTIME_ID, "" },
     { EVENT_SEQUENCE, "" } };
-
-typedef struct _internal_event_t {
-
-    _internal_event_t(event_str_t e, uuid_t r, uint32_t s):
-        event(e), runtime_id(r), sequence(s) {};
-
-    event_str_t event;
-    uuid_t runtime_id;
-    uint32_t sequence;
-} internal_event_t;
 
 /* Base class for publisher & subscriber */
 class events_base
@@ -83,7 +72,7 @@ class EventPublisher : public events_base {
         zmq_msg_t m_zmsg_source;
         string m_event_source;
 
-        uuid_t  m_runtime_id;
+        runtime_id_t m_runtime_id;
         uint32_t m_sequence;
 
         bool m_init;

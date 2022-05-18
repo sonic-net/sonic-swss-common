@@ -28,6 +28,9 @@ typedef enum {
     EVENT_ECHO
 } event_req_type_t;
 
+typedef string events_data_type_t;
+typedef vector<events_data_type_t> events_data_lst_t;
+
 /*
  * internal service init & APIs for read & write
  */
@@ -44,9 +47,9 @@ class event_service {
 
         ~event_service() { close(); }
 
-        init_client(void *zmq_ctx, int block_ms = -1);
+        int init_client(void *zmq_ctx, int block_ms = -1);
 
-        init_server(void *zmq_ctx);
+        int init_server(void *zmq_ctx);
 
         /*
          * Event cache service is singleton service
@@ -88,9 +91,10 @@ class event_service {
          *  cache read
          *
          *  This is transparently called by event_receive, if cache service
-         *  is enabled. Returns the set of zmq messages as received.
-         *  NOTE: Every event is received as 2 parts. So 2 ZMQ messages makes
-         *  one event.
+         *  is enabled.
+         *  Each event is received as 2 parts. First part is more a filter for
+         *  hence dropped. The second part is returned as string.
+         *  The string is the serialized form of internal_event_t.
          *
          *  An empty o/p implies no more.
          *
@@ -114,7 +118,7 @@ class event_service {
          *  0   - On success. Either stopped or none to stop.
          *  -1  - On failure.
          */
-        int cache_read(vector<string> &lst);
+        int cache_read(events_data_lst_t &lst);
 
         /*
          *  Echo send service.
@@ -167,7 +171,7 @@ class event_service {
          *  0   - On success
          *  -1  - On failure
          */
-        int channel_read(int &code, vector<string> &data);
+        int channel_read(int &code, events_data_lst_t &data);
 
         /*
          * The under lying write for req/resp from client/server
@@ -183,7 +187,14 @@ class event_service {
          *  0   - On success
          *  -1  - On failure
          */
-        int channel_write(int code, vector<string> &data);
+        int channel_write(int code, const events_data_lst_t &data);
+
+        /*
+         * send and receive helper
+         */
+        int send_recv(int code, events_data_lst_t *p = NULL);
+
+
 
 
         /*
