@@ -120,7 +120,7 @@ int Select::poll_descriptors(Selectable **c, unsigned int timeout)
     }
 
     bool dataReady = false;
-    foreach (auto sel : temp_ready)
+    for (auto sel : temp_ready)
     {
         // we must update clock only when the selector out of the m_ready
         // otherwise we break invariant of the m_ready
