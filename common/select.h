@@ -67,6 +67,8 @@ private:
 
     int poll_descriptors(Selectable **c, unsigned int timeout);
 
+    int check_data(Selectable **c);
+
     int m_epoll_fd;
     std::unordered_map<int, Selectable *> m_objects;
     std::set<Selectable *, Select::cmp> m_ready;

@@ -102,7 +102,6 @@ int Select::poll_descriptors(Selectable **c, unsigned int timeout)
     if (ret < 0)
         return Select::ERROR;
 
-    std::set<Selectable *, Select::cmp> temp_ready;
     for (int i = 0; i < ret; ++i)
     {
         int fd = events[i].data.fd;
@@ -116,12 +115,19 @@ int Select::poll_descriptors(Selectable **c, unsigned int timeout)
             SWSS_LOG_ERROR("readData error: %s", ex.what());
             return Select::ERROR;
         }
-        temp_ready.insert(sel);
+        m_ready.insert(sel);
     }
 
-    bool dataReady = false;
-    for (auto sel : temp_ready)
+    return check_data(c);
+}
+
+int Select::check_data(Selectable **c)
+{
+    while (!m_ready.empty())
     {
+        auto sel = *m_ready.begin();
+
+        m_ready.erase(sel);
         // we must update clock only when the selector out of the m_ready
         // otherwise we break invariant of the m_ready
         sel->updateLastUsedTime();
@@ -131,24 +137,20 @@ int Select::poll_descriptors(Selectable **c, unsigned int timeout)
             continue;
         }
 
-        // SWIG generated code will only allocate 1 Selectable pointer on stack and pass to select() method as 1st parameter
-        // So here can only assign first Selectable pointer to c
-        if (!dataReady)
-        {
-            *c = sel;
-        }
+        *c = sel;
 
         if (sel->hasCachedData())
         {
-            // insert Selectable to the m_ready set, when there're more messages in the cache
+            // reinsert Selectable back to the m_ready set, when there're more messages in the cache
             m_ready.insert(sel);
         }
 
         sel->updateAfterRead();
-        dataReady = true;
+
+        return Select::OBJECT;
     }
 
-    return dataReady ? Select::OBJECT :Select::TIMEOUT;
+    return Select::TIMEOUT;
 }
 
 int Select::select(Selectable **c, int timeout)
@@ -160,7 +162,7 @@ int Select::select(Selectable **c, int timeout)
     *c = NULL;
 
     /* check if we have some data */
-    ret = poll_descriptors(c, 0);
+    ret = check_data(c);
 
     /* return if we have data, we have an error or desired timeout was 0 */
     if (ret != Select::TIMEOUT || timeout == 0)
