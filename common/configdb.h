@@ -94,8 +94,12 @@ protected:
             if init_data_handler:
                 init_data_handler(init_callback_data)
 
-            while True:
+            while not SignalHandlerHelper.checkSignal(SIGNAL_INT):
                 item = self.pubsub.listen_message()
+                if 'type' not in item:
+                    # When timeout or cancelled, item will not contains 'type' 
+                    continue
+
                 if item['type'] == 'pmessage':
                     key = item['channel'].split(':', 1)[1]
                     try:
