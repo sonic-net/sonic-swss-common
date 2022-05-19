@@ -77,22 +77,31 @@ bool PubSub::hasCachedData()
     return m_keyspace_event_buffer.size() > 1;
 }
 
-map<string, string> PubSub::get_message(double timeout)
+map<string, string> PubSub::get_message(double timeout, bool interrupt_on_signal)
 {
-    map<string, string> ret;
+    return get_message_internal(timeout, interrupt_on_signal).second;
+}
+
+MessageResultPair PubSub::get_message_internal(double timeout, bool interrupt_on_signal)
+{
+    MessageResultPair ret;
+
     if (!m_subscribe)
     {
+        ret.first = Select::ERROR;
         return ret;
     }
 
     Selectable *selected;
-    int rc = m_select.select(&selected, int(timeout));
+    int rc = m_select.select(&selected, int(timeout), interrupt_on_signal);
+    ret.first = rc;
     switch (rc)
     {
         case Select::ERROR:
             throw RedisError("Failed to select", m_subscribe->getContext());
 
         case Select::TIMEOUT:
+        case Select::SIGNALINT:
             return ret;
 
         case Select::OBJECT:
@@ -110,26 +119,29 @@ map<string, string> PubSub::get_message(double timeout)
     }
 
     auto message = event->getReply<RedisMessage>();
-    ret["type"] = message.type;
-    ret["pattern"] = message.pattern;
-    ret["channel"] = message.channel;
-    ret["data"] = message.data;
+    ret.second["type"] = message.type;
+    ret.second["pattern"] = message.pattern;
+    ret.second["channel"] = message.channel;
+    ret.second["data"] = message.data;
     return ret;
 }
 
 // Note: it is not straightforward to implement redis-py PubSub.listen() directly in c++
 // due to the `yield` syntax, so we implement this function for blocking listen one message
-std::map<std::string, std::string> PubSub::listen_message()
+std::map<std::string, std::string> PubSub::listen_message(bool interrupt_on_signal)
 {
     const double GET_MESSAGE_INTERVAL = 600.0; // in seconds
+    MessageResultPair ret;
     for (;;)
     {
-        auto ret = get_message(GET_MESSAGE_INTERVAL);
-        if (!ret.empty())
+        ret = get_message_internal(GET_MESSAGE_INTERVAL, interrupt_on_signal);
+        if (!ret.second.empty() || ret.first == Select::SIGNALINT)
         {
-            return ret;
+            break;
         }
     }
+
+    return ret.second;
 }
 
 shared_ptr<RedisReply> PubSub::popEventBuffer()
