@@ -3,6 +3,13 @@
 
 
 /*
+ * The eventd runs an event service that supports caching & miscellaneous
+ * as required by events API.
+ *
+ * This header lists the services provided,
+ * 
+ * These services are only used by events API.
+ *
  * All the services uses REQ/REP pattern between caller
  * centralized event service. The return code is provided
  * by service in its reply.
@@ -10,26 +17,26 @@
  * event_request goes as single part message carrying event_req_t,
  * unless there is data associated.
  *
- * Both req & resp are either single or multi part. In case of no
+ * Both req & resp are either single or two part. In case of no
  * data associated, it is just request code or response return value in one part.
  * In case of data, it comes in seccond part.
  * 
- * Type of data is as decided by request.
+ * Type of data is one or multiple strings, which is sent as serialized vector
+ * of strings. events_data_lst_t
  *
- * In case of echo, part2 is the string as provided in the request.
+ * In case of echo, part2 is the vector of single string as provided in the request.
  *
  * The read returns as serialized vector of ZMQ messages, in part2.
  */
 
 typedef enum {
+    EVENT_CACHE_INIT,
     EVENT_CACHE_START,
     EVENT_CACHE_STOP,
     EVENT_CACHE_READ,
     EVENT_ECHO
 } event_req_type_t;
 
-typedef string events_data_type_t;
-typedef vector<events_data_type_t> events_data_lst_t;
 
 /*
  * internal service init & APIs for read & write
@@ -47,6 +54,11 @@ class event_service {
 
         ~event_service() { close(); }
 
+        /*
+         * Block helps setting timeout for any read
+         * Publish clients that choose to block specify the duration
+         *
+         */
         int init_client(void *zmq_ctx, int block_ms = -1);
 
         int init_server(void *zmq_ctx);
@@ -62,17 +74,35 @@ class event_service {
 
 
         /*
-         *  Called to start caching events
+         *  Called to init caching events
          *
          *  This is transparently called by events_deinit_subscriber, if cache service
-         *  was enabled.
+         *  was enabled. This simply triggers a connect request and does not start
+         *  reading yet.
          *
          *  return:
          *      0   - On success. 
          *      1   - Already running
          *      -1  - On failure.
          */
-        int cache_start();
+        int cache_init();
+
+        /*
+         *  Called to start caching events
+         *
+         *  This is transparently called by events_deinit_subscriber, if cache service
+         *  was enabled after init, with excess events it had in its cache.
+         *  The caching service uses this as initial/startup stock.
+         *
+         *  input:
+         *      lst - i/p events from caller's cache.
+         *
+         *  return:
+         *      0   - On success. 
+         *      1   - Already running
+         *      -1  - On failure.
+         */
+        int cache_start(events_data_lst_t &lst);
 
         /*
          *  Called to stop caching events
@@ -93,7 +123,7 @@ class event_service {
          *  This is transparently called by event_receive, if cache service
          *  is enabled.
          *  Each event is received as 2 parts. First part is more a filter for
-         *  hence dropped. The second part is returned as string.
+         *  hence dropped. The second part is returned as string events_data_type_t.
          *  The string is the serialized form of internal_event_t.
          *
          *  An empty o/p implies no more.
@@ -101,8 +131,6 @@ class event_service {
          *  Internal details:
          *
          *  Cache service caches all events until buffer overflow
-         *  During receive using sequence+runtime Id, it keeps the count
-         *  of missed to receive.
          *
          *  Upon overflow, it creates a separate cache, where it keeps only
          *  the last event received per runtime ID. 
@@ -112,7 +140,8 @@ class event_service {
          *  events read from subscription channel & as well from cache.
          *
          *  output: 
-         *      lst_msgs
+         *      lst - A set of events, with a max cap.
+         *            Hence multiple reads may be required to read all.
          *
          *  return:
          *  0   - On success. Either stopped or none to stop.
@@ -193,9 +222,6 @@ class event_service {
          * send and receive helper
          */
         int send_recv(int code, events_data_lst_t *p = NULL);
-
-
-
 
         /*
          * de-init/close service

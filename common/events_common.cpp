@@ -4,6 +4,8 @@
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>
 
+int zerrno = 0;
+
 /*
  * defaults for all config entries
  */
@@ -110,7 +112,7 @@ deserialize(const string& s, Map& data)
 
 
 template <typename Map>
-void
+int
 map_to_zmsg(const Map& data, zmq_msg_t &msg)
 {
     string s = serialize(data);

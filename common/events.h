@@ -2,13 +2,14 @@
  * Events library 
  *
  *  APIs are for publishing & receiving events with source, tag and params along with timestamp.
+ *  Used by event publishers and those interested in receiving published events.
+ *  Publishers are multiple sources, as processes running in hosts & containers.
+ *  Receiver are often few. Telmetry container runs a receiver.
  *
  */
 
 
-class events_base;
-
-typedef events_base* event_handle_t;
+typedef void* event_handle_t;
 
 /*
  * Initialize an event publisher instance for an event source.

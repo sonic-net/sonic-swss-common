@@ -1,8 +1,9 @@
 /*
- * Private header file
+ * Private header file used by events API implementation.
  * Required to run white box testing via unit tests.
  */
 #include <chrono>
+#include <ctime>
 #include <fstream>
 #include <thread>
 #include <uuid/uuid.h>
@@ -18,33 +19,30 @@
 
 using namespace std;
 
-/*
- * events are published as two part zmq message.
- * First part only has the event source, so receivers could
- * filter by source.
- *
- * Second part contains map of 
- *  <efined below.
- *
- */
-#define EVENT_STR_DATA "event_str"
-#define EVENT_RUNTIME_ID  "runtime_id"
-#define EVENT_SEQUENCE "sequence"
-
-typedef map<string, string> internal_event_t;
-
-tyepdef string runtime_id_t;
-
-internal_event_t internal_event_ref = {
-    { EVENT_STR_DATA, "" },
-    { EVENT_RUNTIME_ID, "" },
-    { EVENT_SEQUENCE, "" } };
 
 /* Base class for publisher & subscriber */
 class events_base
 {
     public:
         virtual ~events_base() = default;
+
+        static sequence_t str_to_seq(const string s)
+        {
+            stringstream ss(s);
+            sequence_t seq;
+
+            ss >> seq;
+
+            return seq;
+        }
+
+        static string seq_to_str(sequence_t seq)
+        {
+            stringstream ss();
+            ss << seq;
+            return ss.str();
+        }
+        
 };
 
 /*
@@ -56,36 +54,30 @@ class events_base
 
 typedef map<<string, event_handle_t> lst_publishers_t;
 
-class EventPublisher : public events_base {
+class EventPublisher : public events_base
+{
     public:
-        // Track publishers by source & sender, as missed messages
-        // is tracked per sender by source
-        //
-        static lst_publishers_t s_publishers;
+        EventPublisher();
+
+        virtual ~EventPublisher();
+
+        int init(const char *event_source, int block_ms=-1);
+
+        void publish(event_handle_t &handle, const std::string &event_tag,
+                const event_params_t *params);
+    private:
 
         void *m_zmq_ctx;
         void *m_socket;
 
         event_service m_event_svc;
 
-        /* Event source in msg to be sent as part 1 of multi-part */
-        zmq_msg_t m_zmsg_source;
         string m_event_source;
 
         runtime_id_t m_runtime_id;
-        uint32_t m_sequence;
+        sequence_t m_sequence;
 
         bool m_init;
-
-        EventPublisher();
-
-        int init(const char *event_source, int block_ms=-1);
-
-        virtual ~EventPublisher();
-
-        void publish(event_handle_t &handle, const std::string &event_tag,
-                const event_params_t *params);
-
 };
 
 /*
@@ -99,54 +91,42 @@ class EventPublisher : public events_base {
 class EventSubscriber : public events_base
 {
     public:
-
-        void *m_zmq_ctx;
-        void *m_socket;
-
-        // Indices are tracked per sendefr & source.
-        //
-        map<string, index_data_t> m_indices;
-
-        // Cumulative missed count across all subscribed sources.
-        //
-        uint64_t m_missed_cnt;
-
-        EventSubscriber(const event_subscribe_sources_t *subs_sources);
+        EventSubscriber();
+        
+        int init(bool use_cache=false,
+                const event_subscribe_sources_t *subs_sources);
 
         virtual ~EventSubscriber();
 
-        bool do_receive(map_str_str_t  *data);
+        int event_receive(event_str_t &event, int &missed_cnt);
 
-        bool validate_meta(const map_str_str_t  &meta);
+    private:
+        void *m_zmq_ctx;
+        void *m_socket;
 
-        index_data_t update_missed(map_str_str_t  &meta);
+        event_service m_event_svc;
 
-        void event_receive(event_metadata_t &metadata, event_params_t &params,
-                unsigned long *missed_count = NULL);
+        bool m_init;
+        bool m_cache_read;
+
+        /*
+         *  Sequences tracked by sender for a source, or in other
+         *  words by runtime id.
+         */
+        typedef struct _evt_info {
+            _evt_info() : epoch_secs(0), seq(0) {};
+            _evt_info(s) : epoch_secs(time(nullptr)), seq(s) {};
+
+            time_t      epoch_secs;
+            sequence_t  seq;
+        } evt_info_t;
+
+        typedef map<runtime_id_t, sequence_t> track_info_t;
+        track_info_t m_track;
+
+        events_data_lst_t m_from_cache;
+
+        void prune_track();
+
 };
-
-class EventProxy
-{
-    public:
-        void *m_ctx;
-        void *m_rep;
-        void *m_frontend;
-        void *m_backend;
-        bool m_init_success;
-
-        std::thread m_req_thread,  m_proxy_thread;
-
-        EventProxy();
-
-        ~EventProxy();
-
-        int run(void);
-
-        void run_cache_service(void);
-        void run_proxy(void);
-};
-
-extern EventProxy g_event_proxy;
-
-
 
