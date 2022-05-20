@@ -1,8 +1,4 @@
 #include "events_common.h"
-#include <boost/serialization/vector.hpp>
-#include <boost/serialization/map.hpp>
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/archive/text_oarchive.hpp>
 
 int zerrno = 0;
 
@@ -80,59 +76,4 @@ get_timestamp()
     ss << put_time(ptm, "%FT%H:%M:%S.") << sfrac.str().substr(0, 6) << "Z";
     return ss.str();
 }
-
-
-/*
- * Way to serialize map or vector
- * boost::archive::text_oarchive could be used to archive any struct/class
- * but that class needs some additional support, that declares
- * boost::serialization::access as private friend and couple more tweaks
- * std::map inherently supports serialization
- */
-template <typename Map>
-const string
-serialize(const Map& data)
-{
-    std::stringstream ss;
-    boost::archive::text_oarchive oarch(ss);
-    oarch << data;
-    return ss.str();
-}
-
-template <typename Map>
-void
-deserialize(const string& s, Map& data)
-{
-    std::stringstream ss;
-    ss << s;
-    boost::archive::text_iarchive iarch(ss);
-    iarch >> data;
-    return;
-}
-
-
-template <typename Map>
-int
-map_to_zmsg(const Map& data, zmq_msg_t &msg)
-{
-    string s = serialize(data);
-
-    int rc = zmq_msg_init_size(&msg, s.size());
-    if (rc == 0) {
-        strncpy((char *)zmq_msg_data(&msg), s.c_str(), s.size());
-    }
-    return rc;
-}
-
-
-template <typename Map>
-void
-zmsg_to_map(zmq_msg_t &msg, Map& data)
-{
-    string s((const char *)zmq_msg_data(&msg), zmq_msg_size(&msg));
-    deserialize(s, data);
-}
-
-
-
 

@@ -10,6 +10,10 @@
 #include "json.hpp"
 #include "zmq.h"
 #include <unordered_map>
+#include <boost/serialization/vector.hpp>
+#include <boost/serialization/map.hpp>
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
 
 #include "logger.h"
 #include "events.h"
@@ -20,12 +24,18 @@ using namespace chrono;
 extern int errno;
 extern int zerrno;
 
+/*
+ * Max count of possible concurrent event publishers
+ * A rough estimate only, more as a guideline than strict.
+ * So this does not limit any usage
+ */
+#define MAX_PUBLISHERS_COUNT  1000
 
 #define RET_ON_ERR(res, msg, ...)\
     if (!(res)) {\
         int e = errno; \
         zerrno = zmq_errno(); \
-        string fmt = "errno:%d zmq_errno:%d " + msg; \
+        string fmt = string("errno:%d zmq_errno:%d ") + msg; \
         SWSS_LOG_ERROR(fmt.c_str(), e, zerrno, ##__VA_ARGS__); \
         goto out; }
 
@@ -64,9 +74,9 @@ T get_config_data(const string key, T def)
         return def;
     }
     else {
-        stringstream ss(get_config(key));
-
         T v;
+        stringstream ss(s);
+
         ss >> v;
 
         return v;
@@ -78,15 +88,56 @@ string get_config(const string key);
 
 const string get_timestamp();
 
-const string serialize(const map_str_str_t & data);
-
-void deserialize(const string& s, map_str_str_t & data);
+/*
+ * Way to serialize map or vector
+ * boost::archive::text_oarchive could be used to archive any struct/class
+ * but that class needs some additional support, that declares
+ * boost::serialization::access as private friend and couple more tweaks
+ * std::map inherently supports serialization
+ */
+template <typename Map>
+const string
+serialize(const Map& data)
+{
+    std::stringstream ss;
+    boost::archive::text_oarchive oarch(ss);
+    oarch << data;
+    return ss.str();
+}
 
 template <typename Map>
-int map_to_zmsg(const Map & data, zmq_msg_t &msg);
+void
+deserialize(const string& s, Map& data)
+{
+    std::stringstream ss;
+    ss << s;
+    boost::archive::text_iarchive iarch(ss);
+    iarch >> data;
+    return;
+}
+
 
 template <typename Map>
-void zmsg_to_map(zmq_msg_t &msg, Map &data);
+int
+map_to_zmsg(const Map& data, zmq_msg_t &msg)
+{
+    string s = serialize(data);
+
+    int rc = zmq_msg_init_size(&msg, s.size());
+    if (rc == 0) {
+        strncpy((char *)zmq_msg_data(&msg), s.c_str(), s.size());
+    }
+    return rc;
+}
+
+
+template <typename Map>
+void
+zmsg_to_map(zmq_msg_t &msg, Map& data)
+{
+    string s((const char *)zmq_msg_data(&msg), zmq_msg_size(&msg));
+    deserialize(s, data);
+}
 
 
 /*
@@ -168,7 +219,7 @@ zmq_message_send(void *sock, p1 pt1, p2 pt2)
 {
     int rc = zmq_send_part(sock, pt2.empty() ? 0 : ZMQ_SNDMORE, pt1);
 
-    if (rc == 0) {
+    if ((rc == 0) && (!pt2.empty())) {
         rc = zmq_send_part(sock, 0, pt2);
     }
     return rc;
@@ -183,17 +234,14 @@ zmq_message_read(void *sock, int flag, p1 pt1, p2 pt2)
     
     rc = zmq_read_part(sock, flag, more, pt1);
     RET_ON_ERR(rc == 0, "Failed to read part1");
-    RET_ON_ERR(more, "Expect 2 parts");
 
-    rc = zmq_read_part(sock, 0, more, pt2);
-    RET_ON_ERR(rc == 0, "Failed to read part1");
-    RET_ON_ERR(!more, "Don't expect more than 2 parts");
+    if (more) {
+        rc = zmq_read_part(sock, 0, more, pt2);
+        RET_ON_ERR(rc == 0, "Failed to read part1");
+        RET_ON_ERR(!more, "Don't expect more than 2 parts");
+    }
 
 out:
     return rc;
 }
-
-
-
-
 
