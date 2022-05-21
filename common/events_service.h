@@ -8,7 +8,7 @@
  *
  * This header lists the services provided,
  * 
- * These services are only used by events API.
+ * These services are only used by events API internally.
  *
  * All the services uses REQ/REP pattern between caller
  * centralized event service. The return code is provided
@@ -52,12 +52,31 @@ class event_service {
     public:
         event_service(): m_socket(NULL) {}
 
-        ~event_service() { close(); }
+        ~event_service() { close_service(); }
 
         /*
-         * Block helps setting timeout for any read
+         * Init the service for client or server.
+         * The client uses REQ socket & connects.
+         * The server uses REP socket & bind.
+         *  
+         * Block helps setting timeout for any read.
+         * Publishing clients try ECHO service send/recv to help shadow
+         * its async connection to XPUB end point, but the eventd service
+         * could be down. So having a timeout, helps which will timeout
+         * recv.
          * Publish clients that choose to block specify the duration
          *
+         * Input:
+         *  zmq_ctx - Context to use
+         *  block_ms
+         *       0 -    Return immediately
+         *      <N>-    Count of millisecs to wait for a message.
+         *      -1 -    Block until a message is available or any fatal failure.
+         *
+         *  return:
+         *      0  -    On success
+         *     -1  -    On failure. zerrno is set to EAGAIN, if timed out.
+         *              Else appropriate error code is set as per zmq_msg_recv.
          */
         int init_client(void *zmq_ctx, int block_ms = -1);
 
@@ -65,6 +84,12 @@ class event_service {
 
         /*
          * Event cache service is singleton service
+         *
+         * Usage:
+         *  Init - Initiates the connection
+         *  start - Start reading & caching
+         *  stop - Stop reading & disconnect.
+         *  read - Read the cached events.
          *
          * Any duplicate start has no impact.
          * The cached events can be read only upon stop. A read before
@@ -78,7 +103,8 @@ class event_service {
          *
          *  This is transparently called by events_deinit_subscriber, if cache service
          *  was enabled. This simply triggers a connect request and does not start
-         *  reading yet.
+         *  reading yet. 
+         *  NOTE: ZMQ connects asynchronously.
          *
          *  return:
          *      0   - On success. 
@@ -90,8 +116,8 @@ class event_service {
         /*
          *  Called to start caching events
          *
-         *  This is transparently called by events_deinit_subscriber, if cache service
-         *  was enabled after init, with excess events it had in its cache.
+         *  This is transparently called by events_deinit_subscriber after init.
+         *  The deinit call may provide events in its local cache.
          *  The caching service uses this as initial/startup stock.
          *
          *  input:
@@ -156,8 +182,6 @@ class event_service {
          *  it to shadow its connection to zmq proxy's XSUB end. This is
          *  called transparently by events_init_publisher.
          *
-         *  The service is closed upon failure to send as echo service is one shot only.
-         *
          * Input:
          *  s - string to echo.
          *
@@ -187,7 +211,8 @@ class event_service {
         int echo_receive(string &s);
 
         /*
-         * The underlying read for req/resp from client/server
+         * The read for req/resp from client/server. The APIs above use this
+         * to read response and the server use this to read request.
          *
          * Input: None
          *
@@ -219,9 +244,22 @@ class event_service {
         int channel_write(int code, const events_data_lst_t &data);
 
         /*
-         * send and receive helper
+         * send and receive helper.
+         * Writes given code & data and reads back data into
+         * provided events_data_lst_t arg and response read is
+         * returned.
+         *
+         * input:
+         *  code -  Request code
+         *  lst  -  Data to send
+         *
+         * output:
+         *  lst -   Data read, if any
+         *
+         * return:
+         *  Any failure or response code from server.
          */
-        int send_recv(int code, events_data_lst_t *p = NULL);
+        int send_recv(int code, events_data_lst_t *lst = NULL);
 
         /*
          * de-init/close service
@@ -231,7 +269,7 @@ class event_service {
         /*
          * Check if service is active
          */
-        bool is_active() { return m_socket != NULL };
+        bool is_active() { return m_socket != NULL; };
 
 private:
         void *m_socket;

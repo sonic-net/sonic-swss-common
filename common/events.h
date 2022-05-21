@@ -1,3 +1,6 @@
+#ifndef _EVENTS_H
+#define _EVENTS_H
+
 /*
  * Events library 
  *
@@ -30,20 +33,12 @@ typedef void* event_handle_t;
  *      returned by this call is tagged with this source, transparently. The receiver
  *      could subscribe with this source as filter.
  *
- *  block_millisecs -
- *      Block either until publisher connects successfully or timeout
- *      whichever earlier.
- *      0   - No blocling.
- *      -1  - Block until connected.
- *      N   - Count in milli seconds to wait.
- *      NOTE: The connection is to eventd service, which could be down.
  * Return 
  *  Non NULL handle
  *  NULL on failure
  */
 
-event_handle_t events_init_publisher(std::string event_source,
-        int block_millisecs);
+event_handle_t events_init_publisher(std::string event_source);
 
 /*
  * De-init/free the publisher
@@ -65,7 +60,7 @@ typedef std::map<std::string, std::string> event_params_t;
 /*
  * timestamp param name
  */
-const string event_ts("timestamp");
+const std::string event_ts("timestamp");
 
 /*
  * Publish an event
@@ -78,7 +73,7 @@ const string event_ts("timestamp");
  *  the running instance of a publisher and other a running sequence
  *  starting from 0, which is local to this runtime-id.
  *
- *  The receiver API keep next last received number for each runtime id
+ *  The receiver API keep last received number for each runtime id
  *  and use this info to compute missed event count upon next event.
  *
  * input:
@@ -97,8 +92,11 @@ const string event_ts("timestamp");
  *      The timestamp should be per rfc3339
  *      e.g. "2022-08-17T02:39:21.286611Z"
  *
+ * return:
+ *  0   -   On success
+ *  -1  -   On failure.
  */
-void event_publish(event_handle_t handle, const std::string event_tag,
+int event_publish(event_handle_t handle, const std::string event_tag,
         const event_params_t *params=NULL);
 
 
@@ -112,8 +110,8 @@ typedef std::vector<std::string> event_subscribe_sources_t;
  * Input:
  *  use_cache
  *      When set to true, it will make use of the cache service transparently.
- *      The cache service caches events during session down time (last deinit to this
- *      init call).
+ *      The cache service caches events during session down time. The deinit
+ *      start the caching and init call stops the caching.
  *
  *  lst_subscribe_sources_t
  *      List of subscription sources of interest.
@@ -139,25 +137,36 @@ event_handle_t events_init_subscriber(bool use_cache=false,
 void events_deinit_subscriber(event_handle_t &handle);
 
 /*
- * Received event as JSON string as 
- *  < YANG path of schema >: {
- *      event_params_t
- *  }
- */
-typedef std::string event_str_t;
-
-/*
  * Receive an event.
  * A blocking call.
  *
  *  This API maintains an expected sequence number and use the received
- *  sequence in event to compute missed events count.
+ *  sequence in event to compute missed events count. The missed count
+ *  set of events missed from this sender.
+ *
+ *  Received event:
+ *      It is a form of JSON struct, with a single key and
+ *      params as value. The key is <YANG schema module name>:<YANG schema tag
+ *      name> and params is as per schema description for that event.
+ *     
+ *      e.g.
+ *          { "sonic-events-bgp:bgp-state": {
+ *              "ip": "100.126.188.90",
+ *              "status": "down",
+ *              "timestamp": "2022-08-17T02:39:21.286611Z"
+ *              }
+ *          }
  *
  * input:
  *  handle - As obtained from events_init_subscriber
  *
  * output:
- *  event - Received event.
+ *  key : 
+ *      YANG path as <event source module name>:<event tag/container name
+ *      within the module that describes the event>
+ *
+ *  params:
+ *      Parms associated.
  *
  *  missed_cnt:
  *      Count of missed events from this sender, before this event. Sum of
@@ -168,5 +177,21 @@ typedef std::string event_str_t;
  * -1 - On failure. The handle is not valid.
  *
  */
-int event_receive(event_handle_t handle, event_str_t &event, int &missed_cnt);
+int event_receive(event_handle_t handle, std::string &key,
+        event_params_t &params, int &missed_cnt);
 
+
+/*
+ *  Cache drain timeout.
+ *
+ *  When de-init is called, it calls stop cache service.
+ *  But before this point, there could be events received in zmq's
+ *  local cache pending read and those that arrived since last read.
+ *  These events will not be seen by cache service.
+ *  So read those off and give it to cache service as starting stock.
+ *  As we don't have a clue on count in zmq's cache, read in non-block
+ *  mode for a period.
+ */
+#define CACHE_DRAIN_IN_MILLISECS 1000
+
+#endif /* !_EVENTS_H */ 

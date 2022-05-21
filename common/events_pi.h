@@ -1,3 +1,5 @@
+#ifndef _EVENTS_SERVICE_H
+#define _EVENTS_SERVICE_H
 /*
  * Private header file used by events API implementation.
  * Required to run white box testing via unit tests.
@@ -38,7 +40,7 @@ class events_base
 
         static string seq_to_str(sequence_t seq)
         {
-            stringstream ss();
+            stringstream ss;
             ss << seq;
             return ss.str();
         }
@@ -52,8 +54,6 @@ class events_base
  *
  */
 
-typedef map<<string, event_handle_t> lst_publishers_t;
-
 class EventPublisher : public events_base
 {
     public:
@@ -61,7 +61,7 @@ class EventPublisher : public events_base
 
         virtual ~EventPublisher();
 
-        int init(const char *event_source, int block_ms=-1);
+        int init(const string event_source);
 
         void publish(event_handle_t &handle, const std::string &event_tag,
                 const event_params_t *params);
@@ -94,11 +94,11 @@ class EventSubscriber : public events_base
         EventSubscriber();
         
         int init(bool use_cache=false,
-                const event_subscribe_sources_t *subs_sources);
+                const event_subscribe_sources_t *subs_sources=NULL);
 
         virtual ~EventSubscriber();
 
-        int event_receive(event_str_t &event, int &missed_cnt);
+        int event_receive(string &key, event_params_t &params, int &missed_cnt);
 
     private:
         void *m_zmq_ctx;
@@ -115,7 +115,7 @@ class EventSubscriber : public events_base
          */
         typedef struct _evt_info {
             _evt_info() : epoch_secs(0), seq(0) {};
-            _evt_info(s) : epoch_secs(time(nullptr)), seq(s) {};
+            _evt_info(sequence_t s) : epoch_secs(time(nullptr)), seq(s) {};
 
             time_t      epoch_secs;
             sequence_t  seq;
@@ -130,3 +130,4 @@ class EventSubscriber : public events_base
 
 };
 
+#endif /* !_EVENTS_SERVICE_H */ 

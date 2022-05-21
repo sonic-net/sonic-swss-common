@@ -1,3 +1,5 @@
+#ifndef _EVENTS_COMMON_H
+#define _EVENTS_COMMON_H
 /*
  * common APIs used by events code.
  */
@@ -27,16 +29,19 @@ extern int zerrno;
 /*
  * Max count of possible concurrent event publishers
  * A rough estimate only, more as a guideline than strict.
+         SWSS_LOG_ERROR(fmt.c_str(), e, zerrno __VA_OPT__(,) __VA_ARGS__); \
  * So this does not limit any usage
  */
 #define MAX_PUBLISHERS_COUNT  1000
 
+
+/* TODO: Combine two SWSS_LOG_ERROR into one */
 #define RET_ON_ERR(res, msg, ...)\
     if (!(res)) {\
         int e = errno; \
         zerrno = zmq_errno(); \
-        string fmt = string("errno:%d zmq_errno:%d ") + msg; \
-        SWSS_LOG_ERROR(fmt.c_str(), e, zerrno, ##__VA_ARGS__); \
+        SWSS_LOG_ERROR(msg, ##__VA_ARGS__); \
+        SWSS_LOG_ERROR("last:errno=%d zerr=%d", e, zerrno); \
         goto out; }
 
 #define ERR_CHECK(res, ...) {\
@@ -64,8 +69,10 @@ typedef map<string, string> map_str_str_t;
 /* init config from file */
 void read_init_config(const char *fname);
 
-/* Provide a key for configurable entity */
-template<T>
+/* Read config entry for a key */
+string get_config(const string key);
+
+template<typename T>
 T get_config_data(const string key, T def)
 {
     string s(get_config(key));
@@ -83,8 +90,6 @@ T get_config_data(const string key, T def)
     }
 }
 
-
-string get_config(const string key);
 
 const string get_timestamp();
 
@@ -160,8 +165,8 @@ zmsg_to_map(zmq_msg_t &msg, Map& data)
 typedef map<string, string> internal_event_t;
 
 /* Sequence is converted to string in message */
-tyepdef uint32_t sequence_t;
-tyepdef string runtime_id_t;
+typedef uint32_t sequence_t;
+typedef string runtime_id_t;
 
 internal_event_t internal_event_ref = {
     { EVENT_STR_DATA, "" },
@@ -169,12 +174,13 @@ internal_event_t internal_event_ref = {
     { EVENT_SEQUENCE, "" } };
 
 /* ZMQ message part 2 contains serialized version of internal_event_t */
-typedef string events_data_type_t
+typedef string events_data_type_t;
 typedef vector<events_data_type_t> events_data_lst_t;
 
 
-template<typename p>
-zmq_read_part(void *sock, int flag, int &more, p data)
+template<typename DT>
+int 
+zmq_read_part(void *sock, int flag, int &more, DT data)
 {
     zmq_msg_t msg;
 
@@ -187,7 +193,7 @@ zmq_read_part(void *sock, int flag, int &more, p data)
 
         zmsg_to_map(msg, data);
 
-        rc = zmq_getsockopt (m_socket, ZMQ_RCVMORE, &more, &more_size);
+        rc = zmq_getsockopt (sock, ZMQ_RCVMORE, &more, &more_size);
 
     }
     zmq_msg_close(&msg);
@@ -196,16 +202,17 @@ zmq_read_part(void *sock, int flag, int &more, p data)
 }
 
    
-template<typename p>
-zmq_send_part(void *sock, int flag, p data)
+template<typename DT>
+int
+zmq_send_part(void *sock, int flag, DT data)
 {
     zmq_msg_t msg;
 
     int rc = map_to_zmsg(data, msg);
-    RET_ON_ERR(rc == 0, "Failed to map to zmsg");
+    RET_ON_ERR(rc == 0, "Failed to map to zmsg %d", 5);
 
     rc = zmq_msg_send (&msg, sock, flag);
-    RET_ON_ERR(rc != -1, "Failed to send part");
+    RET_ON_ERR(rc != -1, "Failed to send part %d", 5);
 
     rc = 0;
 out:
@@ -213,9 +220,9 @@ out:
     return rc;
 }
 
-template<typename p1, template p2>
+template<typename P1, typename P2>
 int
-zmq_message_send(void *sock, p1 pt1, p2 pt2)
+zmq_message_send(void *sock, P1 pt1, P2 pt2)
 {
     int rc = zmq_send_part(sock, pt2.empty() ? 0 : ZMQ_SNDMORE, pt1);
 
@@ -226,9 +233,9 @@ zmq_message_send(void *sock, p1 pt1, p2 pt2)
 }
 
    
-template<typename p1, template p2>
+template<typename P1, typename P2>
 int
-zmq_message_read(void *sock, int flag, p1 pt1, p2 pt2)
+zmq_message_read(void *sock, int flag, P1 pt1, P2 pt2)
 {
     int more = 0, rc;
     
@@ -245,3 +252,4 @@ out:
     return rc;
 }
 
+#endif /* !_EVENTS_COMMON_H */ 

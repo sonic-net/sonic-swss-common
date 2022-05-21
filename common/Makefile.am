@@ -29,6 +29,8 @@ endif
 
 libswsscommon_la_SOURCES = \
     events_common.cpp         \
+    events_service.cpp        \
+    events.cpp                \
     logger.cpp                \
     redisreply.cpp            \
     configdb.cpp              \
