@@ -8,6 +8,7 @@
 #include <fstream>
 #include <thread>
 #include <errno.h>
+#include <cxxabi.h>
 #include "string.h"
 #include "json.hpp"
 #include "zmq.h"
@@ -38,15 +39,76 @@ extern int zerrno;
 /* TODO: Combine two SWSS_LOG_ERROR into one */
 #define RET_ON_ERR(res, msg, ...)\
     if (!(res)) {\
-        int e = errno; \
+        int _e = errno; \
         zerrno = zmq_errno(); \
         SWSS_LOG_ERROR(msg, ##__VA_ARGS__); \
-        SWSS_LOG_ERROR("last:errno=%d zerr=%d", e, zerrno); \
+        SWSS_LOG_ERROR("last:errno=%d zerr=%d", _e, zerrno); \
         goto out; }
 
 #define ERR_CHECK(res, ...) {\
     if (!(res)) \
         SWSS_LOG_ERROR(__VA_ARGS__); }
+
+/* helper API to print variable type */
+/*
+ *Usage:
+ *    const int ci = 0;
+ *    std::cout << type_name<decltype(ci)>() << '\n';
+ *
+ *    map<string, string> l;
+ *    std::cout << type_name<decltype(l)>() << '\n';
+ *
+ *    tt_t t;
+ *    std::cout << type_name<decltype(t)>() << '\n';
+ *    std::cout << type_name<decltype(tt_t)>() << '\n';
+ */
+
+template <typename T> std::string type_name();
+
+template <class T>
+std::string
+type_name()
+{
+    typedef typename std::remove_reference<T>::type TR;
+    std::unique_ptr<char, void(*)(void*)> own
+        (
+            abi::__cxa_demangle(typeid(TR).name(), nullptr,
+                nullptr, nullptr),
+            std::free
+        );
+    std::string r = own != nullptr ? own.get() : typeid(TR).name();
+    if (std::is_const<TR>::value)
+        r += " const";
+    if (std::is_volatile<TR>::value)
+        r += " volatile";
+    if (std::is_lvalue_reference<T>::value)
+        r += "&";
+    else if (std::is_rvalue_reference<T>::value)
+        r += "&&";
+    return r;
+}
+
+
+template <class T>
+std::string
+get_typename(T &val)
+{
+    return type_name<decltype(val)>();
+}
+
+
+template <typename Map>
+string
+map_to_str(const Map &m)
+{
+    stringstream _ss;
+    _ss << "{";
+    for (const auto elem: m) {
+        _ss << "{" << elem.first << "," << elem.second << "}";
+    }
+    _ss << "}";
+    return _ss.str();
+}
 
 // Some simple definitions
 //
@@ -101,24 +163,46 @@ const string get_timestamp();
  * std::map inherently supports serialization
  */
 template <typename Map>
-const string
-serialize(const Map& data)
+int
+serialize(const Map& data, string &s)
 {
-    std::stringstream ss;
-    boost::archive::text_oarchive oarch(ss);
-    oarch << data;
-    return ss.str();
+    s.clear();
+    std::stringstream _ser_ss;
+    boost::archive::text_oarchive oarch(_ser_ss);
+
+    try {
+        oarch << data;
+        s = _ser_ss.str();
+        return 0;
+    }
+    catch (exception& e) {
+        stringstream _ser_ex_ss;
+
+        _ser_ex_ss << e.what() << "map data:" << map_to_str(data).substr(0, 32);
+        SWSS_LOG_ERROR("serialize Failed: %s", _ser_ex_ss.str().c_str());
+        return -1;
+    }   
 }
 
 template <typename Map>
-void
+int
 deserialize(const string& s, Map& data)
 {
-    std::stringstream ss;
-    ss << s;
+    std::stringstream ss(s);
     boost::archive::text_iarchive iarch(ss);
-    iarch >> data;
-    return;
+
+    try {
+        iarch >> data;
+        return 0;
+    }
+    catch (exception& e) {
+        stringstream _ss_ex;
+
+        _ss_ex << e.what() << "str[0:32]:" << s.substr(0, 32) << " data type: "
+            << get_typename(data);
+        SWSS_LOG_ERROR("deserialize Failed: %s", _ss_ex.str().c_str());
+        return -1;
+    }   
 }
 
 
@@ -126,9 +210,12 @@ template <typename Map>
 int
 map_to_zmsg(const Map& data, zmq_msg_t &msg)
 {
-    string s = serialize(data);
+    string s;
+    int rc = serialize(data, s);
 
-    int rc = zmq_msg_init_size(&msg, s.size());
+    if (rc == 0) {
+        rc = zmq_msg_init_size(&msg, s.size());
+    }
     if (rc == 0) {
         strncpy((char *)zmq_msg_data(&msg), s.c_str(), s.size());
     }
@@ -137,11 +224,11 @@ map_to_zmsg(const Map& data, zmq_msg_t &msg)
 
 
 template <typename Map>
-void
+int
 zmsg_to_map(zmq_msg_t &msg, Map& data)
 {
     string s((const char *)zmq_msg_data(&msg), zmq_msg_size(&msg));
-    deserialize(s, data);
+    return deserialize(s, data);
 }
 
 
@@ -191,9 +278,10 @@ zmq_read_part(void *sock, int flag, int &more, DT data)
     if (rc != -1) {
         size_t more_size = sizeof (more);
 
-        zmsg_to_map(msg, data);
+        rc = zmsg_to_map(msg, data);
 
-        rc = zmq_getsockopt (sock, ZMQ_RCVMORE, &more, &more_size);
+        /* read more flag if message read fails to de-serialize */
+        zmq_getsockopt (sock, ZMQ_RCVMORE, &more, &more_size);
 
     }
     zmq_msg_close(&msg);
@@ -226,6 +314,7 @@ zmq_message_send(void *sock, P1 pt1, P2 pt2)
 {
     int rc = zmq_send_part(sock, pt2.empty() ? 0 : ZMQ_SNDMORE, pt1);
 
+    /* send second part, only if first is sent successfully */
     if ((rc == 0) && (!pt2.empty())) {
         rc = zmq_send_part(sock, 0, pt2);
     }
@@ -237,17 +326,20 @@ template<typename P1, typename P2>
 int
 zmq_message_read(void *sock, int flag, P1 pt1, P2 pt2)
 {
-    int more = 0, rc;
+    int more = 0, rc, rc1;
     
     rc = zmq_read_part(sock, flag, more, pt1);
-    RET_ON_ERR(rc == 0, "Failed to read part1");
 
     if (more) {
-        rc = zmq_read_part(sock, 0, more, pt2);
-        RET_ON_ERR(rc == 0, "Failed to read part1");
-        RET_ON_ERR(!more, "Don't expect more than 2 parts");
+        /*
+         * read second part if more is set, irrespective
+         * of any failure. More is set, only if sock is valid.
+         */
+        rc1 = zmq_read_part(sock, 0, more, pt2);
     }
-
+    RET_ON_ERR(rc == 0, "Failed to read part1");
+    RET_ON_ERR(rc1 == 0, "Failed to read part2");
+    RET_ON_ERR(!more, "Don't expect more than 2 parts");
 out:
     return rc;
 }

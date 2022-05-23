@@ -1,6 +1,14 @@
 #include "events_pi.h"
 
 /*
+ * The uuid_unparse() function converts the supplied UUID uu from
+ * the binary representation into a 36-byte string (plus trailing
+ * '\0') of the form 1b4e28ba-2fa1-11d2-883f-0016d3cca427 and stores
+ * this value in the character string pointed to by out. 
+ */
+#define UUID_STR_SIZE 40
+
+/*
  * Publisher use echo service and subscriber uses cache service
  * The eventd process runs this service, which could be down
  * All service interactions being async, a timeout is required
@@ -18,7 +26,7 @@
  *  duplicates helps reduce load.
  */
 
-typedef map <string, EventPublisher> lst_publishers_t;
+typedef map <string, EventPublisher *> lst_publishers_t;
 lst_publishers_t s_publishers;
 
 EventPublisher::EventPublisher() :
@@ -31,29 +39,30 @@ int EventPublisher::init(const string event_source)
     m_zmq_ctx = zmq_ctx_new();
     m_socket = zmq_socket (m_zmq_ctx, ZMQ_PUB);
 
-    int rc = zmq_connect (m_socket, get_config(XSUB_END_KEY));
-    RET_ON_ERR(rc == 0, "Publisher fails to connect %s", get_config(XSUB_END_KEY));
+    int rc = zmq_connect (m_socket, get_config(XSUB_END_KEY).c_str());
+    RET_ON_ERR(rc == 0, "Publisher fails to connect %s", get_config(XSUB_END_KEY).c_str());
 
     // REQ socket is connected and a message is sent & received, more to
     // ensure PUB socket had enough time to establish connection.
     // Any message published before connection establishment is dropped.
     //
-    event_service m_event_svc;
     /*
      * Event service could be down. So have a timeout.
      * 
      */
-    rc = m_event_svc.init_client(m_zmq_ctx, EVENTS_SERVICE_TIMEOUT_MILLISECS);
+    rc = m_event_service.init_client(m_zmq_ctx, EVENTS_SERVICE_TIMEOUT_MILLISECS);
     RET_ON_ERR (rc == 0, "Failed to init event service");
 
-    rc = m_event_svc.echo_send("hello");
+    rc = m_event_service.echo_send("hello");
     RET_ON_ERR (rc == 0, "Failed to echo send in event service");
 
-    m_event_source(event_source);
+    m_event_source = event_source;
 
     uuid_t id;
+    char uuid_str[UUID_STR_SIZE];
     uuid_generate(id);
-    uuid_unparse(id, m_runtime_id);
+    uuid_unparse(id, uuid_str);
+    m_runtime_id = string(uuid_str);
 
     m_init = true;
 out:
@@ -67,9 +76,12 @@ EventPublisher::~EventPublisher()
 }
 
 
-void
-EventPublisher::event_publish(const string tag, const event_params_t *params)
+int
+EventPublisher::publish(const string tag, const event_params_t *params)
 {
+    int rc;
+    internal_event_t event_data;
+
     if (m_event_service.is_active()) {
         string s;
 
@@ -78,28 +90,41 @@ EventPublisher::event_publish(const string tag, const event_params_t *params)
          * as provided in publisher init.
          */
         m_event_service.echo_receive(s);
+        m_event_service.close_service();
     }
 
     string param_str;
-    if ((params != NULL) && (param->find(event_ts) != params->end())) {
-
-        param_str = serialize(*params);
+    event_params_t evt_params;
+    if (params != NULL) {
+        if (params->find(event_ts_param) == params->end()) {
+            evt_params = *params;
+            evt_params[event_ts_param] = get_timestamp();
+            params = &evt_params;
+        }
     }
     else {
-        event_params_t evt_params = *params;
-        evt_params[event_ts] = get_timestamp();
-        param_str = serialize(evt_params);
+        evt_params[event_ts_param] = get_timestamp();
+        params = &evt_params;
     }
+    rc = serialize(*params, param_str);
+    RET_ON_ERR(rc == 0, "failed to serialize params %s",
+            map_to_str(*params).c_str());
 
-    map_str_str_t event_str = { { m_event_source + ":" + tag, param_str}};
+    {
+    map_str_str_t event_str_map = { { m_event_source + ":" + tag, param_str}};
 
-    ++m_sequence;
-    internal_event_t event_data;
-    event_data[EVENT_STR_DATA] = serialize(event_str);
+    rc = serialize(event_str_map, event_data[EVENT_STR_DATA]);
+    RET_ON_ERR(rc == 0, "failed to serialize event str %s", 
+            map_to_str(event_str_map));
+    }
     event_data[EVENT_RUNTIME_ID] = m_runtime_id;
+    ++m_sequence;
     event_data[EVENT_SEQUENCE] = seq_to_str(m_sequence);
 
-    return zmq_message_send(m_socket, m_event_source, event_data);
+    rc = zmq_message_send(m_socket, m_event_source, event_data);
+    RET_ON_ERR(rc == 0, "failed to send for tag %s", tag.c_str());
+out:
+    return rc;
 }
 
 event_handle_t
@@ -121,7 +146,7 @@ events_init_publisher(const string event_source)
         }
         else {
             ret = p;
-            s_publishers[key] = p;
+            s_publishers[event_source] = p;
         }
     }
     return ret;
@@ -131,7 +156,6 @@ void
 events_deinit_publisher(event_handle_t &handle)
 {
     lst_publishers_t::iterator it;
-    EventPublisher *pub = NULL;
 
     for(it=s_publishers.begin(); it != s_publishers.end(); ++it) {
         if (it->second == handle) {
@@ -144,12 +168,13 @@ events_deinit_publisher(event_handle_t &handle)
 
 }
 
-void
+int
 event_publish(event_handle_t handle, const string tag, const event_params_t *params)
 {
-    for(it=s_publishers.begin(); it != s_publishers.end(); ++it) {
-        if (it->second == handle) {
-            return it->second->event_publish(tag, params);
+    lst_publishers_t::const_iterator itc;
+    for(itc=s_publishers.begin(); itc != s_publishers.end(); ++itc) {
+        if (itc->second == handle) {
+            return itc->second->publish(tag, params);
         }
     }
     return -1;
@@ -175,17 +200,17 @@ EventSubscriber::~EventSubscriber()
      */
     int rc = 0;
 
-    if (m_use_cache) {
+    if (m_event_service.is_active()) {
         events_data_lst_t events;
 
-        rc = m_event_svc.cache_init();
+        rc = m_event_service.cache_init();
         RET_ON_ERR(rc == 0, "Failed to init the cache");
 
         /* Shadow the cache init request, as it is async */
-        m_event_svc.send_recv(EVENT_ECHO);
+        m_event_service.send_recv(EVENT_ECHO);
 
         /* read for 2 seconds in non-block mode, to drain any local cache */
-        chrono::steady_clock::timepoint start = chrono::steady_clock::now();
+        chrono::steady_clock::time_point start = chrono::steady_clock::now();
         while(true) {
             string source, evt_str;
             rc = zmq_message_read(m_socket, ZMQ_DONTWAIT, source, evt_str);
@@ -196,15 +221,16 @@ EventSubscriber::~EventSubscriber()
                 break;
             }
             events.push_back(evt_str);
-            chrono::steady_clock::timepoint now = chrono::steady_clock::now();
-            if (chrono::duration_cast<std::chrono::milliseconds>(now - start) >
+            chrono::steady_clock::time_point now = chrono::steady_clock::now();
+            if (chrono::duration_cast<std::chrono::milliseconds>(now - start).count() >
                     CACHE_DRAIN_IN_MILLISECS)
                 break;
         }
 
         /* Start cache service with locally read events as initial stock */
-        RET_ON_ERR(m_event_svc.cache_start(events) == 0,
+        RET_ON_ERR(m_event_service.cache_start(events) == 0,
                 "Failed to send cache start");
+        m_event_service.close_service();
     }
 out:
     zmq_close(m_socket);
@@ -227,29 +253,28 @@ EventSubscriber::init(bool use_cache, const event_subscribe_sources_t *subs_sour
 
     m_socket = zmq_socket (m_zmq_ctx, ZMQ_SUB);
 
-    int rc = zmq_connect (m_socket, get_config(XPUB_END_KEY));
-    RET_ON_ERR(rc == 0, "Subscriber fails to connect %s", get_config(XPUB_END_KEY));
+    int rc = zmq_connect (m_socket, get_config(XPUB_END_KEY).c_str());
+    RET_ON_ERR(rc == 0, "Subscriber fails to connect %s", get_config(XPUB_END_KEY).c_str());
 
     if ((subs_sources == NULL) || (subs_sources->empty())) {
-        rc = zmq_setsockopt(sub_read, ZMQ_SUBSCRIBE, "", 0);
+        rc = zmq_setsockopt(m_socket, ZMQ_SUBSCRIBE, "", 0);
         RET_ON_ERR(rc == 0, "Fails to set option");
     }
     else {
         for (const auto e: *subs_sources) {
-            rc = zmq_setsockopt(sub_read, ZMQ_SUBSCRIBE, e.c_str(), e.size());
+            rc = zmq_setsockopt(m_socket, ZMQ_SUBSCRIBE, e.c_str(), e.size());
             RET_ON_ERR(rc == 0, "Fails to set option");
         }
     }
 
     if (use_cache) {
-        rc = m_event_svc.init_client(m_zmq_ctx, EVENTS_SERVICE_TIMEOUT_MILLISECS);
+        rc = m_event_service.init_client(m_zmq_ctx, EVENTS_SERVICE_TIMEOUT_MILLISECS);
         RET_ON_ERR(rc == 0, "Fails to init the service");
 
-        if (m_event_svc.cache_stop() == 0) {
+        if (m_event_service.cache_stop() == 0) {
             // Stopped an active cache 
             m_cache_read = true;
         }
-        m_use_cache = true;
     }
     m_init = true;
 out:
@@ -277,25 +302,26 @@ EventSubscriber::prune_track()
 
 
 int
-EventSubscriber::event_receive(string &&key, event_params_t &params, int &missed_cnt)
+EventSubscriber::event_receive(string &key, event_params_t &params, int &missed_cnt)
 {
+    int rc = 0; 
     key.clear();
     event_params_t().swap(params);
 
     while (key.empty()) {
         internal_event_t event_data;
-        int rc = 0; 
 
         if (m_cache_read && m_from_cache.empty()) {
-            m_event_svc.cache_read(m_from_cache);
+            m_event_service.cache_read(m_from_cache);
             m_cache_read = !m_from_cache.empty();
         }
 
         if (!m_from_cache.empty()) {
 
             events_data_lst_t::iterator it = m_from_cache.begin();
-            deserialize(*it, event_data);
+            rc = deserialize(*it, event_data);
             m_from_cache.erase(it);
+            RET_ON_ERR(rc == 0, "Failed to deserialize message from cache");
 
         }
         else {
@@ -307,9 +333,9 @@ EventSubscriber::event_receive(string &&key, event_params_t &params, int &missed
 
         /* Find any missed events for this runtime ID */
         missed_cnt = 0;
+        sequence_t seq = events_base::str_to_seq(event_data[EVENT_SEQUENCE]);
         track_info_t::iterator it = m_track.find(event_data[EVENT_RUNTIME_ID]);
         if (it != m_track.end()) {
-            sequence_t seq = events_base::str_to_seq(event_data[EVENT_SEQUENCE]);
             /* current seq - last read - 1 == 0 if none missed */
             missed_cnt = seq - it->second.seq - 1;
             it->second = evt_info_t(seq);
@@ -323,14 +349,23 @@ EventSubscriber::event_receive(string &&key, event_params_t &params, int &missed
         if (missed_cnt >= 0) {
             map_str_str_t ev;
 
-            deserialize(event_data[EVENT_STR_DATA], ev);
-            RET_ON_ERR(ev.size() == 1, "Expect string (%s) deserialize to one key",
-                    event_data[EVENT_STR_DATA].c_str());
+            rc = deserialize(event_data[EVENT_STR_DATA], ev);
+            RET_ON_ERR(rc == 0, "Failed to deserialize %s",
+                    event_data[EVENT_STR_DATA].substr(0, 32).c_str());
+
+            if (ev.size() != 1) rc = -1;
+            RET_ON_ERR(rc == 0, "Expect string (%s) deserialize to one key",
+                    event_data[EVENT_STR_DATA].substr(0, 32).c_str());
             
             key = ev.begin()->first;
 
-            deserialize(ev.begin()->second, params);
+            rc = deserialize(ev.begin()->second, params);
+            RET_ON_ERR(rc == 0, "failed to deserialize params %s",
+                    ev.begin()->second.substr(0, 32).c_str());
 
+        }
+        else {
+            /* negative value implies duplicate; Possibly seen from cache */
         }
     }
 out:
@@ -340,7 +375,7 @@ out:
 
 
 /* Expect only one subscriber per process */
-EventSubscriber *s_subscriber = NULL;
+static EventSubscriber *s_subscriber = NULL;
 
 event_handle_t
 events_init_subscriber(bool use_cache=false,

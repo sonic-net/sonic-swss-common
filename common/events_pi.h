@@ -63,14 +63,14 @@ class EventPublisher : public events_base
 
         int init(const string event_source);
 
-        void publish(event_handle_t &handle, const std::string &event_tag,
+        int publish(const std::string event_tag,
                 const event_params_t *params);
     private:
 
         void *m_zmq_ctx;
         void *m_socket;
 
-        event_service m_event_svc;
+        event_service m_event_service;
 
         string m_event_source;
 
@@ -104,7 +104,7 @@ class EventSubscriber : public events_base
         void *m_zmq_ctx;
         void *m_socket;
 
-        event_service m_event_svc;
+        event_service m_event_service;
 
         bool m_init;
         bool m_cache_read;
@@ -121,7 +121,7 @@ class EventSubscriber : public events_base
             sequence_t  seq;
         } evt_info_t;
 
-        typedef map<runtime_id_t, sequence_t> track_info_t;
+        typedef map<runtime_id_t, evt_info_t> track_info_t;
         track_info_t m_track;
 
         events_data_lst_t m_from_cache;

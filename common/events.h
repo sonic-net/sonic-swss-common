@@ -60,7 +60,7 @@ typedef std::map<std::string, std::string> event_params_t;
 /*
  * timestamp param name
  */
-const std::string event_ts("timestamp");
+const std::string event_ts_param("timestamp");
 
 /*
  * Publish an event
