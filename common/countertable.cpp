@@ -14,53 +14,39 @@ using namespace swss;
 
 const std::string Counter::defaultLuaScript = "return nil";
 
-PortCounter::PortCounter(const DBConnector *db, PortCounter::Mode mode)
+PortCounter::PortCounter(PortCounter::Mode mode)
     : m_mode(mode)
-    , m_countersDB(db->newConnector(0))
-    , m_gbcountersDB(nullptr)
 {
     m_luaScript = loadLuaScript("portcounter.lua");
 }
 
 const std::string&
-PortCounter::getLuaScript()
+PortCounter::getLuaScript() const
 {
     return m_luaScript;
 }
 
-unique_ptr<DBConnector>&
-PortCounter::getGbcountersDB()
-{
-    if (!m_gbcountersDB)
-    {
-        unique_ptr<DBConnector> ptr(new DBConnector(GB_COUNTERS_DB, *m_countersDB));
-        m_gbcountersDB = std::move(ptr);
-    }
-
-    return m_gbcountersDB;
-}
-
 bool
-PortCounter::usingLuaTable(const std::string &name)
+PortCounter::usingLuaTable(const CounterTable& t, const std::string &name) const
 {
     if (m_mode != Mode::all)
         return false;
 
     // Whether gearbox port exists
-    auto oidPtr = getGbcountersDB()->hget(COUNTERS_PORT_NAME_MAP, name + "_line");
+    auto oidPtr = t.getGbcountersDB()->hget(COUNTERS_PORT_NAME_MAP, name + "_line");
     return (bool)oidPtr;
 }
 
 
 std::vector<std::string>
-PortCounter::getLuaKeys(const std::string &name)
+PortCounter::getLuaKeys(const CounterTable& t, const std::string &name) const
 {
     if (m_mode != Mode::all)
         return {};
 
-    auto oidLinesidePtr = getGbcountersDB()->hget(COUNTERS_PORT_NAME_MAP, name + "_line");
-    auto oidSystemsidePtr = getGbcountersDB()->hget(COUNTERS_PORT_NAME_MAP, name + "_system");
-    auto oidAsicPtr = m_countersDB->hget(COUNTERS_PORT_NAME_MAP, name);
+    auto oidLinesidePtr = t.getGbcountersDB()->hget(COUNTERS_PORT_NAME_MAP, name + "_line");
+    auto oidSystemsidePtr = t.getGbcountersDB()->hget(COUNTERS_PORT_NAME_MAP, name + "_system");
+    auto oidAsicPtr = t.getCountersDB()->hget(COUNTERS_PORT_NAME_MAP, name);
 
     if (oidAsicPtr && oidSystemsidePtr && oidLinesidePtr)
     {
@@ -70,100 +56,117 @@ PortCounter::getLuaKeys(const std::string &name)
     return {};
 }
 
-std::string
-PortCounter::getKey(const std::string &name)
+Counter::KeyPair
+PortCounter::getKey(const CounterTable& t, const std::string &name) const
 {
+    int dbId;
     shared_ptr<std::string> oidPtr = nullptr;
 
     if (m_mode == Mode::all)
-        return "";
+        return {-1,""};
 
     if (m_mode == Mode::asic)
     {
-        oidPtr = m_countersDB->hget(COUNTERS_PORT_NAME_MAP, name);
+        dbId = COUNTERS_DB;
+        oidPtr = t.getCountersDB()->hget(COUNTERS_PORT_NAME_MAP, name);
     }
     else if (m_mode == Mode::systemside)
     {
-        oidPtr = getGbcountersDB()->hget(COUNTERS_PORT_NAME_MAP, name + "_system");
+        dbId = GB_COUNTERS_DB;
+        oidPtr = t.getGbcountersDB()->hget(COUNTERS_PORT_NAME_MAP, name + "_system");
     }
     else
     {
-        oidPtr = getGbcountersDB()->hget(COUNTERS_PORT_NAME_MAP, name + "_line");
+        dbId = GB_COUNTERS_DB;
+        oidPtr = t.getGbcountersDB()->hget(COUNTERS_PORT_NAME_MAP, name + "_line");
     }
 
-    return oidPtr == nullptr ? "" : *oidPtr;
+    if (oidPtr == nullptr)
+        return {-1, ""};
+    return {dbId, *oidPtr};
 }
 
 
-MacsecCounter::MacsecCounter(const DBConnector *db)
-    : m_countersDB(db->newConnector(0))
+Counter::KeyPair
+MacsecCounter::getKey(const CounterTable& t, const std::string &name) const
 {
-}
-
-std::string
-MacsecCounter::getKey(const std::string &name)
-{
-    auto oidPtr = m_countersDB->hget(COUNTERS_MACSEC_NAME_MAP, name);
+    int dbId = COUNTERS_DB;
+    auto oidPtr = t.getCountersDB()->hget(COUNTERS_MACSEC_NAME_MAP, name);
 
     if (oidPtr == nullptr)
     {
-        DBConnector db(GB_COUNTERS_DB, *m_countersDB);
-        oidPtr = db.hget(COUNTERS_MACSEC_NAME_MAP, name);
+        dbId = GB_COUNTERS_DB;
+        oidPtr = t.getGbcountersDB()->hget(COUNTERS_MACSEC_NAME_MAP, name);
     }
 
-    return oidPtr == nullptr ? "" : *oidPtr;
+    if (oidPtr == nullptr)
+        return {-1, ""};
+    return {dbId, *oidPtr};
 }
 
-CounterTable::CounterTable(Counter *counter, const DBConnector *db, const string &tableName)
+CounterTable::CounterTable(const DBConnector *db, const string &tableName)
     : TableBase(tableName, SonicDBConfig::getSeparator(db))
-    , m_counter(counter)
     , m_countersDB(db->newConnector(0))
 {
+    unique_ptr<DBConnector> ptr(new DBConnector(GB_COUNTERS_DB, *m_countersDB));
+    m_gbcountersDB = std::move(ptr);
 }
 
-std::unique_ptr<LuaTable>& CounterTable::getLuaTable()
+bool CounterTable::get(const Counter &counter, const std::string &name, std::vector<FieldValueTuple> &values)
 {
-    if (!m_luaTable)
+    if (counter.usingLuaTable(*this, name))
     {
-        unique_ptr<LuaTable> ptr(new LuaTable(m_countersDB.get(), getTableName(), m_counter->getLuaScript()));
-        m_luaTable = std::move(ptr);
-    }
-
-    return m_luaTable;
-}
-
-std::unique_ptr<Table>& CounterTable::getTable()
-{
-    if (!m_table)
-    {
-        unique_ptr<Table> ptr(new Table(m_countersDB.get(), getTableName()));
-        m_table = std::move(ptr);
-    }
-
-    return m_table;
-}
-
-bool CounterTable::get(const std::string &name, std::vector<FieldValueTuple> &values)
-{
-    if (m_counter->usingLuaTable(name))
-    {
-        return getLuaTable()->get(m_counter->getLuaKeys(name), values);
+        LuaTable luaTable(m_countersDB.get(), getTableName(), counter.getLuaScript());
+        return luaTable.get(counter.getLuaKeys(*this, name), values);
     }
     else
     {
-        return getTable()->get(m_counter->getKey(name), values);
+        auto keyPair = counter.getKey(*this, name);
+        if (keyPair.second.empty())
+        {
+            values.clear();
+            return false;
+        }
+
+        if (keyPair.first == GB_COUNTERS_DB)
+        {
+            Table table(m_gbcountersDB.get(), getTableName());
+            return table.get(keyPair.second, values);
+        }
+        else
+        {
+            Table table(m_countersDB.get(), getTableName());
+            return table.get(keyPair.second, values);
+        }
     }
 }
 
 
-bool CounterTable::hget(const std::string &name, const std::string &field, std::string &value)
+bool CounterTable::hget(const Counter &counter, const std::string &name, const std::string &field, std::string &value)
 {
-    if (m_counter->usingLuaTable(name))
+    if (counter.usingLuaTable(*this, name))
     {
-        return getLuaTable()->hget(m_counter->getLuaKeys(name), field, value);
+        LuaTable luaTable(m_countersDB.get(), getTableName(), counter.getLuaScript());
+        return luaTable.hget(counter.getLuaKeys(*this, name), field, value);
     }
     else
     {
-        return getTable()->hget(m_counter->getKey(name), field, value);
+        auto keyPair = counter.getKey(*this, name);
+        if (keyPair.second.empty())
+        {
+            value.clear();
+            return false;
+        }
+
+        if (keyPair.first == GB_COUNTERS_DB)
+        {
+            Table table(getGbcountersDB().get(), getTableName());
+            return table.hget(keyPair.second, field, value);
+        }
+        else
+        {
+            Table table(m_countersDB.get(), getTableName());
+            return table.hget(keyPair.second, field, value);
+        }
     }
 }

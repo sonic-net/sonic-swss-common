@@ -9,20 +9,44 @@
 #include "luatable.h"
 
 namespace swss {
+struct Counter;
+
+class CounterTable: public TableBase {
+public:
+    CounterTable(const DBConnector *db, const std::string &tableName=COUNTERS_TABLE);
+
+public:
+    bool get(const Counter &counter, const std::string &key, std::vector<FieldValueTuple> &values);
+    bool hget(const Counter &counter, const std::string &key, const std::string &field,  std::string &value);
+
+    const std::unique_ptr<DBConnector>& getCountersDB() const {
+        return m_countersDB;
+    }
+    const std::unique_ptr<DBConnector>& getGbcountersDB() const {
+        return m_gbcountersDB;
+    }
+
+private:
+    std::unique_ptr<DBConnector> m_countersDB;
+    std::unique_ptr<DBConnector> m_gbcountersDB;
+};
+
 struct Counter {
-    virtual const std::string& getLuaScript() {
+    typedef std::pair<int, std::string> KeyPair;
+
+    virtual const std::string& getLuaScript() const {
         return defaultLuaScript;
     }
-    virtual std::vector<std::string> getLuaArgv() {
+    virtual std::vector<std::string> getLuaArgv() const {
         return {};
     }
-    virtual bool usingLuaTable(const std::string &name) {
+    virtual bool usingLuaTable(const CounterTable&, const std::string &name) const {
         return false;
     }
-    virtual std::vector<std::string> getLuaKeys(const std::string &name) {
+    virtual std::vector<std::string> getLuaKeys(const CounterTable&, const std::string &name) const {
         return {};
     }
-    virtual std::string getKey(const std::string &name) = 0;
+    virtual KeyPair getKey(const CounterTable&, const std::string &name) const = 0;
     virtual ~Counter() = default;
 
 private:
@@ -33,51 +57,24 @@ class PortCounter: public Counter {
 public:
     enum class Mode {all, asic, systemside, lineside};
 
-    PortCounter(const DBConnector *db, Mode mode=Mode::all);
+    PortCounter(Mode mode=Mode::all);
     ~PortCounter() = default;
 
-    const std::string& getLuaScript() override;
-    bool usingLuaTable(const std::string &name) override;
-    std::vector<std::string> getLuaKeys(const std::string &name) override;
-    std::string getKey(const std::string &name) override;
+    const std::string& getLuaScript() const override;
+    bool usingLuaTable(const CounterTable&, const std::string &name) const override;
+    std::vector<std::string> getLuaKeys(const CounterTable&, const std::string &name) const override;
+    KeyPair getKey(const CounterTable&, const std::string &name) const override;
 
 private:
     Mode m_mode;
-    std::unique_ptr<DBConnector> m_countersDB;
-    std::unique_ptr<DBConnector> m_gbcountersDB;
     std::string m_luaScript;
-
-    std::unique_ptr<DBConnector>& getGbcountersDB();
 };
 
 class MacsecCounter: public Counter {
 public:
-    MacsecCounter(const DBConnector *db);
+    MacsecCounter() = default;
     ~MacsecCounter() = default;
-    std::string getKey(const std::string &name) override;
-
-private:
-    std::unique_ptr<DBConnector> m_countersDB;
-};
-
-class CounterTable: public TableBase {
-
-public:
-    CounterTable(Counter *counter,
-                 const DBConnector *db, const std::string &tableName=COUNTERS_TABLE);
-
-public:
-    bool get(const std::string &key, std::vector<FieldValueTuple> &values);
-    bool hget(const std::string &key, const std::string &field,  std::string &value);
-
-private:
-    std::unique_ptr<LuaTable>& getLuaTable();
-    std::unique_ptr<Table>& getTable();
-
-    Counter *m_counter;
-    std::unique_ptr<DBConnector> m_countersDB;
-    std::unique_ptr<LuaTable> m_luaTable;
-    std::unique_ptr<Table> m_table;
+    KeyPair getKey(const CounterTable&, const std::string &name) const override;
 };
 
 }
