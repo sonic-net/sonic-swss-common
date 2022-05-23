@@ -209,7 +209,7 @@ void SonicDBConfig::validateNamespace(const string &netns)
     }
 }
 
-std::unordered_map<std::string, SonicDBInfo> SonicDBConfig::getDbEntry(const std::string &netns)
+const std::unordered_map<std::string, SonicDBInfo>& SonicDBConfig::getDbEntryMap(const std::string &netns)
 {
     std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
 
@@ -235,9 +235,13 @@ std::unordered_map<std::string, SonicDBInfo> SonicDBConfig::getDbEntry(const std
     return foundNetns->second;
 }
 
-SonicDBInfo& SonicDBConfig::getDbInfo(const std::string &dbName, const std::string &netns)
+const SonicDBInfo& SonicDBConfig::getDbInfo(const std::string &dbName, const std::string &netns)
 {
-    auto infos = getDbEntry(netns);
+    std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
+
+    SWSS_LOG_ENTER();
+
+    auto const& infos = getDbEntryMap(netns);
     auto foundDb = infos.find(dbName);
     if (foundDb == infos.end())
     {
@@ -294,8 +298,12 @@ int SonicDBConfig::getDbId(const string &dbName, const string &netns)
 
 string SonicDBConfig::getDbName(int dbId, const string &netns)
 {
+    std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
+
+    SWSS_LOG_ENTER();
+        
     string db_name;
-    auto infos = getDbEntry(netns);
+    auto const& infos = getDbEntryMap(netns);
     for ( auto it = infos.begin(); it != infos.end(); ++it ) {
         auto& db_info = it->second;
         if (db_info.dbId == dbId) {
