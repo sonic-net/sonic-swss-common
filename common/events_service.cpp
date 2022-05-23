@@ -1,5 +1,26 @@
 #include "events_service.h"
 
+/*
+ * For brainstorming, if helpful
+ * The cache messages are read in either direction
+ * Upon start, the caller gives a set of events read for about 2 seconds
+ * in non-blocking mode to give it as start stock.
+ *
+ * Upon cache stop, events collected MAX over a time is read by the caller.
+ * 
+ * These messages are currently provided as vector list of strings.
+ * As cache start provided a small subset, it is given as part of start request
+ * Since cache read can be too many, multiple cache_Read requests are made
+ * until no more and each returns a subset as vector of strings.
+ *
+ * Another way, the entire cache in either direction can be sent/received
+ * via PAIR socket. But this woulkd need a special terminating message to 
+ * indicate read end, as non-blocking read returning no event does not 
+ * necessarily mean end
+ *
+ * Not sure, what the gain here is vs current approach of vector<string>
+ * Just a note for now, not to lose a line of possibility.
+ */
 
 int
 event_service::init_client(void *zmq_ctx, int block_ms)

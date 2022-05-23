@@ -14,7 +14,7 @@
  * All service interactions being async, a timeout is required
  * not to block forever on read.
  *
- * The unit is in milliseconds (in sync with ZMQ_RCVTIMEO of
+ * The unit is in milliseconds in sync with ZMQ_RCVTIMEO of
  * zmq_setsockopt.
  */
 
@@ -115,7 +115,7 @@ EventPublisher::publish(const string tag, const event_params_t *params)
 
     rc = serialize(event_str_map, event_data[EVENT_STR_DATA]);
     RET_ON_ERR(rc == 0, "failed to serialize event str %s", 
-            map_to_str(event_str_map));
+            map_to_str(event_str_map).c_str());
     }
     event_data[EVENT_RUNTIME_ID] = m_runtime_id;
     ++m_sequence;
@@ -343,7 +343,7 @@ EventSubscriber::event_receive(string &key, event_params_t &params, int &missed_
         else {
             if (m_track.size() > (MAX_PUBLISHERS_COUNT + 10)) {
                 prune_track();
-                m_track[event_data[EVENT_RUNTIME_ID] = evt_info_t(seq);
+                m_track[event_data[EVENT_RUNTIME_ID]] = evt_info_t(seq);
             }
         }
         if (missed_cnt >= 0) {
@@ -378,8 +378,7 @@ out:
 static EventSubscriber *s_subscriber = NULL;
 
 event_handle_t
-events_init_subscriber(bool use_cache=false,
-                const event_subscribe_sources_t *sources=NULL)
+events_init_subscriber(bool use_cache, const event_subscribe_sources_t *sources)
 {
     if (s_subscriber == NULL) {
         EventSubscriber *p = new EventSubscriber();

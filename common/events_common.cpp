@@ -11,7 +11,8 @@ map_str_str_t cfg_data = {
     CFG_VAL(XPUB_END_KEY, "tcp://127.0.0.1:5571"),
     CFG_VAL(REQ_REP_END_KEY, "tcp://127.0.0.1:5572"),
     CFG_VAL(CAPTURE_END_KEY, "tcp://127.0.0.1:5573"),
-    CFG_VAL(STATS_UPD_SECS, "5")
+    CFG_VAL(STATS_UPD_SECS, "5"),
+    CFG_VAL(CACHE_MAX_CNT, "")
 };
 
 void

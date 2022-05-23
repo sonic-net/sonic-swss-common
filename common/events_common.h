@@ -121,10 +121,16 @@ typedef map<string, string> map_str_str_t;
 #define CFG_EVENTS_KEY "events"
 
 /* configurable entities' keys */
-#define XSUB_END_KEY "xsub_path"
+/* zmq proxy's xsub & xpub end points */
+#define XSUB_END_KEY "xsub_path"       
 #define XPUB_END_KEY "xpub_path"
+
+/* Eventd service end point; All service req/resp occur via this path */
 #define REQ_REP_END_KEY "req_rep_path"
+
+/* Internal proxy to service path for capturing events for caching */
 #define CAPTURE_END_KEY "capture_path"
+
 #define STATS_UPD_SECS "stats_upd_secs"
 #define CACHE_MAX_CNT "cache_max_cnt"
 
@@ -178,7 +184,7 @@ serialize(const Map& data, string &s)
     catch (exception& e) {
         stringstream _ser_ex_ss;
 
-        _ser_ex_ss << e.what() << "map data:" << map_to_str(data).substr(0, 32);
+        _ser_ex_ss << e.what() << "map type:" << get_typename(data);
         SWSS_LOG_ERROR("serialize Failed: %s", _ser_ex_ss.str().c_str());
         return -1;
     }   
