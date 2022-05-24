@@ -8,22 +8,50 @@
 #include "common/dbconnector.h"
 #include "sonic-db-cli/sonic-db-cli.h"
 
-const std::string config_file = "./tests/redis_multi_db_ut_config/database_config.json";
-const std::string global_config_file = "./tests/redis_multi_db_ut_config/database_global.json";
+using namespace swss;
+using namespace std;
 
-std::string readFileContent(std::string file_name)
+const string config_file = "./tests/redis_multi_db_ut_config/database_config.json";
+const string global_config_file = "./tests/redis_multi_db_ut_config/database_global.json";
+
+int sonic_db_cli(int argc, char** argv)
 {
-    std::ifstream help_output_file(file_name);
-    std::stringstream buffer;
+    auto initializeGlobalConfig = []()
+    {
+        if (!SonicDBConfig::isGlobalInit())
+        {
+            SonicDBConfig::initializeGlobalConfig(global_config_file);
+        }
+    };
+
+    auto initializeConfig = []()
+    {
+        if (!SonicDBConfig::isInit())
+        {
+            SonicDBConfig::initialize(config_file);
+        }
+    };
+
+    return sonic_db_cli(
+                    argc,
+                    argv,
+                    initializeGlobalConfig,
+                    initializeConfig);
+}
+
+string readFileContent(string file_name)
+{
+    ifstream help_output_file(file_name);
+    stringstream buffer;
     buffer << help_output_file.rdbuf();
     return buffer.str();
 }
 
-std::string runCli(int argc, char** argv)
+string runCli(int argc, char** argv)
 {
     optind = 0;
     testing::internal::CaptureStdout();
-    EXPECT_EQ(0, sonic_db_cli(config_file, global_config_file, argc, argv));
+    EXPECT_EQ(0, sonic_db_cli(argc, argv));
     auto output = testing::internal::GetCapturedStdout();
     return output;
 }
@@ -175,7 +203,7 @@ void flushDB(char* ns, char* database)
     args[3] = database;
     args[4] = "FLUSHDB";
     optind = 0;
-    sonic_db_cli(config_file, global_config_file, 5, args);
+    sonic_db_cli(5, args);
 }
 
 void generateTestData(char* ns, char* database)
@@ -191,7 +219,7 @@ void generateTestData(char* ns, char* database)
     args[5] = "local i=0 while (i<100000) do i=i+1 redis.call('SET', i, i) end";
     args[6] = "0";
     optind = 0;
-    sonic_db_cli(config_file, global_config_file, 7, args);
+    sonic_db_cli(7, args);
 }
 
 TEST(sonic_db_cli, test_parallel_cmd) {
@@ -220,7 +248,7 @@ TEST(sonic_db_cli, test_parallel_cmd) {
     {
         args[3] = const_cast<char*>(db_name.c_str());
         optind = 0;
-        sonic_db_cli(config_file, global_config_file, 5, args);
+        sonic_db_cli(5, args);
     }
 
     db_names = swss::SonicDBConfig::getDbList("asic1");
@@ -229,7 +257,7 @@ TEST(sonic_db_cli, test_parallel_cmd) {
     {
         args[3] = const_cast<char*>(db_name.c_str());
         optind = 0;
-        sonic_db_cli(config_file, global_config_file, 5, args);
+        sonic_db_cli(5, args);
     }
 
     auto sequential_time = float( clock () - begin_time );
@@ -251,7 +279,7 @@ TEST(sonic_db_cli, test_parallel_cmd) {
 
     args[1] = "SAVE";
     optind = 0;
-    sonic_db_cli(config_file, global_config_file, 2, args);
+    sonic_db_cli(2, args);
 
     auto parallen_time = float( clock () - begin_time );
     EXPECT_TRUE(parallen_time < sequential_time);

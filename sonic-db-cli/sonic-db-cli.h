@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <string>
 #include <vector>
 #include <memory>
@@ -48,7 +49,7 @@ void parseCliArguments(
     Options &options);
 
 int sonic_db_cli(
-    const std::string &config_file,
-    const std::string &global_config_file,
     int argc,
-    char** argv);
+    char** argv,
+    std::function<void()> initializeGlobalConfig,
+    std::function<void()> initializeConfig);

@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <vector>
 #include <iostream>
+#include <sstream>
 #include <system_error>
 #include <functional>
 
@@ -158,7 +159,7 @@ void RedisReply::checkReplyType(int expectedType)
         const char *err = (m_reply->type == REDIS_REPLY_STRING || m_reply->type == REDIS_REPLY_ERROR) ?
             m_reply->str : "NON-STRING-REPLY";
 
-        string errmsg = "Expected to get redis type " + to_string(expectedType) + " got type " + to_string(m_reply->type) + ", err: " + err;
+        string errmsg = "Expected to get redis type " + std::to_string(expectedType) + " got type " + std::to_string(m_reply->type) + ", err: " + err;
         SWSS_LOG_ERROR("%s", errmsg.c_str());
         throw system_error(make_error_code(errc::io_error), errmsg);
     }
@@ -226,12 +227,12 @@ template<> RedisMessage RedisReply::getReply<RedisMessage>()
 }
 
 
-string RedisReply::toString()
+string RedisReply::to_string()
 {
-    return toString(getContext());
+    return to_string(getContext());
 }
 
-string RedisReply::toString(redisReply *reply)
+string RedisReply::to_string(redisReply *reply)
 {
     switch(reply->type)
     {
@@ -249,7 +250,7 @@ string RedisReply::toString(redisReply *reply)
         stringstream result;
         for (size_t i = 0; i < reply->elements; i++)
         {
-            result << toString(reply->element[i]);
+            result << to_string(reply->element[i]);
 
             if (i < reply->elements - 1)
             {

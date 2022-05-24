@@ -2,7 +2,6 @@
 #define __REDISREPLY__
 
 #include <hiredis/hiredis.h>
-#include <sstream>
 #include <string>
 #include <stdexcept>
 #include "rediscommand.h"
@@ -93,12 +92,12 @@ public:
     /* Check that the status is QUEUED, throw exception otherwise */
     void checkStatusQueued();
 
-    std::string toString();
+    std::string to_string();
 
 private:
     void checkStatus(const char *status);
     void checkReply();
-    std::string toString(redisReply *reply);
+    std::string to_string(redisReply *reply);
 
     redisReply *m_reply;
 };

@@ -165,7 +165,7 @@ int executeCommands(
         based on our usage in SONiC, None and list type output from python API needs to be modified
         with these changes, it is enough for us to mimic redis-cli in SONiC so far since no application uses tty mode redis-cli output
         */
-        cout << reply.toString() << endl;
+        cout << reply.to_string() << endl;
     }
     catch (const std::system_error& e)
     {
@@ -241,10 +241,10 @@ void parseCliArguments(
 }
 
 int sonic_db_cli(
-    const string &config_file,
-    const string &global_config_file,
     int argc,
-    char** argv)
+    char** argv,
+    function<void()> initializeGlobalConfig,
+    function<void()> initializeConfig)
 {
     Options options;
     try
@@ -260,7 +260,7 @@ int sonic_db_cli(
     catch (logic_error const& e)
     {
         // getopt_long throw logic_error when found a unknown option without value.
-        cerr << "Unknown option without value: " << endl;
+        cerr << "Unknown option without value: "  << e.what() << endl;
         printUsage();
         return -1;
     }
@@ -279,19 +279,12 @@ int sonic_db_cli(
         // Load the database config for the namespace
         if (netns != "None" && !netns.empty())
         {
-            // SonicDBConfig may initialized when run cli with UT
-            if (!SonicDBConfig::isGlobalInit())
-            {
-                SonicDBConfig::initializeGlobalConfig(global_config_file);
-            }
+            initializeGlobalConfig();
         }
         else
         {
             // SonicDBConfig may initialized when run cli with UT
-            if (!SonicDBConfig::isInit())
-            {
-                SonicDBConfig::initialize(config_file);
-            }
+            initializeConfig();
             // Use the tcp connectivity if namespace is local and unixsocket cmd_option is present.
             isTcpConn = true;
             netns = "";
