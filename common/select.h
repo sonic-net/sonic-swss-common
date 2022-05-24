@@ -33,7 +33,7 @@ public:
         SIGNALINT = 3,// Read operation interrupted by SIGINT
     };
 
-    int select(Selectable **c, int timeout = -1);
+    int select(Selectable **c, int timeout = -1, bool interrupt_on_signal = false);
     bool isQueueEmpty();
 
     /**
@@ -66,7 +66,7 @@ private:
         }
     };
 
-    int poll_descriptors(Selectable **c, unsigned int timeout);
+    int poll_descriptors(Selectable **c, unsigned int timeout, bool interrupt_on_signal);
 
     int m_epoll_fd;
     std::unordered_map<int, Selectable *> m_objects;
