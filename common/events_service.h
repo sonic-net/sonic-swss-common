@@ -80,7 +80,7 @@ class event_service {
          */
         int init_client(void *zmq_ctx, int block_ms = -1);
 
-        int init_server(void *zmq_ctx);
+        int init_server(void *zmq_ctx, int block_ms = -1);
 
         /*
          * Event cache service is singleton service
@@ -128,7 +128,7 @@ class event_service {
          *      1   - Already running
          *      -1  - On failure.
          */
-        int cache_start(events_data_lst_t &lst);
+        int cache_start(const events_data_lst_t &lst);
 
         /*
          *  Called to stop caching events
@@ -259,7 +259,8 @@ class event_service {
          * return:
          *  Any failure or response code from server.
          */
-        int send_recv(int code, events_data_lst_t *lst = NULL);
+        int send_recv(int code, const events_data_lst_t *lst_in = NULL,
+                events_data_lst_t *lst_out = NULL);
 
         /*
          * de-init/close service

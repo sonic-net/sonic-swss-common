@@ -305,7 +305,7 @@ zmq_read_part(void *sock, int flag, int &more, DT &data)
    
 template<typename DT>
 int
-zmq_send_part(void *sock, int flag, DT &data)
+zmq_send_part(void *sock, int flag, const DT &data)
 {
     zmq_msg_t msg;
 
@@ -323,7 +323,7 @@ out:
 
 template<typename P1, typename P2>
 int
-zmq_message_send(void *sock, P1 &pt1, P2 &pt2)
+zmq_message_send(void *sock, const P1 &pt1, const P2 &pt2)
 {
     int rc = zmq_send_part(sock, pt2.empty() ? 0 : ZMQ_SNDMORE, pt1);
 

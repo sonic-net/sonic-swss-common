@@ -36,7 +36,7 @@ event_service::init_client(void *zmq_ctx, int block_ms)
     // Set read timeout.
     //
     rc = zmq_setsockopt (sock, ZMQ_RCVTIMEO, &block_ms, sizeof (block_ms));
-    RET_ON_ERR(rc == 0, "Failed to connect to %s", get_config(REQ_REP_END_KEY).c_str());
+    RET_ON_ERR(rc == 0, "Failed to ZMQ_RCVTIMEO to %d", block_ms);
 
     m_socket = sock;
 out:
@@ -44,7 +44,7 @@ out:
 }
 
 int
-event_service::init_server(void *zmq_ctx)
+event_service::init_server(void *zmq_ctx, int block_ms)
 {
     int rc = -1;
 
@@ -54,6 +54,11 @@ event_service::init_server(void *zmq_ctx)
     rc = zmq_bind (sock, get_config(REQ_REP_END_KEY).c_str());
     RET_ON_ERR(rc == 0, "Failed to bind to %s", get_config(REQ_REP_END_KEY).c_str());
     
+    // Set read timeout.
+    //
+    rc = zmq_setsockopt (sock, ZMQ_RCVTIMEO, &block_ms, sizeof (block_ms));
+    RET_ON_ERR(rc == 0, "Failed to ZMQ_RCVTIMEO to %d", block_ms);
+
     m_socket = sock;
 out:
     return rc;
@@ -102,11 +107,11 @@ event_service::cache_init()
 
 
 int
-event_service::cache_start(events_data_lst_t &lst)
+event_service::cache_start(const events_data_lst_t &lst)
 {
     int rc;
 
-    RET_ON_ERR((rc = send_recv(EVENT_CACHE_START, &lst) == 0),
+    RET_ON_ERR((rc = send_recv(EVENT_CACHE_START, &lst)) == 0,
                 "Failed to send cache start");
 out:
     return rc;
@@ -118,7 +123,7 @@ event_service::cache_stop()
 {
     int rc;
 
-    RET_ON_ERR((rc = send_recv(EVENT_CACHE_STOP) == 0),
+    RET_ON_ERR((rc = send_recv(EVENT_CACHE_STOP)) == 0,
                 "Failed to send cache stop");
 out:
     return rc;
@@ -130,7 +135,7 @@ event_service::cache_read(events_data_lst_t &lst)
 {
     int rc;
 
-    RET_ON_ERR((rc = send_recv(EVENT_CACHE_READ, &lst) == 0),
+    RET_ON_ERR((rc = send_recv(EVENT_CACHE_READ, NULL, &lst)) == 0,
                 "Failed to send cache read");
 out:
     return rc;
@@ -140,6 +145,7 @@ out:
 int
 event_service::channel_read(int &code, events_data_lst_t &data)
 {
+    events_data_lst_t().swap(data);
     return zmq_message_read(m_socket, 0, code, data);
 }
 
@@ -152,19 +158,23 @@ event_service::channel_write(int code, const events_data_lst_t &data)
 
 
 int
-event_service::send_recv(int code, events_data_lst_t *p)
+event_service::send_recv(int code, const events_data_lst_t *lst_in,
+        events_data_lst_t *lst_out)
 {
     events_data_lst_t l;
     int resp;
 
-    if(p == NULL) {
-        p = &l;
+    if(lst_in == NULL) {
+        lst_in = &l;
     }
 
-    int rc = channel_write(code, *p);
+    int rc = channel_write(code, *lst_in);
     RET_ON_ERR(rc == 0, "failing  to send code=%d", code);
 
-    rc = channel_read(resp, *p);
+    if (lst_out == NULL) {
+        lst_out = &l;
+    }
+    rc = channel_read(resp, *lst_out);
     RET_ON_ERR(rc == 0, "failing to read resp for code=%d", code);
 
     rc = resp;
@@ -178,6 +188,6 @@ out:
 void
 event_service::close_service()
 {
-    if (m_socket == NULL) { zmq_close(m_socket); m_socket = NULL; }
+    if (m_socket != NULL) { zmq_close(m_socket); m_socket = NULL; }
 }
 
