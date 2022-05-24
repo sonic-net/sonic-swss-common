@@ -1,6 +1,7 @@
 #include "events_common.h"
 
 int zerrno = 0;
+int running_ut = 0;
 
 /*
  * defaults for all config entries

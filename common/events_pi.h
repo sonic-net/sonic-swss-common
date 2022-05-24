@@ -7,7 +7,6 @@
 #include <chrono>
 #include <ctime>
 #include <fstream>
-#include <thread>
 #include <uuid/uuid.h>
 #include "string.h"
 #include "json.hpp"

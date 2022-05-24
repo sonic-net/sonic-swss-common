@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include <chrono>
 #include <fstream>
-#include <thread>
 #include <errno.h>
 #include <cxxabi.h>
 #include "string.h"
@@ -35,6 +34,8 @@ extern int zerrno;
  */
 #define MAX_PUBLISHERS_COUNT  1000
 
+extern int running_ut;
+
 
 /* TODO: Combine two SWSS_LOG_ERROR into one */
 #define RET_ON_ERR(res, msg, ...)\
@@ -43,6 +44,9 @@ extern int zerrno;
         zerrno = zmq_errno(); \
         SWSS_LOG_ERROR(msg, ##__VA_ARGS__); \
         SWSS_LOG_ERROR("last:errno=%d zerr=%d", _e, zerrno); \
+        if (running_ut) { \
+            printf(msg, ##__VA_ARGS__); \
+            printf("last:errno=%d zerr=%d\n", _e, zerrno); }\
         goto out; }
 
 #define ERR_CHECK(res, ...) {\
@@ -243,9 +247,10 @@ zmsg_to_map(zmq_msg_t &msg, Map& data)
  * First part only has the event source, so receivers could
  * filter by source.
  *
- * Second part contains map as defined in internal_event_t.
- * The map is serialized and sent as string.
- *
+ * Second part contains serialized form of map as defined in internal_event_t.
+ * The map is serialized and sent as string events_data_type_t.
+ * Caching that handles of set of events, handleas ordered events
+ * as declared in events_data_lst_t.
  */
 /*
  * This is data going over wire and using cache. So be conservative
@@ -261,10 +266,12 @@ typedef map<string, string> internal_event_t;
 typedef uint32_t sequence_t;
 typedef string runtime_id_t;
 
-internal_event_t internal_event_ref = {
-    { EVENT_STR_DATA, "" },
-    { EVENT_RUNTIME_ID, "" },
-    { EVENT_SEQUENCE, "" } };
+/*
+ * internal_event_t internal_event_ref = {
+ *    { EVENT_STR_DATA, "" },
+ *    { EVENT_RUNTIME_ID, "" },
+ *    { EVENT_SEQUENCE, "" } };
+ */
 
 /* ZMQ message part 2 contains serialized version of internal_event_t */
 typedef string events_data_type_t;
@@ -273,7 +280,7 @@ typedef vector<events_data_type_t> events_data_lst_t;
 
 template<typename DT>
 int 
-zmq_read_part(void *sock, int flag, int &more, DT data)
+zmq_read_part(void *sock, int flag, int &more, DT &data)
 {
     zmq_msg_t msg;
 
@@ -298,15 +305,15 @@ zmq_read_part(void *sock, int flag, int &more, DT data)
    
 template<typename DT>
 int
-zmq_send_part(void *sock, int flag, DT data)
+zmq_send_part(void *sock, int flag, DT &data)
 {
     zmq_msg_t msg;
 
     int rc = map_to_zmsg(data, msg);
-    RET_ON_ERR(rc == 0, "Failed to map to zmsg %d", 5);
+    RET_ON_ERR(rc == 0, "Failed to map to zmsg %d", rc);
 
     rc = zmq_msg_send (&msg, sock, flag);
-    RET_ON_ERR(rc != -1, "Failed to send part %d", 5);
+    RET_ON_ERR(rc != -1, "Failed to send part %d", rc);
 
     rc = 0;
 out:
@@ -316,7 +323,7 @@ out:
 
 template<typename P1, typename P2>
 int
-zmq_message_send(void *sock, P1 pt1, P2 pt2)
+zmq_message_send(void *sock, P1 &pt1, P2 &pt2)
 {
     int rc = zmq_send_part(sock, pt2.empty() ? 0 : ZMQ_SNDMORE, pt1);
 
@@ -330,7 +337,7 @@ zmq_message_send(void *sock, P1 pt1, P2 pt2)
    
 template<typename P1, typename P2>
 int
-zmq_message_read(void *sock, int flag, P1 pt1, P2 pt2)
+zmq_message_read(void *sock, int flag, P1 &pt1, P2 &pt2)
 {
     int more = 0, rc, rc1;
     

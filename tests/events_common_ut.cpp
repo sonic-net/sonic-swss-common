@@ -12,7 +12,7 @@ using namespace std;
 const char *test_cfg_data = "{\
 \"events\" : {  \
     \"xsub_path\": \"xsub_path\", \
-    \"pair_path\": \"pair_path\" \
+    \"req_rep_path\": \"req_rep_path\" \
     }\
 }";
 
@@ -20,7 +20,7 @@ const char *test_cfg_data = "{\
 TEST(events_common, get_config)
 {
     EXPECT_EQ(string("tcp://127.0.0.1:5570"), get_config(string(XSUB_END_KEY)));
-    EXPECT_EQ(string("tcp://127.0.0.1:5573"), get_config(string(PAIR_END_KEY)));
+    EXPECT_EQ(string("tcp://127.0.0.1:5572"), get_config(string(REQ_REP_END_KEY)));
     EXPECT_EQ(string("5"), get_config(string(STATS_UPD_SECS)));
 
     ofstream tfile;
@@ -32,8 +32,10 @@ TEST(events_common, get_config)
     read_init_config(tfile_name);
 
     EXPECT_EQ(string(XSUB_END_KEY), get_config(string(XSUB_END_KEY)));
-    EXPECT_EQ(string(PAIR_END_KEY), get_config(string(PAIR_END_KEY)));
+    EXPECT_EQ(string(REQ_REP_END_KEY), get_config(string(REQ_REP_END_KEY)));
     EXPECT_EQ(string("5"), get_config(string(STATS_UPD_SECS)));
+
+    EXPECT_EQ(100, get_config_data(CACHE_MAX_CNT, 100));
 
     cout << "events_common: get_config succeeded\n";
 }
@@ -67,4 +69,38 @@ TEST(events_common, msg)
 
     EXPECT_EQ(t, t1);
 }
+
+TEST(events_common, send_recv)
+{
+    running_ut = 1;
+
+    char *path = "tcp://127.0.0.1:5570";
+    void *zmq_ctx = zmq_ctx_new();
+    void *sock_p0 = zmq_socket (zmq_ctx, ZMQ_PAIR);
+    EXPECT_EQ(0, zmq_connect (sock_p0, path));
+
+    void *sock_p1 = zmq_socket (zmq_ctx, ZMQ_PAIR);
+    EXPECT_EQ(0, zmq_bind (sock_p1, path));
+
+    string source("Hello"), source1;
+
+    map<string, string> m = {{"foo", "bar"}, {"hello", "world"}, {"good", "day"}};
+    map<string, string> m1;
+
+    EXPECT_EQ(0, zmq_message_send(sock_p0, source, m));
+
+    EXPECT_EQ(0, zmq_message_read(sock_p1, 0, source1, m1));
+
+    EXPECT_EQ(source, source1);
+    EXPECT_EQ(m, m1);
+    zmq_close(sock_p0);
+    zmq_close(sock_p1);
+    zmq_ctx_term(zmq_ctx);
+}
+
+
+
+
+
+
 
