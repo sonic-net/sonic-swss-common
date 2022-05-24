@@ -155,15 +155,23 @@ int executeCommands(
         return 1;
     }
 
-    RedisCommand command;
-    command.format(commands);
-    RedisReply reply(client.get(), command);
-    /*
-    sonic-db-cli output format mimic the non-tty mode output format from redis-cli
-    based on our usage in SONiC, None and list type output from python API needs to be modified
-    with these changes, it is enough for us to mimic redis-cli in SONiC so far since no application uses tty mode redis-cli output
-    */
-    cout << reply.toString() << endl;
+    try
+    {
+        RedisCommand command;
+        command.format(commands);
+        RedisReply reply(client.get(), command);
+        /*
+        sonic-db-cli output format mimic the non-tty mode output format from redis-cli
+        based on our usage in SONiC, None and list type output from python API needs to be modified
+        with these changes, it is enough for us to mimic redis-cli in SONiC so far since no application uses tty mode redis-cli output
+        */
+        cout << reply.toString() << endl;
+    }
+    catch (const std::system_error& e)
+    {
+        cerr << e.what() << endl;
+        return 1;
+    }
 
     return 0;
 }
