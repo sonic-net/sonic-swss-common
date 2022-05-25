@@ -71,6 +71,7 @@ out:
 
 EventPublisher::~EventPublisher()
 {
+    m_event_service.close_service();
     zmq_close(m_socket);
     zmq_ctx_term(m_zmq_ctx);
 }

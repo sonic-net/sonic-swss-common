@@ -38,7 +38,7 @@ typedef void* event_handle_t;
  *  NULL on failure
  */
 
-event_handle_t events_init_publisher(std::string event_source);
+event_handle_t events_init_publisher(const std::string event_source);
 
 /*
  * De-init/free the publisher

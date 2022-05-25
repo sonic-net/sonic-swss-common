@@ -37,7 +37,8 @@ tests_SOURCES = redis_ut.cpp                \
                 saiaclschema_ut.cpp         \
                 main.cpp                    \
                 events_common_ut.cpp        \
-                events_service_ut.cpp
+                events_service_ut.cpp       \
+                events_ut.cpp
 
 tests_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_GTEST) $(LIBNL_CFLAGS)
 tests_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_GTEST) $(LIBNL_CFLAGS)
