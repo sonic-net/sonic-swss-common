@@ -94,10 +94,11 @@ public:
 
     std::string to_string();
 
+    static std::string to_string(redisReply *reply);
+
 private:
     void checkStatus(const char *status);
     void checkReply();
-    std::string to_string(redisReply *reply);
 
     redisReply *m_reply;
 };

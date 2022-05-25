@@ -261,7 +261,7 @@ string RedisReply::to_string(redisReply *reply)
     }
 
     default:
-        SWSS_LOG_ERROR("invalid type %d for message", getContext()->type);
+        SWSS_LOG_ERROR("invalid type %d for message", reply->type);
         return string();
     }
 }

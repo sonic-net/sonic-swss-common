@@ -277,7 +277,7 @@ int sonic_db_cli(
         auto netns = options.m_namespace;
         bool isTcpConn = !options.m_unixsocket;
         // Load the database config for the namespace
-        if (netns != "None" && !netns.empty())
+        if (!netns.empty())
         {
             initializeGlobalConfig();
         }
