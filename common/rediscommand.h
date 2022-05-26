@@ -25,6 +25,7 @@ public:
 
     void format(const char *fmt, ...);
     void formatArgv(int argc, const char **argv, const size_t *argvlen);
+    void format(const std::vector<std::string> &commands);
 
     /* Format HMSET key multiple field value command */
 #ifndef SWIG
