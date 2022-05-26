@@ -92,6 +92,10 @@ public:
     /* Check that the status is QUEUED, throw exception otherwise */
     void checkStatusQueued();
 
+    std::string to_string();
+
+    static std::string to_string(redisReply *reply);
+
 private:
     void checkStatus(const char *status);
     void checkReply();

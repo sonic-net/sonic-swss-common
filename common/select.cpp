@@ -1,6 +1,7 @@
 #include "common/selectable.h"
 #include "common/logger.h"
 #include "common/select.h"
+#include "common/signalhandlerhelper.h"
 #include <algorithm>
 #include <stdio.h>
 #include <sys/time.h>
@@ -8,6 +9,7 @@
 #include <sys/epoll.h>
 #include <unistd.h>
 #include <string.h>
+
 
 using namespace std;
 
@@ -97,7 +99,13 @@ int Select::poll_descriptors(Selectable **c, unsigned int timeout)
     {
         ret = ::epoll_wait(m_epoll_fd, events.data(), sz_selectables, timeout);
     }
-    while(ret == -1 && errno == EINTR); // Retry the select if the process was interrupted by a signal
+    while(ret == -1 && errno == EINTR && !SignalHandlerHelper::checkSignal(Signals::SIGNAL_INT)); // Retry the select if the process was interrupted by a signal
+
+    if (SignalHandlerHelper::checkSignal(Signals::SIGNAL_INT))
+    {
+        // Return if the epoll_wait was interrupted by SIGTERM
+        return Select::SIGNALINT;
+    }
 
     if (ret < 0)
         return Select::ERROR;
@@ -189,6 +197,9 @@ std::string Select::resultToString(int result)
 
         case swss::Select::TIMEOUT:
             return "TIMEOUT";
+
+        case swss::Select::SIGNALINT:
+            return "SIGNALINT";
 
         default:
             SWSS_LOG_WARN("unknown select result: %d", result);
