@@ -64,7 +64,7 @@ jobs:
   - script: |
       set -ex
       ./autogen.sh
-      fakeroot debian/rules DEB_CONFIGURE_EXTRA_FLAGS='--enable-code-coverage' CFLAGS="" CXXFLAGS="--coverage -fprofile-abs-path" LDFLAGS="--coverage -fprofile-abs-path" binary && cp ../*.deb .
+      fakeroot debian/rules DEB_CONFIGURE_EXTRA_FLAGS='--enable-code-coverage' CFLAGS="-g -O0" CXXFLAGS="--coverage -fprofile-abs-path" LDFLAGS="--coverage -fprofile-abs-path" binary && cp ../*.deb .
     displayName: "Compile sonic swss common with coverage enabled"
   - ${{ if eq(parameters.run_unit_test, true) }}:
     - script: |
