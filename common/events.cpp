@@ -16,9 +16,17 @@
  *
  * The unit is in milliseconds in sync with ZMQ_RCVTIMEO of
  * zmq_setsockopt.
+ *
+ * Publisher uses more to shadow async connectivity from PUB to 
+ * XSUB end point of eventd's proxy. Hene have a less value.
+ *
+ * Subscriber uses it for cache management and here we need a
+ * longer timeout, to handle slow proxy. This timeout value's only
+ * impact could be subscriber process trying to terminate.
  */
 
-#define EVENTS_SERVICE_TIMEOUT_MILLISECS 200
+#define EVENTS_SERVICE_TIMEOUT_MS_PUB 200
+#define EVENTS_SERVICE_TIMEOUT_MS_SUB 2000
 
 /*
  *  Track created publishers to avoid duplicates
@@ -50,7 +58,7 @@ int EventPublisher::init(const string event_source)
      * Event service could be down. So have a timeout.
      * 
      */
-    rc = m_event_service.init_client(m_zmq_ctx, EVENTS_SERVICE_TIMEOUT_MILLISECS);
+    rc = m_event_service.init_client(m_zmq_ctx, EVENTS_SERVICE_TIMEOUT_MS_PUB);
     RET_ON_ERR (rc == 0, "Failed to init event service");
 
     rc = m_event_service.echo_send("hello");
@@ -87,7 +95,7 @@ EventPublisher::publish(const string tag, const event_params_t *params)
         string s;
 
         /* Failure is no-op; The eventd service my be down
-         * NOTE: This call atmost blocks for EVENTS_SERVICE_TIMEOUT_MILLISECS
+         * NOTE: This call atmost blocks for EVENTS_SERVICE_TIMEOUT_MS_PUB
          * as provided in publisher init.
          */
         m_event_service.echo_receive(s);
@@ -240,7 +248,8 @@ out:
 
 
 int
-EventSubscriber::init(bool use_cache, const event_subscribe_sources_t *subs_sources)
+EventSubscriber::init(bool use_cache, int recv_timeout,
+        const event_subscribe_sources_t *subs_sources)
 {
     /*
      *  Initiate SUBS connection to XPUB end point.
@@ -268,8 +277,13 @@ EventSubscriber::init(bool use_cache, const event_subscribe_sources_t *subs_sour
         }
     }
 
+    if (recv_timeout != -1) {
+        rc = zmq_setsockopt (m_socket, ZMQ_RCVTIMEO, &recv_timeout, sizeof (recv_timeout));
+        RET_ON_ERR(rc == 0, "Failed to ZMQ_RCVTIMEO to %d", recv_timeout);
+    }
+
     if (use_cache) {
-        rc = m_event_service.init_client(m_zmq_ctx, EVENTS_SERVICE_TIMEOUT_MILLISECS);
+        rc = m_event_service.init_client(m_zmq_ctx, EVENTS_SERVICE_TIMEOUT_MS_SUB);
         RET_ON_ERR(rc == 0, "Fails to init the service");
 
         if (m_event_service.cache_stop() == 0) {
@@ -379,12 +393,13 @@ out:
 static EventSubscriber *s_subscriber = NULL;
 
 event_handle_t
-events_init_subscriber(bool use_cache, const event_subscribe_sources_t *sources)
+events_init_subscriber(bool use_cache, int recv_timeout,
+        const event_subscribe_sources_t *sources)
 {
     if (s_subscriber == NULL) {
         EventSubscriber *p = new EventSubscriber();
 
-        RET_ON_ERR(p->init(use_cache, sources) == 0,
+        RET_ON_ERR(p->init(use_cache, recv_timeout, sources) == 0,
                 "Failed to init subscriber");
 
         s_subscriber = p;
@@ -416,4 +431,8 @@ event_receive(event_handle_t handle, string &key,
     return -1;
 }
 
+int event_last_error()
+{
+    return recv_last_err;
+}
 

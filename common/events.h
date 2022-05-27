@@ -113,6 +113,13 @@ typedef std::vector<std::string> event_subscribe_sources_t;
  *      The cache service caches events during session down time. The deinit
  *      start the caching and init call stops the caching.
  *
+ * recv_timeout
+ *      Read blocks by default until an event is available for read.
+ *      0  - Returns immediately, with or w/o event
+ *      -1 - Default; Blocks until an event is available for read
+ *      N  - Count ofd milliseconds to wait for an event.
+ *
+ *
  *  lst_subscribe_sources_t
  *      List of subscription sources of interest.
  *      The source value is the corresponding YANG module name.
@@ -123,6 +130,7 @@ typedef std::vector<std::string> event_subscribe_sources_t;
  *  NULL on failure
  */
 event_handle_t events_init_subscriber(bool use_cache=false,
+        int recv_timeout = -1,
         const event_subscribe_sources_t *sources=NULL);
 
 /*
@@ -174,11 +182,21 @@ void events_deinit_subscriber(event_handle_t &handle);
  *
  * return:
  *  0 - On success
- * -1 - On failure. The handle is not valid.
+ * -1 - On failure. The handle is not valid or upon receive timeout.
  *
  */
 int event_receive(event_handle_t handle, std::string &key,
         event_params_t &params, int &missed_cnt);
+
+
+/*
+ *  Get error code for last receive
+ *
+ *  Set to EAGAIN on timeout
+ *  Any other value implies fatal error.
+ *
+ */
+int event_last_error();
 
 
 /*

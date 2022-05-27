@@ -25,6 +25,7 @@ using namespace chrono;
 
 extern int errno;
 extern int zerrno;
+extern int recv_last_err;
 
 /*
  * Max count of possible concurrent event publishers
@@ -287,6 +288,7 @@ zmq_read_part(void *sock, int flag, int &more, DT &data)
     more = 0;
     zmq_msg_init(&msg);
     int rc = zmq_msg_recv(&msg, sock, flag);
+    recv_last_err = zerrno;
 
     if (rc != -1) {
         size_t more_size = sizeof (more);

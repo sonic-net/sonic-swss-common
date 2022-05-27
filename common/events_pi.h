@@ -93,6 +93,7 @@ class EventSubscriber : public events_base
         EventSubscriber();
         
         int init(bool use_cache=false,
+                int recv_timeout= -1,
                 const event_subscribe_sources_t *subs_sources=NULL);
 
         virtual ~EventSubscriber();

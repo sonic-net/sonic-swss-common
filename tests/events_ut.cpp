@@ -12,18 +12,24 @@
 
 using namespace std;
 
-static bool terminate_svc = false;
-static bool terminate_sub = false;
 static void *zmq_ctx = NULL;
 
+int last_svc_code = -1;
+
 void events_validate_ts(const string s);
+
+events_data_lst_t lst_cache, lst_read;
+
+#define ARRAY_SIZE(d) (sizeof(d) / sizeof((d)[0]))
+
+static bool terminate_svc = false;
 
 void pub_serve_commands()
 {
     event_service service_svr;
 
+    EXPECT_TRUE(NULL != zmq_ctx);
     EXPECT_EQ(0, service_svr.init_server(zmq_ctx, 1000));
-
     while(!terminate_svc) {
         int code, resp;
         events_data_lst_t lst;
@@ -32,6 +38,8 @@ void pub_serve_commands()
             /* check client service status, before blocking on read */
             continue;
         }
+        printf("Read code=%d lst=%d\n", code, (int)lst.size());
+        last_svc_code = code;
         switch(code) {
             case EVENT_CACHE_INIT:
                 resp = 0;
@@ -39,6 +47,7 @@ void pub_serve_commands()
                 break;
             case EVENT_CACHE_START:
                 resp = 0;
+                lst_cache.swap(lst);
                 lst.clear();
                 break;
             case EVENT_CACHE_STOP:
@@ -47,7 +56,7 @@ void pub_serve_commands()
                 break;
             case EVENT_CACHE_READ:
                 resp = 0;
-                lst = { "rerer", "rrrr", "cccc" };
+                lst.swap(lst_cache.empty() ? lst_read : lst_cache);
                 break;
             case EVENT_ECHO:
                 resp = 0;
@@ -61,11 +70,18 @@ void pub_serve_commands()
     }
     service_svr.close_service();
     EXPECT_FALSE(service_svr.is_active());
+    terminate_svc = false;
+    last_svc_code = -1;
+    events_data_lst_t().swap(lst_cache);
+    events_data_lst_t().swap(lst_read);
 }
 
 
 string read_source;
 internal_event_t read_evt;
+
+// #if 0
+static bool terminate_sub = false;
 
 void run_sub()
 {
@@ -144,11 +160,9 @@ parse_read_evt(string &source, internal_event_t &evt,
     return ret;
 }
 
-
-
 TEST(events, publish)
 {
-    running_ut = 1;
+    // running_ut = 1;
 
     string evt_source0("sonic-events-bgp");
     string evt_source1("sonic-events-xyz");
@@ -250,6 +264,238 @@ TEST(events, publish)
     events_deinit_publisher(h1);
 
     zmq_ctx_term(zmq_ctx);
+    zmq_ctx = NULL;
+    printf("************ PUBLISH DONE ***************\n");
+}
+// #endif
 
+typedef struct {
+    int id;
+    string source;
+    string tag;
+    string rid;
+    string seq;
+    event_params_t params;
+    int missed_cnt;
+} test_data_t;
+
+internal_event_t create_ev(const test_data_t &data)
+{
+    internal_event_t event_data;
+
+    {
+        string param_str;
+
+        EXPECT_EQ(0, serialize(data.params, param_str));
+
+        map_str_str_t event_str_map = { { data.source + ":" + data.tag, param_str}};
+
+        EXPECT_EQ(0, serialize(event_str_map, event_data[EVENT_STR_DATA]));
+    }
+
+    event_data[EVENT_RUNTIME_ID] = data.rid;
+    event_data[EVENT_SEQUENCE] = data.seq;
+
+    return event_data;
+}
+
+static const test_data_t ldata[] = {
+    {
+        0,
+        "source0",
+        "tag0",
+        "guid-0",
+        "1",
+        {{"ip", "10.10.10.10"}, {"state", "up"}},
+        0
+    },
+    {
+        1,
+        "source0",
+        "tag1",
+        "guid-1",
+        "100",
+        {{"ip", "10.10.27.10"}, {"state", "down"}},
+        0
+    },
+    {
+        2,
+        "source1",
+        "tag2",
+        "guid-2",
+        "101",
+        {{"ip", "10.10.24.10"}, {"state", "down"}},
+        0
+    },
+    {
+        3,
+        "source0",
+        "tag3",
+        "guid-1",
+        "105",
+        {{"ip", "10.10.10.10"}, {"state", "up"}},
+        4
+    },
+    {
+        4,
+        "source0",
+        "tag4",
+        "guid-0",
+        "2",
+        {{"ip", "10.10.20.10"}, {"state", "down"}},
+        0
+    },
+    {
+        5,
+        "source1",
+        "tag5",
+        "guid-2",
+        "110",
+        {{"ip", "10.10.24.10"}, {"state", "down"}},
+        8
+    },
+    {
+        6,
+        "source0",
+        "tag0",
+        "guid-0",
+        "5",
+        {{"ip", "10.10.10.10"}, {"state", "up"}},
+        2
+    },
+    {
+        7,
+        "source0",
+        "tag1",
+        "guid-1",
+        "106",
+        {{"ip", "10.10.27.10"}, {"state", "down"}},
+        0
+    },
+    {
+        8,
+        "source1",
+        "tag2",
+        "guid-2",
+        "111",
+        {{"ip", "10.10.24.10"}, {"state", "down"}},
+        0
+    },
+    {
+        9,
+        "source0",
+        "tag3",
+        "guid-1",
+        "109",
+        {{"ip", "10.10.10.10"}, {"state", "up"}},
+        2
+    },
+    {
+        10,
+        "source0",
+        "tag4",
+        "guid-0",
+        "6",
+        {{"ip", "10.10.20.10"}, {"state", "down"}},
+        0
+    },
+    {
+        11,
+        "source1",
+        "tag5",
+        "guid-2",
+        "119",
+        {{"ip", "10.10.24.10"}, {"state", "down"}},
+        7
+    },
+};
+
+int pub_send_cnt = 0;
+
+void run_pub()
+{
+    /*
+     * Two ends of zmq had to be on different threads.
+     * so run it independently
+     */
+    void *mock_pub;
+    mock_pub = zmq_socket (zmq_ctx, ZMQ_PUB);
+    EXPECT_TRUE(NULL != mock_pub);
+    EXPECT_EQ(0, zmq_bind(mock_pub, get_config(XPUB_END_KEY).c_str()));
+
+    while (pub_send_cnt >= 0) {
+        if (pub_send_cnt == 0) {
+            this_thread::sleep_for(chrono::milliseconds(2));
+            continue;
+        }
+
+        /* Publish messages for deinit to capture */
+        int i;
+        for(i=0; i<pub_send_cnt; ++i) {
+            string src("some_src");
+            internal_event_t evt(create_ev(ldata[i]));
+
+            EXPECT_EQ(0, zmq_message_send(mock_pub, src, evt));
+        }
+        pub_send_cnt = 0;
+    }
+    zmq_close(mock_pub);
+
+}
+
+
+TEST(events, subscribe)
+{
+    running_ut = 1;
+
+
+    int cnt_deinit_cache = 2;   /* count of events published during subs deinit*/
+    int cnt_active_cache = 4;   /* count of events published during active cache */
+    int cnt_cache_overlap = 2;  /* Count of re-publish cached to see it get skipped */
+
+    event_handle_t hsub;
+
+    zmq_ctx = zmq_ctx_new();
+    EXPECT_TRUE(NULL != zmq_ctx);
+
+    /* Ensure there are few more for active publiush to subscriber */
+    EXPECT_TRUE(ARRAY_SIZE(ldata) - cnt_deinit_cache - cnt_active_cache > 5);
+
+    /* Ensure the counts are sane */
+    EXPECT_TRUE(cnt_deinit_cache + cnt_active_cache > cnt_cache_overlap);
+
+    thread thr_svc(&pub_serve_commands);
+    thread thr_pub(&run_pub);
+
+    hsub = events_init_subscriber(true);
+    EXPECT_TRUE(NULL != hsub);
+    EXPECT_EQ(last_svc_code, EVENT_CACHE_STOP);
+
+    /* Take a pause to allow publish to connect async */
+    this_thread::sleep_for(chrono::milliseconds(200));
+
+    /* Publish messages for deinit to capture */
+    pub_send_cnt = cnt_deinit_cache;
+
+    /* Take a pause to ensure, subscriber would have got it */
+    this_thread::sleep_for(chrono::milliseconds(200));
+
+    /* Verify all messages are sent/published */
+    EXPECT_EQ(0, pub_send_cnt);
+
+    events_deinit_subscriber(hsub);
+    EXPECT_TRUE(NULL == hsub);
+    EXPECT_EQ(last_svc_code, EVENT_CACHE_START);
+    EXPECT_TRUE(cnt_deinit_cache == (int)lst_cache.size());
+
+    events_deinit_subscriber(hsub);
+
+    /* Don't need event's service anymore */
+    terminate_svc = true;
+    pub_send_cnt = -1;
+
+    thr_svc.join();
+    thr_pub.join();
+    zmq_ctx_term(zmq_ctx);
 }
 

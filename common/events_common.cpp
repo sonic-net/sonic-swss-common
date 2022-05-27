@@ -1,6 +1,7 @@
 #include "events_common.h"
 
 int zerrno = 0;
+int recv_last_err = 0;
 int running_ut = 0;
 
 /*
