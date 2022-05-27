@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <limits>
+#include <mutex>
 #include <sys/timerfd.h>
 #include "selectable.h"
 
@@ -22,6 +23,8 @@ public:
     uint64_t readData() override;
 
 private:
+    std::mutex m_mutex;
+    bool m_running;
     int m_tfd;
     itimerspec m_interval;
     itimerspec m_zero;

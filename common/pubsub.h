@@ -1,12 +1,15 @@
 #pragma once
 #include <map>
 #include <deque>
+#include <utility>
 
 #include "dbconnector.h"
 #include "select.h"
 #include "redisselect.h"
 
 namespace swss {
+
+typedef std::pair<int, std::map<std::string, std::string> > MessageResultPair;
 
 // This class is to emulate python redis-py class PubSub
 // After SWIG wrapping, it should be used in the same way
@@ -29,6 +32,7 @@ public:
 private:
     /* Pop keyspace event from event buffer. Caller should free resources. */
     std::shared_ptr<RedisReply> popEventBuffer();
+    MessageResultPair get_message_internal(double timeout = 0.0);
 
     DBConnector *m_parentConnector;
     Select m_select;

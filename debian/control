@@ -35,3 +35,9 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Pre-Depends}
 Section: libs
 Description: This package contains Switch State Service common Python3 library.
+
+Package: sonic-db-cli
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Pre-Depends}
+Section: libs
+Description: This package contains SONiC DB cli.

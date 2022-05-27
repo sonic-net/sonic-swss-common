@@ -79,20 +79,29 @@ bool PubSub::hasCachedData()
 
 map<string, string> PubSub::get_message(double timeout)
 {
-    map<string, string> ret;
+    return get_message_internal(timeout).second;
+}
+
+MessageResultPair PubSub::get_message_internal(double timeout)
+{
+    MessageResultPair ret;
+
     if (!m_subscribe)
     {
+        ret.first = Select::ERROR;
         return ret;
     }
 
     Selectable *selected;
     int rc = m_select.select(&selected, int(timeout));
+    ret.first = rc;
     switch (rc)
     {
         case Select::ERROR:
             throw RedisError("Failed to select", m_subscribe->getContext());
 
         case Select::TIMEOUT:
+        case Select::SIGNALINT:
             return ret;
 
         case Select::OBJECT:
@@ -110,10 +119,10 @@ map<string, string> PubSub::get_message(double timeout)
     }
 
     auto message = event->getReply<RedisMessage>();
-    ret["type"] = message.type;
-    ret["pattern"] = message.pattern;
-    ret["channel"] = message.channel;
-    ret["data"] = message.data;
+    ret.second["type"] = message.type;
+    ret.second["pattern"] = message.pattern;
+    ret.second["channel"] = message.channel;
+    ret.second["data"] = message.data;
     return ret;
 }
 
@@ -122,14 +131,17 @@ map<string, string> PubSub::get_message(double timeout)
 std::map<std::string, std::string> PubSub::listen_message()
 {
     const double GET_MESSAGE_INTERVAL = 600.0; // in seconds
+    MessageResultPair ret;
     for (;;)
     {
-        auto ret = get_message(GET_MESSAGE_INTERVAL);
-        if (!ret.empty())
+        ret = get_message_internal(GET_MESSAGE_INTERVAL);
+        if (!ret.second.empty() || ret.first == Select::SIGNALINT)
         {
-            return ret;
+            break;
         }
     }
+
+    return ret.second;
 }
 
 shared_ptr<RedisReply> PubSub::popEventBuffer()
