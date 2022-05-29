@@ -1,7 +1,8 @@
 import signal
 import os
+import sys
 import pytest
-import threading
+import multiprocessing
 import time
 from swsscommon import swsscommon
 
@@ -12,15 +13,23 @@ def test_config_db_listen_while_signal_received():
     c=swsscommon.ConfigDBConnector()
     c.subscribe('A', lambda a: None)
     c.connect(wait_for_init=False)
+    event = multiprocessing.Event()
 
-    def deferred_sigint():
-        time.sleep(10)
-        os.kill(os.getpid(), signal.SIGINT)
+    def signal_handler(signum, frame):
+        event.set()
+        sys.exit(0)
 
-    thr = threading.Thread(target=deferred_sigint)
-    thr.start()
+    signal.signal(signal.SIGUSR1, signal_handler)
 
-    with pytest.raises(KeyboardInterrupt):
+    def listen():
         c.listen()
 
+    thr = multiprocessing.Process(target=listen)
+    thr.start()
+
+    time.sleep(5)
+    os.kill(thr.pid, signal.SIGUSR1)
+
     thr.join()
+
+    assert event.is_set()
