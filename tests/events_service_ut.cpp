@@ -16,6 +16,7 @@ static event_service service_cl, service_svr;
 static int server_rd_code, server_ret;
 static events_data_lst_t server_rd_lst, server_wr_lst;
 
+/* Mimic the eventd service that handles service requests via dedicated thread */
 void serve_commands()
 {
     int code;
@@ -29,7 +30,6 @@ void serve_commands()
         server_rd_code = code;
         server_rd_lst = lst;
 
-        // printf("serve_commands code=%dlst=%d, %d\n", server_rd_code, (int)server_rd_lst.size(), (int)lst.size());
         switch(code) {
             case EVENT_CACHE_INIT:
                 server_ret = 0;
@@ -71,6 +71,7 @@ TEST(events_common, cache_cmds)
     zmq_ctx = zmq_ctx_new();
     EXPECT_TRUE(NULL != zmq_ctx);
 
+    /* Start mock service in a separate thread */
     thread thr(&serve_commands);
 
     EXPECT_EQ(0, service_cl.init_client(zmq_ctx));
@@ -90,10 +91,12 @@ TEST(events_common, cache_cmds)
     EXPECT_EQ(0, service_cl.cache_start(lst_start));
     EXPECT_EQ(EVENT_CACHE_START, server_rd_code);
     EXPECT_EQ(lst_start, server_rd_lst);
+    EXPECT_TRUE(server_wr_lst.empty());
 
     EXPECT_EQ(0, service_cl.cache_stop());
     EXPECT_EQ(EVENT_CACHE_STOP, server_rd_code);
     EXPECT_TRUE(server_rd_lst.empty());
+    EXPECT_TRUE(server_wr_lst.empty());
 
     EXPECT_EQ(0, service_cl.cache_read(lst));
     EXPECT_EQ(EVENT_CACHE_READ, server_rd_code);

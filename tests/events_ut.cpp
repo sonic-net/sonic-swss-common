@@ -25,6 +25,7 @@ events_data_lst_t lst_cache;
 static bool terminate_svc = false;
 
 
+/* Mock eventd service for cache & echo commands */
 void pub_serve_commands()
 {
     event_service service_svr;
@@ -82,6 +83,7 @@ internal_event_t read_evt;
 
 static bool terminate_sub = false;
 
+/* Mock a subscriber for testing publisher APIs */
 void run_sub()
 {
     void *mock_sub = zmq_socket (zmq_ctx, ZMQ_SUB);
@@ -116,7 +118,7 @@ parse_read_evt(string &source, internal_event_t &evt,
     key.clear();
     event_params_t().swap(params);
 
-    /* Pause with timeout for reading published message */
+    /* Wait for run_sub to reads the published message with timeout. */
     for(i=0; source.empty() && (i < 20); ++i) {
         this_thread::sleep_for(chrono::milliseconds(10));
     }
@@ -298,6 +300,7 @@ internal_event_t create_ev(const test_data_t &data)
     return event_data;
 }
 
+/* Mock test data with event parameters and expected missed count */
 static const test_data_t ldata[] = {
     {
         0,
@@ -412,6 +415,7 @@ static const test_data_t ldata[] = {
 int pub_send_index = 0;
 int pub_send_cnt = 0;
 
+/* Mock publisher to test subscriber. Runs in dedicated thread */
 void run_pub()
 {
     /*
@@ -423,6 +427,7 @@ void run_pub()
     EXPECT_TRUE(NULL != mock_pub);
     EXPECT_EQ(0, zmq_bind(mock_pub, get_config(XPUB_END_KEY).c_str()));
 
+    /* Sends pub_send_cnt events from pub_send_index. */
     while (pub_send_cnt >= 0) {
         if (pub_send_cnt == 0) {
             this_thread::sleep_for(chrono::milliseconds(2));
@@ -443,6 +448,7 @@ void run_pub()
 }
 
 
+/* Helper API to publish via run_pub running in different thread. */
 void pub_events(int index, int cnt)
 {
     /* Take a pause to allow publish to connect async */
@@ -475,7 +481,6 @@ TEST(events, subscribe)
     
     /*
      * Events published to active cache.
-     * Note a overlap with those published earlier for deinit
      */
     int index_active_cache = index_deinit_cache + cnt_deinit_cache;
     int cnt_active_cache = 5;

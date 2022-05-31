@@ -56,6 +56,7 @@ TEST(events_common, ts)
     events_validate_ts(s);
 }
 
+/* Tests serialize, deserialize, map_to_zmsg & zmsg_to_map */
 TEST(events_common, msg)
 {
     map<string, string> t = {
@@ -76,9 +77,14 @@ TEST(events_common, msg)
     EXPECT_EQ(t, t1);
 }
 
+/*
+ * Tests serialize, deserialize, map_to_zmsg, zmsg_to_map
+ * zmq_read_part & zmq_send_part while invoking zmq_message_send &
+ * zmq_message_read. 
+ */
 TEST(events_common, send_recv)
 {
-    running_ut = 1;
+    // running_ut = 1;
 
     char *path = "tcp://127.0.0.1:5570";
     void *zmq_ctx = zmq_ctx_new();
