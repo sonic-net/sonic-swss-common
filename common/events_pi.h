@@ -130,4 +130,17 @@ class EventSubscriber : public events_base
 
 };
 
+/*
+ *  Cache drain timeout.
+ *
+ *  When de-init is called, it calls stop cache service.
+ *  But before this point, there could be events received in zmq's
+ *  local cache pending read and those that arrived since last read.
+ *  These events will not be seen by cache service.
+ *  So read those off and give it to cache service as starting stock.
+ *  As we don't have a clue on count in zmq's cache, read in non-block
+ *  mode for a period.
+ */
+#define CACHE_DRAIN_IN_MILLISECS 1000
+
 #endif /* !_EVENTS_SERVICE_H */ 

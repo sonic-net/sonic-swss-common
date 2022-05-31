@@ -29,16 +29,15 @@ extern int recv_last_err;
 
 /*
  * Max count of possible concurrent event publishers
- * A rough estimate only, more as a guideline than strict.
-         SWSS_LOG_ERROR(fmt.c_str(), e, zerrno __VA_OPT__(,) __VA_ARGS__); \
- * So this does not limit any usage
+ * We maintain a cache of last seen sequence number per publisher.
+ * This provides a MAX ceiling for cache.
+ * Any more publishers over this count should indicate a serious bug.
  */
 #define MAX_PUBLISHERS_COUNT  1000
 
 extern int running_ut;
 
 
-/* TODO: Combine two SWSS_LOG_ERROR into one */
 #define RET_ON_ERR(res, msg, ...)\
     if (!(res)) {\
         int _e = errno; \
@@ -50,9 +49,6 @@ extern int running_ut;
             printf("last:errno=%d zerr=%d\n", _e, zerrno); }\
         goto out; }
 
-#define ERR_CHECK(res, ...) {\
-    if (!(res)) \
-        SWSS_LOG_ERROR(__VA_ARGS__); }
 
 /* helper API to print variable type */
 /*
@@ -67,7 +63,6 @@ extern int running_ut;
  *    std::cout << type_name<decltype(t)>() << '\n';
  *    std::cout << type_name<decltype(tt_t)>() << '\n';
  */
-
 template <typename T> std::string type_name();
 
 template <class T>
@@ -102,6 +97,7 @@ get_typename(T &val)
 }
 
 
+/* map to human readable str; Useful for error reporting. */
 template <typename Map>
 string
 map_to_str(const Map &m)
@@ -170,8 +166,8 @@ const string get_timestamp();
  * Way to serialize map or vector
  * boost::archive::text_oarchive could be used to archive any struct/class
  * but that class needs some additional support, that declares
- * boost::serialization::access as private friend and couple more tweaks
- * std::map inherently supports serialization
+ * boost::serialization::access as private friend and couple more tweaks.
+ * The std::map & vector inherently supports serialization.
  */
 template <typename Map>
 int
@@ -249,9 +245,6 @@ zmsg_to_map(zmq_msg_t &msg, Map& data)
  * filter by source.
  *
  * Second part contains serialized form of map as defined in internal_event_t.
- * The map is serialized and sent as string events_data_type_t.
- * Caching that handles of set of events, handleas ordered events
- * as declared in events_data_lst_t.
  */
 /*
  * This is data going over wire and using cache. So be conservative
@@ -274,7 +267,7 @@ typedef string runtime_id_t;
  *    { EVENT_SEQUENCE, "" } };
  */
 
-/* ZMQ message part 2 contains serialized version of internal_event_t */
+/* Cache maintains the part 2 of an event as serialized string. */
 typedef string events_data_type_t;
 typedef vector<events_data_type_t> events_data_lst_t;
 

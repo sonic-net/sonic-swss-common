@@ -6,12 +6,13 @@
  *
  *  APIs are for publishing & receiving events with source, tag and params along with timestamp.
  *  Used by event publishers and those interested in receiving published events.
- *  Publishers are multiple sources, as processes running in hosts & containers.
+ *  Publishers are multiple run from different contexts, as processes running in hosts & containers.
  *  Receiver are often few. Telmetry container runs a receiver.
  *
  */
 
 
+/* Handle for a publisher / subscriber instance */
 typedef void* event_handle_t;
 
 /*
@@ -19,8 +20,6 @@ typedef void* event_handle_t;
  *
  *  A single publisher instance is maintained for a source.
  *  Any duplicate init call for a source will return the same instance.
- *
- *  Choosing cache will help read cached data, during downtime, if any.
  *
  * NOTE:
  *      The initialization occurs asynchronously.
@@ -47,7 +46,7 @@ event_handle_t events_init_publisher(const std::string event_source);
  *  Handle returned from events_init_publisher
  *
  * Output: 
- *  None
+ *  Handle is nullified.
  */
 void events_deinit_publisher(event_handle_t &handle);
 
@@ -101,8 +100,6 @@ int event_publish(event_handle_t handle, const std::string event_tag,
 
 
 
-typedef std::vector<std::string> event_subscribe_sources_t;
-
 /*
  * Initialize subscriber.
  *  Init subscriber, optionally to filter by event-source.
@@ -112,6 +109,7 @@ typedef std::vector<std::string> event_subscribe_sources_t;
  *      When set to true, it will make use of the cache service transparently.
  *      The cache service caches events during session down time. The deinit
  *      start the caching and init call stops the caching.
+ *      default: false
  *
  * recv_timeout
  *      Read blocks by default until an event is available for read.
@@ -124,11 +122,14 @@ typedef std::vector<std::string> event_subscribe_sources_t;
  *      List of subscription sources of interest.
  *      The source value is the corresponding YANG module name.
  *      e.g. "sonic-events-bgp " is the source modulr name for bgp.
+ *      default: All sources, if none provided.
  *
  * Return:
  *  Non NULL handle on success
  *  NULL on failure
  */
+typedef std::vector<std::string> event_subscribe_sources_t;
+
 event_handle_t events_init_subscriber(bool use_cache=false,
         int recv_timeout = -1,
         const event_subscribe_sources_t *sources=NULL);
@@ -140,17 +141,18 @@ event_handle_t events_init_subscriber(bool use_cache=false,
  *  Handle returned from events_init_subscriber
  *
  * Output: 
- *  None
+ *  Handle is nullified.
  */
 void events_deinit_subscriber(event_handle_t &handle);
 
+
 /*
  * Receive an event.
- * A blocking call.
+ * A blocking call unless the subscriber is created with a timeout.
  *
  *  This API maintains an expected sequence number and use the received
  *  sequence in event to compute missed events count. The missed count
- *  set of events missed from this sender.
+ *  provides the count of events missed from this sender.
  *
  *  Received event:
  *      It is a form of JSON struct, with a single key and
@@ -197,19 +199,5 @@ int event_receive(event_handle_t handle, std::string &key,
  *
  */
 int event_last_error();
-
-
-/*
- *  Cache drain timeout.
- *
- *  When de-init is called, it calls stop cache service.
- *  But before this point, there could be events received in zmq's
- *  local cache pending read and those that arrived since last read.
- *  These events will not be seen by cache service.
- *  So read those off and give it to cache service as starting stock.
- *  As we don't have a clue on count in zmq's cache, read in non-block
- *  mode for a period.
- */
-#define CACHE_DRAIN_IN_MILLISECS 1000
 
 #endif /* !_EVENTS_H */ 
