@@ -250,8 +250,8 @@ EventSubscriber::~EventSubscriber()
         m_event_service.close_service();
     }
 out:
-    if (m_socket == NULL) {
-        zmq_close(sock);
+    if (m_socket != NULL) {
+        zmq_close(m_socket);
     }
     zmq_ctx_term(m_zmq_ctx);
 }
