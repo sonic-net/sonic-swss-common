@@ -164,7 +164,7 @@ parse_read_evt(string &source, internal_event_t &evt,
 TEST(events, publish)
 {
     // Enables all log messages to be printed, when this flag is set.
-    // running_ut = 1;
+    running_ut = 0;
 
     string evt_source0("sonic-events-bgp");
     string evt_source1("sonic-events-xyz");
@@ -469,7 +469,7 @@ TEST(events, subscribe)
 {
     int i;
     // Enables all log messages to be printed, when this flag is set.
-    // running_ut = 1;
+    running_ut = 0;
 
 
     /*

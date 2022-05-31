@@ -37,7 +37,8 @@ TEST(events_common, get_config)
 
     EXPECT_EQ(100, get_config_data(CACHE_MAX_CNT, 100));
 
-    cout << "events_common: get_config succeeded\n";
+    read_init_config(NULL);
+    EXPECT_EQ(string("tcp://127.0.0.1:5570"), get_config(string(XSUB_END_KEY)));
 }
 
 void

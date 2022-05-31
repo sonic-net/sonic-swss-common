@@ -177,7 +177,7 @@ event_publish(event_handle_t handle, const string tag, const event_params_t *par
 }
 
 
-EventSubscriber::EventSubscriber() : m_zmq_ctx(NULL), m_socket(NULL)
+EventSubscriber::EventSubscriber() : m_zmq_ctx(NULL), m_socket(NULL),
     m_cache_read(false)
 {};
 
@@ -221,8 +221,10 @@ EventSubscriber::~EventSubscriber()
                     break;
                 }
             }
-            serialize(evt_data, evt_str);
-            events.push_back(evt_str);
+            else {
+                serialize(evt_data, evt_str);
+                events.push_back(evt_str);
+            }
             chrono::steady_clock::time_point now = chrono::steady_clock::now();
             if (chrono::duration_cast<std::chrono::milliseconds>(now - start).count() >
                     CACHE_DRAIN_IN_MILLISECS)

@@ -8,7 +8,7 @@ int running_ut = 0;
  * defaults for all config entries
  */
 #define CFG_VAL map_str_str_t::value_type
-map_str_str_t cfg_data = {
+const map_str_str_t cfg_default = {
     CFG_VAL(XSUB_END_KEY, "tcp://127.0.0.1:5570"),
     CFG_VAL(XPUB_END_KEY, "tcp://127.0.0.1:5571"),
     CFG_VAL(REQ_REP_END_KEY, "tcp://127.0.0.1:5572"),
@@ -17,12 +17,21 @@ map_str_str_t cfg_data = {
     CFG_VAL(CACHE_MAX_CNT, "")
 };
 
+map_str_str_t cfg_data;
+
 void
 read_init_config(const char *init_cfg_file)
 {
+    /* Set default and override from file */
+    cfg_data = cfg_default;
+
+    if (init_cfg_file == NULL) {
+        return;
+    }
+
     ifstream fs (init_cfg_file);
 
-    if (!fs.is_open())
+    if (!fs.is_open()) 
         return;
 
     stringstream buffer;
@@ -49,11 +58,8 @@ read_init_config(const char *init_cfg_file)
 string
 get_config(const string key)
 {
-    static bool init = false;
-
-    if (!init) {
+    if (cfg_data.empty()) {
         read_init_config(INIT_CFG_PATH);
-        init = true;
     }   
     /* Intentionally crash for non-existing key, as this
      * is internal code bug
