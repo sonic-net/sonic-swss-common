@@ -729,42 +729,6 @@ TEST(DBConnector, selectableevent)
     EXPECT_EQ(value, 2);
 }
 
-TEST(DBConnector, selectabletimer)
-{
-    timespec interval = { .tv_sec = 1, .tv_nsec = 0 };
-    SelectableTimer timer(interval);
-
-    Select s;
-    s.addSelectable(&timer);
-    Selectable *sel;
-    int result;
-
-    // Wait a non started timer
-    result = s.select(&sel, 2000);
-    ASSERT_EQ(result, Select::TIMEOUT);
-
-    // Wait long enough so we got timer notification first
-    timer.start();
-    result = s.select(&sel, 2000);
-    ASSERT_EQ(result, Select::OBJECT);
-    ASSERT_EQ(sel, &timer);
-
-    // Wait short so we got select timeout first
-    result = s.select(&sel, 10);
-    ASSERT_EQ(result, Select::TIMEOUT);
-
-    // Wait long enough so we got timer notification first
-    result = s.select(&sel, 10000);
-    ASSERT_EQ(result, Select::OBJECT);
-    ASSERT_EQ(sel, &timer);
-
-    // Reset and wait long enough so we got timer notification first
-    timer.reset();
-    result = s.select(&sel, 10000);
-    ASSERT_EQ(result, Select::OBJECT);
-    ASSERT_EQ(sel, &timer);
-}
-
 TEST(Table, basic)
 {
     TableBasicTest("TABLE_UT_TEST", true);
