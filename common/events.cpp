@@ -38,16 +38,16 @@ typedef map <string, EventPublisher *> lst_publishers_t;
 lst_publishers_t s_publishers;
 
 EventPublisher::EventPublisher() :
-    m_zmq_ctx(NULL), m_socket(NULL), m_sequence(0), m_init(false)
+    m_zmq_ctx(NULL), m_socket(NULL), m_sequence(0)
 {
 }
 
 int EventPublisher::init(const string event_source)
 {
     m_zmq_ctx = zmq_ctx_new();
-    m_socket = zmq_socket (m_zmq_ctx, ZMQ_PUB);
+    void *sock = zmq_socket (m_zmq_ctx, ZMQ_PUB);
 
-    int rc = zmq_connect (m_socket, get_config(XSUB_END_KEY).c_str());
+    int rc = zmq_connect (sock, get_config(XSUB_END_KEY).c_str());
     RET_ON_ERR(rc == 0, "Publisher fails to connect %s", get_config(XSUB_END_KEY).c_str());
 
     // REQ socket is connected and a message is sent & received, more to
@@ -72,15 +72,20 @@ int EventPublisher::init(const string event_source)
     uuid_unparse(id, uuid_str);
     m_runtime_id = string(uuid_str);
 
-    m_init = true;
+    m_socket = sock;
 out:
-    return m_init ? 0 : -1;
+    if (m_socket == NULL) {
+        zmq_close(sock);
+    }
+    return rc;
 }
 
 EventPublisher::~EventPublisher()
 {
     m_event_service.close_service();
-    zmq_close(m_socket);
+    if (m_socket != NULL) {
+        zmq_close(m_socket);
+    }
     zmq_ctx_term(m_zmq_ctx);
 }
 
@@ -190,7 +195,7 @@ event_publish(event_handle_t handle, const string tag, const event_params_t *par
 }
 
 
-EventSubscriber::EventSubscriber() : m_zmq_ctx(NULL), m_socket(NULL), m_init(false),
+EventSubscriber::EventSubscriber() : m_zmq_ctx(NULL), m_socket(NULL)
     m_cache_read(false)
 {};
 
@@ -245,7 +250,9 @@ EventSubscriber::~EventSubscriber()
         m_event_service.close_service();
     }
 out:
-    zmq_close(m_socket);
+    if (m_socket == NULL) {
+        zmq_close(sock);
+    }
     zmq_ctx_term(m_zmq_ctx);
 }
 
@@ -264,24 +271,24 @@ EventSubscriber::init(bool use_cache, int recv_timeout,
      */
     m_zmq_ctx = zmq_ctx_new();
 
-    m_socket = zmq_socket (m_zmq_ctx, ZMQ_SUB);
+    void *sock = zmq_socket (m_zmq_ctx, ZMQ_SUB);
 
-    int rc = zmq_connect (m_socket, get_config(XPUB_END_KEY).c_str());
+    int rc = zmq_connect (sock, get_config(XPUB_END_KEY).c_str());
     RET_ON_ERR(rc == 0, "Subscriber fails to connect %s", get_config(XPUB_END_KEY).c_str());
 
     if ((subs_sources == NULL) || (subs_sources->empty())) {
-        rc = zmq_setsockopt(m_socket, ZMQ_SUBSCRIBE, "", 0);
+        rc = zmq_setsockopt(sock, ZMQ_SUBSCRIBE, "", 0);
         RET_ON_ERR(rc == 0, "Fails to set option");
     }
     else {
         for (const auto e: *subs_sources) {
-            rc = zmq_setsockopt(m_socket, ZMQ_SUBSCRIBE, e.c_str(), e.size());
+            rc = zmq_setsockopt(sock, ZMQ_SUBSCRIBE, e.c_str(), e.size());
             RET_ON_ERR(rc == 0, "Fails to set option");
         }
     }
 
     if (recv_timeout != -1) {
-        rc = zmq_setsockopt (m_socket, ZMQ_RCVTIMEO, &recv_timeout, sizeof (recv_timeout));
+        rc = zmq_setsockopt (sock, ZMQ_RCVTIMEO, &recv_timeout, sizeof (recv_timeout));
         RET_ON_ERR(rc == 0, "Failed to ZMQ_RCVTIMEO to %d", recv_timeout);
     }
 
@@ -294,8 +301,11 @@ EventSubscriber::init(bool use_cache, int recv_timeout,
             m_cache_read = true;
         }
     }
-    m_init = true;
+    m_socket = sock;
 out:
+    if (m_socket == NULL) {
+        zmq_close(sock);
+    }
     return rc;
 }
 

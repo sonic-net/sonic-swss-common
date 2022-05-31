@@ -1,5 +1,5 @@
-#ifndef _EVENTS_SERVICE_H
-#define _EVENTS_SERVICE_H
+#ifndef _EVENTS_PI_H
+#define _EVENTS_PI_H
 /*
  * Private header file used by events API implementation.
  * Required to run white box testing via unit tests.
@@ -69,14 +69,17 @@ class EventPublisher : public events_base
         void *m_zmq_ctx;
         void *m_socket;
 
+        /* Event service - Used for echo */
         event_service m_event_service;
 
+        /* Source YANG module for all events published by this instance */
         string m_event_source;
 
+        /* Globally unique instance ID for this publishing instance */
         runtime_id_t m_runtime_id;
-        sequence_t m_sequence;
 
-        bool m_init;
+        /* A running sequence number for events published by this instance */
+        sequence_t m_sequence;
 };
 
 /*
@@ -104,14 +107,19 @@ class EventSubscriber : public events_base
         void *m_zmq_ctx;
         void *m_socket;
 
+        /* Service to use for cache management & echo */
         event_service m_event_service;
 
-        bool m_init;
+        /*
+         * Set to true, upon cache read returning non zero count of events
+         * implying more to read.
+         */
         bool m_cache_read;
 
         /*
          *  Sequences tracked by sender for a source, or in other
          *  words by runtime id.
+         *  Epochtime, helps prune oldest, when cache overflows.
          */
         typedef struct _evt_info {
             _evt_info() : epoch_secs(0), seq(0) {};
@@ -124,9 +132,15 @@ class EventSubscriber : public events_base
         typedef map<runtime_id_t, evt_info_t> track_info_t;
         track_info_t m_track;
 
-        events_data_lst_t m_from_cache;
-
+        /* Prune the m_track, when goes beyond max - MAX_PUBLISHERS_COUNT */
         void prune_track();
+
+
+        /*
+         * List of cached events.
+         * Only part 2 / internal_event_t is cached as serialized string.
+         */
+        events_data_lst_t m_from_cache;
 
 };
 
@@ -143,4 +157,4 @@ class EventSubscriber : public events_base
  */
 #define CACHE_DRAIN_IN_MILLISECS 1000
 
-#endif /* !_EVENTS_SERVICE_H */ 
+#endif /* !_EVENTS_PI_H */ 

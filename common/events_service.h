@@ -1,3 +1,6 @@
+#ifndef _EVENTS_SERVICE_H
+#define _EVENTS_SERVICE_H
+
 #include "string.h"
 #include "events_common.h"
 
@@ -26,15 +29,17 @@
  *
  * In case of echo, part2 is the vector of single string as provided in the request.
  *
- * The read returns as serialized vector of ZMQ messages, in part2.
+ * The cache-read returns cached events as vector of serialized strings.
+ * NOTE: Cache only saves part 2 of the published event.
  */
 
+/* List of request codes for supported commands */
 typedef enum {
-    EVENT_CACHE_INIT,
-    EVENT_CACHE_START,
-    EVENT_CACHE_STOP,
-    EVENT_CACHE_READ,
-    EVENT_ECHO
+    EVENT_CACHE_INIT,   /* Init the cache before start */
+    EVENT_CACHE_START,  /* Start caching all published events */
+    EVENT_CACHE_STOP,   /* Stop the cache */
+    EVENT_CACHE_READ,   /* Read cached events */
+    EVENT_ECHO          /* Echoes the received data in request via response */
 } event_req_type_t;
 
 
@@ -64,7 +69,7 @@ class event_service {
          * its async connection to XPUB end point, but the eventd service
          * could be down. So having a timeout, helps which will timeout
          * recv.
-         * Publish clients that choose to block specify the duration
+         * Publish clients that choose to block may specify the duration
          *
          * Input:
          *  zmq_ctx - Context to use
@@ -156,7 +161,7 @@ class event_service {
          *
          *  Internal details:
          *
-         *  Cache service caches all events until buffer overflow
+         *  Cache service caches all events until buffer overflow or max-ceil.
          *
          *  Upon overflow, it creates a separate cache, where it keeps only
          *  the last event received per runtime ID. 
@@ -168,9 +173,10 @@ class event_service {
          *  output: 
          *      lst - A set of events, with a max cap.
          *            Hence multiple reads may be required to read all.
+         *            An empty list implies no more event in cache.
          *
          *  return:
-         *  0   - On success. Either stopped or none to stop.
+         *  0   - On success.
          *  -1  - On failure.
          */
         int cache_read(events_data_lst_t &lst);
@@ -277,4 +283,4 @@ private:
 
 };
 
-
+#endif // _EVENTS_SERVICE_H
