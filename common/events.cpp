@@ -222,13 +222,16 @@ EventSubscriber::~EventSubscriber()
         chrono::steady_clock::time_point start = chrono::steady_clock::now();
         while(true) {
             string source, evt_str;
-            rc = zmq_message_read(m_socket, ZMQ_DONTWAIT, source, evt_str);
+            internal_event_t evt_data;
+
+            rc = zmq_message_read(m_socket, ZMQ_DONTWAIT, source, evt_data);
             if (rc == -1) {
                 if (zerrno == EAGAIN) {
                     rc = 0;
                 }
                 break;
             }
+            serialize(evt_data, evt_str);
             events.push_back(evt_str);
             chrono::steady_clock::time_point now = chrono::steady_clock::now();
             if (chrono::duration_cast<std::chrono::milliseconds>(now - start).count() >
@@ -358,8 +361,8 @@ EventSubscriber::event_receive(string &key, event_params_t &params, int &missed_
         else {
             if (m_track.size() > (MAX_PUBLISHERS_COUNT + 10)) {
                 prune_track();
-                m_track[event_data[EVENT_RUNTIME_ID]] = evt_info_t(seq);
             }
+            m_track[event_data[EVENT_RUNTIME_ID]] = evt_info_t(seq);
         }
         if (missed_cnt >= 0) {
             map_str_str_t ev;

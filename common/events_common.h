@@ -341,20 +341,21 @@ template<typename P1, typename P2>
 int
 zmq_message_read(void *sock, int flag, P1 &pt1, P2 &pt2)
 {
-    int more = 0, rc, rc1;
-    
-    rc = zmq_read_part(sock, flag, more, pt1);
+    int more = 0, rc=-1, rc1, rc2 = 0;
+
+    rc1 = zmq_read_part(sock, flag, more, pt1);
 
     if (more) {
         /*
          * read second part if more is set, irrespective
          * of any failure. More is set, only if sock is valid.
          */
-        rc1 = zmq_read_part(sock, 0, more, pt2);
+        rc2 = zmq_read_part(sock, 0, more, pt2);
     }
-    RET_ON_ERR(rc == 0, "Failed to read part1");
-    RET_ON_ERR(rc1 == 0, "Failed to read part2");
+    RET_ON_ERR(rc1 == 0, "Failed to read part1");
+    RET_ON_ERR(rc2 == 0, "Failed to read part2");
     RET_ON_ERR(!more, "Don't expect more than 2 parts");
+    rc = 0;
 out:
     return rc;
 }

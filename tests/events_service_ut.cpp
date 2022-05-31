@@ -29,7 +29,7 @@ void serve_commands()
         server_rd_code = code;
         server_rd_lst = lst;
 
-        printf("serve_commands code=%dlst=%d, %d\n", server_rd_code, (int)server_rd_lst.size(), (int)lst.size());
+        // printf("serve_commands code=%dlst=%d, %d\n", server_rd_code, (int)server_rd_lst.size(), (int)lst.size());
         switch(code) {
             case EVENT_CACHE_INIT:
                 server_ret = 0;
