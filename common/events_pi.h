@@ -111,8 +111,7 @@ class EventSubscriber : public events_base
         event_service m_event_service;
 
         /*
-         * Set to true, upon cache read returning non zero count of events
-         * implying more to read.
+         * Set to true, if there may be more events to read from cache.
          */
         bool m_cache_read;
 
@@ -156,5 +155,33 @@ class EventSubscriber : public events_base
  *  mode for a period.
  */
 #define CACHE_DRAIN_IN_MILLISECS 1000
+
+/*
+ * The uuid_unparse() function converts the supplied UUID uu from
+ * the binary representation into a 36-byte string (plus trailing
+ * '\0') of the form 1b4e28ba-2fa1-11d2-883f-0016d3cca427 and stores
+ * this value in the character string pointed to by out. 
+ */
+#define UUID_STR_SIZE 40
+
+/*
+ * Publisher use echo service and subscriber uses cache service
+ * The eventd process runs this service, which could be down
+ * All service interactions being async, a timeout is required
+ * not to block forever on read.
+ *
+ * The unit is in milliseconds in sync with ZMQ_RCVTIMEO of
+ * zmq_setsockopt.
+ *
+ * Publisher uses more to shadow async connectivity from PUB to 
+ * XSUB end point of eventd's proxy. Hence have a smaller value.
+ *
+ * Subscriber uses it for cache management and here we need a
+ * longer timeout, to handle slow proxy. This timeout value's only
+ * impact could be when subscriber process is trying to terminate.
+ */
+
+#define EVENTS_SERVICE_TIMEOUT_MS_PUB 200
+#define EVENTS_SERVICE_TIMEOUT_MS_SUB 2000
 
 #endif /* !_EVENTS_PI_H */ 

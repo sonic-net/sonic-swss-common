@@ -1,25 +1,30 @@
 #include "events_service.h"
 
 /*
- * For brainstorming, if helpful
- * The cache messages are read in either direction
- * Upon start, the caller gives a set of events read for about 2 seconds
- * in non-blocking mode to give it as start stock.
+ * Cache management
  *
- * Upon cache stop, events collected MAX over a time is read by the caller.
- * 
- * These messages are currently provided as vector list of strings.
- * As cache start provided a small subset, it is given as part of start request
- * Since cache read can be too many, multiple cache_Read requests are made
- * until no more and each returns a subset as vector of strings.
+ *  1)` Caller expected to call init first, which initiates the connection
+ *      to the capture end point. Being async, it would take some milliseconds
+ *      to connect.
  *
- * Another way, the entire cache in either direction can be sent/received
- * via PAIR socket. But this woulkd need a special terminating message to 
- * indicate read end, as non-blocking read returning no event does not 
- * necessarily mean end
+ *  2)  Caller starts the cache, optionally with some local cache it may have.
+ *      The cache service keeps it as its startup/initial stock.
+ *      This helps the caller saves his local cache with cache service.
  *
- * Not sure, what the gain here is vs current approach of vector<string>
- * Just a note for now, not to lose a line of possibility.
+ *  3)  Caller call stops, upon it making connect to XPUB end.
+ *      As caller's connect is async and also this zmq end may have some cache
+ *      of events by ZMQ locally. So read events little longer.
+ *
+ *  4)  Upon stop, the caller may read cached events.
+ *      The events are provided in FIFO order. 
+ *      As cached events can be too many, the service returns a few at a time.
+ *      The caller is expected to read repeatedly until no event is returned.
+ *
+ *  Cache overflow:
+ *      A ceil is set and may run out of memory, before ceil is reached.
+ *      In either case, the caching is *not* completely stopped but cached as
+ *      one event per runtime-id/publishing instance. This info is required
+ *      to compute missed message count due to overflow and otherwise.
  */
 
 int

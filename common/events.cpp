@@ -1,36 +1,8 @@
 #include "events_pi.h"
 
 /*
- * The uuid_unparse() function converts the supplied UUID uu from
- * the binary representation into a 36-byte string (plus trailing
- * '\0') of the form 1b4e28ba-2fa1-11d2-883f-0016d3cca427 and stores
- * this value in the character string pointed to by out. 
- */
-#define UUID_STR_SIZE 40
-
-/*
- * Publisher use echo service and subscriber uses cache service
- * The eventd process runs this service, which could be down
- * All service interactions being async, a timeout is required
- * not to block forever on read.
- *
- * The unit is in milliseconds in sync with ZMQ_RCVTIMEO of
- * zmq_setsockopt.
- *
- * Publisher uses more to shadow async connectivity from PUB to 
- * XSUB end point of eventd's proxy. Hene have a less value.
- *
- * Subscriber uses it for cache management and here we need a
- * longer timeout, to handle slow proxy. This timeout value's only
- * impact could be subscriber process trying to terminate.
- */
-
-#define EVENTS_SERVICE_TIMEOUT_MS_PUB 200
-#define EVENTS_SERVICE_TIMEOUT_MS_SUB 2000
-
-/*
  *  Track created publishers to avoid duplicates
- *  As we track missed event count by publishing instances, avoiding
+ *  As receivers track missed event count by publishing instances, avoiding
  *  duplicates helps reduce load.
  */
 
@@ -50,10 +22,6 @@ int EventPublisher::init(const string event_source)
     int rc = zmq_connect (sock, get_config(XSUB_END_KEY).c_str());
     RET_ON_ERR(rc == 0, "Publisher fails to connect %s", get_config(XSUB_END_KEY).c_str());
 
-    // REQ socket is connected and a message is sent & received, more to
-    // ensure PUB socket had enough time to establish connection.
-    // Any message published before connection establishment is dropped.
-    //
     /*
      * Event service could be down. So have a timeout.
      * 
@@ -61,16 +29,26 @@ int EventPublisher::init(const string event_source)
     rc = m_event_service.init_client(m_zmq_ctx, EVENTS_SERVICE_TIMEOUT_MS_PUB);
     RET_ON_ERR (rc == 0, "Failed to init event service");
 
+    /*
+     * REQ socket is connected and a message is sent & received, more to
+     * ensure PUB socket had enough time to establish connection.
+     * Any message published before connection establishment is dropped.
+     * NOTE: We don't wait for response here, but read it upon first publish
+     * If the publisher init happened early at the start by caller, by the
+     * the first event is published, the echo response will be available locally.
+     */
     rc = m_event_service.echo_send("hello");
     RET_ON_ERR (rc == 0, "Failed to echo send in event service");
 
     m_event_source = event_source;
 
+    {
     uuid_t id;
     char uuid_str[UUID_STR_SIZE];
     uuid_generate(id);
     uuid_unparse(id, uuid_str);
     m_runtime_id = string(uuid_str);
+    }
 
     m_socket = sock;
 out:
@@ -104,9 +82,12 @@ EventPublisher::publish(const string tag, const event_params_t *params)
          * as provided in publisher init.
          */
         m_event_service.echo_receive(s);
+
+        /* Close it as we don't need it anymore */
         m_event_service.close_service();
     }
 
+    /* Check for timestamp in params. If not, provide it. */
     string param_str;
     event_params_t evt_params;
     if (params != NULL) {
@@ -120,6 +101,7 @@ EventPublisher::publish(const string tag, const event_params_t *params)
         evt_params[event_ts_param] = get_timestamp();
         params = &evt_params;
     }
+
     rc = serialize(*params, param_str);
     RET_ON_ERR(rc == 0, "failed to serialize params %s",
             map_to_str(*params).c_str());
@@ -232,9 +214,12 @@ EventSubscriber::~EventSubscriber()
             rc = zmq_message_read(m_socket, ZMQ_DONTWAIT, source, evt_data);
             if (rc == -1) {
                 if (zerrno == EAGAIN) {
-                    rc = 0;
+                    /* Try again after a small pause */
+                    this_thread::sleep_for(chrono::milliseconds(10));
                 }
-                break;
+                else {
+                    break;
+                }
             }
             serialize(evt_data, evt_str);
             events.push_back(evt_str);
@@ -315,10 +300,12 @@ EventSubscriber::prune_track()
 {
     map<time_t, vector<runtime_id_t> > lst;
 
+    /* Sort entries by last touched time */
     for(const auto e: m_track) {
         lst[e.second.epoch_secs].push_back(e.first);
     }
 
+    /* By default it walks from lowest value / earliest timestamp */
     map<time_t, vector<runtime_id_t> >::const_iterator itc = lst.begin();
     for(; (itc != lst.end()) && (m_track.size() > MAX_PUBLISHERS_COUNT); ++itc) {
         for (const auto r: itc->second) {
