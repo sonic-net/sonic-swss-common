@@ -101,7 +101,7 @@ MessageResultPair PubSub::get_message_internal(double timeout)
             throw RedisError("Failed to select", m_subscribe->getContext());
 
         case Select::TIMEOUT:
-        case Select::SIGNALINT:
+        case Select::SIGNAL:
             return ret;
 
         case Select::OBJECT:
@@ -135,7 +135,7 @@ std::map<std::string, std::string> PubSub::listen_message()
     for (;;)
     {
         ret = get_message_internal(GET_MESSAGE_INTERVAL);
-        if (!ret.second.empty() || ret.first == Select::SIGNALINT)
+        if (!ret.second.empty() || ret.first == Select::SIGNAL)
         {
             break;
         }
