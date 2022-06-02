@@ -205,7 +205,11 @@ EventSubscriber::~EventSubscriber()
         /* Shadow the cache init request, as it is async */
         m_event_service.send_recv(EVENT_ECHO);
 
-        /* read for 2 seconds in non-block mode, to drain any local cache */
+        /*
+         * read for a second in non-block mode, to drain any local cache.
+         * Break if no event locally available or 1 second passed, whichever
+         * comes earlier.
+         */
         chrono::steady_clock::time_point start = chrono::steady_clock::now();
         while(true) {
             string source, evt_str;
@@ -214,19 +218,15 @@ EventSubscriber::~EventSubscriber()
             rc = zmq_message_read(m_socket, ZMQ_DONTWAIT, source, evt_data);
             if (rc == -1) {
                 if (zerrno == EAGAIN) {
-                    /* Try again after a small pause */
-                    this_thread::sleep_for(chrono::milliseconds(10));
+                    rc = 0;
                 }
-                else {
-                    break;
-                }
+                break;
             }
-            else {
-                serialize(evt_data, evt_str);
-                events.push_back(evt_str);
-            }
+
+            serialize(evt_data, evt_str);
+            events.push_back(evt_str);
             chrono::steady_clock::time_point now = chrono::steady_clock::now();
-            if (chrono::duration_cast<std::chrono::milliseconds>(now - start).count() >
+            if (chrono::duration_cast<chrono::milliseconds>(now - start).count() >
                     CACHE_DRAIN_IN_MILLISECS)
                 break;
         }
@@ -399,12 +399,12 @@ events_init_subscriber(bool use_cache, int recv_timeout,
         const event_subscribe_sources_t *sources)
 {
     if (s_subscriber == NULL) {
-        EventSubscriber *p = new EventSubscriber();
+        EventSubscriber *sub = new EventSubscriber();
 
-        RET_ON_ERR(p->init(use_cache, recv_timeout, sources) == 0,
+        RET_ON_ERR(sub->init(use_cache, recv_timeout, sources) == 0,
                 "Failed to init subscriber");
 
-        s_subscriber = p;
+        s_subscriber = sub;
     }
 out:
     return s_subscriber;

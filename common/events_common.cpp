@@ -70,11 +70,11 @@ get_config(const string key)
 const string
 get_timestamp()
 {
-    std::stringstream ss, sfrac;
+    stringstream ss, sfrac;
 
     auto timepoint = system_clock::now();
-    std::time_t tt = system_clock::to_time_t (timepoint);
-    struct std::tm * ptm = std::localtime(&tt);
+    time_t tt = system_clock::to_time_t (timepoint);
+    struct tm * ptm = localtime(&tt);
 
     uint64_t ms = duration_cast<microseconds>(timepoint.time_since_epoch()).count();
     uint64_t sec = duration_cast<seconds>(timepoint.time_since_epoch()).count();

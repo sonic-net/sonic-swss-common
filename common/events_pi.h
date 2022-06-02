@@ -62,7 +62,7 @@ class EventPublisher : public events_base
 
         int init(const string event_source);
 
-        int publish(const std::string event_tag,
+        int publish(const string event_tag,
                 const event_params_t *params);
     private:
 

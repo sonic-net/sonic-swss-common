@@ -63,34 +63,34 @@ extern int running_ut;
  *    std::cout << type_name<decltype(t)>() << '\n';
  *    std::cout << type_name<decltype(tt_t)>() << '\n';
  */
-template <typename T> std::string type_name();
+template <typename T> string type_name();
 
 template <class T>
-std::string
+string
 type_name()
 {
-    typedef typename std::remove_reference<T>::type TR;
-    std::unique_ptr<char, void(*)(void*)> own
+    typedef typename remove_reference<T>::type TR;
+    unique_ptr<char, void(*)(void*)> own
         (
             abi::__cxa_demangle(typeid(TR).name(), nullptr,
                 nullptr, nullptr),
-            std::free
+            free
         );
-    std::string r = own != nullptr ? own.get() : typeid(TR).name();
-    if (std::is_const<TR>::value)
+    string r = own != nullptr ? own.get() : typeid(TR).name();
+    if (is_const<TR>::value)
         r += " const";
-    if (std::is_volatile<TR>::value)
+    if (is_volatile<TR>::value)
         r += " volatile";
-    if (std::is_lvalue_reference<T>::value)
+    if (is_lvalue_reference<T>::value)
         r += "&";
-    else if (std::is_rvalue_reference<T>::value)
+    else if (is_rvalue_reference<T>::value)
         r += "&&";
     return r;
 }
 
 
 template <class T>
-std::string
+string
 get_typename(T &val)
 {
     return type_name<decltype(val)>();
@@ -174,7 +174,7 @@ int
 serialize(const Map& data, string &s)
 {
     s.clear();
-    std::stringstream _ser_ss;
+    stringstream _ser_ss;
     boost::archive::text_oarchive oarch(_ser_ss);
 
     try {
@@ -195,7 +195,7 @@ template <typename Map>
 int
 deserialize(const string& s, Map& data)
 {
-    std::stringstream ss(s);
+    stringstream ss(s);
     boost::archive::text_iarchive iarch(ss);
 
     try {
