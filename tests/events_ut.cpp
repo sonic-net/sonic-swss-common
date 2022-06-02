@@ -1,0 +1,568 @@
+#include <iostream>
+#include <memory>
+#include <thread>
+#include <algorithm>
+#include <deque>
+#include <regex>
+#include <chrono>
+#include "gtest/gtest.h"
+#include "common/events_common.h"
+#include "common/events.h"
+#include "common/events_pi.h"
+
+using namespace std;
+
+static void *zmq_ctx = NULL;
+
+int last_svc_code = -1;
+
+void events_validate_ts(const string s);
+
+events_data_lst_t lst_cache;
+
+#define ARRAY_SIZE(d) (sizeof(d) / sizeof((d)[0]))
+
+static bool terminate_svc = false;
+
+
+/* Mock eventd service for cache & echo commands */
+void pub_serve_commands()
+{
+    event_service service_svr;
+
+    EXPECT_TRUE(NULL != zmq_ctx);
+    EXPECT_EQ(0, service_svr.init_server(zmq_ctx, 1000));
+    while(!terminate_svc) {
+        int code, resp;
+        events_data_lst_t lst;
+
+        if (0 != service_svr.channel_read(code, lst)) {
+            /* check client service status, before blocking on read */
+            continue;
+        }
+        // printf("Read code=%d lst=%d\n", code, (int)lst.size());
+        last_svc_code = code;
+        switch(code) {
+            case EVENT_CACHE_INIT:
+                resp = 0;
+                lst.clear();
+                break;
+            case EVENT_CACHE_START:
+                resp = 0;
+                lst_cache.swap(lst);
+                lst.clear();
+                break;
+            case EVENT_CACHE_STOP:
+                resp = 0;
+                lst.clear();
+                break;
+            case EVENT_CACHE_READ:
+                resp = 0;
+                lst.swap(lst_cache);
+                break;
+            case EVENT_ECHO:
+                resp = 0;
+                break;
+            default:
+                EXPECT_TRUE(false);
+                resp = -1;
+                break;
+        }
+        EXPECT_EQ(0, service_svr.channel_write(resp, lst));
+    }
+    service_svr.close_service();
+    EXPECT_FALSE(service_svr.is_active());
+    terminate_svc = false;
+    last_svc_code = -1;
+    events_data_lst_t().swap(lst_cache);
+}
+
+
+string read_source;
+internal_event_t read_evt;
+
+static bool terminate_sub = false;
+
+/* Mock a subscriber for testing publisher APIs */
+void run_sub()
+{
+    void *mock_sub = zmq_socket (zmq_ctx, ZMQ_SUB);
+    string source;
+    internal_event_t ev_int;
+    int block_ms = 200;
+
+    EXPECT_TRUE(NULL != mock_sub);
+    EXPECT_EQ(0, zmq_bind(mock_sub, get_config(XSUB_END_KEY).c_str()));
+    EXPECT_EQ(0, zmq_setsockopt(mock_sub, ZMQ_SUBSCRIBE, "", 0));
+    EXPECT_EQ(0, zmq_setsockopt(mock_sub, ZMQ_RCVTIMEO, &block_ms, sizeof (block_ms, 0)));
+
+    while(!terminate_sub) {
+        if (0 == zmq_message_read(mock_sub, 0, source, ev_int)) {
+            read_evt.swap(ev_int);
+            read_source.swap(source);
+        }
+    }
+
+    zmq_close(mock_sub);
+}
+
+string
+parse_read_evt(string &source, internal_event_t &evt,
+        string &rid, sequence_t &seq, string &key, event_params_t &params)
+{
+    int i;
+    string ret;
+
+    rid.clear();
+    seq = 0;
+    key.clear();
+    event_params_t().swap(params);
+
+    /* Wait for run_sub to reads the published message with timeout. */
+    for(i=0; source.empty() && (i < 20); ++i) {
+        this_thread::sleep_for(chrono::milliseconds(10));
+    }
+
+    EXPECT_FALSE(source.empty());
+    EXPECT_EQ(3, evt.size());
+
+    for (const auto e: evt) {
+        if (e.first == EVENT_STR_DATA) {
+            map_str_str_t m;
+            EXPECT_EQ(0, deserialize(e.second, m));
+            EXPECT_EQ(1, m.size());
+            key = m.begin()->first;
+            EXPECT_EQ(0, deserialize(m.begin()->second, params));
+            // cout << "EVENT_STR_DATA: " << e.second << "\n";
+        }
+        else if (e.first == EVENT_RUNTIME_ID) {
+            rid = e.second;
+            // cout << "EVENT_RUNTIME_ID: " << e.second << "\n";
+        }
+        else if (e.first == EVENT_SEQUENCE) {
+            stringstream ss(e.second);
+            ss >> seq;
+            // cout << "EVENT_SEQUENCE: " << seq << "\n";
+        }
+        else {
+            EXPECT_FALSE(true);
+        }
+    }
+
+    EXPECT_FALSE(rid.empty());
+    EXPECT_FALSE(seq == 0);
+    EXPECT_FALSE(key.empty());
+    EXPECT_FALSE(params.empty());
+
+    /* clear it before call to next read */
+    ret.swap(source);
+    internal_event_t().swap(evt);
+
+    return ret;
+}
+
+TEST(events, publish)
+{
+    // Enables all log messages to be printed, when this flag is set.
+    running_ut = 0;
+
+    string evt_source0("sonic-events-bgp");
+    string evt_source1("sonic-events-xyz");
+    string evt_tag0("bgp-state");
+    string evt_tag1("xyz-state");
+    event_params_t params0({{"ip", "10.10.10.10"}, {"state", "up"}});
+    event_params_t params1;
+    event_params_t::iterator it_param;
+
+    string rid0, rid1;
+    sequence_t seq0, seq1 = 0;
+    string rd_key0, rd_key1;
+    event_params_t rd_params0, rd_params1;
+
+    zmq_ctx = zmq_ctx_new();
+    EXPECT_TRUE(NULL != zmq_ctx);
+
+    thread thr(&pub_serve_commands);
+    thread thr_sub(&run_sub);
+
+    event_handle_t h = events_init_publisher(evt_source0);
+    EXPECT_TRUE(NULL != h);
+
+    /* Take a pause to allow publish to connect async */
+    this_thread::sleep_for(chrono::milliseconds(300));
+
+    EXPECT_EQ(0, event_publish(h, evt_tag0, &params0));
+
+    parse_read_evt(read_source, read_evt, rid0, seq0, rd_key0, rd_params0);
+
+    EXPECT_EQ(seq0, 1);
+    EXPECT_EQ(rd_key0, evt_source0 + ":" + evt_tag0);
+
+    it_param = rd_params0.find(event_ts_param);
+    EXPECT_TRUE(it_param != rd_params0.end());
+    if (it_param != rd_params0.end()) {
+        events_validate_ts(it_param->second);
+        rd_params0.erase(it_param);
+    }
+
+    EXPECT_EQ(rd_params0, params0);
+
+    // Publish second message
+    //
+    EXPECT_EQ(0, event_publish(h, evt_tag1, &params1));
+
+    parse_read_evt(read_source, read_evt, rid1, seq1, rd_key1, rd_params1);
+
+    EXPECT_EQ(rid0, rid1);
+    EXPECT_EQ(seq1, 2);
+    EXPECT_EQ(rd_key1, evt_source0 + ":" + evt_tag1);
+
+    it_param = rd_params1.find(event_ts_param);
+    EXPECT_TRUE(it_param != rd_params1.end());
+    if (it_param != rd_params1.end()) {
+        events_validate_ts(it_param->second);
+        rd_params1.erase(it_param);
+    }
+
+    EXPECT_EQ(rd_params1, params1);
+
+
+    // Publish using a new source
+    //
+    event_handle_t h1 = events_init_publisher(evt_source1);
+    EXPECT_TRUE(NULL != h1);
+
+    /* Take a pause to allow publish to connect async */
+    this_thread::sleep_for(chrono::milliseconds(300));
+
+    EXPECT_EQ(0, event_publish(h1, evt_tag0, &params0));
+
+    parse_read_evt(read_source, read_evt, rid0, seq0, rd_key0, rd_params0);
+
+    EXPECT_NE(rid0, rid1);
+    EXPECT_EQ(seq0, 1);
+    EXPECT_EQ(rd_key0, evt_source1 + ":" + evt_tag0);
+
+    it_param = rd_params0.find(event_ts_param);
+    EXPECT_TRUE(it_param != rd_params0.end());
+    if (it_param != rd_params0.end()) {
+        events_validate_ts(it_param->second);
+        rd_params0.erase(it_param);
+    }
+
+    EXPECT_EQ(rd_params0, params0);
+
+
+    /* Don't need event's service anymore */
+    terminate_svc = true;
+    terminate_sub = true;
+
+    // EXPECT_EQ(evt_source, source_read);
+
+    thr.join();
+    thr_sub.join();
+
+    events_deinit_publisher(h);
+    events_deinit_publisher(h1);
+
+    zmq_ctx_term(zmq_ctx);
+    zmq_ctx = NULL;
+    printf("************ PUBLISH DONE ***************\n");
+}
+
+typedef struct {
+    int id;
+    string source;
+    string tag;
+    string rid;
+    string seq;
+    event_params_t params;
+    int missed_cnt;
+} test_data_t;
+
+internal_event_t create_ev(const test_data_t &data)
+{
+    internal_event_t event_data;
+
+    {
+        string param_str;
+
+        EXPECT_EQ(0, serialize(data.params, param_str));
+
+        map_str_str_t event_str_map = { { data.source + ":" + data.tag, param_str}};
+
+        EXPECT_EQ(0, serialize(event_str_map, event_data[EVENT_STR_DATA]));
+    }
+
+    event_data[EVENT_RUNTIME_ID] = data.rid;
+    event_data[EVENT_SEQUENCE] = data.seq;
+
+    return event_data;
+}
+
+/* Mock test data with event parameters and expected missed count */
+static const test_data_t ldata[] = {
+    {
+        0,
+        "source0",
+        "tag0",
+        "guid-0",
+        "1",
+        {{"ip", "10.10.10.10"}, {"state", "up"}},
+        0
+    },
+    {
+        1,
+        "source0",
+        "tag1",
+        "guid-1",
+        "100",
+        {{"ip", "10.10.27.10"}, {"state", "down"}},
+        0
+    },
+    {
+        2,
+        "source1",
+        "tag2",
+        "guid-2",
+        "101",
+        {{"ip", "10.10.24.10"}, {"state", "down"}},
+        0
+    },
+    {
+        3,
+        "source0",
+        "tag3",
+        "guid-1",
+        "105",
+        {{"ip", "10.10.10.10"}, {"state", "up"}},
+        4
+    },
+    {
+        4,
+        "source0",
+        "tag4",
+        "guid-0",
+        "2",
+        {{"ip", "10.10.20.10"}, {"state", "down"}},
+        0
+    },
+    {
+        5,
+        "source1",
+        "tag5",
+        "guid-2",
+        "110",
+        {{"ip", "10.10.24.10"}, {"state", "down"}},
+        8
+    },
+    {
+        6,
+        "source0",
+        "tag0",
+        "guid-0",
+        "5",
+        {{"ip", "10.10.10.10"}, {"state", "up"}},
+        2
+    },
+    {
+        7,
+        "source0",
+        "tag1",
+        "guid-1",
+        "106",
+        {{"ip", "10.10.27.10"}, {"state", "down"}},
+        0
+    },
+    {
+        8,
+        "source1",
+        "tag2",
+        "guid-2",
+        "111",
+        {{"ip", "10.10.24.10"}, {"state", "down"}},
+        0
+    },
+    {
+        9,
+        "source0",
+        "tag3",
+        "guid-1",
+        "109",
+        {{"ip", "10.10.10.10"}, {"state", "up"}},
+        2
+    },
+    {
+        10,
+        "source0",
+        "tag4",
+        "guid-0",
+        "6",
+        {{"ip", "10.10.20.10"}, {"state", "down"}},
+        0
+    },
+    {
+        11,
+        "source1",
+        "tag5",
+        "guid-2",
+        "119",
+        {{"ip", "10.10.24.10"}, {"state", "down"}},
+        7
+    },
+};
+
+int pub_send_index = 0;
+int pub_send_cnt = 0;
+
+/* Mock publisher to test subscriber. Runs in dedicated thread */
+void run_pub()
+{
+    /*
+     * Two ends of zmq had to be on different threads.
+     * so run it independently
+     */
+    void *mock_pub;
+    mock_pub = zmq_socket (zmq_ctx, ZMQ_PUB);
+    EXPECT_TRUE(NULL != mock_pub);
+    EXPECT_EQ(0, zmq_bind(mock_pub, get_config(XPUB_END_KEY).c_str()));
+
+    /* Sends pub_send_cnt events from pub_send_index. */
+    while (pub_send_cnt >= 0) {
+        if (pub_send_cnt == 0) {
+            this_thread::sleep_for(chrono::milliseconds(2));
+            continue;
+        }
+
+        int i;
+        for(i=0; i<pub_send_cnt; ++i) {
+            string src("some_src");
+            internal_event_t evt(create_ev(ldata[pub_send_index+i]));
+
+            EXPECT_EQ(0, zmq_message_send(mock_pub, src, evt));
+        }
+        pub_send_cnt = 0;
+    }
+    zmq_close(mock_pub);
+
+}
+
+
+/* Helper API to publish via run_pub running in different thread. */
+void pub_events(int index, int cnt)
+{
+    /* Take a pause to allow publish to connect async */
+    this_thread::sleep_for(chrono::milliseconds(200));
+
+    pub_send_index = index;
+    pub_send_cnt = cnt;
+
+    /* Take a pause to ensure, subscriber would have got it */
+    this_thread::sleep_for(chrono::milliseconds(200));
+
+    /* Verify all messages are sent/published */
+    EXPECT_EQ(0, pub_send_cnt);
+}
+
+
+TEST(events, subscribe)
+{
+    int i;
+    // Enables all log messages to be printed, when this flag is set.
+    running_ut = 0;
+
+
+    /*
+     * Events published during subs deinit, which will be provided
+     * to events cache as start up cache.
+     */
+    int index_deinit_cache = 0;   /* count of events published during subs deinit*/
+    int cnt_deinit_cache = 3;   /* count of events published during subs deinit*/
+    
+    /*
+     * Events published to active cache.
+     */
+    int index_active_cache = index_deinit_cache + cnt_deinit_cache;
+    int cnt_active_cache = 5;
+
+    /*
+     * Events published to receiver
+     */
+    int overlap_subs = 3;
+    EXPECT_TRUE(cnt_active_cache >= overlap_subs);
+    int index_subs = index_active_cache + cnt_active_cache - overlap_subs;
+    int cnt_subs = ARRAY_SIZE(ldata) - index_subs;
+    EXPECT_TRUE(cnt_subs > overlap_subs);
+
+    event_handle_t hsub;
+
+    zmq_ctx = zmq_ctx_new();
+    EXPECT_TRUE(NULL != zmq_ctx);
+
+    thread thr_svc(&pub_serve_commands);
+    thread thr_pub(&run_pub);
+
+    hsub = events_init_subscriber(true);
+    EXPECT_TRUE(NULL != hsub);
+    EXPECT_EQ(last_svc_code, EVENT_CACHE_STOP);
+
+    /* Publish messages for deinit to capture */
+    pub_events(index_deinit_cache, cnt_deinit_cache);
+
+    events_deinit_subscriber(hsub);
+    EXPECT_TRUE(NULL == hsub);
+    EXPECT_EQ(last_svc_code, EVENT_CACHE_START);
+    EXPECT_TRUE(cnt_deinit_cache == (int)lst_cache.size());
+
+    /* Publish messages for cache to capture with overlap */
+    /* As we mimic cache service, add to the cache directly */
+    for (i = 0; i < cnt_active_cache; ++i) {
+        string s;
+        internal_event_t evt(create_ev(ldata[index_active_cache+i]));
+        serialize(evt, s);
+        lst_cache.push_back(s);
+    }
+    EXPECT_EQ((int)lst_cache.size(), index_subs+overlap_subs);
+
+    /* We publish all events ahead of receive, so set a timeout */
+    hsub = events_init_subscriber(true, 100);
+    EXPECT_TRUE(NULL != hsub);
+    EXPECT_EQ(last_svc_code, EVENT_CACHE_STOP);
+
+    pub_events(index_subs, cnt_subs);
+
+    for(i=0; true; ++i) {
+        string key, exp_key;
+        event_params_t params;
+        int missed = -1;
+
+        int rc = event_receive(hsub, key, params, missed);
+
+        if (rc != 0) {
+            EXPECT_EQ(EAGAIN, event_last_error());
+            break;
+        }
+
+        EXPECT_EQ(ldata[i].params, params);
+        
+        exp_key = ldata[i].source + ":" + ldata[i].tag;
+
+        EXPECT_EQ(exp_key, key);
+
+        EXPECT_EQ(ldata[i].missed_cnt, missed);
+    }
+
+    EXPECT_EQ(i, ARRAY_SIZE(ldata));
+
+    events_deinit_subscriber(hsub);
+
+    /* Don't need event's service anymore */
+    terminate_svc = true;
+    pub_send_cnt = -1;
+
+    thr_svc.join();
+    thr_pub.join();
+    zmq_ctx_term(zmq_ctx);
+    printf("************ SUBSCRIBE DONE ***************\n");
+}
+
