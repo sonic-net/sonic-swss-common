@@ -18,7 +18,6 @@ def setup_countersdb(request):
         db.hset("COUNTERS_PORT_NAME_MAP", k, v)
         swsscommon.Table(db, "COUNTERS").set(v, port_stats)
 
-
     gbdb = swsscommon.DBConnector("GB_COUNTERS_DB", 0, True)
     fvs = swsscommon.FieldValuePairs([
         ("Ethernet0_system", "0x101010000000001"),
@@ -34,12 +33,31 @@ def setup_countersdb(request):
     gbdb.flushdb()
     db.flushdb()
 
-def test_basic():
+def test_keycache():
+    db = swsscommon.DBConnector("COUNTERS_DB", 0, True)
+    gbdb = swsscommon.DBConnector("GB_COUNTERS_DB", 0, True)
+    counterTable = CounterTable(db)
+
+    cache = PortCounter().keyCacheInstance()
+    assert not cache.enabled()
+    assert cache.empty()
+
+    cache.enable(counterTable)
+    assert not cache.empty()
+    assert cache.at("Ethernet0") ==  db.hget("COUNTERS_PORT_NAME_MAP", "Ethernet0")
+    assert cache.at("Ethernet0_system") ==  gbdb.hget("COUNTERS_PORT_NAME_MAP", "Ethernet0_system")
+    assert cache.at("Ethernet0_line") ==  gbdb.hget("COUNTERS_PORT_NAME_MAP", "Ethernet0_line")
+    assert cache.at("Ethernetxx") == swsscommon.nullkey
+
+    cache.disable()
+    assert not cache.enabled()
+    assert cache.empty()
+
+def test_port():
     db = swsscommon.DBConnector("COUNTERS_DB", 0, True)
     counterTable = CounterTable(db)
     portName = "Ethernet0"
     counterID = 'SAI_PORT_STAT_IF_IN_ERRORS'
-
 
     r, value = counterTable.hget(PortCounter(), portName, counterID)
     assert r
@@ -62,3 +80,16 @@ def test_basic():
     r, value = counterTable.hget(linesidePort, portName, counterID)
     assert r
     assert value == "2"
+
+    # Enable key cache and test again
+    cache = PortCounter().keyCacheInstance()
+    cache.enable(counterTable)
+
+    r, value = counterTable.hget(systemsidePort, portName, counterID)
+    assert r
+    assert value == "2"
+    r, value = counterTable.hget(linesidePort, portName, counterID)
+    assert r
+    assert value == "2"
+
+    cache.disable()

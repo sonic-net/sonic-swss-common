@@ -31,6 +31,68 @@ private:
     std::unique_ptr<DBConnector> m_gbcountersDB;
 };
 
+static const std::string nullkey = "null";
+
+class KeyCache {
+private:
+    std::function<void (const CounterTable& t)>  m_cachingFunc;
+    std::unordered_map<std::string, std::string> m_keyMap;
+    bool m_enabled;
+    KeyCache (const KeyCache&) = delete;
+
+public:
+    KeyCache(const std::function<void (const CounterTable& t)> &f)
+        :m_cachingFunc(f), m_enabled(false) {
+    }
+
+    bool enabled() const {
+        return m_enabled;
+    }
+
+    void enable(const CounterTable& t) {
+        if(!m_enabled)
+        {
+            refresh(t);
+            m_enabled = true;
+        }
+    }
+
+    void disable() {
+        if(m_enabled)
+        {
+            m_keyMap.clear();
+            m_enabled = false;
+        }
+    }
+
+    bool empty() const {
+        return m_keyMap.empty();
+    }
+
+    void clear() {
+        m_keyMap.clear();
+    }
+
+    const std::string& at(const std::string &name) const {
+        try {
+            return m_keyMap.at(name);
+        }
+        catch (const std::out_of_range& oor) {
+            return nullkey;
+        }
+    }
+
+    template <class InputIterator>
+    void add(InputIterator first, InputIterator last) {
+        m_keyMap.insert(first, last);
+    }
+
+    void refresh(const CounterTable& t) {
+        m_keyMap.clear();
+        m_cachingFunc(t);
+    }
+};
+
 struct Counter {
     typedef std::pair<int, std::string> KeyPair;
 
@@ -47,6 +109,7 @@ struct Counter {
         return {};
     }
     virtual KeyPair getKey(const CounterTable&, const std::string &name) const = 0;
+    virtual KeyCache& keyCacheInstance(void) const = 0;
     virtual ~Counter() = default;
 
 private:
@@ -64,10 +127,13 @@ public:
     bool usingLuaTable(const CounterTable&, const std::string &name) const override;
     std::vector<std::string> getLuaKeys(const CounterTable&, const std::string &name) const override;
     KeyPair getKey(const CounterTable&, const std::string &name) const override;
+    KeyCache& keyCacheInstance(void) const;
 
 private:
     Mode m_mode;
     std::string m_luaScript;
+
+    static std::unique_ptr<KeyCache> keyCachePtr;
 };
 
 class MacsecCounter: public Counter {

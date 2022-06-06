@@ -117,5 +117,31 @@ TEST(Counter, basic)
     ret = counterTable.hget(PortCounter(PortCounter::Mode::lineside), "abcd", counterID, value);
     EXPECT_FALSE(ret);
 
+    // Enable key cache
+    KeyCache &cache = PortCounter().keyCacheInstance();
+    cache.enable(counterTable);
+
+    value.clear();
+    ret = counterTable.hget(PortCounter(), port, counterID, value);
+    EXPECT_TRUE(ret);
+    EXPECT_EQ(value, "3");
+
+    value.clear();
+    ret = counterTable.hget(PortCounter(PortCounter::Mode::asic), port, counterID, value);
+    EXPECT_TRUE(ret);
+    EXPECT_EQ(value, "1");
+
+    value.clear();
+    ret = counterTable.hget(PortCounter(PortCounter::Mode::systemside), port, counterID, value);
+    EXPECT_TRUE(ret);
+    EXPECT_EQ(value, "1");
+
+    value.clear();
+    ret = counterTable.hget(PortCounter(PortCounter::Mode::lineside), port, counterID, value);
+    EXPECT_TRUE(ret);
+    EXPECT_EQ(value, "1");
+
+    cache.disable();
+
     deinitCounterDB();
 }
