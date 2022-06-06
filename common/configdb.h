@@ -39,10 +39,9 @@ protected:
 
 #ifdef SWIG
 %pythoncode %{
-    from swsscommon.signal import SignalHandlerHelper, SIGNAL_INT, SIGNAL_TERM
-
     ## Note: diamond inheritance, reusing functions in both classes
     class ConfigDBConnector(SonicV2Connector, ConfigDBConnector_Native):
+
         ## Note: there is no easy way for SWIG to map ctor parameter netns(C++) to namespace(python)
         def __init__(self, use_unix_socket_path = False, namespace = '', **kwargs):
             if 'decode_responses' in kwargs and kwargs.pop('decode_responses') != True:
@@ -95,7 +94,8 @@ protected:
             if init_data_handler:
                 init_data_handler(init_callback_data)
 
-            while not (SignalHandlerHelper.checkSignal(SIGNAL_INT) or SignalHandlerHelper.checkSignal(SIGNAL_TERM)):
+            while not (signal.SignalHandlerHelper.checkSignal(signal.SIGNAL_INT) or
+                        signal.SignalHandlerHelper.checkSignal(signal.SIGNAL_TERM)):
                 item = self.pubsub.listen_message()
                 if 'type' not in item:
                     # When timeout or cancelled, item will not contains 'type' 

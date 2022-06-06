@@ -5,7 +5,7 @@ import time
 import threading
 
 from swsscommon import swsscommon
-from swsscommon.swsscommon import SignalHandlerHelper, SonicV2Connector
+from swsscommon.swsscommon import SonicV2Connector
 from swsscommon.signal import SignalHandlerHelper, RegisterSignal
 
 CurrentSignalNumber = 0
