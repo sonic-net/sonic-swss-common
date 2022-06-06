@@ -94,8 +94,8 @@ protected:
             if init_data_handler:
                 init_data_handler(init_callback_data)
 
-            while not (signal.SignalHandlerHelper.checkSignal(signal.SIGNAL_INT) or
-                        signal.SignalHandlerHelper.checkSignal(signal.SIGNAL_TERM)):
+            while not (SignalHandlerHelper.checkSignal(SIGNAL_INT) or
+                        SignalHandlerHelper.checkSignal(SIGNAL_TERM)):
                 item = self.pubsub.listen_message()
                 if 'type' not in item:
                     # When timeout or cancelled, item will not contains 'type' 
