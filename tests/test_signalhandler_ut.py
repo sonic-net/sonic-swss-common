@@ -5,17 +5,23 @@ import time
 import threading
 
 from swsscommon import swsscommon
-from swsscommon.swsscommon import SignalHandlerHelper, SonicV2Connector
+from swsscommon.swsscommon import SonicV2Connector, SonicDBConfig
+from swsscommon.signal import SignalHandlerHelper, RegisterSignal
+from test_redis_ut import prepare
+
+CurrentSignalNumber = 0
+
+def python_signal_handler(signum, stack):
+    global CurrentSignalNumber
+    CurrentSignalNumber = signum
 
 def dummy_signal_handler(signum, stack):
-    # ignore signal so UT will not break
     pass
 
 def test_SignalHandler():
-    signal.signal(signal.SIGUSR1, dummy_signal_handler)
+    RegisterSignal(signal.SIGUSR1, python_signal_handler)
 
     # Register SIGUSER1
-    SignalHandlerHelper.registerSignalHandler(signal.SIGUSR1)
     happened = SignalHandlerHelper.checkSignal(signal.SIGUSR1)
     assert happened == False
 
@@ -31,19 +37,23 @@ def test_SignalHandler():
     
     # un-register signal handler
     SignalHandlerHelper.restoreSignalHandler(signal.SIGUSR1)
+    # register python signal handler so SIGUSER1 will not break test
+    signal.signal(signal.SIGUSR1, dummy_signal_handler)
     os.kill(os.getpid(), signal.SIGUSR1)
     happened = SignalHandlerHelper.checkSignal(signal.SIGUSR1)
     assert happened == False
 
 def pubsub_thread():
     connector =swsscommon.ConfigDBConnector()
+    connector.db_connect('CONFIG_DB')
     connector.subscribe('A', lambda a: None)
-    connector.connect()
     connector.listen()
 
 def check_signal_can_break_pubsub(signalId):
-    signal.signal(signal.SIGUSR1, dummy_signal_handler)
+    global CurrentSignalNumber
+    CurrentSignalNumber = 0
     SignalHandlerHelper.resetSignal(signalId)
+    RegisterSignal(signalId, python_signal_handler)
 
     test_thread = threading.Thread(target=pubsub_thread)
     test_thread.start()
@@ -52,13 +62,16 @@ def check_signal_can_break_pubsub(signalId):
     time.sleep(2)
     assert test_thread.is_alive() == True
 
-    # send SIGTERM and SIGINT will break test case, so send SIGUSR1 to trigger signal status check inside PubSub
-    SignalHandlerHelper.onSignal(signalId)
-    os.kill(os.getpid(), signal.SIGUSR1)
+    os.kill(os.getpid(), signalId)
 
     # check thread is stopped
     time.sleep(2)
     assert test_thread.is_alive() == False
+
+    # check 
+    assert CurrentSignalNumber == signalId
+
+    # reset signal
     SignalHandlerHelper.resetSignal(signalId)
 
 def test_SignalIntAndSigTerm():

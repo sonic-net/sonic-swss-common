@@ -1,5 +1,11 @@
 %module swsscommon
 
+// ConfigDBConnector using signal.SignalHandlerHelper
+%pythoncode %{
+from .signal import SignalHandlerHelper, SIGNAL_INT, SIGNAL_TERM
+%}
+
+
 %rename(delete) del;
 
 %{
@@ -19,7 +25,6 @@
 #include "pubsub.h"
 #include "select.h"
 #include "selectable.h"
-#include "signalhandlerhelper.h"
 #include "rediscommand.h"
 #include "table.h"
 #include "redispipeline.h"
@@ -155,7 +160,6 @@ T castSelectableObj(swss::Selectable *temp)
 %include "pubsub.h"
 %include "selectable.h"
 %include "select.h"
-%include "signalhandlerhelper.h"
 %include "rediscommand.h"
 %include "redispipeline.h"
 %include "redisselect.h"
