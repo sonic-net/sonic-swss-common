@@ -1,5 +1,6 @@
 #pragma once
 #include <map>
+#include <memory>
 #include <signal.h>
 
 namespace swss {
@@ -13,6 +14,13 @@ enum Signals
     SIGNAL_INT = SIGINT
 };
 
+class SignalCallbackBase
+{
+   public:
+      virtual ~SignalCallbackBase() {};
+      virtual void onSignal(int signalNumber) = 0; 
+};
+
 /*
     SignalHandlerHelper class provide a native signal handler.
     Python signal handler have following issue:
@@ -23,6 +31,7 @@ class SignalHandlerHelper
 {
 public:
     static void registerSignalHandler(int signalNumber);
+    static void registerSignalHandler(int signalNumber, std::shared_ptr<SignalCallbackBase> callback);
     static void restoreSignalHandler(int signalNumber);
     static void onSignal(int signalNumber);
     static bool checkSignal(int signalNumber);
@@ -31,6 +40,33 @@ public:
 private:
     static std::map<int, bool> m_signalStatusMapping;
     static std::map<int, SigActionPair> m_sigActionMapping;
+    static std::map<int, std::shared_ptr<SignalCallbackBase>> m_sigCallbackMapping;
 };
+
+/*
+    Register python signal handler to swsscommon.
+*/
+#ifdef SWIG
+%pythoncode %{
+def RegisterSignal(signalNumber, handler):
+    if not callable(handler):
+        raise TypeError("Parameter handler is not a callable object!")
+
+    class SignalCallbackWrapper(SignalCallbackBase):
+        def __init__(self, signalhandler):
+            super(SignalCallbackWrapper, self).__init__()
+            self.m_signalhandler = signalhandler
+
+        def onSignal(self, signalNumber):
+            # Call signal handler from c++, there is no python stack, always pass stack frame object as None
+            self.m_signalhandler(signalNumber, None)
+
+    warpper = SignalCallbackWrapper(handler)
+
+    # Transfer ownership to SignalHandlerHelper, for more information please check: https://www.swig.org/Doc4.0/Python.html#Python_nn35
+    SignalHandlerHelper.registerSignalHandler(signalNumber, warpper.__disown__())
+
+%}
+#endif
 
 }

@@ -39,9 +39,10 @@ protected:
 
 #ifdef SWIG
 %pythoncode %{
+    from swsscommon.signal import SignalHandlerHelper, SIGNAL_INT, SIGNAL_TERM
+
     ## Note: diamond inheritance, reusing functions in both classes
     class ConfigDBConnector(SonicV2Connector, ConfigDBConnector_Native):
-
         ## Note: there is no easy way for SWIG to map ctor parameter netns(C++) to namespace(python)
         def __init__(self, use_unix_socket_path = False, namespace = '', **kwargs):
             if 'decode_responses' in kwargs and kwargs.pop('decode_responses') != True:
