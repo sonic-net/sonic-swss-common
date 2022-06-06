@@ -47,7 +47,7 @@ def test_keycache():
     assert cache.at("Ethernet0") ==  db.hget("COUNTERS_PORT_NAME_MAP", "Ethernet0")
     assert cache.at("Ethernet0_system") ==  gbdb.hget("COUNTERS_PORT_NAME_MAP", "Ethernet0_system")
     assert cache.at("Ethernet0_line") ==  gbdb.hget("COUNTERS_PORT_NAME_MAP", "Ethernet0_line")
-    assert cache.at("Ethernetxx") == swsscommon.nullkey
+    assert cache.at("Ethernetxx") == swsscommon.KeyCacheString.nullkey
 
     cache.disable()
     assert not cache.enabled()

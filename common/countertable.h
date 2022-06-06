@@ -31,16 +31,17 @@ private:
     std::unique_ptr<DBConnector> m_gbcountersDB;
 };
 
-static const std::string nullkey = "null";
-
+template <typename T>
 class KeyCache {
 private:
     std::function<void (const CounterTable& t)>  m_cachingFunc;
-    std::unordered_map<std::string, std::string> m_keyMap;
+    std::unordered_map<std::string, T> m_keyMap;
     bool m_enabled;
     KeyCache (const KeyCache&) = delete;
 
 public:
+    static const T nullkey;
+
     KeyCache(const std::function<void (const CounterTable& t)> &f)
         :m_cachingFunc(f), m_enabled(false) {
     }
@@ -73,7 +74,7 @@ public:
         m_keyMap.clear();
     }
 
-    const std::string& at(const std::string &name) const {
+    const T& at(const std::string &name) const {
         try {
             return m_keyMap.at(name);
         }
@@ -109,7 +110,6 @@ struct Counter {
         return {};
     }
     virtual KeyPair getKey(const CounterTable&, const std::string &name) const = 0;
-    virtual KeyCache& keyCacheInstance(void) const = 0;
     virtual ~Counter() = default;
 
 private:
@@ -127,13 +127,14 @@ public:
     bool usingLuaTable(const CounterTable&, const std::string &name) const override;
     std::vector<std::string> getLuaKeys(const CounterTable&, const std::string &name) const override;
     KeyPair getKey(const CounterTable&, const std::string &name) const override;
-    KeyCache& keyCacheInstance(void) const;
+
+    static KeyCache<std::string>& keyCacheInstance(void);
 
 private:
     Mode m_mode;
     std::string m_luaScript;
 
-    static std::unique_ptr<KeyCache> keyCachePtr;
+    static std::unique_ptr<KeyCache<std::string>> keyCachePtr;
 };
 
 class MacsecCounter: public Counter {

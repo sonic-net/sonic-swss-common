@@ -118,7 +118,7 @@ TEST(Counter, basic)
     EXPECT_FALSE(ret);
 
     // Enable key cache
-    KeyCache &cache = PortCounter().keyCacheInstance();
+    KeyCache<string> &cache = PortCounter::keyCacheInstance();
     cache.enable(counterTable);
 
     value.clear();

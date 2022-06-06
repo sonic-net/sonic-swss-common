@@ -14,10 +14,15 @@ using namespace swss;
 
 const std::string Counter::defaultLuaScript = "return nil";
 
+template <typename T>
+const T KeyCache<T>::nullkey = {};
+template <>
+const string KeyCache<string>::nullkey = "null";
+
 /*
  * Port counter type
  */
-unique_ptr<KeyCache> PortCounter::keyCachePtr = nullptr;
+unique_ptr<KeyCache<string>> PortCounter::keyCachePtr = nullptr;
 
 PortCounter::PortCounter(PortCounter::Mode mode)
     : m_mode(mode)
@@ -49,7 +54,7 @@ PortCounter::getLuaKeys(const CounterTable& t, const std::string &name) const
     if (m_mode != Mode::all)
         return {};
 
-    KeyCache &cache = keyCacheInstance();
+    KeyCache<string> &cache = keyCacheInstance();
     if (cache.enabled())
     {
         return {cache.at(name), cache.at(name + "_system"), cache.at(name + "_line")};
@@ -88,7 +93,7 @@ PortCounter::getKey(const CounterTable& t, const std::string &name) const
         }
     }
 
-    KeyCache &cache = keyCacheInstance();
+    KeyCache<string> &cache = keyCacheInstance();
     if (cache.enabled())
     {
         return {dbId, cache.at(portName)};
@@ -109,8 +114,8 @@ PortCounter::getKey(const CounterTable& t, const std::string &name) const
     return {dbId, *oidPtr};
 }
 
-KeyCache&
-PortCounter::keyCacheInstance(void) const
+KeyCache<string>&
+PortCounter::keyCacheInstance(void)
 {
     if (keyCachePtr == nullptr)
     {
@@ -121,7 +126,7 @@ PortCounter::keyCacheInstance(void) const
             fvs = t.getGbcountersDB()->hgetall(COUNTERS_PORT_NAME_MAP);
             keyCachePtr->add(fvs.begin(), fvs.end());
         };
-        unique_ptr<KeyCache> ptr(new KeyCache(f));
+        unique_ptr<KeyCache<string>> ptr(new KeyCache<string>(f));
         keyCachePtr = std::move(ptr);
     }
     return *keyCachePtr;
