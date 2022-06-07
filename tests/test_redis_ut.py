@@ -12,7 +12,8 @@ existing_file = "./tests/redis_multi_db_ut_config/database_config.json"
 
 @pytest.fixture(scope="session", autouse=True)
 def prepare(request):
-    SonicDBConfig.initialize(existing_file)
+    if not SonicDBConfig.isInit():
+        SonicDBConfig.initialize(existing_file)
 
 def test_ProducerTable():
     db = swsscommon.DBConnector("APPL_DB", 0, True)

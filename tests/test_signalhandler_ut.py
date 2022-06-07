@@ -5,8 +5,9 @@ import time
 import threading
 
 from swsscommon import swsscommon
-from swsscommon.swsscommon import SonicV2Connector
+from swsscommon.swsscommon import SonicV2Connector, SonicDBConfig
 from swsscommon.signal import SignalHandlerHelper, RegisterSignal
+from test_redis_ut import prepare
 
 CurrentSignalNumber = 0
 
@@ -44,8 +45,8 @@ def test_SignalHandler():
 
 def pubsub_thread():
     connector =swsscommon.ConfigDBConnector()
+    connector.db_connect('CONFIG_DB')
     connector.subscribe('A', lambda a: None)
-    connector.connect()
     connector.listen()
 
 def check_signal_can_break_pubsub(signalId):
@@ -69,6 +70,9 @@ def check_signal_can_break_pubsub(signalId):
 
     # check 
     assert CurrentSignalNumber == signalId
+
+    # reset signal
+    SignalHandlerHelper.resetSignal(signalId)
 
 def test_SignalIntAndSigTerm():
     check_signal_can_break_pubsub(signal.SIGINT)
