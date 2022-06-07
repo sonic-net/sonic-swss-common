@@ -18,6 +18,8 @@ template <typename T>
 const T KeyCache<T>::nullkey = {};
 template <>
 const string KeyCache<string>::nullkey = "null";
+template <>
+const Counter::KeyPair KeyCache<Counter::KeyPair>::nullkey = {-1, ""};
 
 /*
  * Port counter type
@@ -135,9 +137,17 @@ PortCounter::keyCacheInstance(void)
 /*
  * MACSEC counter type
  */
+unique_ptr<KeyCache<Counter::KeyPair>> MacsecCounter::keyCachePtr = nullptr;
+
 Counter::KeyPair
 MacsecCounter::getKey(const CounterTable& t, const std::string &name) const
 {
+    KeyCache<Counter::KeyPair> &cache = keyCacheInstance();
+    if (cache.enabled())
+    {
+        return cache.at(name);
+    }
+
     int dbId = COUNTERS_DB;
     auto oidPtr = t.getCountersDB()->hget(COUNTERS_MACSEC_NAME_MAP, name);
 
@@ -152,6 +162,29 @@ MacsecCounter::getKey(const CounterTable& t, const std::string &name) const
     return {dbId, *oidPtr};
 }
 
+KeyCache<Counter::KeyPair>&
+MacsecCounter::keyCacheInstance(void)
+{
+    if (keyCachePtr == nullptr)
+    {
+        auto f = [](const CounterTable& t) {
+            auto fvs = t.getCountersDB()->hgetall(COUNTERS_MACSEC_NAME_MAP);
+            for (auto fv: fvs)
+            {
+                keyCachePtr->add(fv.first, Counter::KeyPair(COUNTERS_DB, fv.second));
+            }
+
+            fvs = t.getGbcountersDB()->hgetall(COUNTERS_MACSEC_NAME_MAP);
+            for (auto fv: fvs)
+            {
+                keyCachePtr->add(fv.first, Counter::KeyPair(GB_COUNTERS_DB, fv.second));
+            }
+        };
+        unique_ptr<KeyCache<Counter::KeyPair>> ptr(new KeyCache<Counter::KeyPair>(f));
+        keyCachePtr = std::move(ptr);
+    }
+    return *keyCachePtr;
+}
 
 CounterTable::CounterTable(const DBConnector *db, const string &tableName)
     : TableBase(tableName, SonicDBConfig::getSeparator(db))

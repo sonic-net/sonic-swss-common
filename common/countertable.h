@@ -88,6 +88,10 @@ public:
         m_keyMap.insert(first, last);
     }
 
+    void add(const std::string &name, const T &key) {
+        m_keyMap.insert({name, key});
+    }
+
     void refresh(const CounterTable& t) {
         m_keyMap.clear();
         m_cachingFunc(t);
@@ -142,6 +146,11 @@ public:
     MacsecCounter() = default;
     ~MacsecCounter() = default;
     KeyPair getKey(const CounterTable&, const std::string &name) const override;
+
+    static KeyCache<KeyPair>& keyCacheInstance(void);
+
+private:
+    static std::unique_ptr<KeyCache<KeyPair>> keyCachePtr;
 };
 
 }

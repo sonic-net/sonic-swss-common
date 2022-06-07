@@ -185,7 +185,9 @@ T castSelectableObj(swss::Selectable *temp)
 %apply std::string& OUTPUT {std::string &value};
 %include "luatable.h"
 %include "countertable.h"
-%template(KeyCacheString) swss::KeyCache<std::string>;
+%template(CounterKeyPair) std::pair<int, std::string>;
+%template(KeyStringCache) swss::KeyCache<std::string>;
+%template(KeyPairCache) swss::KeyCache<swss::Counter::KeyPair>;
 %clear std::string &value;
 %clear std::vector<std::pair<std::string, std::string>> &values;
 
