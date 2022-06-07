@@ -17,7 +17,7 @@ public:
 
 public:
     bool get(const Counter &counter, const std::string &key, std::vector<FieldValueTuple> &values);
-    bool hget(const Counter &counter, const std::string &key, const std::string &field,  std::string &value);
+    bool hget(const Counter &counter, const std::string &key, const std::string &field, std::string &value);
 
     const std::unique_ptr<DBConnector>& getCountersDB() const {
         return m_countersDB;
@@ -98,7 +98,8 @@ public:
     }
 };
 
-struct Counter {
+class Counter {
+public:
     typedef std::pair<int, std::string> KeyPair;
 
     virtual const std::string& getLuaScript() const {

@@ -44,12 +44,13 @@ bool LuaTable::get(const vector<string> &luaKeys, vector<FieldValueTuple> &value
         args.emplace_back(k);
     }
 
-    // ARGV[1..3]: counter db, gearbox counter db, table name
+    // ARGV[1..4]: counter db, gearbox counter db, table name, separator
     args.emplace_back(to_string(COUNTERS_DB));
     args.emplace_back(to_string(GB_COUNTERS_DB));
     args.emplace_back(getTableName());
-    args.emplace_back("GET");  // ARGV[4] 'GET' all fields
-    for (const auto& v: m_luaArgv) // ARGV[5...] extra user-defined
+    args.emplace_back(getTableNameSeparator());
+    args.emplace_back("GET");  // ARGV[5] 'GET' all fields
+    for (const auto& v: m_luaArgv) // ARGV[6...] extra user-defined
     {
         args.emplace_back(v);
     }
@@ -97,13 +98,14 @@ bool LuaTable::hget(const vector<string> &luaKeys, const string &field, string &
         args.emplace_back(k);
     }
 
-    // ARGV[1..3]: counter db, gearbox counter db, table name
+    // ARGV[1..4]: counter db, gearbox counter db, table name, separator
     args.emplace_back(to_string(COUNTERS_DB));
     args.emplace_back(to_string(GB_COUNTERS_DB));
     args.emplace_back(getTableName());
-    args.emplace_back("HGET");  // ARGV[4] 'HGET' one field
-    args.emplace_back(field);    // ARGV[5] field name
-    for (const auto& v: m_luaArgv) // ARGV[6...] extra user-defined
+    args.emplace_back(getTableNameSeparator());
+    args.emplace_back("HGET");  // ARGV[5] 'HGET' one field
+    args.emplace_back(field);    // ARGV[6] field name
+    for (const auto& v: m_luaArgv) // ARGV[7...] extra user-defined
     {
         args.emplace_back(v);
     }

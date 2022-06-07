@@ -2,7 +2,8 @@
 local counters_db = ARGV[1]
 local gb_counters_db = ARGV[2]
 local counters_table = ARGV[3]
-local operator = ARGV[4]
+local separator = ARGV[4]
+local operator = ARGV[5]
 
 local gb_counter_list= {
     SAI_PORT_STAT_IF_IN_ERRORS = {'SAI_PORT_STAT_IF_OUT_ERRORS', 'SAI_PORT_STAT_IF_IN_ERRORS'},
@@ -24,7 +25,7 @@ local function get_gbcounter(counter_id)
     if counter then
         for i,id in ipairs(counter) do
             if #id > 0 then
-                r = r + redis.call('HGET', counters_table .. ':' .. KEYS[i+1], id)
+                r = r + redis.call('HGET', counters_table .. separator .. KEYS[i+1], id)
             end
         end
     end
@@ -38,9 +39,9 @@ if #KEYS < 3 then
 end
 
 if operator == "HGET" then
-    local field = ARGV[5]
+    local field = ARGV[6]
     redis.call('SELECT', counters_db)
-    local counter = redis.call('HGET', counters_table .. ':' .. KEYS[1], field)
+    local counter = redis.call('HGET', counters_table .. separator .. KEYS[1], field)
 
     if counter then
         redis.call('SELECT', gb_counters_db)
@@ -49,7 +50,7 @@ if operator == "HGET" then
     end
 elseif operator == "GET" then
     redis.call('SELECT', counters_db)
-    local counter_list = redis.call('HGETALL', counters_table .. ':' .. KEYS[1])
+    local counter_list = redis.call('HGETALL', counters_table .. separator .. KEYS[1])
 
     if counter_list then
         redis.call('SELECT', gb_counters_db)
