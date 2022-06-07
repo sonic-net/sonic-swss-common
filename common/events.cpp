@@ -350,7 +350,7 @@ EventSubscriber::event_receive(string &key, event_params_t &params, int &missed_
 
         /* Find any missed events for this runtime ID */
         missed_cnt = 0;
-        sequence_t seq = events_base::str_to_seq(event_data[EVENT_SEQUENCE]);
+        sequence_t seq = str_to_seq(event_data[EVENT_SEQUENCE]);
         track_info_t::iterator it = m_track.find(event_data[EVENT_RUNTIME_ID]);
         if (it != m_track.end()) {
             /* current seq - last read - 1 == 0 if none missed */

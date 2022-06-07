@@ -66,7 +66,14 @@ void serve_commands()
 TEST(events_common, cache_cmds)
 {
     events_data_lst_t lst_start, lst;
-    running_ut = 1;
+
+#if 0
+    {
+        /* Direct log messages to stdout */
+        string dummy, op("STDOUT");
+        swss::Logger::swssOutputNotify(dummy, op);
+    }
+#endif
 
     zmq_ctx = zmq_ctx_new();
     EXPECT_TRUE(NULL != zmq_ctx);

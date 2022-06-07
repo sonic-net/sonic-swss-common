@@ -94,7 +94,7 @@ void run_sub()
     EXPECT_TRUE(NULL != mock_sub);
     EXPECT_EQ(0, zmq_bind(mock_sub, get_config(XSUB_END_KEY).c_str()));
     EXPECT_EQ(0, zmq_setsockopt(mock_sub, ZMQ_SUBSCRIBE, "", 0));
-    EXPECT_EQ(0, zmq_setsockopt(mock_sub, ZMQ_RCVTIMEO, &block_ms, sizeof (block_ms, 0)));
+    EXPECT_EQ(0, zmq_setsockopt(mock_sub, ZMQ_RCVTIMEO, &block_ms, sizeof (block_ms)));
 
     while(!terminate_sub) {
         if (0 == zmq_message_read(mock_sub, 0, source, ev_int)) {
@@ -163,8 +163,11 @@ parse_read_evt(string &source, internal_event_t &evt,
 
 TEST(events, publish)
 {
-    // Enables all log messages to be printed, when this flag is set.
-    running_ut = 0;
+    {
+        /* Direct log messages to stdout */
+        string dummy, op("STDOUT");
+        swss::Logger::swssOutputNotify(dummy, op);
+    }
 
     string evt_source0("sonic-events-bgp");
     string evt_source1("sonic-events-xyz");
@@ -468,9 +471,13 @@ void pub_events(int index, int cnt)
 TEST(events, subscribe)
 {
     int i;
-    // Enables all log messages to be printed, when this flag is set.
-    running_ut = 0;
-
+#if 0
+    {
+        /* Direct log messages to stdout */
+        string dummy, op("STDOUT");
+        swss::Logger::swssOutputNotify(dummy, op);
+    }
+#endif
 
     /*
      * Events published during subs deinit, which will be provided
@@ -491,7 +498,7 @@ TEST(events, subscribe)
     int overlap_subs = 3;
     EXPECT_TRUE(cnt_active_cache >= overlap_subs);
     int index_subs = index_active_cache + cnt_active_cache - overlap_subs;
-    int cnt_subs = ARRAY_SIZE(ldata) - index_subs;
+    int cnt_subs = ((int)ARRAY_SIZE(ldata)) - index_subs;
     EXPECT_TRUE(cnt_subs > overlap_subs);
 
     event_handle_t hsub;
@@ -552,7 +559,7 @@ TEST(events, subscribe)
         EXPECT_EQ(ldata[i].missed_cnt, missed);
     }
 
-    EXPECT_EQ(i, ARRAY_SIZE(ldata));
+    EXPECT_EQ(i, (int)ARRAY_SIZE(ldata));
 
     events_deinit_subscriber(hsub);
 

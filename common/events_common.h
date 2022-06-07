@@ -35,18 +35,12 @@ extern int recv_last_err;
  */
 #define MAX_PUBLISHERS_COUNT  1000
 
-extern int running_ut;
-
-
 #define RET_ON_ERR(res, msg, ...)\
     if (!(res)) {\
         int _e = errno; \
         zerrno = zmq_errno(); \
         SWSS_LOG_ERROR(msg, ##__VA_ARGS__); \
         SWSS_LOG_ERROR("last:errno=%d zerr=%d", _e, zerrno); \
-        if (running_ut) { \
-            printf(msg, ##__VA_ARGS__); \
-            printf("last:errno=%d zerr=%d\n", _e, zerrno); }\
         goto out; }
 
 
@@ -105,7 +99,7 @@ map_to_str(const Map &m)
     stringstream _ss;
     _ss << "{";
     for (const auto elem: m) {
-        _ss << "{" << elem.first << "," << elem.second << "}";
+        _ss << "{" << elem.first << "," << elem.second.substr(0,10) << "}";
     }
     _ss << "}";
     return _ss.str();
@@ -271,6 +265,9 @@ typedef string runtime_id_t;
 typedef string events_data_type_t;
 typedef vector<events_data_type_t> events_data_lst_t;
 
+
+sequence_t str_to_seq(const string s);
+string seq_to_str(sequence_t seq);
 
 template<typename DT>
 int 

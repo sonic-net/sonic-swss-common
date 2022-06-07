@@ -19,6 +19,24 @@ const map_str_str_t cfg_default = {
 
 map_str_str_t cfg_data;
 
+sequence_t str_to_seq(const string s)
+{
+    stringstream ss(s);
+    sequence_t seq;
+
+    ss >> seq;
+
+    return seq;
+}
+
+string seq_to_str(sequence_t seq)
+{
+    stringstream ss;
+    ss << seq;
+    return ss.str();
+}
+
+
 void
 read_init_config(const char *init_cfg_file)
 {
