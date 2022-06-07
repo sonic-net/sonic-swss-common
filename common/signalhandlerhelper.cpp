@@ -51,8 +51,9 @@ void SignalHandlerHelper::restoreSignalHandler(int signalNumber)
     }
 
     auto *old_action = &result->second.second;
-
     sigaction(signalNumber, old_action, NULL);
+
+    m_sigCallbackMapping.erase(signalNumber);
 }
 
 void SignalHandlerHelper::onSignal(int signalNumber)

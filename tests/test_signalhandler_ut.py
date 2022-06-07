@@ -10,7 +10,7 @@ from swsscommon.signal import SignalHandlerHelper, RegisterSignal
 
 CurrentSignalNumber = 0
 
-def test_signal_handler(signum, stack):
+def python_signal_handler(signum, stack):
     global CurrentSignalNumber
     CurrentSignalNumber = signum
 
@@ -18,7 +18,7 @@ def dummy_signal_handler(signum, stack):
     pass
 
 def test_SignalHandler():
-    RegisterSignal(signal.SIGUSR1, test_signal_handler)
+    RegisterSignal(signal.SIGUSR1, python_signal_handler)
 
     # Register SIGUSER1
     happened = SignalHandlerHelper.checkSignal(signal.SIGUSR1)
@@ -52,7 +52,7 @@ def check_signal_can_break_pubsub(signalId):
     global CurrentSignalNumber
     CurrentSignalNumber = 0
     SignalHandlerHelper.resetSignal(signalId)
-    RegisterSignal(signalId, test_signal_handler)
+    RegisterSignal(signalId, python_signal_handler)
 
     test_thread = threading.Thread(target=pubsub_thread)
     test_thread.start()
