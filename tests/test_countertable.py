@@ -93,17 +93,17 @@ def test_port():
     assert r
     assert len(values) == len(port_stats)
 
-    asicPort = PortCounter(PortCounter.Mode_asic)
+    asicPort = PortCounter(PortCounter.Mode_ASIC)
     r, value = counterTable.hget(asicPort, portName, counterID)
     assert r
     assert value == "2"
 
-    systemsidePort = PortCounter(PortCounter.Mode_systemside)
+    systemsidePort = PortCounter(PortCounter.Mode_SYSTEMSIDE)
     r, value = counterTable.hget(systemsidePort, portName, counterID)
     assert r
     assert value == "2"
 
-    linesidePort = PortCounter(PortCounter.Mode_lineside)
+    linesidePort = PortCounter(PortCounter.Mode_LINESIDE)
     r, value = counterTable.hget(linesidePort, portName, counterID)
     assert r
     assert value == "2"

@@ -1,6 +1,4 @@
-
-#ifndef __COUNTERTABLE__
-#define __COUNTERTABLE__
+#pragma once
 
 #include <assert.h>
 #include <string>
@@ -84,11 +82,11 @@ public:
     }
 
     template <class InputIterator>
-    void add(InputIterator first, InputIterator last) {
+    void insert(InputIterator first, InputIterator last) {
         m_keyMap.insert(first, last);
     }
 
-    void add(const std::string &name, const T &key) {
+    void insert(const std::string &name, const T &key) {
         m_keyMap.insert({name, key});
     }
 
@@ -123,9 +121,9 @@ private:
 
 class PortCounter: public Counter {
 public:
-    enum class Mode {all, asic, systemside, lineside};
+    enum class Mode {UNION, ASIC, SYSTEMSIDE, LINESIDE};
 
-    PortCounter(Mode mode=Mode::all);
+    PortCounter(Mode mode=Mode::UNION);
     ~PortCounter() = default;
 
     const std::string& getLuaScript() const override;
@@ -155,5 +153,3 @@ private:
 };
 
 }
-
-#endif

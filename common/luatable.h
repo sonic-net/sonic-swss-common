@@ -1,6 +1,4 @@
-
-#ifndef __LUATABLE__
-#define __LUATABLE__
+#pragma once
 
 #include <assert.h>
 #include <string>
@@ -39,4 +37,3 @@ private:
 };
 
 }
-#endif

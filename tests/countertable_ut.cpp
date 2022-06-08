@@ -105,26 +105,26 @@ static void testPort(DBConnector &db, CounterTable &counterTable)
     }
 
     value.clear();
-    ret = counterTable.hget(PortCounter(PortCounter::Mode::asic), port, counterID, value);
+    ret = counterTable.hget(PortCounter(PortCounter::Mode::ASIC), port, counterID, value);
     EXPECT_TRUE(ret);
     EXPECT_EQ(value, "1");
 
     value.clear();
-    ret = counterTable.hget(PortCounter(PortCounter::Mode::systemside), port, counterID, value);
+    ret = counterTable.hget(PortCounter(PortCounter::Mode::SYSTEMSIDE), port, counterID, value);
     EXPECT_TRUE(ret);
     EXPECT_EQ(value, "1");
 
     value.clear();
-    ret = counterTable.hget(PortCounter(PortCounter::Mode::lineside), port, counterID, value);
+    ret = counterTable.hget(PortCounter(PortCounter::Mode::LINESIDE), port, counterID, value);
     EXPECT_TRUE(ret);
     EXPECT_EQ(value, "1");
 
     value.clear();
-    ret = counterTable.hget(PortCounter(PortCounter::Mode::lineside), port, "NONE_ID", value);
+    ret = counterTable.hget(PortCounter(PortCounter::Mode::LINESIDE), port, "NONE_ID", value);
     EXPECT_FALSE(ret);
 
     value.clear();
-    ret = counterTable.hget(PortCounter(PortCounter::Mode::lineside), "abcd", counterID, value);
+    ret = counterTable.hget(PortCounter(PortCounter::Mode::LINESIDE), "abcd", counterID, value);
     EXPECT_FALSE(ret);
 
     // Enable key cache
@@ -137,17 +137,17 @@ static void testPort(DBConnector &db, CounterTable &counterTable)
     EXPECT_EQ(value, "3");
 
     value.clear();
-    ret = counterTable.hget(PortCounter(PortCounter::Mode::asic), port, counterID, value);
+    ret = counterTable.hget(PortCounter(PortCounter::Mode::ASIC), port, counterID, value);
     EXPECT_TRUE(ret);
     EXPECT_EQ(value, "1");
 
     value.clear();
-    ret = counterTable.hget(PortCounter(PortCounter::Mode::systemside), port, counterID, value);
+    ret = counterTable.hget(PortCounter(PortCounter::Mode::SYSTEMSIDE), port, counterID, value);
     EXPECT_TRUE(ret);
     EXPECT_EQ(value, "1");
 
     value.clear();
-    ret = counterTable.hget(PortCounter(PortCounter::Mode::lineside), port, counterID, value);
+    ret = counterTable.hget(PortCounter(PortCounter::Mode::LINESIDE), port, counterID, value);
     EXPECT_TRUE(ret);
     EXPECT_EQ(value, "1");
 

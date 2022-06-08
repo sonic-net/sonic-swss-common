@@ -41,7 +41,7 @@ PortCounter::getLuaScript() const
 bool
 PortCounter::usingLuaTable(const CounterTable& t, const std::string &name) const
 {
-    if (m_mode != Mode::all)
+    if (m_mode != Mode::UNION)
         return false;
 
     // Whether gearbox port exists
@@ -53,7 +53,7 @@ PortCounter::usingLuaTable(const CounterTable& t, const std::string &name) const
 std::vector<std::string>
 PortCounter::getLuaKeys(const CounterTable& t, const std::string &name) const
 {
-    if (m_mode != Mode::all)
+    if (m_mode != Mode::UNION)
         return {};
 
     KeyCache<string> &cache = keyCacheInstance();
@@ -77,15 +77,15 @@ PortCounter::getLuaKeys(const CounterTable& t, const std::string &name) const
 Counter::KeyPair
 PortCounter::getKey(const CounterTable& t, const std::string &name) const
 {
-    if (m_mode == Mode::all)
+    if (m_mode == Mode::UNION)
         return {-1,""};
 
     int dbId = COUNTERS_DB;
     string portName = name;
-    if (m_mode != Mode::asic)
+    if (m_mode != Mode::ASIC)
     {
         dbId = GB_COUNTERS_DB;
-        if (m_mode == Mode::systemside)
+        if (m_mode == Mode::SYSTEMSIDE)
         {
             portName = name + "_system";
         }
@@ -102,7 +102,7 @@ PortCounter::getKey(const CounterTable& t, const std::string &name) const
     }
 
     shared_ptr<std::string> oidPtr = nullptr;
-    if (m_mode == Mode::asic)
+    if (m_mode == Mode::ASIC)
     {
         oidPtr = t.getCountersDB()->hget(COUNTERS_PORT_NAME_MAP, portName);
     }
@@ -123,10 +123,10 @@ PortCounter::keyCacheInstance(void)
     {
         auto f = [](const CounterTable& t) {
             auto fvs = t.getCountersDB()->hgetall(COUNTERS_PORT_NAME_MAP);
-            keyCachePtr->add(fvs.begin(), fvs.end());
+            keyCachePtr->insert(fvs.begin(), fvs.end());
 
             fvs = t.getGbcountersDB()->hgetall(COUNTERS_PORT_NAME_MAP);
-            keyCachePtr->add(fvs.begin(), fvs.end());
+            keyCachePtr->insert(fvs.begin(), fvs.end());
         };
         unique_ptr<KeyCache<string>> ptr(new KeyCache<string>(f));
         keyCachePtr = std::move(ptr);
@@ -171,13 +171,13 @@ MacsecCounter::keyCacheInstance(void)
             auto fvs = t.getCountersDB()->hgetall(COUNTERS_MACSEC_NAME_MAP);
             for (auto fv: fvs)
             {
-                keyCachePtr->add(fv.first, Counter::KeyPair(COUNTERS_DB, fv.second));
+                keyCachePtr->insert(fv.first, Counter::KeyPair(COUNTERS_DB, fv.second));
             }
 
             fvs = t.getGbcountersDB()->hgetall(COUNTERS_MACSEC_NAME_MAP);
             for (auto fv: fvs)
             {
-                keyCachePtr->add(fv.first, Counter::KeyPair(GB_COUNTERS_DB, fv.second));
+                keyCachePtr->insert(fv.first, Counter::KeyPair(GB_COUNTERS_DB, fv.second));
             }
         };
         unique_ptr<KeyCache<Counter::KeyPair>> ptr(new KeyCache<Counter::KeyPair>(f));
