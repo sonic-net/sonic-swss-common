@@ -94,13 +94,17 @@ public:
 
     std::string to_string();
 
-    static std::string to_string(redisReply *reply);
+    static std::string to_string(redisReply *reply, bool isDict = false);
 
 private:
     void checkStatus(const char *status);
     void checkReply();
+    static std::string to_dict_string(struct redisReply **element, size_t elements);
+    static std::string to_array_string(struct redisReply **element, size_t elements);
+    static bool isDictionaryReply(std::string command);
 
     redisReply *m_reply;
+    bool m_dict_reply = false;
 };
 
 }

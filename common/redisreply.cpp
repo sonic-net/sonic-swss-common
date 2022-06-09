@@ -5,11 +5,13 @@
 #include <sstream>
 #include <system_error>
 #include <functional>
+#include <boost/algorithm/string.hpp>
 
 #include "common/logger.h"
 #include "common/redisreply.h"
 #include "common/dbconnector.h"
 #include "common/rediscommand.h"
+#include "common/json.h"
 
 using namespace std;
 
@@ -47,6 +49,8 @@ RedisReply::RedisReply(RedisContext *ctx, const RedisCommand& command)
         throw RedisError("Failed to redisGetReply with " + string(command.c_str()), ctx->getContext());
     }
     guard([&]{checkReply();}, command.c_str());
+
+    m_dict_reply = isDictionaryReply(string(command.c_str()));
 }
 
 RedisReply::RedisReply(RedisContext *ctx, const string& command)
@@ -65,6 +69,8 @@ RedisReply::RedisReply(RedisContext *ctx, const string& command)
         throw RedisError("Failed to redisGetReply with " + command, ctx->getContext());
     }
     guard([&]{checkReply();}, command.c_str());
+
+    m_dict_reply = isDictionaryReply(command);
 }
 
 RedisReply::RedisReply(RedisContext *ctx, const RedisCommand& command, int expectedType)
@@ -229,10 +235,10 @@ template<> RedisMessage RedisReply::getReply<RedisMessage>()
 
 string RedisReply::to_string()
 {
-    return to_string(getContext());
+    return to_string(getContext(), m_dict_reply);
 }
 
-string RedisReply::to_string(redisReply *reply)
+string RedisReply::to_string(redisReply *reply, bool isDict)
 {
     switch(reply->type)
     {
@@ -247,23 +253,56 @@ string RedisReply::to_string(redisReply *reply)
 
     case REDIS_REPLY_ARRAY:
     {
-        stringstream result;
-        for (size_t i = 0; i < reply->elements; i++)
+        if (isDict)
         {
-            result << to_string(reply->element[i]);
-
-            if (i < reply->elements - 1)
-            {
-                result << endl;
-            }
+            return to_dict_string(reply->element, reply->elements);
         }
-        return result.str();
+        else
+        {
+            return to_array_string(reply->element, reply->elements);
+        }
     }
 
     default:
         SWSS_LOG_ERROR("invalid type %d for message", reply->type);
         return string();
     }
+}
+
+std::string RedisReply::to_dict_string(struct redisReply **element, size_t elements)
+{
+    std::vector<FieldValueTuple> values;
+    for (unsigned int i = 0; i < elements; i += 2)
+    {
+        values.push_back(FieldValueTuple(to_string(element[i]), to_string(element[i+1])));
+    }
+
+    return JSon::buildJson(values);
+}
+
+std::string RedisReply::to_array_string(struct redisReply **element, size_t elements)
+{
+    stringstream result;
+    for (size_t i = 0; i < elements; i++)
+    {
+        result << to_string(element[i]);
+
+        if (i < elements - 1)
+        {
+            result << endl;
+        }
+    }
+
+    return result.str();
+}
+
+bool RedisReply::isDictionaryReply(std::string command)
+{
+    auto cmd = boost::to_upper_copy<std::string>(command);
+
+    // HGETALL and HSCAN command will return fields and values
+    // for more information please check: https://redis.io/commands/
+    return (cmd.find("HGETALL") == 0) || (cmd.find("HSCAN") == 0);
 }
 
 }
