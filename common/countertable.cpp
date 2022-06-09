@@ -34,7 +34,10 @@ PortCounter::getLuaScript() const
 bool
 PortCounter::usingLuaTable(const CounterTable& t, const std::string &name) const
 {
-    return m_mode == Mode::UNION;
+    // Use LuaTable if and only if it is in UNION mode and has gearbox part.
+    // That name map exists means the port has gearbox port part in PHY chip.
+    return m_mode == Mode::UNION &&
+           t.getGbcountersDB()->hget(COUNTERS_PORT_NAME_MAP, name + "_line");
 }
 
 std::vector<std::string>
