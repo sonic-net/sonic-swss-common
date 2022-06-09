@@ -41,14 +41,8 @@ PortCounter::getLuaScript() const
 bool
 PortCounter::usingLuaTable(const CounterTable& t, const std::string &name) const
 {
-    if (m_mode != Mode::UNION)
-        return false;
-
-    // Whether gearbox port exists
-    auto oidPtr = t.getGbcountersDB()->hget(COUNTERS_PORT_NAME_MAP, name + "_line");
-    return (bool)oidPtr;
+    return m_mode == Mode::UNION;
 }
-
 
 std::vector<std::string>
 PortCounter::getLuaKeys(const CounterTable& t, const std::string &name) const
@@ -128,8 +122,7 @@ PortCounter::keyCacheInstance(void)
             fvs = t.getGbcountersDB()->hgetall(COUNTERS_PORT_NAME_MAP);
             keyCachePtr->insert(fvs.begin(), fvs.end());
         };
-        unique_ptr<KeyCache<string>> ptr(new KeyCache<string>(f));
-        keyCachePtr = std::move(ptr);
+        keyCachePtr.reset(new KeyCache<string>(f));
     }
     return *keyCachePtr;
 }
@@ -180,8 +173,7 @@ MacsecCounter::keyCacheInstance(void)
                 keyCachePtr->insert(fv.first, Counter::KeyPair(GB_COUNTERS_DB, fv.second));
             }
         };
-        unique_ptr<KeyCache<Counter::KeyPair>> ptr(new KeyCache<Counter::KeyPair>(f));
-        keyCachePtr = std::move(ptr);
+        keyCachePtr.reset(new KeyCache<Counter::KeyPair>(f));
     }
     return *keyCachePtr;
 }

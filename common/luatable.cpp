@@ -15,7 +15,7 @@ using namespace swss;
 LuaTable::LuaTable(const DBConnector *db, const string &tableName,
                    const string &lua, const vector<string> &luaArgv)
     : TableBase(tableName, SonicDBConfig::getSeparator(db))
-    , m_pipe(new RedisPipeline(db, 1))
+    , m_db(db->newConnector(0))
     , m_lua(lua)
     , m_luaArgv(luaArgv)
 {
@@ -23,7 +23,6 @@ LuaTable::LuaTable(const DBConnector *db, const string &tableName,
 
 LuaTable::~LuaTable()
 {
-    delete m_pipe;
 }
 
 bool LuaTable::get(const vector<string> &luaKeys, vector<FieldValueTuple> &values)
@@ -37,7 +36,7 @@ bool LuaTable::get(const vector<string> &luaKeys, vector<FieldValueTuple> &value
     // Assembly redis command args into a string vector
     vector<string> args;
     args.emplace_back("EVALSHA");
-    args.emplace_back(m_pipe->loadRedisScript(m_lua));
+    args.emplace_back(loadRedisScript(m_db.get(), m_lua));
     args.emplace_back(to_string(luaKeys.size()));
     for (const auto& k: luaKeys)
     {
@@ -49,7 +48,7 @@ bool LuaTable::get(const vector<string> &luaKeys, vector<FieldValueTuple> &value
     args.emplace_back(to_string(GB_COUNTERS_DB));
     args.emplace_back(getTableName());
     args.emplace_back(getTableNameSeparator());
-    args.emplace_back("GET");  // ARGV[5] 'GET' all fields
+    args.emplace_back("HGETALL");  // ARGV[5] get all fields
     for (const auto& v: m_luaArgv) // ARGV[6...] extra user-defined
     {
         args.emplace_back(v);
@@ -62,7 +61,7 @@ bool LuaTable::get(const vector<string> &luaKeys, vector<FieldValueTuple> &value
     // Invoke redis command
     RedisCommand command;
     command.formatArgv((int)args1.size(), &args1[0], NULL);
-    RedisReply r = m_pipe->push(command, REDIS_REPLY_ARRAY);
+    RedisReply r(m_db.get(), command, REDIS_REPLY_ARRAY);
     redisReply *reply = r.getContext();
 
     if (!reply->elements)
@@ -91,7 +90,7 @@ bool LuaTable::hget(const vector<string> &luaKeys, const string &field, string &
     // Assembly redis command args into a string vector
     vector<string> args;
     args.emplace_back("EVALSHA");
-    args.emplace_back(m_pipe->loadRedisScript(m_lua));
+    args.emplace_back(loadRedisScript(m_db.get(), m_lua));
     args.emplace_back(to_string(luaKeys.size()));
     for (const auto& k: luaKeys)
     {
@@ -103,7 +102,7 @@ bool LuaTable::hget(const vector<string> &luaKeys, const string &field, string &
     args.emplace_back(to_string(GB_COUNTERS_DB));
     args.emplace_back(getTableName());
     args.emplace_back(getTableNameSeparator());
-    args.emplace_back("HGET");  // ARGV[5] 'HGET' one field
+    args.emplace_back("HGET");  // ARGV[5] get one field
     args.emplace_back(field);    // ARGV[6] field name
     for (const auto& v: m_luaArgv) // ARGV[7...] extra user-defined
     {
@@ -117,7 +116,7 @@ bool LuaTable::hget(const vector<string> &luaKeys, const string &field, string &
     // Invoke redis command
     RedisCommand command;
     command.formatArgv((int)args1.size(), &args1[0], NULL);
-    RedisReply r = m_pipe->push(command);
+    RedisReply r(m_db.get(), command);
     redisReply *reply = r.getContext();
 
     if (reply->type == REDIS_REPLY_NIL)

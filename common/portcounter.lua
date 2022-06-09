@@ -48,7 +48,7 @@ if operator == "HGET" then
         counter = counter + get_gbcounter(field)
         return tostring(counter)
     end
-elseif operator == "GET" then
+elseif operator == "HGETALL" then
     redis.call('SELECT', counters_db)
     local counter_list = redis.call('HGETALL', counters_table .. separator .. KEYS[1])
 

@@ -31,8 +31,8 @@ public:
               const std::string &field, std::string &value);
 
 private:
-    RedisPipeline *m_pipe;
-    std::string    m_lua;
+    std::unique_ptr<DBConnector> m_db;
+    std::string m_lua;
     std::vector<std::string> m_luaArgv;
 };
 
