@@ -66,15 +66,15 @@ def test_keycache():
 
     cache.enable(counterTable)
     assert not cache.empty()
-    assert cache.at("Ethernet0") == db.hget("COUNTERS_PORT_NAME_MAP", "Ethernet0")
-    assert cache.at("Ethernet0_system") == gbdb.hget("COUNTERS_PORT_NAME_MAP", "Ethernet0_system")
-    assert cache.at("Ethernet0_line") == gbdb.hget("COUNTERS_PORT_NAME_MAP", "Ethernet0_line")
-    assert cache.at("Ethernetxx") == swsscommon.KeyStringCache.nullkey
+    assert cache["Ethernet0"] == db.hget("COUNTERS_PORT_NAME_MAP", "Ethernet0")
+    assert cache["Ethernet0_system"] == gbdb.hget("COUNTERS_PORT_NAME_MAP", "Ethernet0_system")
+    assert cache.get("Ethernet0_line") == gbdb.hget("COUNTERS_PORT_NAME_MAP", "Ethernet0_line")
+    assert not cache.get("Ethernetxx")
 
     tmpoid = "oid:tmptmptmp"
     db.hset("COUNTERS_PORT_NAME_MAP", "Ethernet100", tmpoid)
     cache.refresh(counterTable)
-    assert cache.at("Ethernet100") == tmpoid
+    assert cache.get("Ethernet100") == tmpoid
 
     cache.disable()
     assert not cache.enabled()
@@ -146,9 +146,9 @@ def test_macsec():
     cache = MacsecCounter.keyCacheInstance()
     cache.enable(counterTable)
     macsecSA = macsec_name_map[0][0]
-    assert cache.at(macsecSA)[0] == db.getDbId()
-    assert cache.at(macsecSA)[1] == db.hget("COUNTERS_MACSEC_NAME_MAP", macsecSA)
-    assert cache.at("nonono") == swsscommon.KeyPairCache.nullkey
+    assert cache.get(macsecSA)[0] == db.getDbId()
+    assert cache.get(macsecSA)[1] == db.hget("COUNTERS_MACSEC_NAME_MAP", macsecSA)
+    assert not cache.get("nonono")
 
     r, value = counterTable.hget(MacsecCounter(), macsecSA, counterID)
     assert r

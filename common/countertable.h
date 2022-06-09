@@ -38,8 +38,6 @@ private:
     KeyCache (const KeyCache&) = delete;
 
 public:
-    static const T nullkey;
-
     KeyCache(const std::function<void (const CounterTable& t)> &f)
         :m_cachingFunc(f), m_enabled(false) {
     }
@@ -73,13 +71,21 @@ public:
     }
 
     const T& at(const std::string &name) const {
-        try {
-            return m_keyMap.at(name);
-        }
-        catch (const std::out_of_range& oor) {
-            return nullkey;
-        }
+        return m_keyMap.at(name);
     }
+
+#ifdef SWIG
+    %pythoncode %{
+        def __getitem__(self, name):
+            return self.at(name)
+
+        def get(self, name, default=None):
+            try:
+                return self.at(name)
+            except IndexError:
+                return default
+    %}
+#endif
 
     template <class InputIterator>
     void insert(InputIterator first, InputIterator last) {

@@ -14,13 +14,6 @@ using namespace swss;
 
 const std::string Counter::defaultLuaScript = "return nil";
 
-template <typename T>
-const T KeyCache<T>::nullkey = {};
-template <>
-const string KeyCache<string>::nullkey = "null";
-template <>
-const Counter::KeyPair KeyCache<Counter::KeyPair>::nullkey = {-1, ""};
-
 /*
  * Port counter type
  */
@@ -53,7 +46,12 @@ PortCounter::getLuaKeys(const CounterTable& t, const std::string &name) const
     KeyCache<string> &cache = keyCacheInstance();
     if (cache.enabled())
     {
-        return {cache.at(name), cache.at(name + "_system"), cache.at(name + "_line")};
+        try {
+            return {cache.at(name), cache.at(name + "_system"), cache.at(name + "_line")};
+        }
+        catch (const std::out_of_range&) {
+            return {};
+        }
     }
 
     auto oidLinesidePtr = t.getGbcountersDB()->hget(COUNTERS_PORT_NAME_MAP, name + "_line");
@@ -72,7 +70,7 @@ Counter::KeyPair
 PortCounter::getKey(const CounterTable& t, const std::string &name) const
 {
     if (m_mode == Mode::UNION)
-        return {-1,""};
+        return {-1, ""};
 
     int dbId = COUNTERS_DB;
     string portName = name;
@@ -92,7 +90,12 @@ PortCounter::getKey(const CounterTable& t, const std::string &name) const
     KeyCache<string> &cache = keyCacheInstance();
     if (cache.enabled())
     {
-        return {dbId, cache.at(portName)};
+        try {
+            return {dbId, cache.at(portName)};
+        }
+        catch (const std::out_of_range&) {
+            return {-1, ""};
+        }
     }
 
     shared_ptr<std::string> oidPtr = nullptr;
@@ -140,7 +143,12 @@ MacsecCounter::getKey(const CounterTable& t, const std::string &name) const
     KeyCache<Counter::KeyPair> &cache = keyCacheInstance();
     if (cache.enabled())
     {
-        return cache.at(name);
+        try {
+            return cache.at(name);
+        }
+        catch (const std::out_of_range&) {
+            return {-1, ""};
+        }
     }
 
     int dbId = COUNTERS_DB;
