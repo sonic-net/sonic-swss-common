@@ -90,6 +90,7 @@ TEST(events_common, send_recv)
         /* Direct log messages to stdout */
         string dummy, op("STDOUT");
         swss::Logger::swssOutputNotify(dummy, op);
+        swss::Logger::setMinPrio(swss::Logger::SWSS_DEBUG);
     }
 #endif
 

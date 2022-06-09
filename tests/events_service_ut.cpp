@@ -14,13 +14,13 @@ static bool do_terminate = false;
 static void *zmq_ctx = NULL;
 static event_service service_cl, service_svr;
 static int server_rd_code, server_ret;
-static events_data_lst_t server_rd_lst, server_wr_lst;
+static event_serialized_lst_t server_rd_lst, server_wr_lst;
 
 /* Mimic the eventd service that handles service requests via dedicated thread */
 void serve_commands()
 {
     int code;
-    events_data_lst_t lst;
+    event_serialized_lst_t lst;
     EXPECT_EQ(0, service_svr.init_server(zmq_ctx, 1000));
     while(!do_terminate) {
         if (0 != service_svr.channel_read(code, lst)) {
@@ -65,13 +65,14 @@ void serve_commands()
 
 TEST(events_common, cache_cmds)
 {
-    events_data_lst_t lst_start, lst;
+    event_serialized_lst_t lst_start, lst;
 
 #if 0
     {
         /* Direct log messages to stdout */
         string dummy, op("STDOUT");
         swss::Logger::swssOutputNotify(dummy, op);
+        swss::Logger::setMinPrio(swss::Logger::SWSS_DEBUG);
     }
 #endif
 
@@ -93,7 +94,7 @@ TEST(events_common, cache_cmds)
      * Bunch of serialized internal_event_t as strings
      * Sending random for test purpose 
      */
-    lst_start = events_data_lst_t(
+    lst_start = event_serialized_lst_t(
             { "hello", "world", "ok" });
     EXPECT_EQ(0, service_cl.cache_start(lst_start));
     EXPECT_EQ(EVENT_CACHE_START, server_rd_code);

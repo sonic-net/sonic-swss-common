@@ -261,9 +261,11 @@ typedef string runtime_id_t;
  *    { EVENT_SEQUENCE, "" } };
  */
 
+typedef vector<internal_event_t> internal_events_lst_t;
+
 /* Cache maintains the part 2 of an event as serialized string. */
-typedef string events_data_type_t;
-typedef vector<events_data_type_t> events_data_lst_t;
+typedef string event_serialized_t;  // events_data_type_t;
+typedef vector<event_serialized_t> event_serialized_lst_t; // events_data_lst_t;
 
 
 sequence_t str_to_seq(const string s);
@@ -278,9 +280,11 @@ zmq_read_part(void *sock, int flag, int &more, DT &data)
     more = 0;
     zmq_msg_init(&msg);
     int rc = zmq_msg_recv(&msg, sock, flag);
-    recv_last_err = zerrno;
-
-    if (rc != -1) {
+    if (rc == -1) {
+        recv_last_err = zerrno;
+    }
+    else {
+        recv_last_err = 0;
         size_t more_size = sizeof (more);
 
         rc = zmsg_to_map(msg, data);
@@ -349,5 +353,26 @@ zmq_message_read(void *sock, int flag, P1 &pt1, P2 &pt2)
 out:
     return rc;
 }
+
+/*
+ *  Cache drain timeout.
+ *
+ *  When subscriber's de-init is called, it calls start cache service.
+ *  When subscriber init is called, it calls cache stop service.
+ *
+ *  In either scenario, an entity stops reading and let other start.
+ *  The entity that stops may have to read little longer to drain any
+ *  events in local ZMQ cache.
+ *
+ *  This timeout helps with that.
+ *  
+ *  In case of subscriber de-init, the events read during this period
+ *  is given to cache as start-up or initial stock.
+ *  In case of init where cache service reads for this period, gives
+ *  those as part of cache read and subscriber service will be diligent
+ *  about reading the same event from the channel, hence duplicate
+ *  for next one second.
+ */
+#define CACHE_DRAIN_IN_MILLISECS 1000
 
 #endif /* !_EVENTS_COMMON_H */ 

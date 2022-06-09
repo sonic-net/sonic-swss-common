@@ -122,22 +122,9 @@ class EventSubscriber : public events_base
          * List of cached events.
          * Only part 2 / internal_event_t is cached as serialized string.
          */
-        events_data_lst_t m_from_cache;
+        event_serialized_lst_t m_from_cache;
 
 };
-
-/*
- *  Cache drain timeout.
- *
- *  When de-init is called, it calls stop cache service.
- *  But before this point, there could be events received in zmq's
- *  local cache pending read and those that arrived since last read.
- *  These events will not be seen by cache service.
- *  So read those off and give it to cache service as starting stock.
- *  As we don't have a clue on count in zmq's cache, read in non-block
- *  mode for a period.
- */
-#define CACHE_DRAIN_IN_MILLISECS 1000
 
 /*
  * The uuid_unparse() function converts the supplied UUID uu from

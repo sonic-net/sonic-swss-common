@@ -18,7 +18,7 @@ int last_svc_code = -1;
 
 void events_validate_ts(const string s);
 
-events_data_lst_t lst_cache;
+event_serialized_lst_t lst_cache;
 
 #define ARRAY_SIZE(d) (sizeof(d) / sizeof((d)[0]))
 
@@ -34,7 +34,7 @@ void pub_serve_commands()
     EXPECT_EQ(0, service_svr.init_server(zmq_ctx, 1000));
     while(!terminate_svc) {
         int code, resp;
-        events_data_lst_t lst;
+        event_serialized_lst_t lst;
 
         if (0 != service_svr.channel_read(code, lst)) {
             /* check client service status, before blocking on read */
@@ -74,7 +74,7 @@ void pub_serve_commands()
     EXPECT_FALSE(service_svr.is_active());
     terminate_svc = false;
     last_svc_code = -1;
-    events_data_lst_t().swap(lst_cache);
+    event_serialized_lst_t().swap(lst_cache);
 }
 
 
@@ -167,6 +167,7 @@ TEST(events, publish)
         /* Direct log messages to stdout */
         string dummy, op("STDOUT");
         swss::Logger::swssOutputNotify(dummy, op);
+        swss::Logger::setMinPrio(swss::Logger::SWSS_DEBUG);
     }
 
     string evt_source0("sonic-events-bgp");
@@ -476,6 +477,7 @@ TEST(events, subscribe)
         /* Direct log messages to stdout */
         string dummy, op("STDOUT");
         swss::Logger::swssOutputNotify(dummy, op);
+        swss::Logger::setMinPrio(swss::Logger::SWSS_DEBUG);
     }
 #endif
 

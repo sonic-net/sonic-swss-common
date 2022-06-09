@@ -197,7 +197,7 @@ EventSubscriber::~EventSubscriber()
     int rc = 0;
 
     if (m_event_service.is_active()) {
-        events_data_lst_t events;
+        event_serialized_lst_t events;
 
         rc = m_event_service.cache_init();
         RET_ON_ERR(rc == 0, "Failed to init the cache");
@@ -212,7 +212,8 @@ EventSubscriber::~EventSubscriber()
          */
         chrono::steady_clock::time_point start = chrono::steady_clock::now();
         while(true) {
-            string source, evt_str;
+            string source;
+            event_serialized_t evt_str;
             internal_event_t evt_data;
 
             rc = zmq_message_read(m_socket, ZMQ_DONTWAIT, source, evt_data);
@@ -335,7 +336,7 @@ EventSubscriber::event_receive(string &key, event_params_t &params, int &missed_
 
         if (!m_from_cache.empty()) {
 
-            events_data_lst_t::iterator it = m_from_cache.begin();
+            event_serialized_lst_t::iterator it = m_from_cache.begin();
             rc = deserialize(*it, event_data);
             m_from_cache.erase(it);
             RET_ON_ERR(rc == 0, "Failed to deserialize message from cache");
