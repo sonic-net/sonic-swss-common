@@ -115,16 +115,18 @@ PortCounter::keyCacheInstance(void)
 {
     if (keyCachePtr == nullptr)
     {
-        auto f = [](const CounterTable& t) {
-            auto fvs = t.getCountersDB()->hgetall(COUNTERS_PORT_NAME_MAP);
-            keyCachePtr->insert(fvs.begin(), fvs.end());
-
-            fvs = t.getGbcountersDB()->hgetall(COUNTERS_PORT_NAME_MAP);
-            keyCachePtr->insert(fvs.begin(), fvs.end());
-        };
-        keyCachePtr.reset(new KeyCache<string>(f));
+        keyCachePtr.reset(new KeyCache<string>(PortCounter::cachingKey));
     }
     return *keyCachePtr;
+}
+
+void PortCounter::cachingKey(const CounterTable& t)
+{
+    auto fvs = t.getCountersDB()->hgetall(COUNTERS_PORT_NAME_MAP);
+    keyCachePtr->insert(fvs.begin(), fvs.end());
+
+    fvs = t.getGbcountersDB()->hgetall(COUNTERS_PORT_NAME_MAP);
+    keyCachePtr->insert(fvs.begin(), fvs.end());
 }
 
 /*
@@ -160,22 +162,24 @@ MacsecCounter::keyCacheInstance(void)
 {
     if (keyCachePtr == nullptr)
     {
-        auto f = [](const CounterTable& t) {
-            auto fvs = t.getCountersDB()->hgetall(COUNTERS_MACSEC_NAME_MAP);
-            for (auto fv: fvs)
-            {
-                keyCachePtr->insert(fv.first, Counter::KeyPair(COUNTERS_DB, fv.second));
-            }
-
-            fvs = t.getGbcountersDB()->hgetall(COUNTERS_MACSEC_NAME_MAP);
-            for (auto fv: fvs)
-            {
-                keyCachePtr->insert(fv.first, Counter::KeyPair(GB_COUNTERS_DB, fv.second));
-            }
-        };
-        keyCachePtr.reset(new KeyCache<Counter::KeyPair>(f));
+        keyCachePtr.reset(new KeyCache<Counter::KeyPair>(MacsecCounter::cachingKey));
     }
     return *keyCachePtr;
+}
+
+void MacsecCounter::cachingKey(const CounterTable& t)
+{
+    auto fvs = t.getCountersDB()->hgetall(COUNTERS_MACSEC_NAME_MAP);
+    for (auto fv: fvs)
+    {
+        keyCachePtr->insert(fv.first, Counter::KeyPair(COUNTERS_DB, fv.second));
+    }
+
+    fvs = t.getGbcountersDB()->hgetall(COUNTERS_MACSEC_NAME_MAP);
+    for (auto fv: fvs)
+    {
+        keyCachePtr->insert(fv.first, Counter::KeyPair(GB_COUNTERS_DB, fv.second));
+    }
 }
 
 CounterTable::CounterTable(const DBConnector *db, const string &tableName)

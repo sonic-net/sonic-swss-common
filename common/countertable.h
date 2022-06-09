@@ -138,6 +138,7 @@ private:
     std::string m_luaScript;
 
     static std::unique_ptr<KeyCache<std::string>> keyCachePtr;
+    static void cachingKey(const CounterTable& t);
 };
 
 class MacsecCounter: public Counter {
@@ -150,6 +151,7 @@ public:
 
 private:
     static std::unique_ptr<KeyCache<KeyPair>> keyCachePtr;
+    static void cachingKey(const CounterTable& t);
 };
 
 }
