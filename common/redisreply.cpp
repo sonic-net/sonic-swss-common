@@ -6,12 +6,12 @@
 #include <system_error>
 #include <functional>
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/find.hpp>
 
 #include "common/logger.h"
 #include "common/redisreply.h"
 #include "common/dbconnector.h"
 #include "common/rediscommand.h"
-#include "common/json.h"
 
 using namespace std;
 
@@ -50,7 +50,7 @@ RedisReply::RedisReply(RedisContext *ctx, const RedisCommand& command)
     }
     guard([&]{checkReply();}, command.c_str());
 
-    m_dict_reply = isDictionaryReply(string(command.c_str()));
+    m_command = GetCommand(string(command.c_str()));
 }
 
 RedisReply::RedisReply(RedisContext *ctx, const string& command)
@@ -70,7 +70,7 @@ RedisReply::RedisReply(RedisContext *ctx, const string& command)
     }
     guard([&]{checkReply();}, command.c_str());
 
-    m_dict_reply = isDictionaryReply(command);
+    m_command = GetCommand(command);
 }
 
 RedisReply::RedisReply(RedisContext *ctx, const RedisCommand& command, int expectedType)
@@ -235,10 +235,10 @@ template<> RedisMessage RedisReply::getReply<RedisMessage>()
 
 string RedisReply::to_string()
 {
-    return to_string(getContext(), m_dict_reply);
+    return to_string(getContext(), m_command);
 }
 
-string RedisReply::to_string(redisReply *reply, bool isDict)
+string RedisReply::to_string(redisReply *reply, string command)
 {
     switch(reply->type)
     {
@@ -253,14 +253,7 @@ string RedisReply::to_string(redisReply *reply, bool isDict)
 
     case REDIS_REPLY_ARRAY:
     {
-        if (isDict)
-        {
-            return to_dict_string(reply->element, reply->elements);
-        }
-        else
-        {
-            return to_array_string(reply->element, reply->elements);
-        }
+        return format_array(command, reply->element, reply->elements);
     }
 
     default:
@@ -269,24 +262,73 @@ string RedisReply::to_string(redisReply *reply, bool isDict)
     }
 }
 
-std::string RedisReply::to_dict_string(struct redisReply **element, size_t elements)
+string RedisReply::format_array(string command, struct redisReply **element, size_t elements)
 {
-    std::vector<FieldValueTuple> values;
-    for (unsigned int i = 0; i < elements; i += 2)
+    if (command == "HGETALL")
     {
-        values.push_back(FieldValueTuple(to_string(element[i]), to_string(element[i+1])));
+        return to_dict_string(element, elements);
     }
-
-    return JSon::buildJson(values);
+    else if(command == "SCAN" || command == "HSCAN")
+    {
+        return format_scan_result(element, elements);
+    }
+    else
+    {
+        return to_array_string(element, elements);
+    }
 }
 
-std::string RedisReply::to_array_string(struct redisReply **element, size_t elements)
+string RedisReply::format_scan_result(struct redisReply **element, size_t elements)
+{
+    if (elements != 2)
+    {
+        throw system_error(make_error_code(errc::io_error),
+                           "Invalid result");
+    }
+
+    // format HSCAN result, here is a example:
+    //  (0, {'test3': 'test3', 'test2': 'test2'})
+    stringstream result;
+    result << "(" << element[0]->integer << ", ";
+    // format the field mapping part
+    result << to_dict_string(element[1]->element, element[1]->elements);
+    result << ")";
+
+    return result.str();
+}
+
+string RedisReply::to_dict_string(struct redisReply **element, size_t elements)
+{
+    if (elements%2 != 0)
+    {
+        throw system_error(make_error_code(errc::io_error),
+                           "Invalid result");
+    }
+
+    // format dictionary, not using json.h because the output format are different, here is a example:
+    //      {'test3': 'test3', 'test2': 'test2'}
+    stringstream result;
+    result << "{";
+
+    for (unsigned int i = 0; i < elements; i += 2)
+    {
+        result << "'" << to_string(element[i]) << "': '" << to_string(element[i+1]) << "'";
+        if (i + 2 < elements)
+        {
+            result << ", ";
+        }
+    }
+
+    result << "}";
+    return result.str();
+}
+
+string RedisReply::to_array_string(struct redisReply **element, size_t elements)
 {
     stringstream result;
     for (size_t i = 0; i < elements; i++)
     {
         result << to_string(element[i]);
-
         if (i < elements - 1)
         {
             result << endl;
@@ -296,13 +338,30 @@ std::string RedisReply::to_array_string(struct redisReply **element, size_t elem
     return result.str();
 }
 
-bool RedisReply::isDictionaryReply(std::string command)
+string RedisReply::GetCommand(string formattedCommand)
 {
-    auto cmd = boost::to_upper_copy<std::string>(command);
+    auto cmd = boost::to_upper_copy<string>(formattedCommand);
+    
+    // find command start position in formatted command string, here is an example:
+    //      {command count}\r\n+{command length}\r\nHGETALL\r\n....
+    auto start = boost::find_nth(cmd, "\r\n", 1).begin();
+    if (start == cmd.end())
+    {
+        // the formattedCommand does not contains any command
+        return string();
+    }
+    
+    auto end = boost::find_nth(cmd, "\r\n", 2).begin();
+    if (end == cmd.end())
+    {
+        end = cmd.end();
+    }
 
     // HGETALL and HSCAN command will return fields and values
     // for more information please check: https://redis.io/commands/
-    return (cmd.find("HGETALL") == 0) || (cmd.find("HSCAN") == 0);
+    size_t startPos = distance(cmd.begin(), start) + 2;
+    size_t endPos = distance(cmd.begin(), end);
+    return cmd.substr(startPos, endPos - startPos);
 }
 
 }

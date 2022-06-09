@@ -47,13 +47,89 @@ string readFileContent(string file_name)
     return buffer.str();
 }
 
-string runCli(int argc, char** argv)
+string runCli(int argc, char** argv, int expected_exit_code = 0)
 {
     optind = 0;
     testing::internal::CaptureStdout();
-    EXPECT_EQ(0, sonic_db_cli(argc, argv));
+    int exit_code = sonic_db_cli(argc, argv);
     auto output = testing::internal::GetCapturedStdout();
+
+    EXPECT_EQ(expected_exit_code, exit_code);
     return output;
+}
+
+void flushDB(char* ns, char* database)
+{
+    char *args[5];
+    args[0] = "sonic-db-cli";
+    args[1] = "-n";
+    args[2] = ns;
+    args[3] = database;
+    args[4] = "FLUSHDB";
+    optind = 0;
+    sonic_db_cli(5, args);
+}
+
+void generateTestData(char* ns, char* database)
+{
+    flushDB(ns, database);
+    char *args[7];
+    args[0] = "sonic-db-cli";
+    args[1] = "-n";
+    args[2] = ns;
+    args[3] = database;
+    
+    args[4] = "EVAL";
+    args[5] = "local i=0 while (i<100000) do i=i+1 redis.call('SET', i, i) end";
+    args[6] = "0";
+    optind = 0;
+    sonic_db_cli(7, args);
+}
+
+TEST(sonic_db_cli, test_cli_hash_commands)
+{
+    char *args[6];
+    args[0] = "sonic-db-cli";
+    args[1] = "TEST_DB";
+
+    // clear database
+    args[2] = "FLUSHDB";
+    auto output = runCli(3, args);
+    EXPECT_EQ("OK\n", output);
+
+    // hset to test DB
+    args[2] = "HSET";
+    args[3] = "testkey";
+    args[4] = "testfield";
+    args[5] = "testvalue";
+    output = runCli(6, args);
+    EXPECT_EQ("1\n", output);
+    
+    // hgetall from test db
+    args[2] = "HGETALL";
+    args[3] = "testkey";
+    output = runCli(4, args);
+    EXPECT_EQ("{'testfield': 'testvalue'}\n", output);
+    
+    // hscan from test db
+    args[2] = "HSCAN";
+    args[3] = "testkey";
+    args[4] = "0";
+    output = runCli(5, args);
+    EXPECT_EQ("(0, {'testfield': 'testvalue'})\n", output);
+    
+    // hgetall from test db
+    args[2] = "HGETALL";
+    args[3] = "notexistkey";
+    output = runCli(4, args);
+    EXPECT_EQ("{}\n", output);
+    
+    // hscan from test db
+    args[2] = "HSCAN";
+    args[3] = "notexistkey";
+    args[4] = "0";
+    output = runCli(5, args);
+    EXPECT_EQ("(0, {})\n", output);
 }
 
 TEST(sonic_db_cli, test_cli_help)
@@ -192,34 +268,6 @@ TEST(sonic_db_cli, test_cli_eval_cmd)
     args[10] = "v2";
     auto output = runCli(11, args);
     EXPECT_EQ("k1\nk2\nv1\nv2\n", output);
-}
-
-void flushDB(char* ns, char* database)
-{
-    char *args[5];
-    args[0] = "sonic-db-cli";
-    args[1] = "-n";
-    args[2] = ns;
-    args[3] = database;
-    args[4] = "FLUSHDB";
-    optind = 0;
-    sonic_db_cli(5, args);
-}
-
-void generateTestData(char* ns, char* database)
-{
-    flushDB(ns, database);
-    char *args[7];
-    args[0] = "sonic-db-cli";
-    args[1] = "-n";
-    args[2] = ns;
-    args[3] = database;
-    
-    args[4] = "EVAL";
-    args[5] = "local i=0 while (i<100000) do i=i+1 redis.call('SET', i, i) end";
-    args[6] = "0";
-    optind = 0;
-    sonic_db_cli(7, args);
 }
 
 TEST(sonic_db_cli, test_parallel_cmd) {
