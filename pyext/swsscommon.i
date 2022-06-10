@@ -1,11 +1,5 @@
 %module swsscommon
 
-// ConfigDBConnector using signal.SignalHandlerHelper
-%pythoncode %{
-from .signal import SignalHandlerHelper, SIGNAL_INT, SIGNAL_TERM
-%}
-
-
 %rename(delete) del;
 
 %{
