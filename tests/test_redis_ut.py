@@ -617,7 +617,7 @@ def test_ConfigDBSubscribe():
         GET_MESSAGE_INTERVAL = 600.0;
         while True:
             ret = pubsub.listen_message(GET_MESSAGE_INTERVAL)
-            if (not ret[1].empty()) or (ret[0] == Select.SIGNAL):
+            if (not ret[1].empty()) or (ret[0] == swsscommon.Select.SIGNAL):
                 item = ret[1]
                 break
 
