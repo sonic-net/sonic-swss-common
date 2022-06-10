@@ -183,7 +183,7 @@ event_service::send_recv(int code, const event_serialized_lst_t *lst_in,
     RET_ON_ERR(rc == 0, "failing to read resp for code=%d", code);
 
     rc = resp;
-    RET_ON_ERR (rc == 0, "echo receive resp %d not 0 for code=%d", resp, code);
+    RET_ON_ERR (rc == 0, "receive resp %d not 0 for code=%d", resp, code);
 
 out:
     return rc;

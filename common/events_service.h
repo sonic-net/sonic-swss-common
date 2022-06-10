@@ -39,7 +39,8 @@ typedef enum {
     EVENT_CACHE_START,  /* Start caching all published events */
     EVENT_CACHE_STOP,   /* Stop the cache */
     EVENT_CACHE_READ,   /* Read cached events */
-    EVENT_ECHO          /* Echoes the received data in request via response */
+    EVENT_ECHO,         /* Echoes the received data in request via response */
+    EVENT_EXIT          /* Exit the eventd service -- Useful for unit test.*/
 } event_req_type_t;
 
 
