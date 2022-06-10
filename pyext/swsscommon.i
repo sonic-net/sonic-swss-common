@@ -60,6 +60,7 @@ from .signal import SignalHandlerHelper, SIGNAL_INT, SIGNAL_TERM
 %template(ScanResult) std::pair<int64_t, std::vector<std::string>>;
 %template(GetTableResult) std::map<std::string, std::map<std::string, std::string>>;
 %template(GetConfigResult) std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>;
+%template(MessageResultPair) std::pair<int, std::map<std::string, std::string>>;
 
 %exception {
     try

@@ -1,7 +1,6 @@
 #include "common/selectable.h"
 #include "common/logger.h"
 #include "common/select.h"
-#include "common/signalhandlerhelper.h"
 #include <algorithm>
 #include <stdio.h>
 #include <sys/time.h>
@@ -95,19 +94,10 @@ int Select::poll_descriptors(Selectable **c, unsigned int timeout)
     std::vector<struct epoll_event> events(sz_selectables);
     int ret;
 
-    do
+    ret = ::epoll_wait(m_epoll_fd, events.data(), sz_selectables, timeout);
+    if (ret == -1 && errno == EINTR)
     {
-        ret = ::epoll_wait(m_epoll_fd, events.data(), sz_selectables, timeout);
-    }
-    while(ret == -1
-            && errno == EINTR
-            && !SignalHandlerHelper::checkSignal(Signals::SIGNAL_INT)
-            && !SignalHandlerHelper::checkSignal(Signals::SIGNAL_TERM)); // Retry the select if the process was interrupted by a signal
-
-    if (SignalHandlerHelper::checkSignal(Signals::SIGNAL_INT)
-        || SignalHandlerHelper::checkSignal(Signals::SIGNAL_TERM))
-    {
-        // Return if the epoll_wait was interrupted by SIGINT or SIGTERM
+        // Return if the epoll_wait was interrupted by signal
         return Select::SIGNAL;
     }
 
@@ -179,7 +169,6 @@ int Select::select(Selectable **c, int timeout)
     ret = poll_descriptors(c, timeout);
 
     return ret;
-
 }
 
 bool Select::isQueueEmpty()

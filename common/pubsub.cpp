@@ -79,10 +79,12 @@ bool PubSub::hasCachedData()
 
 map<string, string> PubSub::get_message(double timeout)
 {
-    return get_message_internal(timeout).second;
+    return listen_message(timeout).second;
 }
 
-MessageResultPair PubSub::get_message_internal(double timeout)
+// Note: it is not straightforward to implement redis-py PubSub.listen() directly in c++
+// due to the `yield` syntax, so we implement this function for blocking listen one message
+MessageResultPair PubSub::listen_message(double timeout)
 {
     MessageResultPair ret;
 
@@ -124,24 +126,6 @@ MessageResultPair PubSub::get_message_internal(double timeout)
     ret.second["channel"] = message.channel;
     ret.second["data"] = message.data;
     return ret;
-}
-
-// Note: it is not straightforward to implement redis-py PubSub.listen() directly in c++
-// due to the `yield` syntax, so we implement this function for blocking listen one message
-std::map<std::string, std::string> PubSub::listen_message()
-{
-    const double GET_MESSAGE_INTERVAL = 600.0; // in seconds
-    MessageResultPair ret;
-    for (;;)
-    {
-        ret = get_message_internal(GET_MESSAGE_INTERVAL);
-        if (!ret.second.empty() || ret.first == Select::SIGNAL)
-        {
-            break;
-        }
-    }
-
-    return ret.second;
 }
 
 shared_ptr<RedisReply> PubSub::popEventBuffer()
