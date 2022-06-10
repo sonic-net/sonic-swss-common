@@ -104,7 +104,6 @@ protected:
 
             while True:
                 item = self.listen_message()
-                print("listen_message result: {}\n".format(item))
                 if 'type' not in item:
                     # When timeout or cancelled, item will not contains 'type' 
                     continue
