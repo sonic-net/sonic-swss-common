@@ -47,19 +47,13 @@ public:
     }
 
     void enable(const CounterTable& t) {
-        if(!m_enabled)
-        {
-            refresh(t);
-            m_enabled = true;
-        }
+        refresh(t);
+        m_enabled = true;
     }
 
     void disable() {
-        if(m_enabled)
-        {
-            m_keyMap.clear();
-            m_enabled = false;
-        }
+        m_keyMap.clear();
+        m_enabled = false;
     }
 
     bool empty() const {

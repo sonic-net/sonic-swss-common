@@ -26,7 +26,8 @@ def setup_countersdb(request):
     table = swsscommon.Table(db, "COUNTERS")
     fvs = swsscommon.FieldValuePairs([
         ("Ethernet0", "0x100000000001a"),
-        ("Ethernet1", "0x100000000001b")])
+        ("Ethernet1", "0x100000000001b"),
+        ("Ethernet2", "0x100000000001c")])
     for k, v in fvs:
         db.hset("COUNTERS_PORT_NAME_MAP", k, v)
         table.set(v, port_stats)
@@ -118,6 +119,36 @@ def test_port():
     r, value = counterTable.hget(linesidePort, portName, counterID)
     assert r
     assert value == "2"
+
+    # Port Ethernet2 is only on asic
+    portName = "Ethernet2"
+    r, value = counterTable.hget(PortCounter(), portName, counterID)
+    assert r
+    assert value == "2"
+    r, values = counterTable.get(PortCounter(), portName)
+    assert r
+    assert len(values) == len(port_stats)
+
+    r, value = counterTable.hget(asicPort, portName, counterID)
+    assert r
+    assert value == "2"
+    r, values = counterTable.get(asicPort, portName)
+    assert r
+    assert len(values) == len(port_stats)
+
+    r, value = counterTable.hget(systemsidePort, portName, counterID)
+    assert not r
+    assert not value
+    r, values = counterTable.get(systemsidePort, portName)
+    assert not r
+    assert not values
+
+    r, value = counterTable.hget(linesidePort, portName, counterID)
+    assert not r
+    assert not value
+    r, values = counterTable.get(linesidePort, portName)
+    assert not r
+    assert not values
 
     cache.disable()
 

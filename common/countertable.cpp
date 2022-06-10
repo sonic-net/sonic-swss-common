@@ -72,12 +72,9 @@ PortCounter::getLuaKeys(const CounterTable& t, const std::string &name) const
 Counter::KeyPair
 PortCounter::getKey(const CounterTable& t, const std::string &name) const
 {
-    if (m_mode == Mode::UNION)
-        return {-1, ""};
-
     int dbId = COUNTERS_DB;
     string portName = name;
-    if (m_mode != Mode::ASIC)
+    if (m_mode != Mode::ASIC && m_mode != Mode::UNION)
     {
         dbId = GB_COUNTERS_DB;
         if (m_mode == Mode::SYSTEMSIDE)
@@ -102,7 +99,7 @@ PortCounter::getKey(const CounterTable& t, const std::string &name) const
     }
 
     shared_ptr<std::string> oidPtr = nullptr;
-    if (m_mode == Mode::ASIC)
+    if (m_mode == Mode::ASIC || m_mode == Mode::UNION)
     {
         oidPtr = t.getCountersDB()->hget(COUNTERS_PORT_NAME_MAP, portName);
     }
