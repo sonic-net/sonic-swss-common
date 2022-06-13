@@ -5,7 +5,6 @@
 #include <string>
 #include <stdexcept>
 #include "rediscommand.h"
-#include "json.h"
 
 namespace swss {
 
@@ -95,15 +94,9 @@ public:
 
     std::string to_string();
 
-    static std::string to_string(redisReply *reply, std::string command = std::string());
-
 private:
     void checkStatus(const char *status);
     void checkReply();
-    static std::string format_array(std::string command, struct redisReply **element, size_t elements);
-    static std::string format_scan_result(struct redisReply **element, size_t elements);
-    static std::string to_dict_string(struct redisReply **element, size_t elements);
-    static std::string to_array_string(struct redisReply **element, size_t elements);
     static std::string GetCommand(std::string command);
 
     redisReply *m_reply;

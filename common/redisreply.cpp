@@ -12,6 +12,7 @@
 #include "common/redisreply.h"
 #include "common/dbconnector.h"
 #include "common/rediscommand.h"
+#include "common/replyformatter.h"
 
 using namespace std;
 
@@ -235,107 +236,7 @@ template<> RedisMessage RedisReply::getReply<RedisMessage>()
 
 string RedisReply::to_string()
 {
-    return to_string(getContext(), m_command);
-}
-
-string RedisReply::to_string(redisReply *reply, string command)
-{
-    switch(reply->type)
-    {
-    case REDIS_REPLY_INTEGER:
-        return std::to_string(reply->integer);
-
-    case REDIS_REPLY_STRING:
-    case REDIS_REPLY_ERROR:
-    case REDIS_REPLY_STATUS:
-    case REDIS_REPLY_NIL:
-        return string(reply->str, reply->len);
-
-    case REDIS_REPLY_ARRAY:
-    {
-        return format_array(command, reply->element, reply->elements);
-    }
-
-    default:
-        SWSS_LOG_ERROR("invalid type %d for message", reply->type);
-        return string();
-    }
-}
-
-string RedisReply::format_array(string command, struct redisReply **element, size_t elements)
-{
-    if (command == "HGETALL")
-    {
-        return to_dict_string(element, elements);
-    }
-    else if(command == "SCAN" || command == "HSCAN")
-    {
-        return format_scan_result(element, elements);
-    }
-    else
-    {
-        return to_array_string(element, elements);
-    }
-}
-
-string RedisReply::format_scan_result(struct redisReply **element, size_t elements)
-{
-    if (elements != 2)
-    {
-        throw system_error(make_error_code(errc::io_error),
-                           "Invalid result");
-    }
-
-    // format HSCAN result, here is a example:
-    //  (0, {'test3': 'test3', 'test2': 'test2'})
-    stringstream result;
-    result << "(" << element[0]->integer << ", ";
-    // format the field mapping part
-    result << to_dict_string(element[1]->element, element[1]->elements);
-    result << ")";
-
-    return result.str();
-}
-
-string RedisReply::to_dict_string(struct redisReply **element, size_t elements)
-{
-    if (elements%2 != 0)
-    {
-        throw system_error(make_error_code(errc::io_error),
-                           "Invalid result");
-    }
-
-    // format dictionary, not using json.h because the output format are different, here is a example:
-    //      {'test3': 'test3', 'test2': 'test2'}
-    stringstream result;
-    result << "{";
-
-    for (unsigned int i = 0; i < elements; i += 2)
-    {
-        result << "'" << to_string(element[i]) << "': '" << to_string(element[i+1]) << "'";
-        if (i + 2 < elements)
-        {
-            result << ", ";
-        }
-    }
-
-    result << "}";
-    return result.str();
-}
-
-string RedisReply::to_array_string(struct redisReply **element, size_t elements)
-{
-    stringstream result;
-    for (size_t i = 0; i < elements; i++)
-    {
-        result << to_string(element[i]);
-        if (i < elements - 1)
-        {
-            result << endl;
-        }
-    }
-
-    return result.str();
+    return swss::to_string(getContext(), m_command);
 }
 
 string RedisReply::GetCommand(string formattedCommand)
