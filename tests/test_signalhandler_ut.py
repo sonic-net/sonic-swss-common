@@ -6,7 +6,6 @@ import threading
 
 from swsscommon import swsscommon
 from swsscommon.swsscommon import SonicV2Connector, SonicDBConfig
-from test_redis_ut import prepare
 
 CurrentSignalNumber = 0
 StopThread = False
@@ -27,7 +26,6 @@ def pubsub_thread():
     GET_MESSAGE_INTERVAL = 10.0;
     while not StopThread:
         pubsub.listen_message(GET_MESSAGE_INTERVAL)
-
 
 def check_signal_can_break_pubsub(signalId):
     global CurrentSignalNumber
@@ -56,7 +54,6 @@ def check_signal_can_break_pubsub(signalId):
     StopThread = True
     time.sleep(2)
     assert test_thread.is_alive() == False
-
 
 def test_SignalIntAndSigTerm():
     check_signal_can_break_pubsub(signal.SIGINT)
