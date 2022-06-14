@@ -22,10 +22,14 @@ local gb_counter_list= {
 local function get_gbcounter(counter_id)
     local r = 0
     local counter = gb_counter_list[counter_id]
+    local num
     if counter then
         for i,id in ipairs(counter) do
             if #id > 0 then
-                r = r + redis.call('HGET', counters_table .. separator .. KEYS[i+1], id)
+                num = redis.call('HGET', counters_table .. separator .. KEYS[i+1], id)
+                if num then
+                    r = r + num
+                end
             end
         end
     end
