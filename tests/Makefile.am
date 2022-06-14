@@ -35,6 +35,7 @@ tests_SOURCES = redis_ut.cpp                \
                 boolean_ut.cpp              \
                 status_code_util_test.cpp   \
                 saiaclschema_ut.cpp         \
+                countertable_ut.cpp         \
                 timer_ut.cpp                \
                 cli_ut.cpp                  \
                 main.cpp

@@ -22,6 +22,7 @@
 #include "signalhandlerhelper.h"
 #include "rediscommand.h"
 #include "table.h"
+#include "countertable.h"
 #include "redispipeline.h"
 #include "redisselect.h"
 #include "redistran.h"
@@ -178,6 +179,17 @@ T castSelectableObj(swss::Selectable *temp)
 %clear std::vector<std::vector<std::pair<std::string, std::string>>> &fvss;
 %clear std::vector<std::pair<std::string, std::string>> &values;
 %clear std::string &value;
+
+%feature("director") Counter;
+%apply std::vector<std::pair<std::string, std::string>>& OUTPUT {std::vector<std::pair<std::string, std::string>> &values};
+%apply std::string& OUTPUT {std::string &value};
+%include "luatable.h"
+%include "countertable.h"
+%template(CounterKeyPair) std::pair<int, std::string>;
+%template(KeyStringCache) swss::KeyCache<std::string>;
+%template(KeyPairCache) swss::KeyCache<swss::Counter::KeyPair>;
+%clear std::string &value;
+%clear std::vector<std::pair<std::string, std::string>> &values;
 
 %include "producertable.h"
 %include "producerstatetable.h"
