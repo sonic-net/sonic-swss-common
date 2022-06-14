@@ -120,6 +120,18 @@ def test_port():
     assert r
     assert value == "2"
 
+    # Test if the counter is only on asic port
+    counterJabbersID = 'SAI_PORT_STAT_ETHER_STATS_JABBERS'
+    swsscommon.Table(db, "COUNTERS").hset(cache[portName], counterJabbersID, "1")
+    r, value = counterTable.hget(asicPort, portName, counterJabbersID)
+    assert r
+    assert value == "1"
+    r, value = counterTable.hget(PortCounter(), portName, counterJabbersID)
+    assert r
+    assert value == "1"
+    r, value = counterTable.hget(linesidePort, portName, counterJabbersID)
+    assert not r
+
     # Port Ethernet2 is only on asic
     portName = "Ethernet2"
     r, value = counterTable.hget(PortCounter(), portName, counterID)
