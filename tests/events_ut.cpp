@@ -202,7 +202,7 @@ TEST(events, publish)
     EXPECT_EQ(seq0, 1);
     EXPECT_EQ(rd_key0, evt_source0 + ":" + evt_tag0);
 
-    it_param = rd_params0.find(event_ts_param);
+    it_param = rd_params0.find(EVENT_TS_PARAM);
     EXPECT_TRUE(it_param != rd_params0.end());
     if (it_param != rd_params0.end()) {
         events_validate_ts(it_param->second);
@@ -221,7 +221,7 @@ TEST(events, publish)
     EXPECT_EQ(seq1, 2);
     EXPECT_EQ(rd_key1, evt_source0 + ":" + evt_tag1);
 
-    it_param = rd_params1.find(event_ts_param);
+    it_param = rd_params1.find(EVENT_TS_PARAM);
     EXPECT_TRUE(it_param != rd_params1.end());
     if (it_param != rd_params1.end()) {
         events_validate_ts(it_param->second);
@@ -247,7 +247,7 @@ TEST(events, publish)
     EXPECT_EQ(seq0, 1);
     EXPECT_EQ(rd_key0, evt_source1 + ":" + evt_tag0);
 
-    it_param = rd_params0.find(event_ts_param);
+    it_param = rd_params0.find(EVENT_TS_PARAM);
     EXPECT_TRUE(it_param != rd_params0.end());
     if (it_param != rd_params0.end()) {
         events_validate_ts(it_param->second);

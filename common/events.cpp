@@ -91,14 +91,14 @@ EventPublisher::publish(const string tag, const event_params_t *params)
     string param_str;
     event_params_t evt_params;
     if (params != NULL) {
-        if (params->find(event_ts_param) == params->end()) {
+        if (params->find(EVENT_TS_PARAM) == params->end()) {
             evt_params = *params;
-            evt_params[event_ts_param] = get_timestamp();
+            evt_params[EVENT_TS_PARAM] = get_timestamp();
             params = &evt_params;
         }
     }
     else {
-        evt_params[event_ts_param] = get_timestamp();
+        evt_params[EVENT_TS_PARAM] = get_timestamp();
         params = &evt_params;
     }
 
@@ -436,6 +436,6 @@ event_receive(event_handle_t handle, string &key,
 
 int event_last_error()
 {
-    return recv_last_err;
+    return zerrno;
 }
 

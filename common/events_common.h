@@ -25,7 +25,6 @@ using namespace chrono;
 
 extern int errno;
 extern int zerrno;
-extern int recv_last_err;
 
 /*
  * Max count of possible concurrent event publishers
@@ -169,9 +168,9 @@ serialize(const Map& data, string &s)
 {
     s.clear();
     stringstream _ser_ss;
-    boost::archive::text_oarchive oarch(_ser_ss);
 
     try {
+        boost::archive::text_oarchive oarch(_ser_ss);
         oarch << data;
         s = _ser_ss.str();
         return 0;
@@ -189,17 +188,17 @@ template <typename Map>
 int
 deserialize(const string& s, Map& data)
 {
-    stringstream ss(s);
-    boost::archive::text_iarchive iarch(ss);
 
     try {
+        stringstream ss(s);
+        boost::archive::text_iarchive iarch(ss);
         iarch >> data;
         return 0;
     }
     catch (exception& e) {
         stringstream _ss_ex;
 
-        _ss_ex << e.what() << "str[0:32]:" << s.substr(0, 32) << " data type: "
+        _ss_ex << e.what() << "str[0:64]:" << s.substr(0, 64) << " data type: "
             << get_typename(data);
         SWSS_LOG_ERROR("deserialize Failed: %s", _ss_ex.str().c_str());
         return -1;
@@ -280,11 +279,7 @@ zmq_read_part(void *sock, int flag, int &more, DT &data)
     more = 0;
     zmq_msg_init(&msg);
     int rc = zmq_msg_recv(&msg, sock, flag);
-    if (rc == -1) {
-        recv_last_err = zerrno;
-    }
-    else {
-        recv_last_err = 0;
+    if (rc != -1) {
         size_t more_size = sizeof (more);
 
         rc = zmsg_to_map(msg, data);
