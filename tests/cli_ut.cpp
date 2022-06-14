@@ -86,7 +86,7 @@ void generateTestData(char* ns, char* database)
     sonic_db_cli(7, args);
 }
 
-TEST(sonic_db_cli, test_cli_hash_commands)
+TEST(sonic_db_cli, test_cli_hscan_commands)
 {
     char *args[6];
     args[0] = "sonic-db-cli";
@@ -95,7 +95,7 @@ TEST(sonic_db_cli, test_cli_hash_commands)
     // clear database
     args[2] = "FLUSHDB";
     auto output = runCli(3, args);
-    EXPECT_EQ("OK\n", output);
+    EXPECT_EQ("True\n", output);
 
     // hset to test DB
     args[2] = "HSET";
@@ -117,7 +117,7 @@ TEST(sonic_db_cli, test_cli_hash_commands)
     args[4] = "0";
     output = runCli(5, args);
     EXPECT_EQ("(0, {'testfield': 'testvalue'})\n", output);
-    
+
     // hgetall from test db
     args[2] = "HGETALL";
     args[3] = "notexistkey";
@@ -130,6 +130,111 @@ TEST(sonic_db_cli, test_cli_hash_commands)
     args[4] = "0";
     output = runCli(5, args);
     EXPECT_EQ("(0, {})\n", output);
+}
+
+TEST(sonic_db_cli, test_cli_pop_commands)
+{
+    char *args[10];
+    args[0] = "sonic-db-cli";
+    args[1] = "TEST_DB";
+
+    // clear database
+    args[2] = "FLUSHDB";
+    auto output = runCli(3, args);
+    EXPECT_EQ("True\n", output);
+
+    // rpush to test DB
+    args[2] = "rpush";
+    args[3] = "list1";
+    args[4] = "a";
+    args[5] = "b";
+    args[6] = "c";
+    args[7] = "d";
+    args[8] = "e";
+    output = runCli(9, args);
+    EXPECT_EQ("5\n", output);
+    
+    // pop from test db
+    args[2] = "blpop";
+    args[3] = "list1";
+    args[4] = "list2";
+    args[5] = "0";
+    output = runCli(6, args);
+    EXPECT_EQ("('list1', 'a')\n", output);
+}
+
+TEST(sonic_db_cli, test_cli_expire_commands)
+{
+    char *args[10];
+    args[0] = "sonic-db-cli";
+    args[1] = "TEST_DB";
+
+    // clear database
+    args[2] = "FLUSHDB";
+    auto output = runCli(3, args);
+    EXPECT_EQ("True\n", output);
+
+    // rpush to test DB
+    args[2] = "set";
+    args[3] = "testkey";
+    args[4] = "test";
+    output = runCli(5, args);
+    EXPECT_EQ("True\n", output);
+    
+    // pop from test db
+    args[2] = "expire";
+    args[3] = "testkey";
+    args[4] = "10";
+    output = runCli(5, args);
+    EXPECT_EQ("True\n", output);
+}
+
+TEST(sonic_db_cli, test_cli_sscan_commands)
+{
+    char *args[9];
+    args[0] = "sonic-db-cli";
+    args[1] = "TEST_DB";
+
+    // clear database
+    args[2] = "FLUSHDB";
+    auto output = runCli(3, args);
+    EXPECT_EQ("True\n", output);
+
+    // create set to test DB
+    args[2] = "sadd";
+    args[3] = "myset";
+    args[4] = "1";
+    args[5] = "2";
+    args[6] = "foo";
+    args[7] = "foobar";
+    output = runCli(8, args);
+    EXPECT_EQ("4\n", output);
+
+    // sscan from test db
+    args[2] = "sscan";
+    args[3] = "myset";
+    args[4] = "0";
+    args[5] = "match";
+    args[6] = "f*";
+    output = runCli(7, args);
+    EXPECT_EQ("(0, ['foobar', 'foo'])\n", output);
+
+    // create set to test DB
+    args[2] = "sadd";
+    args[3] = "myset2";
+    args[4] = "1";
+    args[5] = "2";
+    output = runCli(6, args);
+    EXPECT_EQ("2\n", output);
+
+    // sscan from test db
+    args[2] = "sscan";
+    args[3] = "myset2";
+    args[4] = "0";
+    args[5] = "match";
+    args[6] = "f*";
+    output = runCli(7, args);
+    EXPECT_EQ("(0, [])\n", output);
 }
 
 TEST(sonic_db_cli, test_cli_help)
@@ -184,7 +289,7 @@ TEST(sonic_db_cli, test_cli_run_cmd)
     args[3] = "testkey";
     args[4] = "testvalue";
     auto output = runCli(5, args);
-    EXPECT_EQ("OK\n", output);
+    EXPECT_EQ("True\n", output);
     
     // get key from test db
     args[2] = "GET";
@@ -212,7 +317,7 @@ TEST(sonic_db_cli, test_cli_multi_ns_cmd)
     args[5] = "testkey";
     args[6] = "testvalue";
     auto output = runCli(7, args);
-    EXPECT_EQ("OK\n", output);
+    EXPECT_EQ("True\n", output);
     
     // get key from test db
     args[4] = "GET";
@@ -241,7 +346,7 @@ TEST(sonic_db_cli, test_cli_unix_socket_cmd)
     args[6] = "testkey";
     args[7] = "testvalue";
     auto output = runCli(8, args);
-    EXPECT_EQ("OK\n", output);
+    EXPECT_EQ("True\n", output);
     
     // get key from test db
     args[5] = "GET";

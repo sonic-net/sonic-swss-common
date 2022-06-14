@@ -53,17 +53,16 @@ string format_reply(string command, long long integer)
         || command == "SMOVE"
         || command == "SETNX")
     {
-        if (integer == 0)
-        {
-            return string("False");
-        }
-        else
+        if (integer == 1)
         {
             return string("True");
         }
+        else if (integer == 0)
+        {
+            return string("False");
+        }
     }
-    else if (command == "AUTH"
-                || command == "COPY")
+    else if (command == "AUTH")
     {
         if (integer != 0)
         {
@@ -97,7 +96,8 @@ string format_reply(string command, const char* str, size_t len)
         || command == "SLAVEOF"
         || command == "SWAPDB"
         || command == "WATCH"
-        || command == "UNWATCH")
+        || command == "UNWATCH"
+        || command == "SET")
     {
         if (result == "OK")
         {
@@ -115,8 +115,7 @@ string format_reply(string command, struct redisReply **element, size_t elements
         return format_dict_reply(element, elements);
     }
     else if(command == "SCAN"
-            || command == "SSCAN"
-            || command == "HSCAN")
+            || command == "SSCAN")
     {
         return format_sscan_reply(element, elements);
     }
