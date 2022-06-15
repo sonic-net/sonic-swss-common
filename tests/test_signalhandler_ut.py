@@ -23,9 +23,8 @@ def pubsub_thread():
     # listen_message method should not break Python signal handler
     pubsub = connector.get_redis_client(connector.db_name).pubsub()
     pubsub.psubscribe("__keyspace@{}__:*".format(connector.get_dbid(connector.db_name)))
-    GET_MESSAGE_INTERVAL = 10.0;
     while not StopThread:
-        pubsub.listen_message(GET_MESSAGE_INTERVAL)
+        pubsub.listen_message()
 
 def check_signal_can_break_pubsub(signalId):
     global CurrentSignalNumber
