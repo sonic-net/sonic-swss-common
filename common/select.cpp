@@ -1,7 +1,6 @@
 #include "common/selectable.h"
 #include "common/logger.h"
 #include "common/select.h"
-#include "common/signalhandlerhelper.h"
 #include <algorithm>
 #include <stdio.h>
 #include <sys/time.h>
@@ -101,7 +100,7 @@ int Select::poll_descriptors(Selectable **c, unsigned int timeout, bool interrup
         // on signal interrupt check if we need to return
         if (ret == -1 && errno == EINTR)
         {
-            if (interrupt_on_signal || SignalHandlerHelper::checkSignal(Signals::SIGNAL_INT))
+            if (interrupt_on_signal)
             {
                 return Select::SIGNALINT;
             }

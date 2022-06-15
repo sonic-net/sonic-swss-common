@@ -94,10 +94,10 @@ protected:
             if init_data_handler:
                 init_data_handler(init_callback_data)
 
-            while not SignalHandlerHelper.checkSignal(SIGNAL_INT):
+            while True:
                 item = self.pubsub.listen_message(interrupt_on_signal=True)
                 if 'type' not in item:
-                    # When timeout or cancelled, item will not contains 'type'
+                    # When timeout or interrupted, item will not contains 'type'
                     continue
 
                 if item['type'] == 'pmessage':
