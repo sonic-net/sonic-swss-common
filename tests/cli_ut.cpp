@@ -205,10 +205,9 @@ TEST(sonic_db_cli, test_cli_sscan_commands)
     args[3] = "myset";
     args[4] = "1";
     args[5] = "2";
-    args[6] = "foo";
-    args[7] = "foobar";
-    output = runCli(8, args);
-    EXPECT_EQ("4\n", output);
+    args[6] = "foobar";
+    output = runCli(7, args);
+    EXPECT_EQ("3\n", output);
 
     // sscan from test db
     args[2] = "sscan";
@@ -217,7 +216,7 @@ TEST(sonic_db_cli, test_cli_sscan_commands)
     args[5] = "match";
     args[6] = "f*";
     output = runCli(7, args);
-    EXPECT_EQ("(0, ['foobar', 'foo'])\n", output);
+    EXPECT_EQ("(0, ['foobar'])\n", output);
 
     // create set to test DB
     args[2] = "sadd";
