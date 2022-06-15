@@ -91,6 +91,9 @@ private:
 
         def keys(self, *args, **kwargs):
             return list(super(SonicV2Connector, self).keys(*args, **kwargs))
+
+        def del_key(self, db_name, key, blocking=False):
+            return super(SonicV2Connector, self).del(db_name, key, blocking)
 %}
 #endif
 }

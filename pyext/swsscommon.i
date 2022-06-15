@@ -33,7 +33,7 @@
 #include "subscriberstatetable.h"
 #include "notificationconsumer.h"
 #include "notificationproducer.h"
-#include "warm_restart.h"
+#include "advanced_restart.h"
 #include "logger.h"
 #include "configdb.h"
 #include "status_code_util.h"
@@ -203,7 +203,7 @@ T castSelectableObj(swss::Selectable *temp)
 %clear std::vector<std::pair<std::string, std::string>> &values;
 
 %include "notificationproducer.h"
-%include "warm_restart.h"
+%include "advanced_restart.h"
 %include "dbinterface.h"
 %include "logger.h"
 %include "status_code_util.h"

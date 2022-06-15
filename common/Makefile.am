@@ -65,7 +65,7 @@ libswsscommon_la_SOURCES = \
     saiaclschema.cpp          \
     subscriberstatetable.cpp  \
     timestamp.cpp             \
-    warm_restart.cpp          \
+    advanced_restart.cpp          \
     redisutility.cpp
 
 libswsscommon_la_CXXFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CFLAGS) $(CODE_COVERAGE_CXXFLAGS)
