@@ -1,10 +1,11 @@
+#include <functional>
+#include <iostream>
+#include <set>
+#include <sstream>
 #include <string.h>
 #include <stdint.h>
-#include <vector>
-#include <iostream>
-#include <sstream>
 #include <system_error>
-#include <functional>
+#include <vector>
 
 #include "common/logger.h"
 #include "common/replyformatter.h"
@@ -12,6 +13,47 @@
 using namespace std;
 
 namespace swss {
+
+static set<string> g_intToBoolCommands = {
+                        "COPY",
+                        "EXPIRE",
+                        "EXPIREAT",
+                        "PEXPIRE",
+                        "PEXPIREAT",
+                        "HEXISTS",
+                        "MOVE",
+                        "MSETNX",
+                        "PERSIST",
+                        "RENAMENX",
+                        "SISMEMBER",
+                        "SMOVE",
+                        "SETNX"
+                        };
+
+static set<string> g_strToBoolCommands = {
+                        "AUTH",
+                        "HMSET",
+                        "PSETEX",
+                        "SETEX",
+                        "FLUSHALL",
+                        "FLUSHDB",
+                        "LSET",
+                        "LTRIM",
+                        "MSET",
+                        "PFMERGE",
+                        "ASKING",
+                        "READONLY",
+                        "READWRITE",
+                        "RENAME",
+                        "SAVE",
+                        "SELECT",
+                        "SHUTDOWN",
+                        "SLAVEOF",
+                        "SWAPDB",
+                        "WATCH",
+                        "UNWATCH",
+                        "SET"
+                        };
 
 string to_string(redisReply *reply, string command)
 {
@@ -39,19 +81,7 @@ string to_string(redisReply *reply, string command)
 
 string format_reply(string command, long long integer)
 {
-    if (command == "COPY"
-        || command == "EXPIRE"
-        || command == "EXPIREAT"
-        || command == "PEXPIRE"
-        || command == "PEXPIREAT"
-        || command == "HEXISTS"
-        || command == "MOVE"
-        || command == "MSETNX"
-        || command == "PERSIST"
-        || command == "RENAMENX"
-        || command == "SISMEMBER"
-        || command == "SMOVE"
-        || command == "SETNX")
+    if (g_intToBoolCommands.find(command) != g_intToBoolCommands.end())
     {
         if (integer == 1)
         {
@@ -76,33 +106,10 @@ string format_reply(string command, long long integer)
 string format_reply(string command, const char* str, size_t len)
 {
     string result = string(str, len);
-    if (command == "AUTH"
-        || command == "HMSET"
-        || command == "PSETEX"
-        || command == "SETEX"
-        || command == "FLUSHALL"
-        || command == "FLUSHDB"
-        || command == "LSET"
-        || command == "LTRIM"
-        || command == "MSET"
-        || command == "PFMERGE"
-        || command == "ASKING"
-        || command == "READONLY"
-        || command == "READWRITE"
-        || command == "RENAME"
-        || command == "SAVE"
-        || command == "SELECT"
-        || command == "SHUTDOWN"
-        || command == "SLAVEOF"
-        || command == "SWAPDB"
-        || command == "WATCH"
-        || command == "UNWATCH"
-        || command == "SET")
+    if (g_strToBoolCommands.find(command) != g_strToBoolCommands.end()
+        && result == "OK")
     {
-        if (result == "OK")
-        {
-            return string("True");
-        }
+        return string("True");
     }
 
     return result;
