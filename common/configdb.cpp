@@ -32,29 +32,25 @@ void ConfigDBConnector_Native::db_connect(string db_name, bool wait_for_init, bo
             pubsub->psubscribe(pattern);
             for (;;)
             {
-                auto result = pubsub->listen_message();
-                if (result.first == Select::SIGNAL)
+                auto item = pubsub->listen_message();
+                if (item.empty() || item["type"] != "pmessage")
                 {
-                    // listen_message breake by signal, retry again
                     continue;
                 }
 
-                if (result.second["type"] == "pmessage")
+                string channel = item["channel"];
+                size_t pos = channel.find(':');
+                string key;
+                if (pos != string::npos)
                 {
-                    string channel = result.second["channel"];
-                    size_t pos = channel.find(':');
-                    string key;
-                    if (pos != string::npos)
+                    key = channel.substr(pos + 1);
+                }
+                if (key == INIT_INDICATOR)
+                {
+                    initialized = client.get(INIT_INDICATOR);
+                    if (initialized && !initialized->empty())
                     {
-                        key = channel.substr(pos + 1);
-                    }
-                    if (key == INIT_INDICATOR)
-                    {
-                        initialized = client.get(INIT_INDICATOR);
-                        if (initialized && !initialized->empty())
-                        {
-                            break;
-                        }
+                        break;
                     }
                 }
             }

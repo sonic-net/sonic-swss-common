@@ -71,14 +71,6 @@ protected:
         def db_name(self):
             return self.getDbName()
 
-        @property
-        def listen_message(self):
-            GET_MESSAGE_INTERVAL = 600.0;
-            while True:
-                ret = self.pubsub.listen_message(GET_MESSAGE_INTERVAL)
-                if (not ret[1].empty()) or (ret[0] == Select.SIGNAL):
-                    return ret[1]
-
         ## Note: callback is difficult to implement by SWIG C++, so keep in python
         def listen(self, init_data_handler=None):
             ## Start listen Redis keyspace event. Pass a callback function to `init` to handle initial table data.
@@ -103,9 +95,9 @@ protected:
                 init_data_handler(init_callback_data)
 
             while True:
-                item = self.listen_message()
+                item = self.pubsub.listen_message()
                 if 'type' not in item:
-                    # When timeout or cancelled, item will not contains 'type' 
+                    # When timeout or cancelled or break by signal, item will not contains 'type' 
                     continue
 
                 if item['type'] == 'pmessage':

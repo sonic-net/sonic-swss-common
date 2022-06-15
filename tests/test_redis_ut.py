@@ -606,14 +606,7 @@ def test_ConfigDBSubscribe():
     while True:
         if not thread.is_alive():
             break
-        item = {}
-        GET_MESSAGE_INTERVAL = 600.0;
-        while True:
-            ret = pubsub.listen_message(GET_MESSAGE_INTERVAL)
-            if (not ret[1].empty()) or (ret[0] == swsscommon.Select.SIGNAL):
-                item = ret[1]
-                break
-
+        item = pubsub.listen_message()
         if 'type' in item and item['type'] == 'pmessage':
             key = item['channel'].split(':', 1)[1]
             try:

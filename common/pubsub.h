@@ -19,7 +19,7 @@ public:
     explicit PubSub(DBConnector *other);
 
     std::map<std::string, std::string> get_message(double timeout = 0.0);
-    MessageResultPair listen_message(double timeout = 0.0);
+    std::map<std::string, std::string> listen_message();
 
     void psubscribe(const std::string &pattern);
     void punsubscribe(const std::string &pattern);
@@ -32,6 +32,7 @@ public:
 private:
     /* Pop keyspace event from event buffer. Caller should free resources. */
     std::shared_ptr<RedisReply> popEventBuffer();
+    MessageResultPair get_message_internal(double timeout = 0.0);
 
     DBConnector *m_parentConnector;
     Select m_select;
