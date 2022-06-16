@@ -377,7 +377,7 @@ string RedisReply::formatSscanReply(struct redisReply **element, size_t elements
 
     // format HSCAN result, here is a example:
     //  (0, {'test3': 'test3', 'test2': 'test2'})
-    stringstream result;
+    ostringstream result;
     result << "(" << element[0]->integer << ", ";
     // format the field mapping part
     result << formatArrayReply(element[1]->element, element[1]->elements);
@@ -396,7 +396,7 @@ string RedisReply::formatHscanReply(struct redisReply **element, size_t elements
 
     // format HSCAN result, here is a example:
     //  (0, {'test3': 'test3', 'test2': 'test2'})
-    stringstream result;
+    ostringstream result;
     result << "(" << element[0]->integer << ", ";
     // format the field mapping part
     result << formatDictReply(element[1]->element, element[1]->elements);
@@ -415,7 +415,7 @@ string RedisReply::formatDictReply(struct redisReply **element, size_t elements)
 
     // format dictionary, not using json.h because the output format are different, here is a example:
     //      {'test3': 'test3', 'test2': 'test2'}
-    stringstream result;
+    ostringstream result;
     result << "{";
 
     for (unsigned int i = 0; i < elements; i += 2)
@@ -433,7 +433,7 @@ string RedisReply::formatDictReply(struct redisReply **element, size_t elements)
 
 string RedisReply::formatArrayReply(struct redisReply **element, size_t elements)
 {
-    stringstream result;
+    ostringstream result;
     result << "[";
 
     for (unsigned int i = 0; i < elements; i++)
@@ -452,7 +452,7 @@ string RedisReply::formatArrayReply(struct redisReply **element, size_t elements
 
 string RedisReply::formatListReply(struct redisReply **element, size_t elements)
 {
-    stringstream result;
+    ostringstream result;
     for (size_t i = 0; i < elements; i++)
     {
         result << to_string(element[i]);
@@ -467,7 +467,7 @@ string RedisReply::formatListReply(struct redisReply **element, size_t elements)
 
 string RedisReply::formatTupleReply(struct redisReply **element, size_t elements)
 {
-    stringstream result;
+    ostringstream result;
     result << "(";
 
     for (unsigned int i = 0; i < elements; i++)
