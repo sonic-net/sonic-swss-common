@@ -1,3 +1,4 @@
+#include <set>
 #include <string.h>
 #include <stdint.h>
 #include <vector>
@@ -5,18 +6,56 @@
 #include <sstream>
 #include <system_error>
 #include <functional>
-#include <boost/algorithm/string.hpp>
-#include <boost/algorithm/string/find.hpp>
 
 #include "common/logger.h"
 #include "common/redisreply.h"
 #include "common/dbconnector.h"
 #include "common/rediscommand.h"
-#include "common/replyformatter.h"
 
 using namespace std;
 
 namespace swss {
+
+static set<string> g_intToBoolCommands = {
+                        "COPY",
+                        "EXPIRE",
+                        "EXPIREAT",
+                        "PEXPIRE",
+                        "PEXPIREAT",
+                        "HEXISTS",
+                        "MOVE",
+                        "MSETNX",
+                        "PERSIST",
+                        "RENAMENX",
+                        "SISMEMBER",
+                        "SMOVE",
+                        "SETNX"
+                        };
+
+static set<string> g_strToBoolCommands = {
+                        "AUTH",
+                        "HMSET",
+                        "PSETEX",
+                        "SETEX",
+                        "FLUSHALL",
+                        "FLUSHDB",
+                        "LSET",
+                        "LTRIM",
+                        "MSET",
+                        "PFMERGE",
+                        "ASKING",
+                        "READONLY",
+                        "READWRITE",
+                        "RENAME",
+                        "SAVE",
+                        "SELECT",
+                        "SHUTDOWN",
+                        "SLAVEOF",
+                        "SWAPDB",
+                        "WATCH",
+                        "UNWATCH",
+                        "SET"
+                        };
 
 template <typename FUNC>
 inline void guard(FUNC func, const char* command)
@@ -50,8 +89,6 @@ RedisReply::RedisReply(RedisContext *ctx, const RedisCommand& command)
         throw RedisError("Failed to redisGetReply with " + string(command.c_str()), ctx->getContext());
     }
     guard([&]{checkReply();}, command.c_str());
-
-    m_command = GetCommand(string(command.c_str()));
 }
 
 RedisReply::RedisReply(RedisContext *ctx, const string& command)
@@ -70,8 +107,6 @@ RedisReply::RedisReply(RedisContext *ctx, const string& command)
         throw RedisError("Failed to redisGetReply with " + command, ctx->getContext());
     }
     guard([&]{checkReply();}, command.c_str());
-
-    m_command = GetCommand(command);
 }
 
 RedisReply::RedisReply(RedisContext *ctx, const RedisCommand& command, int expectedType)
@@ -233,36 +268,220 @@ template<> RedisMessage RedisReply::getReply<RedisMessage>()
     return ret;
 }
 
-
 string RedisReply::to_string()
 {
-    return swss::to_string(getContext(), m_command);
+    return RedisReply::to_string(this->getContext());
 }
 
-string RedisReply::GetCommand(string formattedCommand)
+string RedisReply::to_string(redisReply *reply, string command)
 {
-    auto cmd = boost::to_upper_copy<string>(formattedCommand);
-    
-    // find command start position in formatted command string, here is an example:
-    //      {command count}\r\n+{command length}\r\nHGETALL\r\n....
-    auto start = boost::find_nth(cmd, "\r\n", 1).begin();
-    if (start == cmd.end())
+    /*
+        Response format need keep as same as redis-py, redis-py using a command to result type mapping to convert result:
+            https://github.com/redis/redis-py/blob/bedf3c82a55b4b67eed93f686cb17e82f7ab19cd/redis/client.py#L682
+        Redis command result type can be found here:
+            https://redis.io/commands/
+        Only commands used by scripts in sonic repos are supported by these method.
+        For example: 'Info' command not used by any sonic scripts, so the output format will different with redis-py.
+    */
+    switch(reply->type)
     {
-        // the formattedCommand does not contains any command
-        return string();
-    }
-    
-    auto end = boost::find_nth(cmd, "\r\n", 2).begin();
-    if (end == cmd.end())
+    case REDIS_REPLY_INTEGER:
+        return formatReply(command, reply->integer);
+
+    case REDIS_REPLY_STRING:
+    case REDIS_REPLY_ERROR:
+    case REDIS_REPLY_STATUS:
+    case REDIS_REPLY_NIL:
+        return formatReply(command, reply->str, reply->len);
+
+    case REDIS_REPLY_ARRAY:
     {
-        end = cmd.end();
+        return formatReply(command, reply->element, reply->elements);
     }
 
-    // HGETALL and HSCAN command will return fields and values
-    // for more information please check: https://redis.io/commands/
-    size_t startPos = distance(cmd.begin(), start) + 2;
-    size_t endPos = distance(cmd.begin(), end);
-    return cmd.substr(startPos, endPos - startPos);
+    default:
+        SWSS_LOG_ERROR("invalid type %d for message", reply->type);
+        return string();
+    }
+}
+
+string RedisReply::formatReply(string command, long long integer)
+{
+    if (g_intToBoolCommands.find(command) != g_intToBoolCommands.end())
+    {
+        if (integer == 1)
+        {
+            return string("True");
+        }
+        else if (integer == 0)
+        {
+            return string("False");
+        }
+    }
+    else if (command == "AUTH")
+    {
+        if (integer != 0)
+        {
+            return string("OK");
+        }
+    }
+
+    return std::to_string(integer);
+}
+
+string RedisReply::formatReply(string command, const char* str, size_t len)
+{
+    string result = string(str, len);
+    if (g_strToBoolCommands.find(command) != g_strToBoolCommands.end()
+        && result == "OK")
+    {
+        return string("True");
+    }
+
+    return result;
+}
+
+string RedisReply::formatReply(string command, struct redisReply **element, size_t elements)
+{
+    if (command == "HGETALL")
+    {
+        return formatDictReply(element, elements);
+    }
+    else if(command == "SCAN"
+            || command == "SSCAN")
+    {
+        return formatSscanReply(element, elements);
+    }
+    else if(command == "HSCAN")
+    {
+        return formatHscanReply(element, elements);
+    }
+    else if(command == "BLPOP"
+            || command == "BRPOP")
+    {
+        return formatTupleReply(element, elements);
+    }
+    else
+    {
+        return formatListReply(element, elements);
+    }
+}
+
+string RedisReply::formatSscanReply(struct redisReply **element, size_t elements)
+{
+    if (elements != 2)
+    {
+        throw system_error(make_error_code(errc::io_error),
+                           "Invalid result");
+    }
+
+    // format HSCAN result, here is a example:
+    //  (0, {'test3': 'test3', 'test2': 'test2'})
+    stringstream result;
+    result << "(" << element[0]->integer << ", ";
+    // format the field mapping part
+    result << formatArrayReply(element[1]->element, element[1]->elements);
+    result << ")";
+
+    return result.str();
+}
+
+string RedisReply::formatHscanReply(struct redisReply **element, size_t elements)
+{
+    if (elements != 2)
+    {
+        throw system_error(make_error_code(errc::io_error),
+                           "Invalid result");
+    }
+
+    // format HSCAN result, here is a example:
+    //  (0, {'test3': 'test3', 'test2': 'test2'})
+    stringstream result;
+    result << "(" << element[0]->integer << ", ";
+    // format the field mapping part
+    result << formatDictReply(element[1]->element, element[1]->elements);
+    result << ")";
+
+    return result.str();
+}
+
+string RedisReply::formatDictReply(struct redisReply **element, size_t elements)
+{
+    if (elements%2 != 0)
+    {
+        throw system_error(make_error_code(errc::io_error),
+                           "Invalid result");
+    }
+
+    // format dictionary, not using json.h because the output format are different, here is a example:
+    //      {'test3': 'test3', 'test2': 'test2'}
+    stringstream result;
+    result << "{";
+
+    for (unsigned int i = 0; i < elements; i += 2)
+    {
+        result << "'" << to_string(element[i]) << "': '" << to_string(element[i+1]) << "'";
+        if (i < elements - 2)
+        {
+            result << ", ";
+        }
+    }
+
+    result << "}";
+    return result.str();
+}
+
+string RedisReply::formatArrayReply(struct redisReply **element, size_t elements)
+{
+    stringstream result;
+    result << "[";
+
+    for (unsigned int i = 0; i < elements; i++)
+    {
+        result << "'" << to_string(element[i]) << "'";
+        if (i < elements - 1)
+        {
+            result << ", ";
+        }
+    }
+
+    result << "]";
+
+    return result.str();
+}
+
+string RedisReply::formatListReply(struct redisReply **element, size_t elements)
+{
+    stringstream result;
+    for (size_t i = 0; i < elements; i++)
+    {
+        result << to_string(element[i]);
+        if (i < elements - 1)
+        {
+            result << endl;
+        }
+    }
+
+    return result.str();
+}
+
+string RedisReply::formatTupleReply(struct redisReply **element, size_t elements)
+{
+    stringstream result;
+    result << "(";
+
+    for (unsigned int i = 0; i < elements; i++)
+    {
+        result << "'" << to_string(element[i]) << "'";
+        if (i < elements - 1)
+        {
+            result << ", ";
+        }
+    }
+
+    result << ")";
+
+    return result.str();
 }
 
 }
