@@ -6,13 +6,16 @@
 #include <sstream>
 #include <system_error>
 #include <functional>
+#include <boost/algorithm/string.hpp>
 
 #include "common/logger.h"
 #include "common/redisreply.h"
 #include "common/dbconnector.h"
 #include "common/rediscommand.h"
+#include "common/stringutility.h"
 
 using namespace std;
+using namespace boost;
 
 namespace swss {
 
@@ -415,73 +418,46 @@ string RedisReply::formatDictReply(struct redisReply **element, size_t elements)
 
     // format dictionary, not using json.h because the output format are different, here is a example:
     //      {'test3': 'test3', 'test2': 'test2'}
-    ostringstream result;
-    result << "{";
-
+    vector<string> elementvector;
     for (unsigned int i = 0; i < elements; i += 2)
     {
-        result << "'" << to_string(element[i]) << "': '" << to_string(element[i+1]) << "'";
-        if (i < elements - 2)
-        {
-            result << ", ";
-        }
+        elementvector.push_back("'" + to_string(element[i]) + "': '" + to_string(element[i+1]) + "'");
     }
 
-    result << "}";
-    return result.str();
+    return swss::join(", ", '{', '}', elementvector.begin(), elementvector.end());
 }
 
 string RedisReply::formatArrayReply(struct redisReply **element, size_t elements)
 {
-    ostringstream result;
-    result << "[";
-
+    vector<string> elementvector;
     for (unsigned int i = 0; i < elements; i++)
     {
-        result << "'" << to_string(element[i]) << "'";
-        if (i < elements - 1)
-        {
-            result << ", ";
-        }
+        elementvector.push_back("'" + to_string(element[i]) + "'");
     }
 
-    result << "]";
-
-    return result.str();
+    return swss::join(", ", '[', ']', elementvector.begin(), elementvector.end());
 }
 
 string RedisReply::formatListReply(struct redisReply **element, size_t elements)
 {
-    ostringstream result;
-    for (size_t i = 0; i < elements; i++)
+    vector<string> elementvector;
+    for (unsigned int i = 0; i < elements; i++)
     {
-        result << to_string(element[i]);
-        if (i < elements - 1)
-        {
-            result << endl;
-        }
+        elementvector.push_back(to_string(element[i]));
     }
 
-    return result.str();
+    return swss::join("\n", elementvector.begin(), elementvector.end());
 }
 
 string RedisReply::formatTupleReply(struct redisReply **element, size_t elements)
 {
-    ostringstream result;
-    result << "(";
-
+    vector<string> elementvector;
     for (unsigned int i = 0; i < elements; i++)
     {
-        result << "'" << to_string(element[i]) << "'";
-        if (i < elements - 1)
-        {
-            result << ", ";
-        }
+        elementvector.push_back("'" + to_string(element[i]) + "'");
     }
 
-    result << ")";
-
-    return result.str();
+    return swss::join(", ", '(', ')', elementvector.begin(), elementvector.end());
 }
 
 }
