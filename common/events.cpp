@@ -149,7 +149,7 @@ events_init_publisher(const string event_source)
 }
 
 void
-events_deinit_publisher(event_handle_t &handle)
+events_deinit_publisher(event_handle_t handle)
 {
     lst_publishers_t::iterator it;
 
@@ -160,8 +160,6 @@ events_deinit_publisher(event_handle_t &handle)
             break;
         }
     }
-    handle = NULL;
-
 }
 
 int
@@ -413,13 +411,12 @@ out:
 
 
 void
-events_deinit_subscriber(event_handle_t &handle)
+events_deinit_subscriber(event_handle_t handle)
 {
     if ((handle == s_subscriber) && (s_subscriber != NULL)) {
         delete s_subscriber;
         s_subscriber = NULL;
     }
-    handle = NULL;
 }
 
 
@@ -432,6 +429,16 @@ event_receive(event_handle_t handle, string &key,
         return s_subscriber->event_receive(key, params, missed_cnt);
     }
     return -1;
+}
+
+
+event_receive_op_t
+event_receive_wrap(event_handle_t handle)
+{
+    event_receive_op_t op;
+
+    op.rc = event_receive(handle, op.key, op.params, op.missed_cnt);
+    return op;
 }
 
 int event_last_error()

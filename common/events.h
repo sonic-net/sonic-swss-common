@@ -52,7 +52,7 @@ event_handle_t events_init_publisher(const std::string event_source);
  * Output: 
  *  Handle is nullified.
  */
-void events_deinit_publisher(event_handle_t &handle);
+void events_deinit_publisher(event_handle_t handle);
 
 
 /*
@@ -147,7 +147,7 @@ event_handle_t events_init_subscriber(bool use_cache=false,
  * Output: 
  *  Handle is nullified.
  */
-void events_deinit_subscriber(event_handle_t &handle);
+void events_deinit_subscriber(event_handle_t handle);
 
 
 /*
@@ -193,6 +193,31 @@ void events_deinit_subscriber(event_handle_t &handle);
  */
 int event_receive(event_handle_t handle, std::string &key,
         event_params_t &params, int &missed_cnt);
+
+/*
+ * event_receive_wrap
+ *
+ * Returns o/p as structured.
+ * This is handy for invocation via python.
+ *
+ * input:
+ *  handle - As obtained from events_init_subscriber
+ *
+ * output:
+ *  None
+ *
+ * Return:
+ *  struct that gets return value and all o/p params of event_receive
+ */
+typedef struct {
+    int rc;     /* Return value of event_receive */
+    /* o/p params from event receive */
+    std::string key;
+    event_params_t params;
+    int missed_cnt;
+} event_receive_op_t;
+
+event_receive_op_t event_receive_wrap(event_handle_t handle);
 
 
 /*

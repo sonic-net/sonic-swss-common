@@ -96,9 +96,14 @@ string
 map_to_str(const Map &m)
 {
     stringstream _ss;
+    string sep;
+
     _ss << "{";
     for (const auto elem: m) {
-        _ss << "{" << elem.first << "," << elem.second.substr(0,10) << "}";
+        _ss << sep << "{" << elem.first << "," << elem.second.substr(0,10) << "}";
+        if (sep.empty()) {
+            sep = ", ";
+        }
     }
     _ss << "}";
     return _ss.str();
