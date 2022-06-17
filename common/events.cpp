@@ -91,14 +91,14 @@ EventPublisher::publish(const string tag, const event_params_t *params)
     string param_str;
     event_params_t evt_params;
     if (params != NULL) {
-        if (params->find(event_ts_param) == params->end()) {
+        if (params->find(EVENT_TS_PARAM) == params->end()) {
             evt_params = *params;
-            evt_params[event_ts_param] = get_timestamp();
+            evt_params[EVENT_TS_PARAM] = get_timestamp();
             params = &evt_params;
         }
     }
     else {
-        evt_params[event_ts_param] = get_timestamp();
+        evt_params[EVENT_TS_PARAM] = get_timestamp();
         params = &evt_params;
     }
 
@@ -197,7 +197,7 @@ EventSubscriber::~EventSubscriber()
     int rc = 0;
 
     if (m_event_service.is_active()) {
-        events_data_lst_t events;
+        event_serialized_lst_t events;
 
         rc = m_event_service.cache_init();
         RET_ON_ERR(rc == 0, "Failed to init the cache");
@@ -212,7 +212,8 @@ EventSubscriber::~EventSubscriber()
          */
         chrono::steady_clock::time_point start = chrono::steady_clock::now();
         while(true) {
-            string source, evt_str;
+            string source;
+            event_serialized_t evt_str;
             internal_event_t evt_data;
 
             rc = zmq_message_read(m_socket, ZMQ_DONTWAIT, source, evt_data);
@@ -335,7 +336,7 @@ EventSubscriber::event_receive(string &key, event_params_t &params, int &missed_
 
         if (!m_from_cache.empty()) {
 
-            events_data_lst_t::iterator it = m_from_cache.begin();
+            event_serialized_lst_t::iterator it = m_from_cache.begin();
             rc = deserialize(*it, event_data);
             m_from_cache.erase(it);
             RET_ON_ERR(rc == 0, "Failed to deserialize message from cache");
@@ -350,7 +351,7 @@ EventSubscriber::event_receive(string &key, event_params_t &params, int &missed_
 
         /* Find any missed events for this runtime ID */
         missed_cnt = 0;
-        sequence_t seq = events_base::str_to_seq(event_data[EVENT_SEQUENCE]);
+        sequence_t seq = str_to_seq(event_data[EVENT_SEQUENCE]);
         track_info_t::iterator it = m_track.find(event_data[EVENT_RUNTIME_ID]);
         if (it != m_track.end()) {
             /* current seq - last read - 1 == 0 if none missed */
@@ -435,6 +436,6 @@ event_receive(event_handle_t handle, string &key,
 
 int event_last_error()
 {
-    return recv_last_err;
+    return zerrno;
 }
 

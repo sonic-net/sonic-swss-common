@@ -85,7 +85,14 @@ TEST(events_common, msg)
  */
 TEST(events_common, send_recv)
 {
-    // running_ut = 1;
+#if 0
+    {
+        /* Direct log messages to stdout */
+        string dummy, op("STDOUT");
+        swss::Logger::swssOutputNotify(dummy, op);
+        swss::Logger::setMinPrio(swss::Logger::SWSS_DEBUG);
+    }
+#endif
 
     char *path = "tcp://127.0.0.1:5570";
     void *zmq_ctx = zmq_ctx_new();

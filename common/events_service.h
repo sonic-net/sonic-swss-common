@@ -25,7 +25,7 @@
  * In case of data, it comes in seccond part.
  * 
  * Type of data is one or multiple strings, which is sent as serialized vector
- * of strings. events_data_lst_t
+ * of strings. event_serialized_lst_t
  *
  * In case of echo, part2 is the vector of single string as provided in the request.
  *
@@ -39,7 +39,8 @@ typedef enum {
     EVENT_CACHE_START,  /* Start caching all published events */
     EVENT_CACHE_STOP,   /* Stop the cache */
     EVENT_CACHE_READ,   /* Read cached events */
-    EVENT_ECHO          /* Echoes the received data in request via response */
+    EVENT_ECHO,         /* Echoes the received data in request via response */
+    EVENT_EXIT          /* Exit the eventd service -- Useful for unit test.*/
 } event_req_type_t;
 
 
@@ -133,7 +134,7 @@ class event_service {
          *      1   - Already running
          *      -1  - On failure.
          */
-        int cache_start(const events_data_lst_t &lst);
+        int cache_start(const event_serialized_lst_t &lst);
 
         /*
          *  Called to stop caching events
@@ -179,7 +180,7 @@ class event_service {
          *  0   - On success.
          *  -1  - On failure.
          */
-        int cache_read(events_data_lst_t &lst);
+        int cache_read(event_serialized_lst_t &lst);
 
         /*
          *  Echo send service.
@@ -231,7 +232,7 @@ class event_service {
          *  0   - On success
          *  -1  - On failure
          */
-        int channel_read(int &code, events_data_lst_t &data);
+        int channel_read(int &code, event_serialized_lst_t &data);
 
         /*
          * The under lying write for req/resp from client/server
@@ -247,12 +248,12 @@ class event_service {
          *  0   - On success
          *  -1  - On failure
          */
-        int channel_write(int code, const events_data_lst_t &data);
+        int channel_write(int code, const event_serialized_lst_t &data);
 
         /*
          * send and receive helper.
          * Writes given code & data and reads back data into
-         * provided events_data_lst_t arg and response read is
+         * provided event_serialized_lst_t arg and response read is
          * returned.
          *
          * input:
@@ -265,8 +266,8 @@ class event_service {
          * return:
          *  Any failure or response code from server.
          */
-        int send_recv(int code, const events_data_lst_t *lst_in = NULL,
-                events_data_lst_t *lst_out = NULL);
+        int send_recv(int code, const event_serialized_lst_t *lst_in = NULL,
+                event_serialized_lst_t *lst_out = NULL);
 
         /*
          * de-init/close service

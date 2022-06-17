@@ -1,6 +1,10 @@
 #ifndef _EVENTS_H
 #define _EVENTS_H
 
+#include <string>
+#include <vector>
+#include <map>
+
 /*
  * Events library 
  *
@@ -59,7 +63,7 @@ typedef std::map<std::string, std::string> event_params_t;
 /*
  * timestamp param name
  */
-const std::string event_ts_param("timestamp");
+#define EVENT_TS_PARAM "timestamp"
 
 /*
  * Publish an event

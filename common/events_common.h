@@ -25,7 +25,6 @@ using namespace chrono;
 
 extern int errno;
 extern int zerrno;
-extern int recv_last_err;
 
 /*
  * Max count of possible concurrent event publishers
@@ -35,18 +34,12 @@ extern int recv_last_err;
  */
 #define MAX_PUBLISHERS_COUNT  1000
 
-extern int running_ut;
-
-
 #define RET_ON_ERR(res, msg, ...)\
     if (!(res)) {\
         int _e = errno; \
         zerrno = zmq_errno(); \
         SWSS_LOG_ERROR(msg, ##__VA_ARGS__); \
         SWSS_LOG_ERROR("last:errno=%d zerr=%d", _e, zerrno); \
-        if (running_ut) { \
-            printf(msg, ##__VA_ARGS__); \
-            printf("last:errno=%d zerr=%d\n", _e, zerrno); }\
         goto out; }
 
 
@@ -105,7 +98,7 @@ map_to_str(const Map &m)
     stringstream _ss;
     _ss << "{";
     for (const auto elem: m) {
-        _ss << "{" << elem.first << "," << elem.second << "}";
+        _ss << "{" << elem.first << "," << elem.second.substr(0,10) << "}";
     }
     _ss << "}";
     return _ss.str();
@@ -175,9 +168,9 @@ serialize(const Map& data, string &s)
 {
     s.clear();
     stringstream _ser_ss;
-    boost::archive::text_oarchive oarch(_ser_ss);
 
     try {
+        boost::archive::text_oarchive oarch(_ser_ss);
         oarch << data;
         s = _ser_ss.str();
         return 0;
@@ -195,17 +188,17 @@ template <typename Map>
 int
 deserialize(const string& s, Map& data)
 {
-    stringstream ss(s);
-    boost::archive::text_iarchive iarch(ss);
 
     try {
+        stringstream ss(s);
+        boost::archive::text_iarchive iarch(ss);
         iarch >> data;
         return 0;
     }
     catch (exception& e) {
         stringstream _ss_ex;
 
-        _ss_ex << e.what() << "str[0:32]:" << s.substr(0, 32) << " data type: "
+        _ss_ex << e.what() << "str[0:64]:" << s.substr(0, 64) << " data type: "
             << get_typename(data);
         SWSS_LOG_ERROR("deserialize Failed: %s", _ss_ex.str().c_str());
         return -1;
@@ -267,10 +260,15 @@ typedef string runtime_id_t;
  *    { EVENT_SEQUENCE, "" } };
  */
 
-/* Cache maintains the part 2 of an event as serialized string. */
-typedef string events_data_type_t;
-typedef vector<events_data_type_t> events_data_lst_t;
+typedef vector<internal_event_t> internal_events_lst_t;
 
+/* Cache maintains the part 2 of an event as serialized string. */
+typedef string event_serialized_t;  // events_data_type_t;
+typedef vector<event_serialized_t> event_serialized_lst_t; // events_data_lst_t;
+
+
+sequence_t str_to_seq(const string s);
+string seq_to_str(sequence_t seq);
 
 template<typename DT>
 int 
@@ -281,8 +279,6 @@ zmq_read_part(void *sock, int flag, int &more, DT &data)
     more = 0;
     zmq_msg_init(&msg);
     int rc = zmq_msg_recv(&msg, sock, flag);
-    recv_last_err = zerrno;
-
     if (rc != -1) {
         size_t more_size = sizeof (more);
 
@@ -352,5 +348,26 @@ zmq_message_read(void *sock, int flag, P1 &pt1, P2 &pt2)
 out:
     return rc;
 }
+
+/*
+ *  Cache drain timeout.
+ *
+ *  When subscriber's de-init is called, it calls start cache service.
+ *  When subscriber init is called, it calls cache stop service.
+ *
+ *  In either scenario, an entity stops reading and let other start.
+ *  The entity that stops may have to read little longer to drain any
+ *  events in local ZMQ cache.
+ *
+ *  This timeout helps with that.
+ *  
+ *  In case of subscriber de-init, the events read during this period
+ *  is given to cache as start-up or initial stock.
+ *  In case of init where cache service reads for this period, gives
+ *  those as part of cache read and subscriber service will be diligent
+ *  about reading the same event from the channel, hence duplicate
+ *  for next one second.
+ */
+#define CACHE_DRAIN_IN_MILLISECS 1000
 
 #endif /* !_EVENTS_COMMON_H */ 

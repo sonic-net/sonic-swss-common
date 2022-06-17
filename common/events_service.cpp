@@ -73,7 +73,7 @@ out:
 int
 event_service::echo_send(const string s)
 {
-    events_data_lst_t l = { s };
+    event_serialized_lst_t l = { s };
 
     return channel_write(EVENT_ECHO, l);
 
@@ -83,7 +83,7 @@ event_service::echo_send(const string s)
 int
 event_service::echo_receive(string &outs)
 {
-    events_data_lst_t l;
+    event_serialized_lst_t l;
     int code;
 
     int rc = channel_read(code, l);
@@ -112,7 +112,7 @@ event_service::cache_init()
 
 
 int
-event_service::cache_start(const events_data_lst_t &lst)
+event_service::cache_start(const event_serialized_lst_t &lst)
 {
     int rc;
 
@@ -136,7 +136,7 @@ out:
 
 
 int
-event_service::cache_read(events_data_lst_t &lst)
+event_service::cache_read(event_serialized_lst_t &lst)
 {
     int rc;
 
@@ -148,25 +148,25 @@ out:
 
 
 int
-event_service::channel_read(int &code, events_data_lst_t &data)
+event_service::channel_read(int &code, event_serialized_lst_t &data)
 {
-    events_data_lst_t().swap(data);
+    event_serialized_lst_t().swap(data);
     return zmq_message_read(m_socket, 0, code, data);
 }
 
 
 int
-event_service::channel_write(int code, const events_data_lst_t &data)
+event_service::channel_write(int code, const event_serialized_lst_t &data)
 {
     return zmq_message_send(m_socket, code, data);
 }
 
 
 int
-event_service::send_recv(int code, const events_data_lst_t *lst_in,
-        events_data_lst_t *lst_out)
+event_service::send_recv(int code, const event_serialized_lst_t *lst_in,
+        event_serialized_lst_t *lst_out)
 {
-    events_data_lst_t l;
+    event_serialized_lst_t l;
     int resp;
 
     if(lst_in == NULL) {
@@ -183,7 +183,7 @@ event_service::send_recv(int code, const events_data_lst_t *lst_in,
     RET_ON_ERR(rc == 0, "failing to read resp for code=%d", code);
 
     rc = resp;
-    RET_ON_ERR (rc == 0, "echo receive resp %d not 0 for code=%d", resp, code);
+    RET_ON_ERR (rc == 0, "receive resp %d not 0 for code=%d", resp, code);
 
 out:
     return rc;
