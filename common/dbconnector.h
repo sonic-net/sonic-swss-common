@@ -127,6 +127,8 @@ public:
 
     std::string getClientName();
 
+    std::recursive_mutex& getMutex();
+
 protected:
     RedisContext();
     void initContext(const char *host, int port, const timeval *tv);
@@ -135,6 +137,7 @@ protected:
 
 private:
     redisContext *m_conn;
+    std::recursive_mutex m_mutex;
 };
 
 class DBConnector : public RedisContext

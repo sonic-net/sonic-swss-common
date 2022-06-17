@@ -33,6 +33,7 @@ inline void guard(FUNC func, const char* command)
 
 RedisReply::RedisReply(RedisContext *ctx, const RedisCommand& command)
 {
+    lock_guard<recursive_mutex> lockguard(ctx->getMutex());
     int rc = redisAppendFormattedCommand(ctx->getContext(), command.c_str(), command.length());
     if (rc != REDIS_OK)
     {
@@ -51,6 +52,7 @@ RedisReply::RedisReply(RedisContext *ctx, const RedisCommand& command)
 
 RedisReply::RedisReply(RedisContext *ctx, const string& command)
 {
+    lock_guard<recursive_mutex> lockguard(ctx->getMutex());
     int rc = redisAppendCommand(ctx->getContext(), command.c_str());
     if (rc != REDIS_OK)
     {

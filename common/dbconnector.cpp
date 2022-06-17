@@ -498,6 +498,11 @@ string RedisContext::getClientName()
     }
 }
 
+recursive_mutex& RedisContext::getMutex()
+{
+    return m_mutex;
+}
+
 void DBConnector::select(DBConnector *db)
 {
     string select("SELECT ");
