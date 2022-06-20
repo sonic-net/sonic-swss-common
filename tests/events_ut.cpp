@@ -519,7 +519,6 @@ TEST(events, subscribe)
     pub_events(index_deinit_cache, cnt_deinit_cache);
 
     events_deinit_subscriber(hsub);
-    EXPECT_TRUE(NULL == hsub);
     EXPECT_EQ(last_svc_code, EVENT_CACHE_START);
     EXPECT_TRUE(cnt_deinit_cache == (int)lst_cache.size());
 
@@ -548,7 +547,7 @@ TEST(events, subscribe)
         int rc = event_receive(hsub, key, params, missed);
 
         if (rc != 0) {
-            EXPECT_EQ(EAGAIN, event_last_error());
+            EXPECT_EQ(EAGAIN, rc);
             break;
         }
 

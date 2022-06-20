@@ -215,10 +215,8 @@ EventSubscriber::~EventSubscriber()
             internal_event_t evt_data;
 
             rc = zmq_message_read(m_socket, ZMQ_DONTWAIT, source, evt_data);
-            if (rc == -1) {
-                if (zerrno == EAGAIN) {
-                    rc = 0;
-                }
+            if (rc != 0) {
+                /* Break on any failure, including EAGAIN */
                 break;
             }
 
@@ -344,7 +342,7 @@ EventSubscriber::event_receive(string &key, event_params_t &params, int &missed_
             /* Read from SUBS channel */
             string evt_source;
             rc = zmq_message_read(m_socket, 0, evt_source, event_data);
-            RET_ON_ERR(rc == 0, "Failed to read message from sock");
+            RET_ON_ERR(rc == 0, "Failed to read message from sock rc=%d", rc);
         }
 
         /* Find any missed events for this runtime ID */
@@ -439,10 +437,5 @@ event_receive_wrap(event_handle_t handle)
 
     op.rc = event_receive(handle, op.key, op.params, op.missed_cnt);
     return op;
-}
-
-int event_last_error()
-{
-    return zerrno;
 }
 

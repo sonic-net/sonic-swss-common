@@ -57,27 +57,6 @@ TEST(events_common, ts)
     events_validate_ts(s);
 }
 
-/* Tests serialize, deserialize, map_to_zmsg & zmsg_to_map */
-TEST(events_common, msg)
-{
-    map<string, string> t = {
-        { "foo", "bar" },
-        { "test", "5" },
-        { "hello", "world" } };
-
-    map<string, string> t1;
-
-    zmq_msg_t msg;
-
-    map_to_zmsg(t, msg);
-
-    EXPECT_NE(t, t1);
-
-    zmsg_to_map(msg, t1);
-
-    EXPECT_EQ(t, t1);
-}
-
 /*
  * Tests serialize, deserialize, map_to_zmsg, zmsg_to_map
  * zmq_read_part & zmq_send_part while invoking zmq_message_send &

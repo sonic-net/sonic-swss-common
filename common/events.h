@@ -96,8 +96,9 @@ typedef std::map<std::string, std::string> event_params_t;
  *      e.g. "2022-08-17T02:39:21.286611Z"
  *
  * return:
- *  0   -   On success
- *  -1  -   On failure.
+ *  0   - On success
+ *  > 0 - On failure, returns zmq_errno, if failure is zmq socket related.
+ *  < 0 - For all other failures
  */
 int event_publish(event_handle_t handle, const std::string event_tag,
         const event_params_t *params=NULL);
@@ -187,8 +188,9 @@ void events_deinit_subscriber(event_handle_t handle);
  *      missed count from all received events will give the total missed.
  *
  * return:
- *  0 - On success
- * -1 - On failure. The handle is not valid or upon receive timeout.
+ *  0   - On success
+ *  > 0 - On failure, returns zmq_errno, if failure is zmq socket related.
+ *  < 0 - For all other failures
  *
  */
 int event_receive(event_handle_t handle, std::string &key,
@@ -219,14 +221,8 @@ typedef struct {
 
 event_receive_op_t event_receive_wrap(event_handle_t handle);
 
-
-/*
- *  Get error code for last receive
- *
- *  Set to EAGAIN on timeout
- *  Any other value implies fatal error.
- *
- */
-int event_last_error();
+/* Non ZMQ Error codes */
+#define ERR_MESSAGE_INVALID -2
+#define ERR_OTHER -1
 
 #endif /* !_EVENTS_H */ 

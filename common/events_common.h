@@ -23,9 +23,6 @@
 using namespace std;
 using namespace chrono;
 
-extern int errno;
-extern int zerrno;
-
 /*
  * Max count of possible concurrent event publishers
  * We maintain a cache of last seen sequence number per publisher.
@@ -37,9 +34,8 @@ extern int zerrno;
 #define RET_ON_ERR(res, msg, ...)\
     if (!(res)) {\
         int _e = errno; \
-        zerrno = zmq_errno(); \
         SWSS_LOG_ERROR(msg, ##__VA_ARGS__); \
-        SWSS_LOG_ERROR("last:errno=%d zerr=%d", _e, zerrno); \
+        SWSS_LOG_ERROR("last:errno=%d", _e); \
         goto out; }
 
 
@@ -161,83 +157,6 @@ T get_config_data(const string key, T def)
 const string get_timestamp();
 
 /*
- * Way to serialize map or vector
- * boost::archive::text_oarchive could be used to archive any struct/class
- * but that class needs some additional support, that declares
- * boost::serialization::access as private friend and couple more tweaks.
- * The std::map & vector inherently supports serialization.
- */
-template <typename Map>
-int
-serialize(const Map& data, string &s)
-{
-    s.clear();
-    stringstream _ser_ss;
-
-    try {
-        boost::archive::text_oarchive oarch(_ser_ss);
-        oarch << data;
-        s = _ser_ss.str();
-        return 0;
-    }
-    catch (exception& e) {
-        stringstream _ser_ex_ss;
-
-        _ser_ex_ss << e.what() << "map type:" << get_typename(data);
-        SWSS_LOG_ERROR("serialize Failed: %s", _ser_ex_ss.str().c_str());
-        return -1;
-    }   
-}
-
-template <typename Map>
-int
-deserialize(const string& s, Map& data)
-{
-
-    try {
-        stringstream ss(s);
-        boost::archive::text_iarchive iarch(ss);
-        iarch >> data;
-        return 0;
-    }
-    catch (exception& e) {
-        stringstream _ss_ex;
-
-        _ss_ex << e.what() << "str[0:64]:" << s.substr(0, 64) << " data type: "
-            << get_typename(data);
-        SWSS_LOG_ERROR("deserialize Failed: %s", _ss_ex.str().c_str());
-        return -1;
-    }   
-}
-
-
-template <typename Map>
-int
-map_to_zmsg(const Map& data, zmq_msg_t &msg)
-{
-    string s;
-    int rc = serialize(data, s);
-
-    if (rc == 0) {
-        rc = zmq_msg_init_size(&msg, s.size());
-    }
-    if (rc == 0) {
-        strncpy((char *)zmq_msg_data(&msg), s.c_str(), s.size());
-    }
-    return rc;
-}
-
-
-template <typename Map>
-int
-zmsg_to_map(zmq_msg_t &msg, Map& data)
-{
-    string s((const char *)zmq_msg_data(&msg), zmq_msg_size(&msg));
-    return deserialize(s, data);
-}
-
-
-/*
  * events are published as two part zmq message.
  * First part only has the event source, so receivers could
  * filter by source.
@@ -275,83 +194,214 @@ typedef vector<event_serialized_t> event_serialized_lst_t; // events_data_lst_t;
 sequence_t str_to_seq(const string s);
 string seq_to_str(sequence_t seq);
 
-template<typename DT>
-int 
-zmq_read_part(void *sock, int flag, int &more, DT &data)
+struct serialization
 {
-    zmq_msg_t msg;
+    /*
+     * Way to serialize map or vector
+     * boost::archive::text_oarchive could be used to archive any struct/class
+     * but that class needs some additional support, that declares
+     * boost::serialization::access as private friend and couple more tweaks.
+     * The std::map & vector inherently supports serialization.
+     */
+    template <typename Map>
+    int
+    serialize(const Map& data, string &s)
+    {
+        s.clear();
+        ostringstream _ser_ss;
 
-    more = 0;
-    zmq_msg_init(&msg);
-    int rc = zmq_msg_recv(&msg, sock, flag);
-    if (rc != -1) {
-        size_t more_size = sizeof (more);
+        try {
+            boost::archive::text_oarchive oarch(_ser_ss);
+            oarch << data;
+            s = _ser_ss.str();
+            return 0;
+        }
+        catch (exception& e) {
+            stringstream _ser_ex_ss;
 
-        rc = zmsg_to_map(msg, data);
-
-        /* read more flag if message read fails to de-serialize */
-        zmq_getsockopt (sock, ZMQ_RCVMORE, &more, &more_size);
-
+            _ser_ex_ss << e.what() << "map type:" << get_typename(data);
+            SWSS_LOG_ERROR("serialize Failed: %s", _ser_ex_ss.str().c_str());
+            return ERR_MESSAGE_INVALID;
+        }   
     }
-    zmq_msg_close(&msg);
 
-    return rc;
+    template <typename Map>
+    int
+    deserialize(const string& s, Map& data)
+    {
+
+        try {
+            istringstream ss(s);
+            boost::archive::text_iarchive iarch(ss);
+            iarch >> data;
+            return 0;
+        }
+        catch (exception& e) {
+            stringstream _ss_ex;
+
+            _ss_ex << e.what() << "str[0:64]:(" << s.substr(0, 64) << ") data type: "
+                << get_typename(data);
+            SWSS_LOG_ERROR("deserialize Failed: %s", _ss_ex.str().c_str());
+            return ERR_MESSAGE_INVALID;
+        }   
+    }
+
+    template <typename Map>
+    int
+    map_to_zmsg(const Map& data, zmq_msg_t &msg)
+    {
+        string s;
+        int rc = serialize(data, s);
+
+        if (rc == 0) {
+            rc = zmq_msg_init_size(&msg, s.size());
+        }
+        if (rc == 0) {
+            strncpy((char *)zmq_msg_data(&msg), s.c_str(), s.size());
+        }
+        return rc;
+    }
+
+
+    template <typename Map>
+    int
+    zmsg_to_map(zmq_msg_t &msg, Map& data)
+    {
+        string s((const char *)zmq_msg_data(&msg), zmq_msg_size(&msg));
+        return deserialize(s, data);
+    }
+
+
+    template<typename DT>
+    int 
+    zmq_read_part(void *sock, int flag, int &more, DT &data)
+    {
+        zmq_msg_t msg;
+
+        more = 0;
+        zmq_msg_init(&msg);
+        int rc = zmq_msg_recv(&msg, sock, flag);
+        if (rc != -1) {
+            size_t more_size = sizeof (more);
+
+            zmq_getsockopt (sock, ZMQ_RCVMORE, &more, &more_size);
+
+            rc = zmsg_to_map(msg, data);
+            RET_ON_ERR(rc == 0, "Failed to deserialize part rc=%d", rc);
+            /* read more flag if message read fails to de-serialize */
+        }
+        else {
+            /* override with zmq err */
+            rc = zmq_errno();
+            RET_ON_ERR(false, "Failed to read part rc=%d", rc);
+        }
+    out:
+        zmq_msg_close(&msg);
+
+        return rc;
+    }
+
+       
+    template<typename DT>
+    int
+    zmq_send_part(void *sock, int flag, const DT &data)
+    {
+        zmq_msg_t msg;
+
+        int rc = map_to_zmsg(data, msg);
+        RET_ON_ERR(rc == 0, "Failed to map to zmsg %d", rc);
+
+        rc = zmq_msg_send (&msg, sock, flag);
+        if (rc == -1) {
+            /* override with zmq err */
+            rc = zmq_errno();
+            RET_ON_ERR(false, "Failed to send part %d", rc);
+        }
+        /* zmq_msg_send returns count of bytes sent */
+        rc = 0;
+    out:
+        zmq_msg_close(&msg);
+        return rc;
+    }
+
+    template<typename P1, typename P2>
+    int
+    zmq_message_send(void *sock, const P1 &pt1, const P2 &pt2)
+    {
+        int rc = zmq_send_part(sock, pt2.empty() ? 0 : ZMQ_SNDMORE, pt1);
+
+        /* send second part, only if first is sent successfully */
+        if ((rc == 0) && (!pt2.empty())) {
+            rc = zmq_send_part(sock, 0, pt2);
+        }
+        return rc;
+    }
+
+       
+    template<typename P1, typename P2>
+    int
+    zmq_message_read(void *sock, int flag, P1 &pt1, P2 &pt2)
+    {
+        int more = 0, rc, rc2 = 0;
+
+        rc = zmq_read_part(sock, flag, more, pt1);
+
+        if (more) {
+            /*
+             * read second part if more is set, irrespective
+             * of any failure. More is set, only if sock is valid.
+             */
+            rc2 = zmq_read_part(sock, 0, more, pt2);
+        }
+        RET_ON_ERR(rc == 0, "Failed to read part1");
+        if (rc2 != 0) {
+            rc = rc2;
+            RET_ON_ERR(false, "Failed to read part2");
+        }
+        if (more) {
+            rc = -1;
+            RET_ON_ERR(false, "Don't expect more than 2 parts");
+        }
+    out:
+        return rc;
+    }
+
+};
+
+template <typename Map>
+int
+serialize(const Map& data, string &s)
+{
+    auto render = boost::serialization::singleton<serialization>::get_const_instance();
+
+    return render.serialize(data, s);
 }
 
-   
-template<typename DT>
+template <typename Map>
 int
-zmq_send_part(void *sock, int flag, const DT &data)
+deserialize(const string& s, Map& data)
 {
-    zmq_msg_t msg;
+    auto render = boost::serialization::singleton<serialization>::get_const_instance();
 
-    int rc = map_to_zmsg(data, msg);
-    RET_ON_ERR(rc == 0, "Failed to map to zmsg %d", rc);
-
-    rc = zmq_msg_send (&msg, sock, flag);
-    RET_ON_ERR(rc != -1, "Failed to send part %d", rc);
-
-    rc = 0;
-out:
-    zmq_msg_close(&msg);
-    return rc;
+    return render.deserialize(s, data);
 }
 
 template<typename P1, typename P2>
 int
 zmq_message_send(void *sock, const P1 &pt1, const P2 &pt2)
 {
-    int rc = zmq_send_part(sock, pt2.empty() ? 0 : ZMQ_SNDMORE, pt1);
+    auto render = boost::serialization::singleton<serialization>::get_const_instance();
 
-    /* send second part, only if first is sent successfully */
-    if ((rc == 0) && (!pt2.empty())) {
-        rc = zmq_send_part(sock, 0, pt2);
-    }
-    return rc;
+    return render.zmq_message_send(sock, pt1, pt2);
 }
 
-   
 template<typename P1, typename P2>
 int
 zmq_message_read(void *sock, int flag, P1 &pt1, P2 &pt2)
 {
-    int more = 0, rc=-1, rc1, rc2 = 0;
+    auto render = boost::serialization::singleton<serialization>::get_const_instance();
 
-    rc1 = zmq_read_part(sock, flag, more, pt1);
-
-    if (more) {
-        /*
-         * read second part if more is set, irrespective
-         * of any failure. More is set, only if sock is valid.
-         */
-        rc2 = zmq_read_part(sock, 0, more, pt2);
-    }
-    RET_ON_ERR(rc1 == 0, "Failed to read part1");
-    RET_ON_ERR(rc2 == 0, "Failed to read part2");
-    RET_ON_ERR(!more, "Don't expect more than 2 parts");
-    rc = 0;
-out:
-    return rc;
+    return render.zmq_message_read(sock, flag, pt1, pt2);
 }
 
 /*
