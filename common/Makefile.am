@@ -69,7 +69,8 @@ libswsscommon_la_SOURCES = \
     warm_restart.cpp          \
     luatable.cpp              \
     countertable.cpp          \
-    redisutility.cpp
+    redisutility.cpp          \
+    threadsafeguard.cpp
 
 libswsscommon_la_CXXFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CFLAGS) $(CODE_COVERAGE_CXXFLAGS)
 libswsscommon_la_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CPPFLAGS) $(CODE_COVERAGE_CPPFLAGS)

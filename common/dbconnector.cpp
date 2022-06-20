@@ -410,10 +410,12 @@ RedisContext::~RedisContext()
 
 RedisContext::RedisContext()
     : m_conn(NULL)
+    , m_running(false)
 {
 }
 
 RedisContext::RedisContext(const RedisContext &other)
+    : m_running(false)
 {
     auto octx = other.getContext();
     const char *unixPath = octx->unix_sock.path;
@@ -476,6 +478,11 @@ void RedisContext::setClientName(const string& clientName)
 
     RedisReply r(this, command, REDIS_REPLY_STATUS);
     r.checkStatusOK();
+}
+
+std::atomic<bool> &RedisContext::getRunningFlag()
+{
+    return m_running;
 }
 
 string RedisContext::getClientName()
