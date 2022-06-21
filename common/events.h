@@ -52,7 +52,7 @@ event_handle_t events_init_publisher(const std::string event_source);
  * Output: 
  *  Handle is nullified.
  */
-void events_deinit_publisher(event_handle_t &handle);
+void events_deinit_publisher(event_handle_t handle);
 
 
 /*
@@ -96,8 +96,9 @@ typedef std::map<std::string, std::string> event_params_t;
  *      e.g. "2022-08-17T02:39:21.286611Z"
  *
  * return:
- *  0   -   On success
- *  -1  -   On failure.
+ *  0   - On success
+ *  > 0 - On failure, returns zmq_errno, if failure is zmq socket related.
+ *  < 0 - For all other failures
  */
 int event_publish(event_handle_t handle, const std::string event_tag,
         const event_params_t *params=NULL);
@@ -147,7 +148,7 @@ event_handle_t events_init_subscriber(bool use_cache=false,
  * Output: 
  *  Handle is nullified.
  */
-void events_deinit_subscriber(event_handle_t &handle);
+void events_deinit_subscriber(event_handle_t handle);
 
 
 /*
@@ -187,21 +188,41 @@ void events_deinit_subscriber(event_handle_t &handle);
  *      missed count from all received events will give the total missed.
  *
  * return:
- *  0 - On success
- * -1 - On failure. The handle is not valid or upon receive timeout.
+ *  0   - On success
+ *  > 0 - On failure, returns zmq_errno, if failure is zmq socket related.
+ *  < 0 - For all other failures
  *
  */
 int event_receive(event_handle_t handle, std::string &key,
         event_params_t &params, int &missed_cnt);
 
-
 /*
- *  Get error code for last receive
+ * event_receive_wrap
  *
- *  Set to EAGAIN on timeout
- *  Any other value implies fatal error.
+ * Returns o/p as structured.
+ * This is handy for invocation via python.
  *
+ * input:
+ *  handle - As obtained from events_init_subscriber
+ *
+ * output:
+ *  None
+ *
+ * Return:
+ *  struct that gets return value and all o/p params of event_receive
  */
-int event_last_error();
+typedef struct {
+    int rc;     /* Return value of event_receive */
+    /* o/p params from event receive */
+    std::string key;
+    event_params_t params;
+    int missed_cnt;
+} event_receive_op_t;
+
+event_receive_op_t event_receive_wrap(event_handle_t handle);
+
+/* Non ZMQ Error codes */
+#define ERR_MESSAGE_INVALID -2
+#define ERR_OTHER -1
 
 #endif /* !_EVENTS_H */ 
