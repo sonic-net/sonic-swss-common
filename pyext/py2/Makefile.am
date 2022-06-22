@@ -1,6 +1,6 @@
 SWIG_SOURCES = ../swsscommon.i
 
-pkgpython_PYTHON = swsscommon.py __init__.py
+pkgpython_PYTHON = swsscommon.py __init__.py ../port_util.py
 pkgpyexec_LTLIBRARIES = _swsscommon.la
 
 _swsscommon_la_SOURCES = swsscommon_wrap.cpp
