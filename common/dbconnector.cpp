@@ -391,6 +391,36 @@ std::vector<std::string> SonicDBConfig::getDbList(const std::string &netns)
     return dbNames;
 }
 
+map<string, RedisInstInfo> SonicDBConfig::getInstanceList(const std::string &netns)
+{
+    /*
+    @staticmethod
+    def get_instancelist(namespace=None):
+        namespace = SonicDBConfig.EMPTY_NAMESPACE(namespace)
+        if not SonicDBConfig._sonic_db_config_init:
+            SonicDBConfig.load_sonic_db_config()
+        SonicDBConfig.namespace_validation(namespace)
+        return SonicDBConfig._sonic_db_config[namespace]["INSTANCES"]
+    */
+    if (!m_init)
+    {
+        initialize();
+    }
+    validateNamespace(netns);
+
+    map<string, RedisInstInfo> result;
+    auto iterator = m_inst_info.find(netns);
+    if (iterator != m_inst_info.end()) {
+        auto& tmpRedisInfoMap = iterator->second;
+        for (auto& tmpRedisInfo : tmpRedisInfoMap)
+        {
+            result[tmpRedisInfo.first] = tmpRedisInfo.second;
+        }
+    }
+
+    return result;
+}
+
 constexpr const char *SonicDBConfig::DEFAULT_SONIC_DB_CONFIG_FILE;
 constexpr const char *SonicDBConfig::DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE;
 std::recursive_mutex SonicDBConfig::m_db_info_mutex;
