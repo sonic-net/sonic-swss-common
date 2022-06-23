@@ -1,6 +1,4 @@
 #pragma once
-#include "common/dbconnector.h"
-
 
 namespace swss {
 
