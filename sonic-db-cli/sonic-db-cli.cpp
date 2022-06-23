@@ -2,6 +2,9 @@
 #include <iostream>
 #include <getopt.h>
 #include <list>
+#include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/find.hpp>
+#include "common/redisreply.h"
 #include "sonic-db-cli.h"
 
 using namespace swss;
@@ -165,7 +168,8 @@ int executeCommands(
         based on our usage in SONiC, None and list type output from python API needs to be modified
         with these changes, it is enough for us to mimic redis-cli in SONiC so far since no application uses tty mode redis-cli output
         */
-        cout << reply.to_string() << endl;
+        auto commandName = getCommandName(commands);
+        cout << RedisReply::to_string(reply.getContext(), commandName) << endl;
     }
     catch (const std::system_error& e)
     {
@@ -327,4 +331,14 @@ int sonic_db_cli(
     }
 
     return 0;
+}
+
+string getCommandName(vector<string>& commands)
+{
+    if (commands.size() == 0)
+    {
+        return string();
+    }
+
+    return boost::to_upper_copy<string>(commands[0]);
 }
