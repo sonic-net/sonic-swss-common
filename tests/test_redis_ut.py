@@ -8,12 +8,6 @@ from swsscommon import swsscommon
 from swsscommon.swsscommon import ConfigDBPipeConnector, DBInterface, SonicV2Connector, SonicDBConfig, ConfigDBConnector, SonicDBConfig, transpose_pops
 import json
 
-existing_file = "./tests/redis_multi_db_ut_config/database_config.json"
-
-@pytest.fixture(scope="session", autouse=True)
-def prepare(request):
-    SonicDBConfig.initialize(existing_file)
-
 def test_ProducerTable():
     db = swsscommon.DBConnector("APPL_DB", 0, True)
     ps = swsscommon.ProducerTable(db, "abc")
