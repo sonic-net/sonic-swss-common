@@ -46,6 +46,7 @@ jobs:
 
   container:
     image: sonicdev-microsoft.azurecr.io:443/${{ parameters.sonic_slave }}:latest
+    options:  "--privileged"
 
   steps:
   - checkout: sonic-sairedis
@@ -103,7 +104,10 @@ jobs:
       set -ex
       rm ../*.deb || true
       ./autogen.sh
-      fakeroot dpkg-buildpackage -b -us -uc -Tbinary-syncd-vs -j$(nproc)
+      DEB_BUILD_OPTIONS=nocheck fakeroot dpkg-buildpackage -b -us -uc -Tbinary-syncd-vs -j$(nproc)
+      # Add SYS_TIME capability for settimeofday ok in syncd test
+      sudo setcap "cap_sys_time=eip" syncd/.libs/tests
+      make check
       mv ../*.deb .
     displayName: "Compile sonic sairedis"
   - script: |

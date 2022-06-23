@@ -72,20 +72,25 @@
             "separator": "|",
             "instance" : "redis"
         },
-        "ASIC_DB2" : {
-            "id" : 10,
-            "separator": ":",
-            "instance" : "redis"
+        "RESTAPI_DB": {
+            "id": 8,
+            "separator": "|",
+            "instance": "redis"
         },
-        "COUNTERS_DB2" : {
-            "id" : 11,
+        "GB_ASIC_DB": {
+            "id": 9,
             "separator": ":",
-            "instance" : "redis"
+            "instance": "redis"
         },
-        "FLEX_COUNTER_DB2" : {
-            "id" : 12,
+        "GB_COUNTERS_DB": {
+            "id": 10,
             "separator": ":",
-            "instance" : "redis"
+            "instance": "redis"
+        },
+        "GB_FLEX_COUNTER_DB": {
+            "id": 11,
+            "separator": ":",
+            "instance": "redis"
         },
         "STATE_DB2" : {
             "id" : 13,

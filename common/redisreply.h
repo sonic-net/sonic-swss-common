@@ -92,9 +92,23 @@ public:
     /* Check that the status is QUEUED, throw exception otherwise */
     void checkStatusQueued();
 
+    std::string to_string();
+
+    static std::string to_string(redisReply *reply, std::string command = std::string());
+
 private:
     void checkStatus(const char *status);
     void checkReply();
+
+    static std::string formatReply(std::string command, struct redisReply **element, size_t elements);
+    static std::string formatReply(std::string command, long long integer);
+    static std::string formatReply(std::string command, const char* str, size_t len);
+    static std::string formatSscanReply(struct redisReply **element, size_t elements);
+    static std::string formatHscanReply(struct redisReply **element, size_t elements);
+    static std::string formatDictReply(struct redisReply **element, size_t elements);
+    static std::string formatArrayReply(struct redisReply **element, size_t elements);
+    static std::string formatListReply(struct redisReply **element, size_t elements);
+    static std::string formatTupleReply(struct redisReply **element, size_t elements);
 
     redisReply *m_reply;
 };
