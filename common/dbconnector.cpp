@@ -393,15 +393,6 @@ std::vector<std::string> SonicDBConfig::getDbList(const std::string &netns)
 
 map<string, RedisInstInfo> SonicDBConfig::getInstanceList(const std::string &netns)
 {
-    /*
-    @staticmethod
-    def get_instancelist(namespace=None):
-        namespace = SonicDBConfig.EMPTY_NAMESPACE(namespace)
-        if not SonicDBConfig._sonic_db_config_init:
-            SonicDBConfig.load_sonic_db_config()
-        SonicDBConfig.namespace_validation(namespace)
-        return SonicDBConfig._sonic_db_config[namespace]["INSTANCES"]
-    */
     if (!m_init)
     {
         initialize();
