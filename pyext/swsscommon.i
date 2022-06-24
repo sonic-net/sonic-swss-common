@@ -51,6 +51,7 @@
 
 %template(FieldValuePair) std::pair<std::string, std::string>;
 %template(FieldValuePairs) std::vector<std::pair<std::string, std::string>>;
+%template(FieldValuePairsList) std::vector<std::vector<std::pair<std::string, std::string>>>;
 %template(FieldValueMap) std::map<std::string, std::string>;
 %template(VectorString) std::vector<std::string>;
 %template(ScanResult) std::pair<int64_t, std::vector<std::string>>;
