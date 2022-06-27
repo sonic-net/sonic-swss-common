@@ -57,7 +57,6 @@
 %template(ScanResult) std::pair<int64_t, std::vector<std::string>>;
 %template(GetTableResult) std::map<std::string, std::map<std::string, std::string>>;
 %template(GetConfigResult) std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>;
-%template(GetInstanceListResult) std::map<std::string, swss::RedisInstInfo>;
 
 %exception {
     try

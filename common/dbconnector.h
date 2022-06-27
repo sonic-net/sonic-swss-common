@@ -14,18 +14,16 @@
 #include "redisreply.h"
 #define EMPTY_NAMESPACE std::string()
 
+#define REDIS_UNIX_SOCKET_PATH "UnixSocketPath"
+#define REDIS_HOSTNAME "Hostname"
+#define REDIS_PORT "Port"
+
 namespace swss {
 
 class DBConnector;
 class PubSub;
 
-class RedisInstInfo
-{
-public:
-    std::string unixSocketPath;
-    std::string hostname;
-    int port;
-};
+typedef std::map<std::string, std::string> RedisInstInfo;
 
 class SonicDBInfo
 {
@@ -82,12 +80,12 @@ public:
     static std::vector<std::string> getDbList(const std::string &netns = EMPTY_NAMESPACE);
     static bool isInit() { return m_init; };
     static bool isGlobalInit() { return m_global_init; };
-    static std::map<std::string, swss::RedisInstInfo> getInstanceList(const std::string &netns = EMPTY_NAMESPACE);
+    static std::map<std::string, RedisInstInfo> getInstanceList(const std::string &netns = EMPTY_NAMESPACE);
 
 private:
     static std::recursive_mutex m_db_info_mutex;
     // { namespace { instName, { unix_socket_path, hostname, port } } }
-    static std::unordered_map<std::string, std::unordered_map<std::string, swss::RedisInstInfo>> m_inst_info;
+    static std::unordered_map<std::string, std::map<std::string, RedisInstInfo>> m_inst_info;
     // { namespace, { dbName, {instName, dbId, separator} } }
     static std::unordered_map<std::string, std::unordered_map<std::string, SonicDBInfo>> m_db_info;
     // { namespace, { dbId, separator } }
@@ -95,11 +93,11 @@ private:
     static bool m_init;
     static bool m_global_init;
     static void parseDatabaseConfig(const std::string &file,
-                                    std::unordered_map<std::string, swss::RedisInstInfo> &inst_entry,
+                                    std::map<std::string, RedisInstInfo> &inst_entry,
                                     std::unordered_map<std::string, SonicDBInfo> &db_entry,
                                     std::unordered_map<int, std::string> &separator_entry);
     static SonicDBInfo& getDbInfo(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
-    static swss::RedisInstInfo& getRedisInfo(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
+    static RedisInstInfo& getRedisInfo(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
 };
 
 class RedisContext

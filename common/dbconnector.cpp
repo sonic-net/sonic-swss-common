@@ -18,7 +18,7 @@ using namespace std;
 using namespace swss;
 
 void SonicDBConfig::parseDatabaseConfig(const string &file,
-                    std::unordered_map<std::string, RedisInstInfo> &inst_entry,
+                    std::map<std::string, RedisInstInfo> &inst_entry,
                     std::unordered_map<std::string, SonicDBInfo> &db_entry,
                     std::unordered_map<int, std::string> &separator_entry)
 {
@@ -35,7 +35,12 @@ void SonicDBConfig::parseDatabaseConfig(const string &file,
                string socket = it.value().at("unix_socket_path");
                string hostname = it.value().at("hostname");
                int port = it.value().at("port");
-               inst_entry[instName] = {socket, hostname, port};
+               RedisInstInfo instInfo = {
+                                            { REDIS_UNIX_SOCKET_PATH, socket },
+                                            { REDIS_HOSTNAME, hostname },
+                                            { REDIS_PORT, to_string(port) }
+                                        };
+               inst_entry.emplace(instName, instInfo);
             }
 
             for (auto it = j["DATABASES"].begin(); it!= j["DATABASES"].end(); it++)
@@ -164,7 +169,7 @@ void SonicDBConfig::initializeGlobalConfig(const string &file)
 void SonicDBConfig::initialize(const string &file)
 {
     std::unordered_map<std::string, SonicDBInfo> db_entry;
-    std::unordered_map<std::string, RedisInstInfo> inst_entry;
+    std::map<std::string, RedisInstInfo> inst_entry;
     std::unordered_map<int, std::string> separator_entry;
     std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
 
@@ -201,7 +206,7 @@ void SonicDBConfig::validateNamespace(const string &netns)
         }
 
         // Check if the namespace is valid, check if this is a key in either of this map
-        unordered_map<string, unordered_map<string, RedisInstInfo>>::const_iterator entry = m_inst_info.find(netns);
+        unordered_map<string, map<string, RedisInstInfo>>::const_iterator entry = m_inst_info.find(netns);
         if (entry == m_inst_info.end())
         {
             SWSS_LOG_THROW("Namespace %s is not a valid namespace name in config file", netns.c_str());
@@ -345,17 +350,17 @@ string SonicDBConfig::getSeparator(const DBConnector* db)
 
 string SonicDBConfig::getDbSock(const string &dbName, const string &netns)
 {
-    return getRedisInfo(dbName, netns).unixSocketPath;
+    return getRedisInfo(dbName, netns)[REDIS_UNIX_SOCKET_PATH];
 }
 
 string SonicDBConfig::getDbHostname(const string &dbName, const string &netns)
 {
-    return getRedisInfo(dbName, netns).hostname;
+    return getRedisInfo(dbName, netns)[REDIS_HOSTNAME];
 }
 
 int SonicDBConfig::getDbPort(const string &dbName, const string &netns)
 {
-    return getRedisInfo(dbName, netns).port;
+    return stoi(getRedisInfo(dbName, netns)[REDIS_PORT]);
 }
 
 vector<string> SonicDBConfig::getNamespaces()
@@ -402,20 +407,16 @@ map<string, RedisInstInfo> SonicDBConfig::getInstanceList(const std::string &net
     map<string, RedisInstInfo> result;
     auto iterator = m_inst_info.find(netns);
     if (iterator != m_inst_info.end()) {
-        auto& tmpRedisInfoMap = iterator->second;
-        for (auto& tmpRedisInfo : tmpRedisInfoMap)
-        {
-            result[tmpRedisInfo.first] = tmpRedisInfo.second;
-        }
+        return iterator->second;
     }
 
-    return result;
+    return map<string, RedisInstInfo>();
 }
 
 constexpr const char *SonicDBConfig::DEFAULT_SONIC_DB_CONFIG_FILE;
 constexpr const char *SonicDBConfig::DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE;
 std::recursive_mutex SonicDBConfig::m_db_info_mutex;
-unordered_map<string, unordered_map<string, RedisInstInfo>> SonicDBConfig::m_inst_info;
+unordered_map<string, map<string, RedisInstInfo>> SonicDBConfig::m_inst_info;
 unordered_map<string, unordered_map<string, SonicDBInfo>> SonicDBConfig::m_db_info;
 unordered_map<string, unordered_map<int, string>> SonicDBConfig::m_db_separator;
 bool SonicDBConfig::m_init = false;
