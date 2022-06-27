@@ -77,7 +77,7 @@ void SonicDBConfig::initializeGlobalConfig(const string &file)
 {
     std::string local_file, dir_name, ns_name;
     std::unordered_map<std::string, SonicDBInfo> db_entry;
-    std::unordered_map<std::string, RedisInstInfo> inst_entry;
+    std::map<std::string, RedisInstInfo> inst_entry;
     std::unordered_map<int, std::string> separator_entry;
     std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
 
