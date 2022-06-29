@@ -16,7 +16,7 @@ namespace swss
             virtual ~NetLink();
 
             void registerGroup(int rtnlGroup);
-            void dumpRequest(int rtmGetCommand, int family);
+            void dumpRequest(int rtmGetCommand, int family = AF_UNSPEC);
 
             int getFd() override;
             uint64_t readData() override;
