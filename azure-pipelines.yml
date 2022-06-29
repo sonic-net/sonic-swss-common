@@ -78,7 +78,7 @@ stages:
       displayName: "Install dependencies"
     - script: |
         ./autogen.sh
-        DEB_CXXFLAGS_SET="-O0 -g --coverage -fprofile-abs-path" DEB_LDFLAGS_SET="--coverage -fprofile-abs-path" dpkg-buildpackage -rfakeroot -us -uc -b -j$(nproc) && cp ../*.deb .
+        DEB_CXXFLAGS_SET="-O1 -g --coverage -fprofile-abs-path" DEB_LDFLAGS_SET="--coverage -fprofile-abs-path" dpkg-buildpackage -rfakeroot -us -uc -b -j$(nproc) && cp ../*.deb .
       displayName: "Compile sonic swss common"
     - script: |
         bazel build //...
