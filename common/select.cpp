@@ -1,7 +1,6 @@
 #include "common/selectable.h"
 #include "common/logger.h"
 #include "common/select.h"
-#include "common/signalhandlerhelper.h"
 #include <algorithm>
 #include <stdio.h>
 #include <sys/time.h>
@@ -89,26 +88,34 @@ void Select::addSelectables(vector<Selectable *> selectables)
     }
 }
 
-int Select::poll_descriptors(Selectable **c, unsigned int timeout)
+int Select::poll_descriptors(Selectable **c, unsigned int timeout, bool interrupt_on_signal = false)
 {
     int sz_selectables = static_cast<int>(m_objects.size());
     std::vector<struct epoll_event> events(sz_selectables);
     int ret;
 
-    do
+    while(true)
     {
         ret = ::epoll_wait(m_epoll_fd, events.data(), sz_selectables, timeout);
-    }
-    while(ret == -1 && errno == EINTR && !SignalHandlerHelper::checkSignal(Signals::SIGNAL_INT)); // Retry the select if the process was interrupted by a signal
-
-    if (SignalHandlerHelper::checkSignal(Signals::SIGNAL_INT))
-    {
-        // Return if the epoll_wait was interrupted by SIGTERM
-        return Select::SIGNALINT;
+        // on signal interrupt check if we need to return
+        if (ret == -1 && errno == EINTR)
+        {
+            if (interrupt_on_signal)
+            {
+                return Select::SIGNALINT;
+            }
+        }
+        // on all other errors break the loop
+        else
+        {
+            break;
+        }
     }
 
     if (ret < 0)
+    {
         return Select::ERROR;
+    }
 
     for (int i = 0; i < ret; ++i)
     {
@@ -156,7 +163,7 @@ int Select::poll_descriptors(Selectable **c, unsigned int timeout)
     return Select::TIMEOUT;
 }
 
-int Select::select(Selectable **c, int timeout)
+int Select::select(Selectable **c, int timeout, bool interrupt_on_signal)
 {
     SWSS_LOG_ENTER();
 
@@ -172,7 +179,7 @@ int Select::select(Selectable **c, int timeout)
         return ret;
 
     /* wait for data */
-    ret = poll_descriptors(c, timeout);
+    ret = poll_descriptors(c, timeout, interrupt_on_signal);
 
     return ret;
 
