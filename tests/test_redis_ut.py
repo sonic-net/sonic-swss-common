@@ -684,6 +684,6 @@ def test_SonicDBConfigGetInstanceList():
     keys = instanceList.keys()
 
     assert keys[0] == 'redis'
-    assert instanceList['redis']['UnixSocketPath'] == '/var/run/redis/redis.sock'
-    assert instanceList['redis']['Hostname'] == '127.0.0.1'
-    assert instanceList['redis']['Port'] == '6379'
+    assert instanceList['redis'].unixSocketPath == '/var/run/redis/redis.sock'
+    assert instanceList['redis'].hostname == '127.0.0.1'
+    assert instanceList['redis'].port == 6379

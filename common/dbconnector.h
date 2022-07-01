@@ -1,4 +1,4 @@
-#ifndef __DBCONNECTOR__
+    #ifndef __DBCONNECTOR__
 #define __DBCONNECTOR__
 
 #include <string>
@@ -23,7 +23,13 @@ namespace swss {
 class DBConnector;
 class PubSub;
 
-typedef std::map<std::string, std::string> RedisInstInfo;
+class RedisInstInfo
+{
+public:
+    std::string unixSocketPath;
+    std::string hostname;
+    int port;
+};
 
 class SonicDBInfo
 {

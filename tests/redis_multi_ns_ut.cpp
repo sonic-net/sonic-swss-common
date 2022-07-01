@@ -84,12 +84,7 @@ TEST(DBConnector, multi_ns_test)
                    string socket = it.value().at("unix_socket_path");
                    string hostname = it.value().at("hostname");
                    int port = it.value().at("port");
-                   RedisInstInfo instInfo = {
-                                                { REDIS_UNIX_SOCKET_PATH, socket },
-                                                { REDIS_HOSTNAME, hostname },
-                                                { REDIS_PORT, to_string(port) }
-                                            };
-                   m_inst_info.emplace(instName, instInfo);
+                   m_inst_info[instName] = {socket, hostname, port};
                 }
 
                 for (auto it = j["DATABASES"].begin(); it!= j["DATABASES"].end(); it++)
@@ -98,17 +93,17 @@ TEST(DBConnector, multi_ns_test)
                    string instName = it.value().at("instance");
                    int dbId = it.value().at("id");
                    cout<<"testing "<<dbName<<endl;
-                   cout<<ns_name<<"#"<<dbId<<dbName<<"#"<<m_inst_info[instName][REDIS_UNIX_SOCKET_PATH]<<"#"<<m_inst_info[instName][REDIS_HOSTNAME]<<"#"<<m_inst_info[instName][REDIS_PORT]<<endl;
+                   cout<<ns_name<<"#"<<dbId<<dbName<<"#"<<m_inst_info[instName].unixSocketPath<<"#"<<m_inst_info[instName].hostname<<"#"<<m_inst_info[instName].port<<endl;
                    // dbInst info matches between get api and context in json file
                    EXPECT_EQ(instName, SonicDBConfig::getDbInst(dbName, ns_name));
                    // dbId info matches between get api and context in json file
                    EXPECT_EQ(dbId, SonicDBConfig::getDbId(dbName, ns_name));
                    // socket info matches between get api and context in json file
-                   EXPECT_EQ(m_inst_info[instName][REDIS_UNIX_SOCKET_PATH], SonicDBConfig::getDbSock(dbName, ns_name));
+                   EXPECT_EQ(m_inst_info[instName].unixSocketPath, SonicDBConfig::getDbSock(dbName, ns_name));
                    // hostname info matches between get api and context in json file
-                   EXPECT_EQ(m_inst_info[instName][REDIS_HOSTNAME], SonicDBConfig::getDbHostname(dbName, ns_name));
+                   EXPECT_EQ(m_inst_info[instName].hostname, SonicDBConfig::getDbHostname(dbName, ns_name));
                    // port info matches between get api and context in json file
-                   EXPECT_EQ(stoi(m_inst_info[instName][REDIS_PORT]), SonicDBConfig::getDbPort(dbName, ns_name));
+                   EXPECT_EQ(m_inst_info[instName].port, SonicDBConfig::getDbPort(dbName, ns_name));
                 }
             }
              local_file.clear();

@@ -35,12 +35,7 @@ void SonicDBConfig::parseDatabaseConfig(const string &file,
                string socket = it.value().at("unix_socket_path");
                string hostname = it.value().at("hostname");
                int port = it.value().at("port");
-               RedisInstInfo instInfo = {
-                                            { REDIS_UNIX_SOCKET_PATH, socket },
-                                            { REDIS_HOSTNAME, hostname },
-                                            { REDIS_PORT, to_string(port) }
-                                        };
-               inst_entry.emplace(instName, instInfo);
+               inst_entry[instName] = {socket, hostname, port};
             }
 
             for (auto it = j["DATABASES"].begin(); it!= j["DATABASES"].end(); it++)
@@ -350,17 +345,17 @@ string SonicDBConfig::getSeparator(const DBConnector* db)
 
 string SonicDBConfig::getDbSock(const string &dbName, const string &netns)
 {
-    return getRedisInfo(dbName, netns)[REDIS_UNIX_SOCKET_PATH];
+    return getRedisInfo(dbName, netns).unixSocketPath;
 }
 
 string SonicDBConfig::getDbHostname(const string &dbName, const string &netns)
 {
-    return getRedisInfo(dbName, netns)[REDIS_HOSTNAME];
+    return getRedisInfo(dbName, netns).hostname;
 }
 
 int SonicDBConfig::getDbPort(const string &dbName, const string &netns)
 {
-    return stoi(getRedisInfo(dbName, netns)[REDIS_PORT]);
+    return getRedisInfo(dbName, netns).port;
 }
 
 vector<string> SonicDBConfig::getNamespaces()
