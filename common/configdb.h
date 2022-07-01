@@ -76,7 +76,11 @@ protected:
             self.pubsub = self.get_redis_client(self.db_name).pubsub()
             self.pubsub.psubscribe("__keyspace@{}__:*".format(self.get_dbid(self.db_name)))
             while True:
-                item = self.pubsub.listen_message()
+                item = self.pubsub.listen_message(interrupt_on_signal=True)
+                if 'type' not in item:
+                    # When timeout or interrupted, item will not contains 'type'
+                    continue
+
                 if item['type'] == 'pmessage':
                     key = item['channel'].split(':', 1)[1]
                     try:
