@@ -22,7 +22,6 @@ gbmacsec_name_map = swsscommon.FieldValuePairs([
 
 @pytest.fixture(scope="module", autouse=True)
 def setup_countersdb(request):
-    swsscommon.SonicDBConfig.getInstanceList()
     db = swsscommon.DBConnector("COUNTERS_DB", 0, True)
     table = swsscommon.Table(db, "COUNTERS")
     fvs = swsscommon.FieldValuePairs([
