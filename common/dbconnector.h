@@ -243,6 +243,8 @@ public:
 
     bool flushdb();
 
+    bool rename(const std::string &key, const std::string &newKey);
+
 private:
     void setNamespace(const std::string &netns);
 

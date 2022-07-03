@@ -72,6 +72,17 @@ std::shared_ptr<std::string> DBInterface::get(const std::string& dbName, const s
     return blockable<std::shared_ptr<std::string>>(innerfunc, dbName, blocking);
 }
 
+bool DBInterface::rename(const std::string& dbName, const std::string& hash, const std::string& newHash, bool blocking)
+{
+    bool status = m_redisClient.at(dbName).rename(hash, newHash);
+    if (!status)
+    {
+        std::string message = "Key '" + hash + " ' unavailable in database '" + dbName + "'";
+        throw UnavailableDataError(message, hash);
+    }
+    return status;
+}
+
 bool DBInterface::hexists(const std::string& dbName, const std::string& hash, const std::string& key)
 {
     return m_redisClient.at(dbName).hexists(hash, key);

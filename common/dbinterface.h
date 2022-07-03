@@ -48,6 +48,7 @@ public:
     int64_t set(const std::string& dbName, const std::string& hash, const std::string& key, const std::string& value, bool blocking = false);
     DBConnector& get_redis_client(const std::string& dbName);
     void set_redis_kwargs(std::string unix_socket_path, std::string host, int port);
+    bool rename(const std::string& dbName, const std::string& hash, const std::string& newHash, bool blocking = false);
 
     static const int BLOCKING_ATTEMPT_ERROR_THRESHOLD = 10;
     static const int BLOCKING_ATTEMPT_SUPPRESSION = BLOCKING_ATTEMPT_ERROR_THRESHOLD + 5;

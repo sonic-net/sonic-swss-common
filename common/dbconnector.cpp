@@ -690,6 +690,15 @@ bool DBConnector::flushdb()
     return s == "OK";
 }
 
+bool DBConnector::rename(const string &key, const string &newKey)
+{
+    RedisCommand rename;
+    rename.format("RENAME %s %s", key.c_str(), newKey.c_str());
+    RedisReply r(this, rename, REDIS_REPLY_STATUS);
+    string s = r.getReply<string>();
+    return s == "OK";
+}
+
 vector<string> DBConnector::keys(const string &key)
 {
     RedisCommand skeys;

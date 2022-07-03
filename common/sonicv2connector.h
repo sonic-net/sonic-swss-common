@@ -49,6 +49,8 @@ public:
 
     void delete_all_by_pattern(const std::string& db_name, const std::string& pattern);
 
+    bool rename(const std::string& db_name, const std::string& _hash, const std::string& newHash, bool blocking = false);
+
 private:
     std::string get_db_socket(const std::string& db_name);
 
@@ -91,6 +93,9 @@ private:
 
         def keys(self, *args, **kwargs):
             return list(super(SonicV2Connector, self).keys(*args, **kwargs))
+        
+        def rename(self, db_name, _old_hash, _new_hash, blocking=False):        
+            return super(SonicV2Connector, self).rename(db_name, _old_hash, _new_hash)
 %}
 #endif
 }
