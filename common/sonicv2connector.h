@@ -91,7 +91,6 @@ private:
 
         def keys(self, *args, **kwargs):
             return list(super(SonicV2Connector, self).keys(*args, **kwargs))
-
 %}
 #endif
 }
