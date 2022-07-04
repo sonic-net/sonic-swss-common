@@ -77,12 +77,12 @@ bool PubSub::hasCachedData()
     return m_keyspace_event_buffer.size() > 1;
 }
 
-map<string, string> PubSub::get_message(double timeout)
+map<string, string> PubSub::get_message(double timeout, bool interrupt_on_signal)
 {
-    return get_message_internal(timeout).second;
+    return get_message_internal(timeout, interrupt_on_signal).second;
 }
 
-MessageResultPair PubSub::get_message_internal(double timeout)
+MessageResultPair PubSub::get_message_internal(double timeout, bool interrupt_on_signal)
 {
     MessageResultPair ret;
 
@@ -93,7 +93,7 @@ MessageResultPair PubSub::get_message_internal(double timeout)
     }
 
     Selectable *selected;
-    int rc = m_select.select(&selected, int(timeout));
+    int rc = m_select.select(&selected, int(timeout), interrupt_on_signal);
     ret.first = rc;
     switch (rc)
     {
@@ -128,13 +128,13 @@ MessageResultPair PubSub::get_message_internal(double timeout)
 
 // Note: it is not straightforward to implement redis-py PubSub.listen() directly in c++
 // due to the `yield` syntax, so we implement this function for blocking listen one message
-std::map<std::string, std::string> PubSub::listen_message()
+std::map<std::string, std::string> PubSub::listen_message(bool interrupt_on_signal)
 {
     const double GET_MESSAGE_INTERVAL = 600.0; // in seconds
     MessageResultPair ret;
     for (;;)
     {
-        ret = get_message_internal(GET_MESSAGE_INTERVAL);
+        ret = get_message_internal(GET_MESSAGE_INTERVAL, interrupt_on_signal);
         if (!ret.second.empty() || ret.first == Select::SIGNALINT)
         {
             break;

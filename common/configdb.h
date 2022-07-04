@@ -76,7 +76,7 @@ protected:
             ## Start listen Redis keyspace event. Pass a callback function to `init` to handle initial table data.
             self.pubsub = self.get_redis_client(self.db_name).pubsub()
             self.pubsub.psubscribe("__keyspace@{}__:*".format(self.get_dbid(self.db_name)))
-        
+
             # Build a cache of data for all subscribed tables that will recieve the initial table data so we dont send duplicate event notifications
             init_data = {tbl: self.get_table(tbl) for tbl in self.handlers if init_data_handler or self.fire_init_data[tbl]}
 
@@ -88,16 +88,16 @@ protected:
                     return False
                 return True
 
-            init_callback_data = {tbl: data for tbl, data in init_data.items() if load_data(tbl, data)}	
+            init_callback_data = {tbl: data for tbl, data in init_data.items() if load_data(tbl, data)}
 
             # Pass all initial data that we DID NOT send as updates to handlers through the init callback if provided by caller
             if init_data_handler:
                 init_data_handler(init_callback_data)
 
-            while not SignalHandlerHelper.checkSignal(SIGNAL_INT):
-                item = self.pubsub.listen_message()
+            while True:
+                item = self.pubsub.listen_message(interrupt_on_signal=True)
                 if 'type' not in item:
-                    # When timeout or cancelled, item will not contains 'type' 
+                    # When timeout or interrupted, item will not contains 'type'
                     continue
 
                 if item['type'] == 'pmessage':
