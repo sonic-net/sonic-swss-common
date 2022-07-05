@@ -485,7 +485,7 @@ TEST(events, subscribe)
      * Events published during subs deinit, which will be provided
      * to events cache as start up cache.
      */
-    int index_deinit_cache = 0;   /* count of events published during subs deinit*/
+    int index_deinit_cache = 0;   /* index of events published during subs deinit*/
     int cnt_deinit_cache = 3;   /* count of events published during subs deinit*/
     
     /*

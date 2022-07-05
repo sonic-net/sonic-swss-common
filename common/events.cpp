@@ -1,4 +1,5 @@
 #include "events_pi.h"
+#include "events_wrap.h"
 
 /*
  *  Track created publishers to avoid duplicates
@@ -431,11 +432,177 @@ event_receive(event_handle_t handle, string &key,
 
 
 event_receive_op_t
-event_receive_wrap(event_handle_t handle)
+event_receive_as_struct(event_handle_t handle)
 {
     event_receive_op_t op;
 
     op.rc = event_receive(handle, op.key, op.params, op.missed_cnt);
     return op;
+}
+
+void *
+events_init_publisher_wrap(const char *args)
+{
+    SWSS_LOG_DEBUG("events_init_publisher_wrap: args=%s",
+            (args != NULL ? args : "<null pointer>"));
+
+    if (args == NULL) {
+        return NULL;
+    }
+    const auto &data = nlohmann::json::parse(args);
+
+    string source;
+    for (auto it = data.cbegin(); it != data.cend(); ++it) {
+        if ((it.key() == ARGS_SOURCE) && (*it).is_string()) {
+            source = it.value();
+        }
+    }
+    return events_init_publisher(source);
+}
+
+
+void
+events_deinit_publisher_wrap(void *handle) 
+{
+    events_deinit_publisher(handle);
+}
+
+
+int
+event_publish_wrap(void *handle, const char *args)
+{
+    string tag;
+    event_params_t params;
+
+    SWSS_LOG_DEBUG("events_init_publisher_wrap: handle=%p args=%s",
+            handle, (args != NULL ? args : "<null pointer>"));
+
+    if (args == NULL) {
+        return -1;
+    }
+    const auto &data = nlohmann::json::parse(args);
+
+    for (auto it = data.cbegin(); it != data.cend(); ++it) {
+        if ((it.key() == ARGS_TAG) && (*it).is_string()) {
+            tag = it.value();
+        }
+        else if ((it.key() == ARGS_PARAMS) && (*it).is_object()) {
+            const auto &params_data = *it;
+            for (auto itp = params_data.cbegin(); itp != params_data.cend(); ++itp) {
+                if ((*itp).is_string()) {
+                    params[itp.key()] = itp.value();
+                }
+            }
+        }
+    }
+    return event_publish(handle, tag, &params);
+}
+
+void *
+events_init_subscriber_wrap(const char *args)
+{
+    bool use_cache = true;
+    int recv_timeout = -1;
+    event_subscribe_sources_t sources;
+
+    SWSS_LOG_DEBUG("events_init_subsriber_wrap: args:%s", args);
+
+    if (args != NULL) {
+        const auto &data = nlohmann::json::parse(args);
+
+        for (auto it = data.cbegin(); it != data.cend(); ++it) {
+            if ((it.key() == ARGS_USE_CACHE) && (*it).is_boolean()) {
+                use_cache = it.value();
+            }
+            else if ((it.key() == ARGS_RECV_TIMEOUT) && (*it).is_number_integer()) {
+                recv_timeout = it.value();
+            }
+        }
+    }
+    void *h = events_init_subscriber(use_cache, recv_timeout);
+    SWSS_LOG_DEBUG("events_init_subscriber_wrap: handle=%p", h);
+    return h;
+}
+
+
+void
+events_deinit_subscriber_wrap(void *handle) 
+{
+    SWSS_LOG_DEBUG("events_deinit_subsriber_wrap: args=%p", handle);
+
+    events_deinit_subscriber(handle);
+}
+
+
+int
+event_receive_wrap(void *handle, char *event_str,
+        int event_str_sz, char *missed_cnt_str, int missed_cnt_str_sz)
+{
+    string key;
+    event_params_t params;
+    int missed_cnt = 0;
+
+    SWSS_LOG_DEBUG("events_receive_wrap h=%p event-sz=%d missed-sz=%d\n",
+            handle, event_str_sz, missed_cnt_str_sz);
+
+    int rc = event_receive(handle, key, params, missed_cnt);
+
+    if (rc == 0) {
+        nlohmann::json res = nlohmann::json::object();
+        
+        {
+            nlohmann::json params_data = nlohmann::json::object();
+
+            for (event_params_t::const_iterator itc = params.begin(); itc != params.end(); ++itc) {
+                params_data[itc->first] = itc->second;
+            }
+            res[key] = params_data;
+        }
+        string json_str(res.dump());
+        rc = snprintf(event_str, event_str_sz, "%s", json_str.c_str());
+
+        int rc_missed = snprintf(missed_cnt_str, missed_cnt_str_sz, "%d", missed_cnt);
+        if (rc_missed >= missed_cnt_str_sz) {
+            SWSS_LOG_ERROR("missed cnt (%d) buffer.need=%d given=%d",
+                    missed_cnt, rc_missed, missed_cnt_str_sz);
+        }
+    }
+    else if (rc > 0) {
+        // timoeut
+        rc = 0;
+    }
+
+    return rc;
+}
+
+int event_receive_wrap_1(void *handle)
+{
+    SWSS_LOG_DEBUG("event_receive_wrap_1 called handle=%p", handle);
+    return 0;
+}
+
+int event_receive_wrap_2(char *event_str, int sz)
+{
+    SWSS_LOG_DEBUG("event_receive_wrap_2 called sz=%d", sz);
+    return 0;
+}
+
+int event_receive_wrap_3(char *event_str,
+                int event_str_sz, char *missed_cnt, int missed_cnt_sz)
+{
+    SWSS_LOG_DEBUG("event_receive_wrap_3 called sz=%d, %d", event_str_sz, missed_cnt_sz);
+    return 0;
+}
+
+int event_receive_wrap_4(void *handle, char *event_str)
+{
+    SWSS_LOG_DEBUG("event_receive_wrap_4 called handle=%p", handle);
+    return 0;
+}
+
+int event_receive_wrap_5(const char *event_str)
+{
+    SWSS_LOG_DEBUG("event_receive_wrap_5 called ");
+    return 0;
 }
 
