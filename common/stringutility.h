@@ -70,21 +70,21 @@ void lexical_convert(const std::vector<std::string> &strs, T &t, Args &... args)
 namespace join_detail
 {
 
-    template <typename T>
-    void join(std::ostringstream &ostream, char, const T &t)
+    template <typename D, typename T>
+    void join(std::ostringstream &ostream, D, const T &t)
     {
         ostream << t;
     }
 
-    template <typename T, typename... Args>
-    void join(std::ostringstream &ostream, char delimiter, const T &t, const Args &... args)
+    template <typename D, typename T, typename... Args>
+    void join(std::ostringstream &ostream, const D &delimiter, const T &t, const Args &... args)
     {
         ostream << t << delimiter;
         join(ostream, delimiter, args...);
     }
 
-    template <typename Iterator>
-    void join(std::ostringstream &ostream, char delimiter, Iterator begin, Iterator end)
+    template <typename D, typename Iterator>
+    void join(std::ostringstream &ostream, const D &delimiter, Iterator begin, Iterator end)
     {
         if (begin == end)
         {
@@ -99,21 +99,32 @@ namespace join_detail
     }
 }
 
-template <typename T, typename... Args>
-static inline std::string join(char delimiter, const T &t, const Args &... args)
+template <typename D, typename T, typename... Args>
+static inline std::string join(const D &delimiter, const T &t, const Args &... args)
 {
     std::ostringstream ostream;
     join_detail::join(ostream, delimiter, t, args...);
     return ostream.str();
 }
 
-template <typename Iterator>
-static inline std::string join(char delimiter, Iterator begin, Iterator end)
+template <typename D, typename Iterator>
+static inline std::string join(const D &delimiter, Iterator begin, Iterator end)
 {
     std::ostringstream ostream;
     join_detail::join(ostream, delimiter, begin, end);
     return ostream.str();
 }
+
+template <typename D, typename Iterator>
+static inline std::string join(const D &delimiter, char beginsym, char endsym, Iterator begin, Iterator end)
+{
+    std::ostringstream ostream;
+    ostream << beginsym;
+    join_detail::join(ostream, delimiter, begin, end);
+    ostream << endsym;
+    return ostream.str();
+}
+
 
 static inline bool hex_to_binary(const std::string &hex_str, std::uint8_t *buffer, size_t buffer_length)
 {

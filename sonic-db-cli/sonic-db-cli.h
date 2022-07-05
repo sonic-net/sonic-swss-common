@@ -53,3 +53,5 @@ int sonic_db_cli(
     char** argv,
     std::function<void()> initializeGlobalConfig,
     std::function<void()> initializeConfig);
+
+std::string getCommandName(std::vector<std::string>& command);
