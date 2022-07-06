@@ -14,10 +14,6 @@
 #include "redisreply.h"
 #define EMPTY_NAMESPACE std::string()
 
-#define REDIS_UNIX_SOCKET_PATH "UnixSocketPath"
-#define REDIS_HOSTNAME "Hostname"
-#define REDIS_PORT "Port"
-
 namespace swss {
 
 class DBConnector;
