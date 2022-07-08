@@ -218,6 +218,5 @@ T castSelectableObj(swss::Selectable *temp)
 %include "dbinterface.h"
 %include "logger.h"
 %include "events.h"
-%ignore event_receive(event_handle_t, std::string &, event_params_t &, int &);
 
 %include "status_code_util.h"

@@ -106,26 +106,27 @@ void events_deinit_subscriber_wrap(void *handle);
  * Receive an event.
  *
  * input:
- *  args:
+ *  handle - Handle obtained from init subscriber
+ *  event_str:
  *      Buffer for receiving event formatted as below.
- *      '{ "key" : "<event's key as string>",
- *         "params": {
- *             <map of string:string params>
- *          },
- *          "missed_cnt": <missed count as int>
- *       }'
+ *      <publish_source + tag as key>: {
+ *              <params as dict>
+ *      }
  *      e.g: '{
- *          "key": "sonic-events-bgp:bgp-state":
- *          "params": {
+ *          "sonic-events-bgp:bgp-state": {
  *               "timestamp": "2022-08-17T02:39:21.286611Z",
  *               "ip": "100.126.188.90",
  *               "status": "down"
- *           },
- *          "missed_cnt": 0
+ *           }
  *       }'
- *  sz:
+ *  event_str_sz:
  *      Size of the buffer for receiving event.
  *
+ *  missed_cnt:
+ *      Buffer to receive missed count as int converted to string.
+ *
+ *  missed_cnt_sz:
+ *      Size of the missed_cnt buffer.
  *
  * Return:
  *  > 0 -- Implies received an event
@@ -135,6 +136,9 @@ void events_deinit_subscriber_wrap(void *handle);
 int event_receive_wrap(void *handle, char *event_str,
         int event_str_sz, char *missed_cnt, int missed_cnt_sz);
 
+/*
+ * Set SWSS log priority
+ */
 void swssSetLogPriority(int pri);
 
 #ifdef __cplusplus

@@ -540,24 +540,23 @@ TEST(events, subscribe)
     pub_events(index_subs, cnt_subs);
 
     for(i=0; true; ++i) {
-        string key, exp_key;
-        event_params_t params;
-        int missed = -1;
+        string exp_key;
+        event_receive_op_t evt;
 
-        int rc = event_receive(hsub, key, params, missed);
+        evt = event_receive(hsub);
 
-        if (rc != 0) {
-            EXPECT_EQ(EAGAIN, rc);
+        if (evt.rc != 0) {
+            EXPECT_EQ(EAGAIN, evt.rc);
             break;
         }
 
-        EXPECT_EQ(ldata[i].params, params);
+        EXPECT_EQ(ldata[i].params, evt.params);
         
         exp_key = ldata[i].source + ":" + ldata[i].tag;
 
-        EXPECT_EQ(exp_key, key);
+        EXPECT_EQ(exp_key, evt.key);
 
-        EXPECT_EQ(ldata[i].missed_cnt, missed);
+        EXPECT_EQ(ldata[i].missed_cnt, evt.missed_cnt);
     }
 
     EXPECT_EQ(i, (int)ARRAY_SIZE(ldata));

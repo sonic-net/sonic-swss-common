@@ -419,24 +419,17 @@ events_deinit_subscriber(event_handle_t handle)
 }
 
 
-
-int
-event_receive(event_handle_t handle, string &key,
-        event_params_t &params, int &missed_cnt)
-{
-    if ((handle == s_subscriber) && (s_subscriber != NULL)) {
-        return s_subscriber->event_receive(key, params, missed_cnt);
-    }
-    return -1;
-}
-
-
 event_receive_op_t
-event_receive_as_struct(event_handle_t handle)
+event_receive(event_handle_t handle)
 {
     event_receive_op_t op;
 
-    op.rc = event_receive(handle, op.key, op.params, op.missed_cnt);
+    if ((handle == s_subscriber) && (s_subscriber != NULL)) {
+        op.rc = s_subscriber->event_receive(op.key, op.params, op.missed_cnt);
+    }
+    else {
+        op.rc = -1;
+    }
     return op;
 }
 
@@ -538,25 +531,24 @@ int
 event_receive_wrap(void *handle, char *event_str,
         int event_str_sz, char *missed_cnt_str, int missed_cnt_str_sz)
 {
-    string key;
-    event_params_t params;
-    int missed_cnt = 0;
+    event_receive_op_t evt;
+    int rc = 0;
 
     SWSS_LOG_DEBUG("events_receive_wrap h=%p event-sz=%d missed-sz=%d\n",
             handle, event_str_sz, missed_cnt_str_sz);
 
-    int rc = event_receive(handle, key, params, missed_cnt);
+    evt = event_receive(handle);
 
-    if (rc == 0) {
+    if (evt.rc == 0) {
         nlohmann::json res = nlohmann::json::object();
         
         {
             nlohmann::json params_data = nlohmann::json::object();
 
-            for (event_params_t::const_iterator itc = params.begin(); itc != params.end(); ++itc) {
+            for (event_params_t::const_iterator itc = evt.params.begin(); itc != evt.params.end(); ++itc) {
                 params_data[itc->first] = itc->second;
             }
-            res[key] = params_data;
+            res[evt.key] = params_data;
         }
         string json_str(res.dump());
         rc = snprintf(event_str, event_str_sz, "%s", json_str.c_str());
@@ -566,16 +558,19 @@ event_receive_wrap(void *handle, char *event_str,
             event_str[event_str_sz-1] = 0;
         }
 
-        int rc_missed = snprintf(missed_cnt_str, missed_cnt_str_sz, "%d", missed_cnt);
+        int rc_missed = snprintf(missed_cnt_str, missed_cnt_str_sz, "%d", evt.missed_cnt);
         if (rc_missed >= missed_cnt_str_sz) {
             SWSS_LOG_ERROR("missed cnt (%d) buffer.need=%d given=%d",
-                    missed_cnt, rc_missed, missed_cnt_str_sz);
+                    evt.missed_cnt, rc_missed, missed_cnt_str_sz);
             missed_cnt_str[missed_cnt_str_sz-1] = 0;
         }
     }
-    else if (rc > 0) {
+    else if (evt.rc > 0) {
         // timoeut
         rc = 0;
+    }
+    else {
+        rc = evt.rc;
     }
 
     SWSS_LOG_DEBUG("events_receive_wrap rc=%d event_str=%s missed=%s\n",

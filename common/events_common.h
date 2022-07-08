@@ -18,10 +18,12 @@
 #include <boost/archive/text_oarchive.hpp>
 
 #include "logger.h"
-#include "events.h"
 
 using namespace std;
 using namespace chrono;
+
+#define ERR_MESSAGE_INVALID -2
+#define ERR_OTHER -1
 
 /*
  * Max count of possible concurrent event publishers
