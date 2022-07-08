@@ -560,11 +560,17 @@ event_receive_wrap(void *handle, char *event_str,
         }
         string json_str(res.dump());
         rc = snprintf(event_str, event_str_sz, "%s", json_str.c_str());
+        if (rc >= event_str_sz) {
+            SWSS_LOG_ERROR("truncated event buffer.need=%d given=%d",
+                    rc, event_str_sz);
+            event_str[event_str_sz-1] = 0;
+        }
 
         int rc_missed = snprintf(missed_cnt_str, missed_cnt_str_sz, "%d", missed_cnt);
         if (rc_missed >= missed_cnt_str_sz) {
             SWSS_LOG_ERROR("missed cnt (%d) buffer.need=%d given=%d",
                     missed_cnt, rc_missed, missed_cnt_str_sz);
+            missed_cnt_str[missed_cnt_str_sz-1] = 0;
         }
     }
     else if (rc > 0) {
@@ -572,37 +578,16 @@ event_receive_wrap(void *handle, char *event_str,
         rc = 0;
     }
 
+    SWSS_LOG_DEBUG("events_receive_wrap rc=%d event_str=%s missed=%s\n",
+            rc, event_str, missed_cnt_str);
+
     return rc;
 }
 
-int event_receive_wrap_1(void *handle)
+
+void swssSetLogPriority(int pri)
 {
-    SWSS_LOG_DEBUG("event_receive_wrap_1 called handle=%p", handle);
-    return 0;
+    swss::Logger::setMinPrio((swss::Logger::Priority) pri);
 }
 
-int event_receive_wrap_2(char *event_str, int sz)
-{
-    SWSS_LOG_DEBUG("event_receive_wrap_2 called sz=%d", sz);
-    return 0;
-}
-
-int event_receive_wrap_3(char *event_str,
-                int event_str_sz, char *missed_cnt, int missed_cnt_sz)
-{
-    SWSS_LOG_DEBUG("event_receive_wrap_3 called sz=%d, %d", event_str_sz, missed_cnt_sz);
-    return 0;
-}
-
-int event_receive_wrap_4(void *handle, char *event_str)
-{
-    SWSS_LOG_DEBUG("event_receive_wrap_4 called handle=%p", handle);
-    return 0;
-}
-
-int event_receive_wrap_5(const char *event_str)
-{
-    SWSS_LOG_DEBUG("event_receive_wrap_5 called ");
-    return 0;
-}
 

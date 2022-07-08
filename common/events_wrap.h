@@ -135,15 +135,7 @@ void events_deinit_subscriber_wrap(void *handle);
 int event_receive_wrap(void *handle, char *event_str,
         int event_str_sz, char *missed_cnt, int missed_cnt_sz);
 
-int event_receive_wrap_1(void *handle);
-
-int event_receive_wrap_2(char *event_str, int sz);
-int event_receive_wrap_3(char *event_str,
-        int event_str_sz, char *missed_cnt, int missed_cnt_sz);
-
-int event_receive_wrap_4(void *handle, char *event_str);
-
-int event_receive_wrap_5(const char *event_str);
+void swssSetLogPriority(int pri);
 
 #ifdef __cplusplus
 }
