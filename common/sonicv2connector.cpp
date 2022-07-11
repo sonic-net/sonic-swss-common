@@ -102,7 +102,7 @@ int64_t SonicV2Connector_Native::set(const std::string& db_name, const std::stri
 
 int64_t SonicV2Connector_Native::set(const std::string& db_name, const std::string& _hash, const std::string& key, const int val, bool blocking)
 {
-    return m_dbintf.set(db_name, _hash, key, to_string(val), blocking);
+    return m_dbintf.set(db_name, _hash, key, std::to_string(val), blocking);
 }
 
 int64_t SonicV2Connector_Native::del(const std::string& db_name, const std::string& key, bool blocking)
