@@ -2,7 +2,6 @@
 #include "dbconnector.h"
 #include "logger.h"
 
-
 using namespace swss;
 
 SonicV2Connector_Native::SonicV2Connector_Native(bool use_unix_socket_path, const char *netns)
