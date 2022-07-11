@@ -45,6 +45,8 @@ public:
 
     int64_t set(const std::string& db_name, const std::string& _hash, const std::string& key, const std::string& val, bool blocking=false);
 
+    int64_t set(const std::string& db_name, const std::string& _hash, const std::string& key, const int val, bool blocking=false);
+
     int64_t del(const std::string& db_name, const std::string& key, bool blocking=false);
 
     void delete_all_by_pattern(const std::string& db_name, const std::string& pattern);
