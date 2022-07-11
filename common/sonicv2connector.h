@@ -94,10 +94,10 @@ private:
             return list(super(SonicV2Connector, self).keys(*args, **kwargs))
 
         def set(self, db_name, _hash, key, value, blocking=False):
-			if isinstance(value, str):
-				return super(SonicV2Connector, self).get_all(db_name, _hash, key, value, blocking)
-			else:
-				return super(SonicV2Connector, self).get_all(db_name, _hash, key, str(value), blocking)
+            if isinstance(value, str):
+                return super(SonicV2Connector, self).set(db_name, _hash, key, value, blocking)
+
+            return super(SonicV2Connector, self).set(db_name, _hash, key, str(value), blocking)
 %}
 #endif
 }
