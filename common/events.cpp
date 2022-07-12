@@ -74,6 +74,7 @@ EventPublisher::publish(const string tag, const event_params_t *params)
 {
     int rc;
     internal_event_t event_data;
+    string key(m_event_source + ":" + tag);
 
     if (m_event_service.is_active()) {
         string s;
@@ -108,7 +109,7 @@ EventPublisher::publish(const string tag, const event_params_t *params)
             map_to_str(*params).c_str());
 
     {
-    map_str_str_t event_str_map = { { m_event_source + ":" + tag, param_str}};
+    map_str_str_t event_str_map = { { key, param_str}};
 
     rc = serialize(event_str_map, event_data[EVENT_STR_DATA]);
     RET_ON_ERR(rc == 0, "failed to serialize event str %s", 
@@ -120,6 +121,22 @@ EventPublisher::publish(const string tag, const event_params_t *params)
 
     rc = zmq_message_send(m_socket, m_event_source, event_data);
     RET_ON_ERR(rc == 0, "failed to send for tag %s", tag.c_str());
+
+    {
+        nlohmann::json msg = nlohmann::json::object();
+        {
+            nlohmann::json params_data = nlohmann::json::object();
+
+            for (event_params_t::const_iterator itc = params->begin();
+                    itc != params->end(); ++itc) {
+                params_data[itc->first] = itc->second;
+            }
+            msg[key] = params_data;
+        }
+        string json_str(msg.dump());
+        SWSS_LOG_INFO("EVENT_PUBLISHED: %s", json_str.c_str());
+    }
+
 out:
     return rc;
 }
@@ -512,9 +529,9 @@ events_init_subscriber_wrap(const char *args)
             }
         }
     }
-    void *h = events_init_subscriber(use_cache, recv_timeout);
-    SWSS_LOG_DEBUG("events_init_subscriber_wrap: handle=%p", h);
-    return h;
+    void *handle = events_init_subscriber(use_cache, recv_timeout);
+    SWSS_LOG_DEBUG("events_init_subscriber_wrap: handle=%p", handle);
+    return handle;
 }
 
 
@@ -534,7 +551,7 @@ event_receive_wrap(void *handle, char *event_str,
     event_receive_op_t evt;
     int rc = 0;
 
-    SWSS_LOG_DEBUG("events_receive_wrap h=%p event-sz=%d missed-sz=%d\n",
+    SWSS_LOG_DEBUG("events_receive_wrap handle=%p event-sz=%d missed-sz=%d\n",
             handle, event_str_sz, missed_cnt_str_sz);
 
     evt = event_receive(handle);
@@ -566,7 +583,7 @@ event_receive_wrap(void *handle, char *event_str,
         }
     }
     else if (evt.rc > 0) {
-        // timoeut
+        // timeout
         rc = 0;
     }
     else {
