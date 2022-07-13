@@ -251,8 +251,6 @@ private:
     int m_dbId;
     std::string m_dbName;
     std::string m_namespace;
-
-    std::string m_shaRedisMulti;
 };
 
 template <typename ReturnType>
