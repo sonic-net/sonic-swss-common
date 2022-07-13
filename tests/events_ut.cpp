@@ -5,9 +5,11 @@
 #include <deque>
 #include <regex>
 #include <chrono>
+#include "common/json.hpp"
 #include "gtest/gtest.h"
 #include "common/events_common.h"
 #include "common/events.h"
+#include "common/events_wrap.h"
 #include "common/events_pi.h"
 
 using namespace std;
@@ -102,7 +104,7 @@ void run_sub()
             read_source.swap(source);
         }
     }
-
+    terminate_sub = false;
     zmq_close(mock_sub);
 }
 
@@ -161,7 +163,7 @@ parse_read_evt(string &source, internal_event_t &evt,
     return ret;
 }
 
-TEST(events, publish)
+void do_test_publish(bool wrap)
 {
     {
         /* Direct log messages to stdout */
@@ -177,6 +179,7 @@ TEST(events, publish)
     event_params_t params0({{"ip", "10.10.10.10"}, {"state", "up"}});
     event_params_t params1;
     event_params_t::iterator it_param;
+    event_handle_t h;
 
     string rid0, rid1;
     sequence_t seq0, seq1 = 0;
@@ -189,13 +192,41 @@ TEST(events, publish)
     thread thr(&pub_serve_commands);
     thread thr_sub(&run_sub);
 
-    event_handle_t h = events_init_publisher(evt_source0);
+    if (wrap) {
+        string json_str;
+        nlohmann::json obj = nlohmann::json::object();
+
+        obj[ARGS_SOURCE] = evt_source0;
+
+        json_str = obj.dump();
+        h = events_init_publisher_wrap(json_str.c_str());
+    }
+    else {
+        h = events_init_publisher(evt_source0);
+    }
     EXPECT_TRUE(NULL != h);
 
     /* Take a pause to allow publish to connect async */
     this_thread::sleep_for(chrono::milliseconds(300));
 
-    EXPECT_EQ(0, event_publish(h, evt_tag0, &params0));
+    if (wrap) {
+        string json_str;
+        nlohmann::json obj = nlohmann::json::object();
+        nlohmann::json obj_params = nlohmann::json::object();
+
+        for (it_param = params0.begin(); it_param != params0.end(); ++it_param) {
+            obj_params[it_param->first] = it_param->second;
+        }
+        obj[ARGS_PARAMS] = obj_params;
+        obj[ARGS_TAG] = evt_tag0;
+
+        json_str = obj.dump();
+
+        EXPECT_EQ(0, event_publish_wrap(h, json_str.c_str()));
+    } 
+    else {
+        EXPECT_EQ(0, event_publish(h, evt_tag0, &params0));
+    }
 
     parse_read_evt(read_source, read_evt, rid0, seq0, rd_key0, rd_params0);
 
@@ -266,12 +297,22 @@ TEST(events, publish)
     thr.join();
     thr_sub.join();
 
-    events_deinit_publisher(h);
+    events_deinit_publisher_wrap(h);
     events_deinit_publisher(h1);
 
     zmq_ctx_term(zmq_ctx);
     zmq_ctx = NULL;
-    printf("************ PUBLISH DONE ***************\n");
+    printf("************ PUBLISH wrap=%d DONE ***************\n", wrap);
+}
+
+TEST(events, publish)
+{
+    do_test_publish(false);
+}
+
+TEST(events, publish_wrap)
+{
+    do_test_publish(true);
 }
 
 typedef struct {
@@ -448,7 +489,7 @@ void run_pub()
         pub_send_cnt = 0;
     }
     zmq_close(mock_pub);
-
+    pub_send_cnt = 0;
 }
 
 
@@ -469,7 +510,7 @@ void pub_events(int index, int cnt)
 }
 
 
-TEST(events, subscribe)
+void do_test_subscribe(bool wrap)
 {
     int i;
 #if 0
@@ -485,7 +526,7 @@ TEST(events, subscribe)
      * Events published during subs deinit, which will be provided
      * to events cache as start up cache.
      */
-    int index_deinit_cache = 0;   /* count of events published during subs deinit*/
+    int index_deinit_cache = 0;   /* index of events published during subs deinit*/
     int cnt_deinit_cache = 3;   /* count of events published during subs deinit*/
     
     /*
@@ -511,14 +552,28 @@ TEST(events, subscribe)
     thread thr_svc(&pub_serve_commands);
     thread thr_pub(&run_pub);
 
-    hsub = events_init_subscriber(true);
+    if (wrap) {
+        nlohmann::json obj = nlohmann::json::object();
+
+        obj[ARGS_USE_CACHE] = true;
+        
+        string jstr(obj.dump());
+        hsub = events_init_subscriber_wrap(jstr.c_str());
+    }
+    else {
+        hsub = events_init_subscriber(true);
+    }
     EXPECT_TRUE(NULL != hsub);
     EXPECT_EQ(last_svc_code, EVENT_CACHE_STOP);
 
     /* Publish messages for deinit to capture */
     pub_events(index_deinit_cache, cnt_deinit_cache);
 
-    events_deinit_subscriber(hsub);
+    if (wrap) {
+        events_deinit_subscriber_wrap(hsub);
+    } else {
+        events_deinit_subscriber(hsub);
+    }
     EXPECT_EQ(last_svc_code, EVENT_CACHE_START);
     EXPECT_TRUE(cnt_deinit_cache == (int)lst_cache.size());
 
@@ -533,36 +588,79 @@ TEST(events, subscribe)
     EXPECT_EQ((int)lst_cache.size(), index_subs+overlap_subs);
 
     /* We publish all events ahead of receive, so set a timeout */
-    hsub = events_init_subscriber(true, 100);
+    if (wrap) {
+        nlohmann::json obj = nlohmann::json::object();
+
+        obj[ARGS_USE_CACHE] = true;
+        obj[ARGS_RECV_TIMEOUT] = 100;
+        string jstr(obj.dump());
+        hsub = events_init_subscriber_wrap(jstr.c_str());
+    }
+    else {
+        hsub = events_init_subscriber(true, 100);
+    }
     EXPECT_TRUE(NULL != hsub);
     EXPECT_EQ(last_svc_code, EVENT_CACHE_STOP);
 
     pub_events(index_subs, cnt_subs);
 
     for(i=0; true; ++i) {
-        string key, exp_key;
-        event_params_t params;
-        int missed = -1;
+        string exp_key;
+        event_receive_op_t evt;
 
-        int rc = event_receive(hsub, key, params, missed);
+        if (wrap) {
+            char event_str[1024];
+            char missed_cnt[100];
 
-        if (rc != 0) {
-            EXPECT_EQ(EAGAIN, rc);
+            int rc = event_receive_wrap(hsub, event_str, sizeof(event_str),
+                    missed_cnt, sizeof(missed_cnt));
+
+            if (rc != 0) {
+                const auto &data = nlohmann::json::parse(event_str);
+                EXPECT_EQ(1, data.size());
+
+                auto it = data.cbegin();
+
+                evt.key = it.key();
+                auto val = it.value();
+                for (auto itp = val.begin(); itp != val.end(); ++itp) {
+                    evt.params[itp.key()] = itp.value();
+                }
+                evt.rc = 0;
+                evt.missed_cnt = stoi(string(missed_cnt));
+            }
+            else if (rc == 0) {
+                evt.rc = EAGAIN;
+            }
+            else {
+                evt.rc = rc;
+            }
+        }
+        else {
+            evt = event_receive(hsub);
+        }
+
+        if (evt.rc != 0) {
+            EXPECT_EQ(EAGAIN, evt.rc);
             break;
         }
 
-        EXPECT_EQ(ldata[i].params, params);
+        EXPECT_EQ(ldata[i].params, evt.params);
         
         exp_key = ldata[i].source + ":" + ldata[i].tag;
 
-        EXPECT_EQ(exp_key, key);
+        EXPECT_EQ(exp_key, evt.key);
 
-        EXPECT_EQ(ldata[i].missed_cnt, missed);
+        EXPECT_EQ(ldata[i].missed_cnt, evt.missed_cnt);
     }
 
     EXPECT_EQ(i, (int)ARRAY_SIZE(ldata));
 
-    events_deinit_subscriber(hsub);
+    if (wrap) {
+        events_deinit_subscriber_wrap(hsub);
+    } else {
+        events_deinit_subscriber(hsub);
+    }
 
     /* Don't need event's service anymore */
     terminate_svc = true;
@@ -571,6 +669,18 @@ TEST(events, subscribe)
     thr_svc.join();
     thr_pub.join();
     zmq_ctx_term(zmq_ctx);
-    printf("************ SUBSCRIBE DONE ***************\n");
+    printf("************ SUBSCRIBE wrap=%d DONE ***************\n", wrap);
 }
+
+TEST(events, subscribe)
+{
+    do_test_subscribe(false);
+}
+
+
+TEST(events, subscribe_wrap)
+{
+    do_test_subscribe(true);
+}
+
 
