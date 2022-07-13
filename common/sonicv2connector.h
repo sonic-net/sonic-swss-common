@@ -93,8 +93,8 @@ private:
 
         def keys(self, *args, **kwargs):
             return list(super(SonicV2Connector, self).keys(*args, **kwargs))
-        
-        def rename(self, db_name, _old_hash, _new_hash, blocking=False):        
+
+        def rename(self, db_name, _old_hash, _new_hash, blocking=False):
             return super(SonicV2Connector, self).rename(db_name, _old_hash, _new_hash)
 %}
 #endif
