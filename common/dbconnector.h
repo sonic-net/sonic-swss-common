@@ -284,9 +284,9 @@ void DBConnector::hgetall(const std::string &key, OutputIterator result)
 template<typename InputIterator>
 void DBConnector::hmset(const std::string &key, InputIterator start, InputIterator stop)
 {
-    RedisCommand shmset;
-    shmset.formatHMSET(key, start, stop);
-    RedisReply r(this, shmset, REDIS_REPLY_STATUS);
+    RedisCommand shset;
+    shset.formatHSET(key, start, stop);
+    RedisReply r(this, shset, REDIS_REPLY_INTEGER);
 }
 
 }

@@ -884,9 +884,9 @@ void DBConnector::hmset(const std::unordered_map<std::string, std::vector<std::p
     RedisPipeline pipe(this);
     for (auto& hash : multiHash)
     {
-        RedisCommand hmset;
-        hmset.formatHMSET(hash.first, hash.second.begin(), hash.second.end());
-        pipe.push(hmset, REDIS_REPLY_INTEGER);
+        RedisCommand hset;
+        hset.formatHSET(hash.first, hash.second.begin(), hash.second.end());
+        pipe.push(hset, REDIS_REPLY_INTEGER);
     }
 
     pipe.flush();
@@ -896,22 +896,13 @@ void DBConnector::del(const std::vector<std::string>& keys)
 {
     SWSS_LOG_ENTER();
 
-    json j = json::array();
-
-    for (const auto& key: keys)
+    RedisPipeline pipe(this);
+    for (auto& key : keys)
     {
-        j.push_back(key);
+        RedisCommand del;
+        del.formatDEL(key);
+        pipe.push(del, REDIS_REPLY_INTEGER);
     }
 
-    std::string strJson = j.dump();
-
-    lazyLoadRedisScriptFile(this, "redis_multi.lua", m_shaRedisMulti);
-    RedisCommand command;
-    command.format(
-        "EVALSHA %s 1 %s %s",
-        m_shaRedisMulti.c_str(),
-        strJson.c_str(),
-        "mdel");
-
-    RedisReply r(this, command, REDIS_REPLY_NIL);
+    pipe.flush();
 }
