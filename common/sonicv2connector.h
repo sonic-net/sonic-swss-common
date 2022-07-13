@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <unistd.h>
+#include <string>
 
 #include "dbinterface.h"
 
@@ -91,6 +92,12 @@ private:
 
         def keys(self, *args, **kwargs):
             return list(super(SonicV2Connector, self).keys(*args, **kwargs))
+
+        def set(self, db_name, _hash, key, value, blocking=False):
+            if isinstance(value, str):
+                return super(SonicV2Connector, self).set(db_name, _hash, key, value, blocking)
+
+            return super(SonicV2Connector, self).set(db_name, _hash, key, str(value), blocking)
 %}
 #endif
 }

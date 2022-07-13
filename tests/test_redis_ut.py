@@ -687,3 +687,12 @@ def test_SonicDBConfigGetInstanceList():
     assert instanceList['redis'].unixSocketPath == '/var/run/redis/redis.sock'
     assert instanceList['redis'].hostname == '127.0.0.1'
     assert instanceList['redis'].port == 6379
+
+
+def test_SonicV2Connector():
+    db = SonicV2Connector(use_unix_socket_path=True)
+    db.connect("TEST_DB")
+    
+    db.set("TEST_DB", "test_key", "field1", 1)
+    value = db.get("TEST_DB", "test_key", "field1")
+    assert value == "1"
