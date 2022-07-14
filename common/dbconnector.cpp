@@ -884,7 +884,7 @@ void DBConnector::hmset(const std::unordered_map<std::string, std::vector<std::p
     RedisPipeline pipe(this);
     for (auto& hash : multiHash)
     {
-        pipe.pushHset(hash.first, hash.second.begin(), hash.second.end());
+        pipe.pushHSET(hash.first, hash.second.begin(), hash.second.end());
     }
 
     pipe.flush();
@@ -897,7 +897,7 @@ void DBConnector::del(const std::vector<std::string>& keys)
     RedisPipeline pipe(this);
     for (auto& key : keys)
     {
-        pipe.pushDel(key);
+        pipe.pushDEL(key);
     }
 
     pipe.flush();
