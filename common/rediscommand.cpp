@@ -59,7 +59,7 @@ void RedisCommand::format(const vector<string> &commands)
     formatArgv(static_cast<int>(args.size()), args.data(), NULL);
 }
 
-/* Format HMSET key multiple field value command */
+/* Format HSET key multiple field value command */
 void RedisCommand::formatHSET(const std::string &key,
                                const std::vector<FieldValueTuple> &values)
 {
