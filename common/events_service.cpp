@@ -44,7 +44,11 @@ event_service::init_client(void *zmq_ctx, int block_ms)
     RET_ON_ERR(rc == 0, "Failed to ZMQ_RCVTIMEO to %d", block_ms);
 
     m_socket = sock;
+    sock = NULL;
 out:
+    if (sock != NULL) {
+        zmq_close(sock);
+    }
     return rc;
 }
 
@@ -65,7 +69,11 @@ event_service::init_server(void *zmq_ctx, int block_ms)
     RET_ON_ERR(rc == 0, "Failed to ZMQ_RCVTIMEO to %d", block_ms);
 
     m_socket = sock;
+    sock = NULL;
 out:
+    if (sock != NULL) {
+        zmq_close(sock);
+    }
     return rc;
 }
 

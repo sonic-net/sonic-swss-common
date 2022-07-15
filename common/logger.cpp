@@ -186,8 +186,6 @@ Logger& Logger::getInstance()
 void Logger::setMinPrio(Priority prio)
 {
     getInstance().m_minPrio = prio;
-    SWSS_LOG_ERROR("loglevel Set=%d", prio);
-
 }
 
 Logger::Priority Logger::getMinPrio()

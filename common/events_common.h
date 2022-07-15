@@ -29,7 +29,17 @@ using namespace chrono;
  * Max count of possible concurrent event publishers
  * We maintain a cache of last seen sequence number per publisher.
  * This provides a MAX ceiling for cache.
- * Any more publishers over this count should indicate a serious bug.
+ * A publisher exiting will be not known to receiver, so some publishers
+ * who gets periodically invoked as every N seconds, could over time
+ * cause the cache over flow. 
+ * whenever the cache hits this max, old instances are removed.
+ *
+ * RFE: Publishers who publish at least 1 event, declare their
+ *      exit via a reserved event, so receivers could drop tracking
+ *      hence avoid overflow. Else, a long running process with no event
+ *      but still active could lose its record. This is still not very
+ *      serious, as first message from such publisher is less likely
+ *      to be lost and it could create a record.
  */
 #define MAX_PUBLISHERS_COUNT  1000
 
