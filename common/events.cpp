@@ -145,10 +145,10 @@ event_handle_t
 events_init_publisher(const string event_source)
 {
     event_handle_t ret = NULL;
-    lst_publishers_t::iterator it = s_publishers.find(event_source);
-    if (it != s_publishers.end()) {
+    lst_publishers_t::const_iterator itc = s_publishers.find(event_source);
+    if (itc != s_publishers.end()) {
         // Pre-exists
-        ret = it->second;
+        ret = itc->second;
     }
     else {
         EventPublisher *p =  new EventPublisher();
@@ -366,17 +366,15 @@ EventSubscriber::event_receive(string &key, event_params_t &params, int &missed_
         /* Find any missed events for this runtime ID */
         missed_cnt = 0;
         sequence_t seq = str_to_seq(event_data[EVENT_SEQUENCE]);
-        track_info_t::iterator it = m_track.find(event_data[EVENT_RUNTIME_ID]);
-        if (it != m_track.end()) {
+        track_info_t::const_iterator itc = m_track.find(event_data[EVENT_RUNTIME_ID]);
+        if (itc != m_track.end()) {
             /* current seq - last read - 1 == 0 if none missed */
-            missed_cnt = seq - it->second.seq - 1;
-            it->second = evt_info_t(seq);
+            missed_cnt = seq - itc->second.seq - 1;
         }
         else {
             if (m_track.size() > (MAX_PUBLISHERS_COUNT + 10)) {
                 prune_track();
             }
-            m_track[event_data[EVENT_RUNTIME_ID]] = evt_info_t(seq);
         }
         if (missed_cnt >= 0) {
             map_str_str_t ev;
@@ -394,6 +392,8 @@ EventSubscriber::event_receive(string &key, event_params_t &params, int &missed_
             rc = deserialize(ev.begin()->second, params);
             RET_ON_ERR(rc == 0, "failed to deserialize params %s",
                     ev.begin()->second.substr(0, 32).c_str());
+            
+            m_track[event_data[EVENT_RUNTIME_ID]] = evt_info_t(seq);
 
         }
         else {
@@ -413,15 +413,21 @@ event_handle_t
 events_init_subscriber(bool use_cache, int recv_timeout,
         const event_subscribe_sources_t *sources)
 {
+    EventSubscriber *sub = NULL;
+
     if (s_subscriber == NULL) {
-        EventSubscriber *sub = new EventSubscriber();
+        sub = new EventSubscriber();
 
         RET_ON_ERR(sub->init(use_cache, recv_timeout, sources) == 0,
                 "Failed to init subscriber");
 
         s_subscriber = sub;
+        sub = NULL;
     }
 out:
+    if (sub != NULL) {
+        delete sub;
+    }
     return s_subscriber;
 }
 
