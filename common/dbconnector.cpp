@@ -10,7 +10,6 @@
 
 #include "common/dbconnector.h"
 #include "common/redisreply.h"
-//#include "common/redisapi.h"
 #include "common/redispipeline.h"
 #include "common/pubsub.h"
 
