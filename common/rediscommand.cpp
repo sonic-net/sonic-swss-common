@@ -66,6 +66,12 @@ void RedisCommand::formatHSET(const std::string &key,
     formatHSET(key, values.begin(), values.end());
 }
 
+void RedisCommand::formatHSET(const std::string &key,
+                              const std::map<std::string, std::string> &values)
+{
+    formatHSET(key, values.begin(), values.end());
+}
+
 /* Format HSET key field value command */
 void RedisCommand::formatHSET(const std::string& key, const std::string& field,
                               const std::string& value)

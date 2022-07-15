@@ -62,26 +62,6 @@ public:
         return r.release();
     }
 
-    redisReply *pushHSET(const std::string& key, const std::map<std::string, std::string> &values)
-    {
-        return pushHSET(key, values.begin(), values.end());
-    }
-
-    template<typename InputIterator>
-    redisReply *pushHSET(const std::string& key, const InputIterator& begin, const InputIterator& end)
-    {
-        RedisCommand hset;
-        hset.formatHSET(key, begin, end);
-        return push(hset, REDIS_REPLY_INTEGER);
-    }
-
-    redisReply *pushDEL(const std::string& key)
-    {
-        RedisCommand del;
-        del.formatDEL(key);
-        return push(del, REDIS_REPLY_INTEGER);
-    }
-
     std::string loadRedisScript(const std::string& script)
     {
         RedisCommand loadcmd;

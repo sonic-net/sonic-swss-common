@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include <stdexcept>
+#include <map>
 
 namespace swss {
 
@@ -33,6 +34,9 @@ public:
 #endif
     void formatHSET(const std::string &key,
                      const std::vector<FieldValueTuple> &values);
+
+    void formatHSET(const std::string &key,
+                     const std::map<std::string, std::string> &values);
 
     template<typename InputIterator>
     void formatHSET(const std::string &key,
