@@ -10,7 +10,7 @@
 
 #include "common/dbconnector.h"
 #include "common/redisreply.h"
-#include "common/redisapi.h"
+#include "common/redispipeline.h"
 #include "common/pubsub.h"
 
 using json = nlohmann::json;
@@ -880,55 +880,28 @@ void DBConnector::hmset(const std::unordered_map<std::string, std::vector<std::p
 {
     SWSS_LOG_ENTER();
 
-    // make sure this will be object (not null) when multi hash is empty
-    json j = json::object();
-
-    // pack multi hash to json (takes bout 70 ms for 10k to construct)
-    for (const auto& kvp: multiHash)
+    RedisPipeline pipe(this);
+    for (auto& hash : multiHash)
     {
-        json o;
-
-        for (const auto &item: kvp.second)
-        {
-            o[std::get<0>(item)] = std::get<1>(item);
-        }
-
-        j[kvp.first] = o;
+        RedisCommand hset;
+        hset.formatHSET(hash.first, hash.second.begin(), hash.second.end());
+        pipe.push(hset, REDIS_REPLY_INTEGER);
     }
 
-    std::string strJson = j.dump();
-
-    lazyLoadRedisScriptFile(this, "redis_multi.lua", m_shaRedisMulti);
-    RedisCommand command;
-    command.format(
-        "EVALSHA %s 1 %s %s",
-        m_shaRedisMulti.c_str(),
-        strJson.c_str(),
-        "mhset");
-
-    RedisReply r(this, command, REDIS_REPLY_NIL);
+    pipe.flush();
 }
 
 void DBConnector::del(const std::vector<std::string>& keys)
 {
     SWSS_LOG_ENTER();
 
-    json j = json::array();
-
-    for (const auto& key: keys)
+    RedisPipeline pipe(this);
+    for (auto& key : keys)
     {
-        j.push_back(key);
+        RedisCommand del;
+        del.formatDEL(key);
+        pipe.push(del, REDIS_REPLY_INTEGER);
     }
 
-    std::string strJson = j.dump();
-
-    lazyLoadRedisScriptFile(this, "redis_multi.lua", m_shaRedisMulti);
-    RedisCommand command;
-    command.format(
-        "EVALSHA %s 1 %s %s",
-        m_shaRedisMulti.c_str(),
-        strJson.c_str(),
-        "mdel");
-
-    RedisReply r(this, command, REDIS_REPLY_NIL);
+    pipe.flush();
 }

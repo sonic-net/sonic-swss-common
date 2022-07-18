@@ -365,9 +365,9 @@ void ConfigDBPipeConnector_Native::_set_entry(RedisTransactioner& pipe, std::str
     {
         auto original = get_entry(table, key);
 
-        RedisCommand shmset;
-        shmset.formatHMSET(_hash, data.begin(), data.end());
-        pipe.enqueue(shmset, REDIS_REPLY_STATUS);
+        RedisCommand shset;
+        shset.formatHSET(_hash, data.begin(), data.end());
+        pipe.enqueue(shset, REDIS_REPLY_INTEGER);
 
         for (auto& it: original)
         {
@@ -403,9 +403,9 @@ void ConfigDBPipeConnector_Native::_mod_entry(RedisTransactioner& pipe, string t
     }
     else
     {
-        RedisCommand shmset;
-        shmset.formatHMSET(_hash, data.begin(), data.end());
-        pipe.enqueue(shmset, REDIS_REPLY_STATUS);
+        RedisCommand shset;
+        shset.formatHSET(_hash, data.begin(), data.end());
+        pipe.enqueue(shset, REDIS_REPLY_INTEGER);
     }
 }
 // Write multiple tables into config db.

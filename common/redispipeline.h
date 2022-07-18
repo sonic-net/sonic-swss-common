@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <queue>
 #include <functional>
 #include "redisreply.h"
 #include "rediscommand.h"
