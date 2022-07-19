@@ -340,6 +340,19 @@ string RedisReply::formatReply(string command, const char* str, size_t len)
     {
         return string("True");
     }
+    
+    if (command == "PING")
+    {
+        // In redis-py, result for PING was hard coded: https://github.com/redis/redis-py/blob/bedf3c82a55b4b67eed93f686cb17e82f7ab19cd/redis/client.py#L796
+        if (result == "PONG")
+        {
+            return string("True");
+        }
+        else
+        {
+            return string("False");
+        }
+    }
 
     return result;
 }
