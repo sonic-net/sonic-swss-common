@@ -43,14 +43,6 @@ int EventPublisher::init(const string event_source)
 
     m_event_source = event_source;
 
-    {
-    uuid_t id;
-    char uuid_str[UUID_STR_SIZE];
-    uuid_generate(id);
-    uuid_unparse(id, uuid_str);
-    m_runtime_id = string(uuid_str);
-    }
-
     m_socket = sock;
 out:
     if (m_socket == NULL) {
@@ -61,6 +53,10 @@ out:
 
 EventPublisher::~EventPublisher()
 {
+    if (!m_runtime_id.empty()) {
+        /* Retire the runtime ID */
+        send_evt(EVENT_STR_CTRL_DEINIT);
+    }
     m_event_service.close_service();
     if (m_socket != NULL) {
         zmq_close(m_socket);
@@ -70,11 +66,30 @@ EventPublisher::~EventPublisher()
 
 
 int
+EventPublisher::send_evt(const string str_data)
+{
+    internal_event_t event_data;
+    int rc;
+
+    event_data[EVENT_STR_DATA] = str_data;
+    event_data[EVENT_RUNTIME_ID] = m_runtime_id;
+    /* A value of 0 will indicate rollover */
+    ++m_sequence;
+    event_data[EVENT_SEQUENCE] = seq_to_str(m_sequence);
+
+    rc = zmq_message_send(m_socket, m_event_source, event_data);
+    RET_ON_ERR(rc == 0, "failed to send for tag %s", tag.c_str());
+out:
+    return rc;
+}
+
+
+int
 EventPublisher::publish(const string tag, const event_params_t *params)
 {
     int rc;
-    internal_event_t event_data;
     string key(m_event_source + ":" + tag);
+    string str_data;
 
     if (m_event_service.is_active()) {
         string s;
@@ -88,6 +103,15 @@ EventPublisher::publish(const string tag, const event_params_t *params)
         /* Close it as we don't need it anymore */
         m_event_service.close_service();
     }
+
+    if (m_runtime_id.empty()) {
+        uuid_t id;
+        char uuid_str[UUID_STR_SIZE];
+        uuid_generate(id);
+        uuid_unparse(id, uuid_str);
+        m_runtime_id = string(uuid_str);
+    }
+
 
     /* Check for timestamp in params. If not, provide it. */
     string param_str;
@@ -111,16 +135,12 @@ EventPublisher::publish(const string tag, const event_params_t *params)
     {
     map_str_str_t event_str_map = { { key, param_str}};
 
-    rc = serialize(event_str_map, event_data[EVENT_STR_DATA]);
+    rc = serialize(event_str_map, str_data);
     RET_ON_ERR(rc == 0, "failed to serialize event str %s", 
             map_to_str(event_str_map).c_str());
     }
-    event_data[EVENT_RUNTIME_ID] = m_runtime_id;
-    ++m_sequence;
-    event_data[EVENT_SEQUENCE] = seq_to_str(m_sequence);
 
-    rc = zmq_message_send(m_socket, m_event_source, event_data);
-    RET_ON_ERR(rc == 0, "failed to send for tag %s", tag.c_str());
+    rc = send_evt(str_data);
 
     {
         nlohmann::json msg = nlohmann::json::object();
@@ -339,6 +359,7 @@ EventSubscriber::event_receive(string &key, event_params_t &params, int &missed_
     int rc = 0; 
     key.clear();
     event_params_t().swap(params);
+    missed_cnt = 0;
 
     while (key.empty()) {
         internal_event_t event_data;
@@ -364,40 +385,67 @@ EventSubscriber::event_receive(string &key, event_params_t &params, int &missed_
         }
 
         /* Find any missed events for this runtime ID */
-        missed_cnt = 0;
+        int this_missed_cnt = 0;
         sequence_t seq = str_to_seq(event_data[EVENT_SEQUENCE]);
         track_info_t::const_iterator itc = m_track.find(event_data[EVENT_RUNTIME_ID]);
         if (itc != m_track.end()) {
             /* current seq - last read - 1 == 0 if none missed */
-            missed_cnt = seq - itc->second.seq - 1;
+            if (seq != 0) {
+                this_missed_cnt = seq - itc->second.seq - 1;
+            }
+            else {
+                /* handle rollover */
+                this_missed_cnt = SEQUENCE_MAX - itc->second.seq;
+            }
         }
         else {
+            /*
+             * First message seen from this runtime id, implying
+             * all earlier messages are lost.
+             */
+            if (seq != 0) {
+                this_missed_cnt = seq - 1;
+            }
+            /* roll over is nearly impossible - 4GB events not seen */
+
+            /* May need to add new ID to track; Prune if needed */
             if (m_track.size() > (MAX_PUBLISHERS_COUNT + 10)) {
                 prune_track();
             }
         }
-        if (missed_cnt >= 0) {
-            map_str_str_t ev;
+        missed_cnt += this_missed_cnt;
 
-            rc = deserialize(event_data[EVENT_STR_DATA], ev);
-            RET_ON_ERR(rc == 0, "Failed to deserialize %s",
-                    event_data[EVENT_STR_DATA].substr(0, 32).c_str());
+        if (event_data[EVENT_STR_DATA].compare(0, EVENT_STR_CTRL_PREFIX_SZ,
+                    EVENT_STR_CTRL_PREFIX) != 0) {
+            if (this_missed_cnt >= 0) {
+                map_str_str_t ev;
 
-            if (ev.size() != 1) rc = -1;
-            RET_ON_ERR(rc == 0, "Expect string (%s) deserialize to one key",
-                    event_data[EVENT_STR_DATA].substr(0, 32).c_str());
-            
-            key = ev.begin()->first;
+                rc = deserialize(event_data[EVENT_STR_DATA], ev);
+                RET_ON_ERR(rc == 0, "Failed to deserialize %s",
+                        event_data[EVENT_STR_DATA].substr(0, 32).c_str());
 
-            rc = deserialize(ev.begin()->second, params);
-            RET_ON_ERR(rc == 0, "failed to deserialize params %s",
-                    ev.begin()->second.substr(0, 32).c_str());
-            
-            m_track[event_data[EVENT_RUNTIME_ID]] = evt_info_t(seq);
+                if (ev.size() != 1) rc = -1;
+                RET_ON_ERR(rc == 0, "Expect string (%s) deserialize to one key",
+                        event_data[EVENT_STR_DATA].substr(0, 32).c_str());
+                
+                key = ev.begin()->first;
 
-        }
-        else {
-            /* negative value implies duplicate; Possibly seen from cache */
+                rc = deserialize(ev.begin()->second, params);
+                RET_ON_ERR(rc == 0, "failed to deserialize params %s",
+                        ev.begin()->second.substr(0, 32).c_str());
+                
+                m_track[event_data[EVENT_RUNTIME_ID]] = evt_info_t(seq);
+            }
+            else {
+                /* negative value implies duplicate; Possibly seen from cache */
+            }
+        } else {
+            /* This is control message */
+            if (event_data[EVENT_STR_DATA] == EVENT_STR_CTRL_DEINIT) {
+                if (itc != m_track.end()) {
+                    m_track.erase(event_data[EVENT_RUNTIME_ID]);
+                }
+            }
         }
     }
 out:
