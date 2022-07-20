@@ -477,6 +477,58 @@ TEST(DBConnector, RedisClient)
     cout << "Done." << endl;
 }
 
+TEST(DBConnector, HmsetAndDel)
+{
+    DBConnector db("TEST_DB", 0, true);
+    clearDB();
+
+    unordered_map<string, vector<pair<string, string>>> multiHash;
+    vector<FieldValueTuple> values;
+    values.push_back(make_pair("field_1", "1"));
+    values.push_back(make_pair("field_2", "2"));
+    
+    vector<string> keys;
+    for (int idx =0; idx<10; idx++)
+    {
+        string key = "hash_key_" + to_string(idx);
+        multiHash[key] = values;
+        keys.push_back(key);
+    }
+    
+    // set multiple hash with hmset
+    db.hmset(multiHash);
+    
+    // check all key exist
+    for (auto& key : keys)
+    {
+        auto fvs = db.hgetall(key);
+        EXPECT_EQ(fvs.size(), 2);
+
+        for (auto fv: fvs)
+        {
+            string value_1 = "1", value_2 = "2";
+            if (fvField(fv) == "field_1")
+            {
+                EXPECT_EQ(fvValue(fv), value_1);
+            }
+            if (fvField(fv) == "field_2")
+            {
+                EXPECT_EQ(fvValue(fv), value_2);
+            }
+        }
+    }
+    
+    // delete multiple hash with del
+    db.del(keys);
+    
+    // check all key deleted
+    for (auto& key : keys)
+    {
+        auto fvs = db.hgetall(key);
+        EXPECT_EQ(fvs.size(), 0);
+    }
+}
+
 TEST(DBConnector, test)
 {
     thread *producerThreads[NUMBER_OF_THREADS];

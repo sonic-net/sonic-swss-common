@@ -677,3 +677,22 @@ def test_DBConnectFailure():
     with pytest.raises(RuntimeError):
         db = swsscommon.DBConnector(0, nonexisting_host, 0)
 
+def test_SonicDBConfigGetInstanceList():
+    """ Verify that SonicDBConfig.getInstanceList will return correct redis instance information """
+
+    instanceList = swsscommon.SonicDBConfig.getInstanceList()
+    keys = instanceList.keys()
+
+    assert keys[0] == 'redis'
+    assert instanceList['redis'].unixSocketPath == '/var/run/redis/redis.sock'
+    assert instanceList['redis'].hostname == '127.0.0.1'
+    assert instanceList['redis'].port == 6379
+
+
+def test_SonicV2Connector():
+    db = SonicV2Connector(use_unix_socket_path=True)
+    db.connect("TEST_DB")
+    
+    db.set("TEST_DB", "test_key", "field1", 1)
+    value = db.get("TEST_DB", "test_key", "field1")
+    assert value == "1"
