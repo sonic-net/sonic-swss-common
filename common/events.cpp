@@ -19,7 +19,7 @@ EventPublisher::get_publisher(const string event_source)
         ret = itc->second;
     }
     else {
-        EventPublisher_ptr_t p(n.get()ew EventPublisher());
+        EventPublisher_ptr_t p(new EventPublisher());
 
         int rc = p->init(event_source);
 
