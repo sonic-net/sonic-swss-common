@@ -10,7 +10,7 @@
 
 #include "common/dbconnector.h"
 #include "common/redisreply.h"
-#include "common/redisapi.h"
+#include "common/redispipeline.h"
 #include "common/pubsub.h"
 
 using json = nlohmann::json;
@@ -18,7 +18,7 @@ using namespace std;
 using namespace swss;
 
 void SonicDBConfig::parseDatabaseConfig(const string &file,
-                    std::unordered_map<std::string, RedisInstInfo> &inst_entry,
+                    std::map<std::string, RedisInstInfo> &inst_entry,
                     std::unordered_map<std::string, SonicDBInfo> &db_entry,
                     std::unordered_map<int, std::string> &separator_entry)
 {
@@ -72,7 +72,7 @@ void SonicDBConfig::initializeGlobalConfig(const string &file)
 {
     std::string local_file, dir_name, ns_name;
     std::unordered_map<std::string, SonicDBInfo> db_entry;
-    std::unordered_map<std::string, RedisInstInfo> inst_entry;
+    std::map<std::string, RedisInstInfo> inst_entry;
     std::unordered_map<int, std::string> separator_entry;
     std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
 
@@ -164,7 +164,7 @@ void SonicDBConfig::initializeGlobalConfig(const string &file)
 void SonicDBConfig::initialize(const string &file)
 {
     std::unordered_map<std::string, SonicDBInfo> db_entry;
-    std::unordered_map<std::string, RedisInstInfo> inst_entry;
+    std::map<std::string, RedisInstInfo> inst_entry;
     std::unordered_map<int, std::string> separator_entry;
     std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
 
@@ -201,7 +201,7 @@ void SonicDBConfig::validateNamespace(const string &netns)
         }
 
         // Check if the namespace is valid, check if this is a key in either of this map
-        unordered_map<string, unordered_map<string, RedisInstInfo>>::const_iterator entry = m_inst_info.find(netns);
+        unordered_map<string, map<string, RedisInstInfo>>::const_iterator entry = m_inst_info.find(netns);
         if (entry == m_inst_info.end())
         {
             SWSS_LOG_THROW("Namespace %s is not a valid namespace name in config file", netns.c_str());
@@ -391,10 +391,27 @@ std::vector<std::string> SonicDBConfig::getDbList(const std::string &netns)
     return dbNames;
 }
 
+map<string, RedisInstInfo> SonicDBConfig::getInstanceList(const std::string &netns)
+{
+    if (!m_init)
+    {
+        initialize();
+    }
+    validateNamespace(netns);
+
+    map<string, RedisInstInfo> result;
+    auto iterator = m_inst_info.find(netns);
+    if (iterator != m_inst_info.end()) {
+        return iterator->second;
+    }
+
+    return map<string, RedisInstInfo>();
+}
+
 constexpr const char *SonicDBConfig::DEFAULT_SONIC_DB_CONFIG_FILE;
 constexpr const char *SonicDBConfig::DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE;
 std::recursive_mutex SonicDBConfig::m_db_info_mutex;
-unordered_map<string, unordered_map<string, RedisInstInfo>> SonicDBConfig::m_inst_info;
+unordered_map<string, map<string, RedisInstInfo>> SonicDBConfig::m_inst_info;
 unordered_map<string, unordered_map<string, SonicDBInfo>> SonicDBConfig::m_db_info;
 unordered_map<string, unordered_map<int, string>> SonicDBConfig::m_db_separator;
 bool SonicDBConfig::m_init = false;
@@ -863,55 +880,28 @@ void DBConnector::hmset(const std::unordered_map<std::string, std::vector<std::p
 {
     SWSS_LOG_ENTER();
 
-    // make sure this will be object (not null) when multi hash is empty
-    json j = json::object();
-
-    // pack multi hash to json (takes bout 70 ms for 10k to construct)
-    for (const auto& kvp: multiHash)
+    RedisPipeline pipe(this);
+    for (auto& hash : multiHash)
     {
-        json o;
-
-        for (const auto &item: kvp.second)
-        {
-            o[std::get<0>(item)] = std::get<1>(item);
-        }
-
-        j[kvp.first] = o;
+        RedisCommand hset;
+        hset.formatHSET(hash.first, hash.second.begin(), hash.second.end());
+        pipe.push(hset, REDIS_REPLY_INTEGER);
     }
 
-    std::string strJson = j.dump();
-
-    lazyLoadRedisScriptFile(this, "redis_multi.lua", m_shaRedisMulti);
-    RedisCommand command;
-    command.format(
-        "EVALSHA %s 1 %s %s",
-        m_shaRedisMulti.c_str(),
-        strJson.c_str(),
-        "mhset");
-
-    RedisReply r(this, command, REDIS_REPLY_NIL);
+    pipe.flush();
 }
 
 void DBConnector::del(const std::vector<std::string>& keys)
 {
     SWSS_LOG_ENTER();
 
-    json j = json::array();
-
-    for (const auto& key: keys)
+    RedisPipeline pipe(this);
+    for (auto& key : keys)
     {
-        j.push_back(key);
+        RedisCommand del;
+        del.formatDEL(key);
+        pipe.push(del, REDIS_REPLY_INTEGER);
     }
 
-    std::string strJson = j.dump();
-
-    lazyLoadRedisScriptFile(this, "redis_multi.lua", m_shaRedisMulti);
-    RedisCommand command;
-    command.format(
-        "EVALSHA %s 1 %s %s",
-        m_shaRedisMulti.c_str(),
-        strJson.c_str(),
-        "mdel");
-
-    RedisReply r(this, command, REDIS_REPLY_NIL);
+    pipe.flush();
 }

@@ -1,10 +1,11 @@
-#ifndef __DBCONNECTOR__
+    #ifndef __DBCONNECTOR__
 #define __DBCONNECTOR__
 
 #include <string>
 #include <vector>
 #include <unordered_map>
 #include <utility>
+#include <map>
 #include <memory>
 #include <mutex>
 
@@ -81,11 +82,12 @@ public:
     static std::vector<std::string> getDbList(const std::string &netns = EMPTY_NAMESPACE);
     static bool isInit() { return m_init; };
     static bool isGlobalInit() { return m_global_init; };
+    static std::map<std::string, RedisInstInfo> getInstanceList(const std::string &netns = EMPTY_NAMESPACE);
 
 private:
     static std::recursive_mutex m_db_info_mutex;
     // { namespace { instName, { unix_socket_path, hostname, port } } }
-    static std::unordered_map<std::string, std::unordered_map<std::string, RedisInstInfo>> m_inst_info;
+    static std::unordered_map<std::string, std::map<std::string, RedisInstInfo>> m_inst_info;
     // { namespace, { dbName, {instName, dbId, separator} } }
     static std::unordered_map<std::string, std::unordered_map<std::string, SonicDBInfo>> m_db_info;
     // { namespace, { dbId, separator } }
@@ -93,7 +95,7 @@ private:
     static bool m_init;
     static bool m_global_init;
     static void parseDatabaseConfig(const std::string &file,
-                                    std::unordered_map<std::string, RedisInstInfo> &inst_entry,
+                                    std::map<std::string, RedisInstInfo> &inst_entry,
                                     std::unordered_map<std::string, SonicDBInfo> &db_entry,
                                     std::unordered_map<int, std::string> &separator_entry);
     static SonicDBInfo& getDbInfo(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
@@ -249,8 +251,6 @@ private:
     int m_dbId;
     std::string m_dbName;
     std::string m_namespace;
-
-    std::string m_shaRedisMulti;
 };
 
 template <typename ReturnType>
@@ -282,9 +282,9 @@ void DBConnector::hgetall(const std::string &key, OutputIterator result)
 template<typename InputIterator>
 void DBConnector::hmset(const std::string &key, InputIterator start, InputIterator stop)
 {
-    RedisCommand shmset;
-    shmset.formatHMSET(key, start, stop);
-    RedisReply r(this, shmset, REDIS_REPLY_STATUS);
+    RedisCommand shset;
+    shset.formatHSET(key, start, stop);
+    RedisReply r(this, shset, REDIS_REPLY_INTEGER);
 }
 
 }
