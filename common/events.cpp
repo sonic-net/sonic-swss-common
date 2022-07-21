@@ -7,12 +7,56 @@
  *  duplicates helps reduce load.
  */
 
-typedef map <string, EventPublisher *> lst_publishers_t;
-lst_publishers_t s_publishers;
+lst_publishers_t EventPublisher::s_publishers;
+
+event_handle_t
+EventPublisher::get_publisher(const string event_source)
+{
+    event_handle_t ret = NULL;
+    lst_publishers_t::const_iterator itc = s_publishers.find(event_source);
+    if (itc != s_publishers.end()) {
+        // Pre-exists
+        ret = itc->second;
+    }
+    else {
+        EventPublisher_ptr_t p(n.get()ew EventPublisher());
+
+        int rc = p->init(event_source);
+
+        if (rc == 0) {
+            ret = p.get();
+            s_publishers[event_source] = p;
+        }
+    }
+    return ret;
+}
+
+void
+EventPublisher::drop_publisher(event_handle_t handle)
+{
+    lst_publishers_t::iterator it;
+
+    for(it=s_publishers.begin(); it != s_publishers.end(); ++it) {
+        if (it->second.get() == handle) {
+            s_publishers.erase(it);
+            break;
+        }
+    }
+}
 
 EventPublisher::EventPublisher() :
     m_zmq_ctx(NULL), m_socket(NULL), m_sequence(0)
 {
+}
+
+static string
+get_uuid()
+{
+    uuid_t id;
+    char uuid_str[UUID_STR_SIZE];
+    uuid_generate(id);
+    uuid_unparse(id, uuid_str);
+    return string(uuid_str);
 }
 
 int EventPublisher::init(const string event_source)
@@ -43,13 +87,7 @@ int EventPublisher::init(const string event_source)
 
     m_event_source = event_source;
 
-    {
-    uuid_t id;
-    char uuid_str[UUID_STR_SIZE];
-    uuid_generate(id);
-    uuid_unparse(id, uuid_str);
-    m_runtime_id = string(uuid_str);
-    }
+    m_runtime_id = get_uuid();
 
     m_socket = sock;
 out:
@@ -144,40 +182,13 @@ out:
 event_handle_t
 events_init_publisher(const string event_source)
 {
-    event_handle_t ret = NULL;
-    lst_publishers_t::const_iterator itc = s_publishers.find(event_source);
-    if (itc != s_publishers.end()) {
-        // Pre-exists
-        ret = itc->second;
-    }
-    else {
-        EventPublisher *p =  new EventPublisher();
-
-        int rc = p->init(event_source);
-
-        if (rc != 0) {
-            delete p;
-        }
-        else {
-            ret = p;
-            s_publishers[event_source] = p;
-        }
-    }
-    return ret;
+    return EventPublisher::get_publisher(event_source);
 }
 
 void
 events_deinit_publisher(event_handle_t handle)
 {
-    lst_publishers_t::iterator it;
-
-    for(it=s_publishers.begin(); it != s_publishers.end(); ++it) {
-        if (it->second == handle) {
-            delete it->second;
-            s_publishers.erase(it);
-            break;
-        }
-    }
+    EventPublisher::drop_publisher(handle);
 }
 
 int
@@ -190,6 +201,34 @@ event_publish(event_handle_t handle, const string tag, const event_params_t *par
         }
     }
     return -1;
+}
+
+
+event_handle_t
+EventSubscriber::get_subscriber(bool use_cache, int recv_timeout,
+        const event_subscribe_sources_t *sources)
+{
+
+    if (s_subscriber == NULL) {
+        EventSubscriber_ptr_t sub(new EventSubscriber());
+
+        RET_ON_ERR(sub->init(use_cache, recv_timeout, sources) == 0,
+                "Failed to init subscriber");
+
+        s_subscriber = sub;
+    }
+out:
+    return s_subscriber.get();
+}
+
+
+void
+EventSubscriber::drop_subscriber(event_handle_t handle)
+{
+    if ((handle == s_subscriber) && (s_subscriber != NULL)) {
+        delete s_subscriber;
+        s_subscriber = NULL;
+    }
 }
 
 
@@ -407,40 +446,20 @@ out:
 
 
 /* Expect only one subscriber per process */
-static EventSubscriber *s_subscriber = NULL;
+EventSubscriber *EventSubscriber::s_subscriber = NULL;
 
 event_handle_t
 events_init_subscriber(bool use_cache, int recv_timeout,
         const event_subscribe_sources_t *sources)
 {
-    EventSubscriber *sub = NULL;
-
-    if (s_subscriber == NULL) {
-        sub = new EventSubscriber();
-
-        RET_ON_ERR(sub->init(use_cache, recv_timeout, sources) == 0,
-                "Failed to init subscriber");
-
-        s_subscriber = sub;
-        sub = NULL;
-    }
-out:
-    if (sub != NULL) {
-        delete sub;
-    }
-    return s_subscriber;
+    return EventSubscriber::get_subscriber(use_cache, recv_timeout, sources);
 }
-
 
 void
 events_deinit_subscriber(event_handle_t handle)
 {
-    if ((handle == s_subscriber) && (s_subscriber != NULL)) {
-        delete s_subscriber;
-        s_subscriber = NULL;
-    }
+    EventSubscriber::drop_subscriber(handle);
 }
-
 
 event_receive_op_t
 event_receive(event_handle_t handle)

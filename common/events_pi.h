@@ -35,19 +35,29 @@ class events_base
  * There can be multiple sender processes/threads for a single source.
  *
  */
+class EventPublisher;
+typedef shared_ptr<EventPublisher> EventPublisher_ptr_t;
+typedef map <string, EventPublisher_ptr_t> lst_publishers_t;
+
 
 class EventPublisher : public events_base
 {
-    public:
-        EventPublisher();
+    static lst_publishers_t s_publishers;
 
+    public:
         virtual ~EventPublisher();
 
         int init(const string event_source);
 
         int publish(const string event_tag,
                 const event_params_t *params);
+
+        static event_handle_t get_publisher(const string event_source);
+        static void drop_publisher((event_handle_t handle);
+
     private:
+        EventPublisher();
+
 
         void *m_zmq_ctx;
         void *m_socket;
@@ -72,12 +82,14 @@ class EventPublisher : public events_base
  *  would have nearly no impact on others.
  *
  */
+class EventSubscriber;
+typedef shared_ptr<EventSubscriber> EventSubscriber_ptr_t;
 
 class EventSubscriber : public events_base
 {
+    static EventSubscriber_ptr_t s_subscriber;
+
     public:
-        EventSubscriber();
-        
         int init(bool use_cache=false,
                 int recv_timeout= -1,
                 const event_subscribe_sources_t *subs_sources=NULL);
@@ -86,7 +98,14 @@ class EventSubscriber : public events_base
 
         int event_receive(string &key, event_params_t &params, int &missed_cnt);
 
+        static event_handle_t get_subscriber(bool use_cache, int recv_timeout,
+                const event_subscribe_sources_t *sources);
+
+        static void drop_subscriber(event_handle_t handle);
+
     private:
+        EventSubscriber();
+        
         void *m_zmq_ctx;
         void *m_socket;
 
