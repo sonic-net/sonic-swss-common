@@ -44,10 +44,8 @@ EventPublisher::drop_publisher(event_handle_t handle)
     }
 }
 
-EventPublisher::EventPublisher() :
-    m_zmq_ctx(NULL), m_socket(NULL), m_sequence(0)
-{
-}
+EventPublisher::EventPublisher(): m_zmq_ctx(NULL), m_socket(NULL), m_sequence(0)
+{}
 
 static string
 get_uuid()
@@ -232,7 +230,7 @@ EventSubscriber::drop_subscriber(event_handle_t handle)
 }
 
 
-EventSubscriber::EventSubscriber() : m_zmq_ctx(NULL), m_socket(NULL),
+EventSubscriber::EventSubscriber(): m_zmq_ctx(NULL), m_socket(NULL),
     m_cache_read(false)
 {};
 
