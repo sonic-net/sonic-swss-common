@@ -16,7 +16,7 @@ EventPublisher::get_publisher(const string event_source)
     lst_publishers_t::const_iterator itc = s_publishers.find(event_source);
     if (itc != s_publishers.end()) {
         // Pre-exists
-        ret = itc->second;
+        ret = itc->second.get();
     }
     else {
         EventPublisher_ptr_t p(new EventPublisher());
@@ -43,6 +43,19 @@ EventPublisher::drop_publisher(event_handle_t handle)
         }
     }
 }
+
+int
+EventPublisher::do_publish(event_handle_t handle, const string tag, const event_params_t *params)
+{
+    lst_publishers_t::const_iterator itc;
+    for(itc=s_publishers.begin(); itc != s_publishers.end(); ++itc) {
+        if (itc->second.get() == handle) {
+            return itc->second->publish(tag, params);
+        }
+    }
+    return -1;
+}
+
 
 EventPublisher::EventPublisher(): m_zmq_ctx(NULL), m_socket(NULL), m_sequence(0)
 {}
@@ -192,15 +205,12 @@ events_deinit_publisher(event_handle_t handle)
 int
 event_publish(event_handle_t handle, const string tag, const event_params_t *params)
 {
-    lst_publishers_t::const_iterator itc;
-    for(itc=s_publishers.begin(); itc != s_publishers.end(); ++itc) {
-        if (itc->second == handle) {
-            return itc->second->publish(tag, params);
-        }
-    }
-    return -1;
+    return EventPublisher::do_publish(handle, tag, params);
 }
 
+
+/* Expect only one subscriber per process */
+EventSubscriber_ptr_t EventSubscriber::s_subscriber;
 
 event_handle_t
 EventSubscriber::get_subscriber(bool use_cache, int recv_timeout,
@@ -223,12 +233,25 @@ out:
 void
 EventSubscriber::drop_subscriber(event_handle_t handle)
 {
-    if ((handle == s_subscriber) && (s_subscriber != NULL)) {
-        delete s_subscriber;
-        s_subscriber = NULL;
+    if ((handle == s_subscriber.get()) && (s_subscriber != NULL)) {
+        s_subscriber.reset();
     }
 }
 
+
+event_receive_op_t
+EventSubscriber::do_receive(event_handle_t handle)
+{
+    event_receive_op_t op;
+
+    if ((handle == s_subscriber.get()) && (s_subscriber != NULL)) {
+        op.rc = s_subscriber->event_receive(op.key, op.params, op.missed_cnt);
+    }
+    else {
+        op.rc = -1;
+    }
+    return op;
+}
 
 EventSubscriber::EventSubscriber(): m_zmq_ctx(NULL), m_socket(NULL),
     m_cache_read(false)
@@ -442,10 +465,6 @@ out:
 
 }
 
-
-/* Expect only one subscriber per process */
-EventSubscriber *EventSubscriber::s_subscriber = NULL;
-
 event_handle_t
 events_init_subscriber(bool use_cache, int recv_timeout,
         const event_subscribe_sources_t *sources)
@@ -462,15 +481,7 @@ events_deinit_subscriber(event_handle_t handle)
 event_receive_op_t
 event_receive(event_handle_t handle)
 {
-    event_receive_op_t op;
-
-    if ((handle == s_subscriber) && (s_subscriber != NULL)) {
-        op.rc = s_subscriber->event_receive(op.key, op.params, op.missed_cnt);
-    }
-    else {
-        op.rc = -1;
-    }
-    return op;
+    return EventSubscriber::do_receive(handle);
 }
 
 void *

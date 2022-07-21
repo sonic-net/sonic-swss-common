@@ -47,16 +47,18 @@ class EventPublisher : public events_base
     public:
         virtual ~EventPublisher();
 
+        static event_handle_t get_publisher(const string event_source);
+        static void drop_publisher(event_handle_t handle);
+        static int do_publish(event_handle_t handle, const string tag,
+                const event_params_t *params);
+
+    private:
+        EventPublisher();
+
         int init(const string event_source);
 
         int publish(const string event_tag,
                 const event_params_t *params);
-
-        static event_handle_t get_publisher(const string event_source);
-        static void drop_publisher((event_handle_t handle);
-
-    private:
-        EventPublisher();
 
 
         void *m_zmq_ctx;
@@ -90,22 +92,24 @@ class EventSubscriber : public events_base
     static EventSubscriber_ptr_t s_subscriber;
 
     public:
-        int init(bool use_cache=false,
-                int recv_timeout= -1,
-                const event_subscribe_sources_t *subs_sources=NULL);
-
         virtual ~EventSubscriber();
-
-        int event_receive(string &key, event_params_t &params, int &missed_cnt);
 
         static event_handle_t get_subscriber(bool use_cache, int recv_timeout,
                 const event_subscribe_sources_t *sources);
 
         static void drop_subscriber(event_handle_t handle);
 
+        static event_receive_op_t do_receive(event_handle_t handle);
+
     private:
         EventSubscriber();
-        
+
+        int init(bool use_cache=false,
+                int recv_timeout= -1,
+                const event_subscribe_sources_t *subs_sources=NULL);
+
+        int event_receive(string &key, event_params_t &params, int &missed_cnt);
+
         void *m_zmq_ctx;
         void *m_socket;
 
