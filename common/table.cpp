@@ -140,8 +140,8 @@ void Table::set(const string &key, const vector<FieldValueTuple> &values,
 
     RedisCommand cmd;
     
-    cmd.formatHMSET(getKeyName(key), values.begin(), values.end());
-    m_pipe->push(cmd, REDIS_REPLY_STATUS);
+    cmd.formatHSET(getKeyName(key), values.begin(), values.end());
+    m_pipe->push(cmd, REDIS_REPLY_INTEGER);
     
     if (ttl != DEFAULT_DB_TTL)
     {

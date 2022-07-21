@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include <stdexcept>
+#include <map>
 
 namespace swss {
 
@@ -31,11 +32,14 @@ public:
 #ifndef SWIG
     __attribute__((deprecated))
 #endif
-    void formatHMSET(const std::string &key,
+    void formatHSET(const std::string &key,
                      const std::vector<FieldValueTuple> &values);
 
+    void formatHSET(const std::string &key,
+                     const std::map<std::string, std::string> &values);
+
     template<typename InputIterator>
-    void formatHMSET(const std::string &key,
+    void formatHSET(const std::string &key,
                      InputIterator start, InputIterator stop);
 
     /* Format HSET key field value command */
@@ -57,6 +61,9 @@ public:
     /* Format TTL key command */
     void formatTTL(const std::string& key);
 
+    /* Format DEL key command */
+    void formatDEL(const std::string& key);
+
     const char *c_str() const;
 
     size_t length() const;
@@ -66,12 +73,12 @@ private:
 };
 
 template<typename InputIterator>
-void RedisCommand::formatHMSET(const std::string &key,
+void RedisCommand::formatHSET(const std::string &key,
                  InputIterator start, InputIterator stop)
 {
     if (start == stop) throw std::invalid_argument("empty values");
 
-    const char* cmd = "HMSET";
+    const char* cmd = "HSET";
 
     std::vector<const char*> args = { cmd, key.c_str() };
 

@@ -1,10 +1,10 @@
 #include <iostream>
 #include <fstream>
+#include <map>
 #include "gtest/gtest.h"
 #include "common/dbconnector.h"
 #include "common/json.hpp"
 #include "common/table.h"
-#include <unordered_map>
 
 using namespace std;
 using namespace swss;
@@ -77,7 +77,7 @@ TEST(DBConnector, multi_ns_test)
             {
                 json j;
                 i >> j;
-                unordered_map<string, RedisInstInfo> m_inst_info;
+                map<string, RedisInstInfo> m_inst_info;
                 for (auto it = j["INSTANCES"].begin(); it!= j["INSTANCES"].end(); it++)
                 {
                    string instName = it.key();
