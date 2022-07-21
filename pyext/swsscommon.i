@@ -142,6 +142,12 @@ T castSelectableObj(swss::Selectable *temp)
 %template(CastSelectableToRedisSelectObj) castSelectableObj<swss::RedisSelect *>;
 %template(CastSelectableToSubscriberTableObj) castSelectableObj<swss::SubscriberStateTable *>;
 
+// Handle object ownership issue with %newobject:
+//        https://www.swig.org/Doc4.0/SWIGDocumentation.html#Customization_ownership
+// %newobject must declared before %include header files
+%newobject swss::DBConnector::pubsub;
+%newobject swss::DBConnector::newConnector;
+
 %include "schema.h"
 %include "dbconnector.h"
 %include "sonicv2connector.h"
@@ -156,14 +162,6 @@ T castSelectableObj(swss::Selectable *temp)
 
 %extend swss::DBConnector {
     %template(hgetall) hgetall<std::map<std::string, std::string>>;
-}
-
-%extend swss::PubSub {
-%pythoncode {
-    def __del__(self):
-        self.__swig_destroy__(self.this)
-        del self.this
-}
 }
 
 %ignore swss::TableEntryPoppable::pops(std::deque<KeyOpFieldsValuesTuple> &, const std::string &);
@@ -218,7 +216,3 @@ T castSelectableObj(swss::Selectable *temp)
 %include "dbinterface.h"
 %include "logger.h"
 %include "status_code_util.h"
-
-// Handle object ownership issue with %newobject https://www.swig.org/Doc4.0/SWIGDocumentation.html#Customization_ownership
-%newobject DBConnector::pubsub();
-%newobject DBConnector::newConnector(unsigned int timeout);
