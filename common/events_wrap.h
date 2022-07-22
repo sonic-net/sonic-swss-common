@@ -107,34 +107,21 @@ void events_deinit_subscriber_wrap(void *handle);
  *
  * input:
  *  handle - Handle obtained from init subscriber
- *  event_str:
- *      Buffer for receiving event formatted as below.
- *      <publish_source + tag as key>: {
- *              <params as dict>
- *      }
- *      e.g: '{
- *          "sonic-events-bgp:bgp-state": {
- *               "timestamp": "2022-08-17T02:39:21.286611Z",
- *               "ip": "100.126.188.90",
- *               "status": "down"
- *           }
- *       }'
- *  event_str_sz:
- *      Size of the buffer for receiving event.
+ *  event_receive_op_str:
+ *      JSON string of event_receive_op_t
  *
- *  missed_cnt:
- *      Buffer to receive missed count as int converted to string.
- *
- *  missed_cnt_sz:
- *      Size of the missed_cnt buffer.
+ *  event_receive_op_sz:
+ *      Size of event_receive_op_str buffer
  *
  * Return:
+ *  Count of bytes required in buffer to copy.
+ *  If this size > event_receive_op_sz, it implies truncation.
+ *
  *  > 0 -- Implies received an event
  *  = 0 -- implies no event received due to timeout
  *  < 0 -- Implies failure. Absoulte value is the error code
  */
-int event_receive_wrap(void *handle, char *event_str,
-        int event_str_sz, char *missed_cnt, int missed_cnt_sz);
+int event_receive_wrap(void *handle, char *event_str, int event_str_sz);
 
 /*
  * Set SWSS log priority

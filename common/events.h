@@ -164,10 +164,10 @@ typedef struct event_receive_op {
     int parse_event(std::string &key, event_params_t &params) const;
 
     /* JSON Keys */
-    static const std::string RC_KEY = "rc";
-    static const std::string EVENT_KEY = "event";
-    static const std::string MISSED_KEY = "missed_cnt";
-    static const std::string EPOCH_KEY = "publish_epoch";
+    static const std::string RC_KEY;
+    static const std::string EVENT_KEY;
+    static const std::string MISSED_KEY;
+    static const std::string EPOCH_KEY;
 } event_receive_op_t;
 
 /*

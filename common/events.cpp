@@ -632,6 +632,11 @@ void swssSetLogPriority(int pri)
     swss::Logger::setMinPrio((swss::Logger::Priority) pri);
 }
 
+event_receive_op::RC_KEY = "rc";
+event_receive_op::EVENT_KEY = "event";
+event_receive_op::MISSED_KEY = "missed_cnt";
+event_receive_op::EPOCH_KEY = "publish_epoch";
+
 string
 event_receive_op_t::to_json()
 {
