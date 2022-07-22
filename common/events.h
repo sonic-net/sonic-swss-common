@@ -161,6 +161,8 @@ typedef struct event_receive_op {
 
     std::string to_json() const;
     
+    std::string from_json(const char *);
+    
     int parse_event(std::string &key, event_params_t &params) const;
 
     /* JSON Keys */

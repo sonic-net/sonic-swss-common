@@ -607,27 +607,17 @@ void do_test_subscribe(bool wrap)
     for(i=0; true; ++i) {
         string exp_key;
         event_receive_op_t evt;
+        string key;
+        event_params_t params;
 
         if (wrap) {
             char event_str[1024];
-            char missed_cnt[100];
 
-            int rc = event_receive_wrap(hsub, event_str, sizeof(event_str),
-                    missed_cnt, sizeof(missed_cnt));
+            int rc = event_receive_wrap(hsub, event_str, sizeof(event_str));
+            EXPECT_LT(rc, sizeof(event_str));
 
             if (rc != 0) {
-                const auto &data = nlohmann::json::parse(event_str);
-                EXPECT_EQ(1, data.size());
-
-                auto it = data.cbegin();
-
-                evt.key = it.key();
-                auto val = it.value();
-                for (auto itp = val.begin(); itp != val.end(); ++itp) {
-                    evt.params[itp.key()] = itp.value();
-                }
-                evt.rc = 0;
-                evt.missed_cnt = stoi(string(missed_cnt));
+                evt.from_json(event_str);
             }
             else if (rc == 0) {
                 evt.rc = EAGAIN;
@@ -645,13 +635,17 @@ void do_test_subscribe(bool wrap)
             break;
         }
 
-        EXPECT_EQ(ldata[i].params, evt.params);
+        evt.parse_event(key, params);
+
+        EXPECT_EQ(ldata[i].params, params);
         
         exp_key = ldata[i].source + ":" + ldata[i].tag;
 
-        EXPECT_EQ(exp_key, evt.key);
+        EXPECT_EQ(exp_key, key);
 
         EXPECT_EQ(ldata[i].missed_cnt, evt.missed_cnt);
+
+        EXPECT_NE(0, evt.publish_epoch);
     }
 
     EXPECT_EQ(i, (int)ARRAY_SIZE(ldata));
