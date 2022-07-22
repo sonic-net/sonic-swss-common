@@ -657,10 +657,10 @@ event_receive_op_t::from_json(const char *json_str)
 {
     const auto &data = nlohmann::json::parse(json_str);
 
-    rc = data.value(RC_KEY, -1)
-    event = data.value(EVENT_KEY, "")
-    missed_cnt = data.value(MISSED_KEY, 0)
-    publish_epoch = data.value(EVENT_EPOCH, 0)
+    rc = data.value(RC_KEY, -1);
+    event = data.value(EVENT_KEY, "");
+    missed_cnt = data.value(MISSED_KEY, 0);
+    publish_epoch = data.value(EVENT_EPOCH, 0);
 }
 
 
