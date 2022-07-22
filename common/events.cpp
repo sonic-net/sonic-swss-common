@@ -610,7 +610,7 @@ event_receive_wrap(void *handle, char *event_str, int event_str_sz)
 
         string rcv_str(evt.to_json());
         strncpy(event_str, rcv_str.c_str(), event_str_sz);
-        event_str[event_str-1] = 0;
+        event_str[event_str_sz-1] = 0;
         rc = rcv_str.size();
     }
     else if (evt.rc > 0) {
@@ -633,10 +633,10 @@ void swssSetLogPriority(int pri)
     swss::Logger::setMinPrio((swss::Logger::Priority) pri);
 }
 
-event_receive_op::RC_KEY = "rc";
-event_receive_op::EVENT_KEY = "event";
-event_receive_op::MISSED_KEY = "missed_cnt";
-event_receive_op::EPOCH_KEY = "publish_epoch";
+string event_receive_op::RC_KEY = "rc";
+string event_receive_op::EVENT_KEY = "event";
+string event_receive_op::MISSED_KEY = "missed_cnt";
+string event_receive_op::EPOCH_KEY = "publish_epoch";
 
 string
 event_receive_op_t::to_json()
