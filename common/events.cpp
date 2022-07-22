@@ -611,7 +611,7 @@ event_receive_wrap(void *handle, char *event_str, int event_str_sz)
         string rcv_str(evt.to_json());
         strncpy(event_str, rcv_str.c_str(), event_str_sz);
         event_str[event_str_sz-1] = 0;
-        rc = rcv_str.size();
+        rc = (int)rcv_str.size();
     }
     else if (evt.rc > 0) {
         // timeout
@@ -633,13 +633,13 @@ void swssSetLogPriority(int pri)
     swss::Logger::setMinPrio((swss::Logger::Priority) pri);
 }
 
-string event_receive_op::RC_KEY = "rc";
-string event_receive_op::EVENT_KEY = "event";
-string event_receive_op::MISSED_KEY = "missed_cnt";
-string event_receive_op::EPOCH_KEY = "publish_epoch";
+const string event_receive_op::RC_KEY = "rc";
+const string event_receive_op::EVENT_KEY = "event";
+const string event_receive_op::MISSED_KEY = "missed_cnt";
+const string event_receive_op::EPOCH_KEY = "publish_epoch";
 
 string
-event_receive_op_t::to_json()
+event_receive_op_t::to_json() const
 {
     nlohmann::json res = nlohmann::json::object();
 
@@ -653,7 +653,7 @@ event_receive_op_t::to_json()
 
 
 int
-event_receive_op_t::parse_event(string &key, map_str_str_t &params)
+event_receive_op_t::parse_event(string &key, map_str_str_t &params) const
 {
     return convert_from_json(event, key, params);
 }
