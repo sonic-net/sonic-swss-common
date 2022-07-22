@@ -151,11 +151,23 @@ event_handle_t events_init_subscriber(bool use_cache=false,
 void events_deinit_subscriber(event_handle_t handle);
 
 
-typedef struct {
+typedef struct event_receive_op {
+    event_receive_op() : rc(-1), missed_cnt(0), publish_epoch(0) {}
+
     int rc;                 /* Return value of event_receive */
-    std::string key;        /* key */
-    event_params_t params;  /* Params received */
+    std::string event;      /* Event as JSON string */
     int missed_cnt;         /* missed count */
+    uint64_t publish_epoch; /* Epoch timepoint of publish */
+
+    string to_json();
+    
+    int parse_event(string &key, map_str_str_t &params);
+
+    /* JSON Keys */
+    const string RC_KEY = "rc";
+    const string EVENT_KEY = "event";
+    const string MISSED_KEY = "missed_cnt";
+    const string EPOCH_KEY = "publish_epoch";
 } event_receive_op_t;
 
 /*

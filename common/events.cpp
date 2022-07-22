@@ -98,8 +98,6 @@ int EventPublisher::init(const string event_source)
 
     m_event_source = event_source;
 
-    m_runtime_id = get_uuid();
-
     m_socket = sock;
 out:
     if (m_socket == NULL) {
@@ -127,15 +125,19 @@ EventPublisher::send_evt(const string str_data)
 {
     internal_event_t event_data;
     int rc;
+    stringstream ss;
+
+    ss << duration_cast<microseconds>(timepoint.time_since_epoch()).count();
 
     event_data[EVENT_STR_DATA] = str_data;
     event_data[EVENT_RUNTIME_ID] = m_runtime_id;
     /* A value of 0 will indicate rollover */
     ++m_sequence;
     event_data[EVENT_SEQUENCE] = seq_to_str(m_sequence);
+    event_data[EVENT_EPOCH] = ss.str();
 
     rc = zmq_message_send(m_socket, m_event_source, event_data);
-    RET_ON_ERR(rc == 0, "failed to send for tag %s", tag.c_str());
+    RET_ON_ERR(rc == 0, "failed to send for tag %s", str_data.substr(0, 20).c_str());
 out:
     return rc;
 }
@@ -145,7 +147,6 @@ int
 EventPublisher::publish(const string tag, const event_params_t *params)
 {
     int rc;
-    string key(m_event_source + ":" + tag);
     string str_data;
 
     if (m_event_service.is_active()) {
@@ -162,13 +163,8 @@ EventPublisher::publish(const string tag, const event_params_t *params)
     }
 
     if (m_runtime_id.empty()) {
-        uuid_t id;
-        char uuid_str[UUID_STR_SIZE];
-        uuid_generate(id);
-        uuid_unparse(id, uuid_str);
-        m_runtime_id = string(uuid_str);
+        m_runtime_id = get_uuid();
     }
-
 
     /* Check for timestamp in params. If not, provide it. */
     string param_str;
@@ -185,34 +181,12 @@ EventPublisher::publish(const string tag, const event_params_t *params)
         params = &evt_params;
     }
 
-    rc = serialize(*params, param_str);
-    RET_ON_ERR(rc == 0, "failed to serialize params %s",
-            map_to_str(*params).c_str());
-
-    {
-    map_str_str_t event_str_map = { { key, param_str}};
-
-    rc = serialize(event_str_map, str_data);
-    RET_ON_ERR(rc == 0, "failed to serialize event str %s", 
-            map_to_str(event_str_map).c_str());
-    }
-
+    str_data = convert_to_json(m_event_source + ":" + tag, params);
     rc = send_evt(str_data);
+    RET_ON_ERR(rc == 0, "failed to send event str[%d]= %s", (int)str_data.size(),
+        str_data.substr(0, 20).c_str());
 
-    {
-        nlohmann::json msg = nlohmann::json::object();
-        {
-            nlohmann::json params_data = nlohmann::json::object();
-
-            for (event_params_t::const_iterator itc = params->begin();
-                    itc != params->end(); ++itc) {
-                params_data[itc->first] = itc->second;
-            }
-            msg[key] = params_data;
-        }
-        string json_str(msg.dump());
-        SWSS_LOG_INFO("EVENT_PUBLISHED: %s", json_str.c_str());
-    }
+    SWSS_LOG_INFO("EVENT_PUBLISHED: %s", str_data.sunbstr(0, 80).c_str());
 
 out:
     return rc;
@@ -273,10 +247,7 @@ EventSubscriber::do_receive(event_handle_t handle)
     event_receive_op_t op;
 
     if ((handle == s_subscriber.get()) && (s_subscriber != NULL)) {
-        op.rc = s_subscriber->event_receive(op.key, op.params, op.missed_cnt);
-    }
-    else {
-        op.rc = -1;
+        op = s_subscriber->event_receive();
     }
     return op;
 }
@@ -421,15 +392,13 @@ EventSubscriber::prune_track()
 }
 
 
-int
-EventSubscriber::event_receive(string &key, event_params_t &params, int &missed_cnt)
+event_receive_op_t
+EventSubscriber::event_receive()
 {
-    int rc = 0; 
-    key.clear();
-    event_params_t().swap(params);
-    missed_cnt = 0;
+    event_receive_op_t evt;
+    int missed_cnt = 0;
 
-    while (key.empty()) {
+    while (evt.event.empty()) {
         internal_event_t event_data;
 
         if (m_cache_read && m_from_cache.empty()) {
@@ -486,22 +455,11 @@ EventSubscriber::event_receive(string &key, event_params_t &params, int &missed_
         if (event_data[EVENT_STR_DATA].compare(0, EVENT_STR_CTRL_PREFIX_SZ,
                     EVENT_STR_CTRL_PREFIX) != 0) {
             if (this_missed_cnt >= 0) {
-                map_str_str_t ev;
+                istringstream iss(event_data[EVENT_EPOCH]);
 
-                rc = deserialize(event_data[EVENT_STR_DATA], ev);
-                RET_ON_ERR(rc == 0, "Failed to deserialize %s",
-                        event_data[EVENT_STR_DATA].substr(0, 32).c_str());
+                evt.event = event_data[EVENT_STR_DATA];
+                evt.publish_epoch << iss;
 
-                if (ev.size() != 1) rc = -1;
-                RET_ON_ERR(rc == 0, "Expect string (%s) deserialize to one key",
-                        event_data[EVENT_STR_DATA].substr(0, 32).c_str());
-                
-                key = ev.begin()->first;
-
-                rc = deserialize(ev.begin()->second, params);
-                RET_ON_ERR(rc == 0, "failed to deserialize params %s",
-                        ev.begin()->second.substr(0, 32).c_str());
-                
                 m_track[event_data[EVENT_RUNTIME_ID]] = evt_info_t(seq);
             }
             else {
@@ -517,8 +475,9 @@ EventSubscriber::event_receive(string &key, event_params_t &params, int &missed_
         }
     }
 out:
-    return rc;
-
+    evt.rc = rc;
+    evt.missed_cnt = missed_cnt;
+    return evt;
 }
 
 event_handle_t
@@ -635,8 +594,7 @@ events_deinit_subscriber_wrap(void *handle)
 
 
 int
-event_receive_wrap(void *handle, char *event_str,
-        int event_str_sz, char *missed_cnt_str, int missed_cnt_str_sz)
+event_receive_wrap(void *handle, char *event_str, int event_str_sz)
 {
     event_receive_op_t evt;
     int rc = 0;
@@ -647,30 +605,11 @@ event_receive_wrap(void *handle, char *event_str,
     evt = event_receive(handle);
 
     if (evt.rc == 0) {
-        nlohmann::json res = nlohmann::json::object();
-        
-        {
-            nlohmann::json params_data = nlohmann::json::object();
 
-            for (event_params_t::const_iterator itc = evt.params.begin(); itc != evt.params.end(); ++itc) {
-                params_data[itc->first] = itc->second;
-            }
-            res[evt.key] = params_data;
-        }
-        string json_str(res.dump());
-        rc = snprintf(event_str, event_str_sz, "%s", json_str.c_str());
-        if (rc >= event_str_sz) {
-            SWSS_LOG_ERROR("truncated event buffer.need=%d given=%d",
-                    rc, event_str_sz);
-            event_str[event_str_sz-1] = 0;
-        }
-
-        int rc_missed = snprintf(missed_cnt_str, missed_cnt_str_sz, "%d", evt.missed_cnt);
-        if (rc_missed >= missed_cnt_str_sz) {
-            SWSS_LOG_ERROR("missed cnt (%d) buffer.need=%d given=%d",
-                    evt.missed_cnt, rc_missed, missed_cnt_str_sz);
-            missed_cnt_str[missed_cnt_str_sz-1] = 0;
-        }
+        string rcv_str(evt.to_json());
+        strncpy(event_str, rcv_str.c_str(), event_str_sz);
+        event_str[event_str-1] = 0;
+        rc = rcv_str.size();
     }
     else if (evt.rc > 0) {
         // timeout
@@ -692,4 +631,23 @@ void swssSetLogPriority(int pri)
     swss::Logger::setMinPrio((swss::Logger::Priority) pri);
 }
 
+string
+event_receive_op_t::to_json()
+{
+    nlohmann::json res = nlohmann::json::object();
+
+    res[RC_KEY] = rc;
+    res[EVENT_KEY] = event;
+    res[MISSED_KEY] = missed_cnt;
+    res[EPOCH_KEY] = publish_epoch;
+
+    return res.dump();
+}
+
+
+int
+event_receive_op_t::parse_event(string &key, map_str_str_t &params)
+{
+    return convert_from_json(event, key, params);
+}
 

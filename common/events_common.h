@@ -27,8 +27,6 @@ using namespace chrono;
 #define ERR_MESSAGE_INVALID -2
 #define ERR_OTHER -1
 
-#define UINT32_MAX  ((uint32_t)-1)
-
 /*
  * Max count of possible concurrent event publishers
  * We maintain a cache of last seen sequence number per publisher.
@@ -185,6 +183,7 @@ const string get_timestamp();
 #define EVENT_STR_DATA "d"
 #define EVENT_RUNTIME_ID  "r"
 #define EVENT_SEQUENCE "s"
+#define EVENT_EPOCH "t"
 
 typedef map<string, string> internal_event_t;
 
@@ -196,9 +195,10 @@ typedef string runtime_id_t;
 
 /*
  * internal_event_t internal_event_ref = {
- *    { EVENT_STR_DATA, "" },
- *    { EVENT_RUNTIME_ID, "" },
- *    { EVENT_SEQUENCE, "" } };
+ *    { EVENT_STR_DATA, "<json string of event>" },
+ *    { EVENT_RUNTIME_ID, "<assigned runtime id of publisher>" },
+ *    { EVENT_SEQUENCE, "<sequence number of event>" },
+ *    { EVENT_EPOCH, "<epoch time at the point of publish>" } };
  */
 
 /*
@@ -431,6 +431,12 @@ zmq_message_read(void *sock, int flag, P1 &pt1, P2 &pt2)
 
     return render.zmq_message_read(sock, flag, pt1, pt2);
 }
+
+/* Convert {<key>: < params >tttt a JSON string */
+string convert_to_json(const string key, const map_str_str_t &params);
+
+/* Parse JSON string into {<key>: < params >} */
+int convert_from_json(const string json_str, string &key, map_str_str_t &params);
 
 /*
  *  Cache drain timeout.

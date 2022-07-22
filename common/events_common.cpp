@@ -102,3 +102,49 @@ get_timestamp()
     return ss.str();
 }
 
+string
+convert_to_json(const string key, const map_str_str_t &params)
+{
+    nlohmann::json msg = nlohmann::json::object();
+    nlohmann::json params_data = nlohmann::json::object();
+
+    for (map_str_str_t::const_iterator itc = params.begin();
+                itc != params.end(); ++itc) {
+            params_data[itc->first] = itc->second;
+        }
+        msg[key] = params_data;
+    }
+    return json_str(msg.dump());
+}
+
+int
+convert_from_json(const string json_str, string &key, map_str_str_t &params)
+{
+    const auto &data = nlohmann::json::parse(json_str);
+
+    if (data.size() != 1) {
+        SWSS_LOG_ERROR("Invalid json str(%s). Expect one key sz=%d",
+                json_str.substr(0, 20).c_str(), (int)data.size());
+        return -1;
+    }
+    key = it.key();
+    const auto &params = *it;
+
+    if (!params.is_object()) {
+        SWSS_LOG_ERROR("Invalid json str(%s). Expect object as val",
+                json_str.substr(0, 20).c_str());
+        return -1;
+    }
+
+    for (auto itp = params.cbegin(); itp != params.cend(); ++itp) {
+        if ((*itp).is_string()) {
+            params[itp.key()] = itp.value();
+        }
+        else {
+            SWSS_LOG_ERROR("Invalid json str(%s). Expect params value as string",
+                    json_str.substr(0, 20).c_str());
+            return -1;
+        }
+    }
+    return 0;
+}
