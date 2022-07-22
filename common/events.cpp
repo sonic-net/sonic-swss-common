@@ -652,7 +652,7 @@ event_receive_op_t::to_json() const
 }
 
 
-string
+void
 event_receive_op_t::from_json(const char *json_str)
 {
     const auto &data = nlohmann::json::parse(json_str);
