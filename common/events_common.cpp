@@ -110,10 +110,9 @@ convert_to_json(const string key, const map_str_str_t &params)
 
     for (map_str_str_t::const_iterator itc = params.begin();
                 itc != params.end(); ++itc) {
-            params_data[itc->first] = itc->second;
-        }
-        msg[key] = params_data;
+        params_data[itc->first] = itc->second;
     }
+    msg[key] = params_data;
     return json_str(msg.dump());
 }
 
@@ -148,3 +147,4 @@ convert_from_json(const string json_str, string &key, map_str_str_t &params)
     }
     return 0;
 }
+
