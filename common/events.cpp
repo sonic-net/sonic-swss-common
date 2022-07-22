@@ -398,6 +398,7 @@ EventSubscriber::event_receive()
 {
     event_receive_op_t evt;
     int missed_cnt = 0;
+    int rc = 0;
 
     while (evt.event.empty()) {
         internal_event_t event_data;
@@ -459,7 +460,7 @@ EventSubscriber::event_receive()
                 istringstream iss(event_data[EVENT_EPOCH]);
 
                 evt.event = event_data[EVENT_STR_DATA];
-                evt.publish_epoch << iss;
+                iss >> evt.publish_epoch;
 
                 m_track[event_data[EVENT_RUNTIME_ID]] = evt_info_t(seq);
             }
