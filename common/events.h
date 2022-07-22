@@ -159,15 +159,15 @@ typedef struct event_receive_op {
     int missed_cnt;         /* missed count */
     uint64_t publish_epoch; /* Epoch timepoint of publish */
 
-    string to_json();
+    std::string to_json();
     
-    int parse_event(string &key, map_str_str_t &params);
+    int parse_event(string &key, event_params_t &params);
 
     /* JSON Keys */
-    const string RC_KEY = "rc";
-    const string EVENT_KEY = "event";
-    const string MISSED_KEY = "missed_cnt";
-    const string EPOCH_KEY = "publish_epoch";
+    const std::string RC_KEY = "rc";
+    const std::string EVENT_KEY = "event";
+    const std::string MISSED_KEY = "missed_cnt";
+    const std::string EPOCH_KEY = "publish_epoch";
 } event_receive_op_t;
 
 /*
