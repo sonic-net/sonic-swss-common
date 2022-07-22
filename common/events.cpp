@@ -600,10 +600,10 @@ event_receive_wrap(void *handle, char *event_str, int event_str_sz)
     event_receive_op_t evt;
     int rc = 0;
 
-    SWSS_LOG_DEBUG("events_receive_wrap handle=%p event-sz=%d missed-sz=%d\n",
-            handle, event_str_sz, missed_cnt_str_sz);
+    SWSS_LOG_DEBUG("events_receive_wrap handle=%p event-sz=%d\n",
+            handle, event_str_sz);
 
-    evt = event_receive(handle);
+    evt = EventSubscriber::do_receive(handle);
 
     if (evt.rc == 0) {
 
@@ -620,8 +620,8 @@ event_receive_wrap(void *handle, char *event_str, int event_str_sz)
         rc = evt.rc;
     }
 
-    SWSS_LOG_DEBUG("events_receive_wrap rc=%d event_str=%s missed=%s\n",
-            rc, event_str, missed_cnt_str);
+    SWSS_LOG_DEBUG("events_receive_wrap rc=%d event_str=%s\n",
+            rc, event_str);
 
     return rc;
 }
