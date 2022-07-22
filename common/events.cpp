@@ -127,6 +127,7 @@ EventPublisher::send_evt(const string str_data)
     int rc;
     stringstream ss;
 
+    auto timepoint = system_clock::now();
     ss << duration_cast<microseconds>(timepoint.time_since_epoch()).count();
 
     event_data[EVENT_STR_DATA] = str_data;
@@ -181,7 +182,7 @@ EventPublisher::publish(const string tag, const event_params_t *params)
         params = &evt_params;
     }
 
-    str_data = convert_to_json(m_event_source + ":" + tag, params);
+    str_data = convert_to_json(m_event_source + ":" + tag, *params);
     rc = send_evt(str_data);
     RET_ON_ERR(rc == 0, "failed to send event str[%d]= %s", (int)str_data.size(),
         str_data.substr(0, 20).c_str());
