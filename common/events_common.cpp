@@ -113,7 +113,7 @@ convert_to_json(const string key, const map_str_str_t &params)
         params_data[itc->first] = itc->second;
     }
     msg[key] = params_data;
-    return json_str(msg.dump());
+    return msg.dump();
 }
 
 int
@@ -126,16 +126,17 @@ convert_from_json(const string json_str, string &key, map_str_str_t &params)
                 json_str.substr(0, 20).c_str(), (int)data.size());
         return -1;
     }
+    auto it = data.cbegin();
     key = it.key();
-    const auto &params = *it;
+    const auto &params_data = *it;
 
-    if (!params.is_object()) {
+    if (!params_data.is_object()) {
         SWSS_LOG_ERROR("Invalid json str(%s). Expect object as val",
                 json_str.substr(0, 20).c_str());
         return -1;
     }
 
-    for (auto itp = params.cbegin(); itp != params.cend(); ++itp) {
+    for (auto itp = params_data.cbegin(); itp != params_data.cend(); ++itp) {
         if ((*itp).is_string()) {
             params[itp.key()] = itp.value();
         }

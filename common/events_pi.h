@@ -108,7 +108,7 @@ class EventSubscriber : public events_base
                 int recv_timeout= -1,
                 const event_subscribe_sources_t *subs_sources=NULL);
 
-        int event_receive(string &key, event_params_t &params, int &missed_cnt);
+        int event_receive();
 
         void *m_zmq_ctx;
         void *m_socket;

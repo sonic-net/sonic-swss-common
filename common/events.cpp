@@ -187,7 +187,7 @@ EventPublisher::publish(const string tag, const event_params_t *params)
     RET_ON_ERR(rc == 0, "failed to send event str[%d]= %s", (int)str_data.size(),
         str_data.substr(0, 20).c_str());
 
-    SWSS_LOG_INFO("EVENT_PUBLISHED: %s", str_data.sunbstr(0, 80).c_str());
+    SWSS_LOG_INFO("EVENT_PUBLISHED: %s", str_data.substr(0, 80).c_str());
 
 out:
     return rc;
