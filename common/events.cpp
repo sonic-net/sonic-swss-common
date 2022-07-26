@@ -614,7 +614,7 @@ event_receive_wrap(void *handle, event_receive_op_t *evt)
     RET_ON_ERR(evt != NULL, "Require non null evt pointer to receive event");
     rc = EventSubscriber::do_receive(handle, *evt);
     SWSS_LOG_DEBUG("events_receive_wrap rc=%d event_str=%s\n",
-            rc, evt.event_str.c_str());
+            rc, evt->event_str.c_str());
 out:
     return rc;
 
@@ -627,7 +627,7 @@ void swssSetLogPriority(int pri)
 
 int
 parse_json_event(const string event_str, string &key,
-        event_params_t &params) const
+        event_params_t &params)
 {
     return convert_from_json(event_str, key, params);
 }
