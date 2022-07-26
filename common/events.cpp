@@ -552,7 +552,6 @@ event_publish_wrap(void *handle, const publish_data_t *data)
 {
     string tag;
     event_params_t params;
-    const param_wrap_t *p;
 
     if ((data == NULL) || (data->tag == NULL) || (*data->tag == 0) ||
             ((data->params_cnt != 0) && (data->params == NULL))) {
@@ -615,7 +614,7 @@ event_receive_wrap(void *handle, event_receive_op_t *evt)
     RET_ON_ERR(evt != NULL, "Require non null evt pointer to receive event");
     rc = EventSubscriber::do_receive(handle, *evt);
     SWSS_LOG_DEBUG("events_receive_wrap rc=%d event_str=%s\n",
-            rc, event_str);
+            rc, evt.event_str.c_str());
 out:
     return rc;
 
