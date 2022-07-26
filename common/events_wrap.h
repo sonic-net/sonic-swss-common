@@ -122,7 +122,7 @@ typedef struct event_receive_op {
 
 } event_receive_op_t;
 
-int
+
 int event_receive_wrap(void *handle, event_receive_op_t *evt);
 
 /*

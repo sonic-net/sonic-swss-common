@@ -555,7 +555,7 @@ event_publish_wrap(void *handle, const publish_data_t *data)
 
     if ((data == NULL) || (data->tag == NULL) || (*data->tag == 0) ||
             ((data->params_cnt != 0) && (data->params == NULL))) {
-        SWSS_LOG_ERROR("event_publish_wrap: missing required args);
+        SWSS_LOG_ERROR("event_publish_wrap: missing required args");
         return -1;
     }
 
