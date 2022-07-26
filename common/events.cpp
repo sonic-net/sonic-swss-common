@@ -626,17 +626,9 @@ event_publish_wrap(void *handle, const char *tag_ptr,
 }
 
 void *
-events_init_subscriber_wrap(const init_subs_t *init_data)
+events_init_subscriber_wrap(bool use_cache, int recv_timeout)
 {
-    bool use_cache = false;
-    int recv_timeout = -1;
-    event_subscribe_sources_t sources;
     void *handle = NULL;
-
-    if (init_data != NULL) {
-        use_cache = init_data->use_cache;
-        recv_timeout = init_data->recv_timeout;
-    }
 
     SWSS_LOG_DEBUG("events_init_subsriber_wrap: use_cache=%d timeout=%d",
             use_cache, recv_timeout);
@@ -660,10 +652,11 @@ int
 event_receive_wrap(void *handle, event_receive_op_C_t *evt)
 {
     int rc = -1;
+    EventSubscriber_ptr_t psubs;
 
     RET_ON_ERR(evt != NULL, "Require non null evt pointer to receive event");
 
-    EventSubscriber_ptr_t psubs = EventSubscriber::get_instance(handle);
+    psubs = EventSubscriber::get_instance(handle);
     RET_ON_ERR(psubs != NULL, "Invalid handle %p", handle);
 
     rc = psubs->event_receive(*evt);
