@@ -127,6 +127,10 @@ EventPublisher::send_evt(const string str_data)
     int rc;
     stringstream ss;
 
+    if (str_data.size() > EVENT_MAXSZ) {
+        SWSS_LOG_ERROR("event size (%d) > expected max(%d). Still published.",
+            str_data.size(), EVENT_MAXSZ);
+    }
     auto timepoint = system_clock::now();
     ss << duration_cast<microseconds>(timepoint.time_since_epoch()).count();
 
@@ -242,15 +246,17 @@ EventSubscriber::drop_subscriber(event_handle_t handle)
 }
 
 
-event_receive_op_t
-EventSubscriber::do_receive(event_handle_t handle)
+int
+EventSubscriber::do_receive(event_handle_t handle, event_receive_op_t &evt)
 {
-    event_receive_op_t op;
+    int rc = -1;
 
-    if ((handle == s_subscriber.get()) && (s_subscriber != NULL)) {
-        op = s_subscriber->event_receive();
-    }
-    return op;
+    RET_ON_ERR ((handle == s_subscriber.get()) && (s_subscriber != NULL),
+            "Invalid handle for receive");
+
+    rc = s_subscriber->event_receive(evt);
+out:
+    return rc;
 }
 
 EventSubscriber::EventSubscriber(): m_zmq_ctx(NULL), m_socket(NULL),
@@ -393,14 +399,13 @@ EventSubscriber::prune_track()
 }
 
 
-event_receive_op_t
-EventSubscriber::event_receive()
+int
+EventSubscriber::event_receive(event_receive_op_t &evt)
 {
-    event_receive_op_t evt;
     int missed_cnt = 0;
     int rc = 0;
 
-    while (evt.event.empty()) {
+    while (true) {
         internal_event_t event_data;
 
         if (m_cache_read && m_from_cache.empty()) {
@@ -452,21 +457,33 @@ EventSubscriber::event_receive()
                 prune_track();
             }
         }
+
+        if (this_missed_cnt < 0) {
+            continue;       /* We read duplicate */
+        }
         missed_cnt += this_missed_cnt;
+
+        /* We have a valid publised or control event */
 
         if (event_data[EVENT_STR_DATA].compare(0, EVENT_STR_CTRL_PREFIX_SZ,
                     EVENT_STR_CTRL_PREFIX) != 0) {
-            if (this_missed_cnt >= 0) {
+            if (evt.event_sz > event_data[EVENT_STR_DATA].size()) {
                 istringstream iss(event_data[EVENT_EPOCH]);
 
-                evt.event = event_data[EVENT_STR_DATA];
+                /*
+                 * event_sz - string size is verified against event string.
+                 * Hence strncpy will put null at the end.
+                 */
+                strncpy(evt.event_str, event_data[EVENT_STR_DATA], evt.event_sz);
                 iss >> evt.publish_epoch;
-
-                m_track[event_data[EVENT_RUNTIME_ID]] = evt_info_t(seq);
+            } else {
+                missed_cnt += 1;
+                SWSS_LOG_ERROR(
+                        "event size (%d) > expected (%d)",
+                        event_data[EVENT_STR_DATA].size(), evt.event_sz);
             }
-            else {
-                /* negative value implies duplicate; Possibly seen from cache */
-            }
+            m_track[event_data[EVENT_RUNTIME_ID]] = evt_info_t(seq);
+            break;
         } else {
             /* This is control message */
             if (event_data[EVENT_STR_DATA] == EVENT_STR_CTRL_DEINIT) {
@@ -477,9 +494,12 @@ EventSubscriber::event_receive()
         }
     }
 out:
-    evt.rc = rc;
+    /*
+     * Returns on receiving event or timeout or anyother receive failure.
+     * Missed count is valid value, even when rc != 0
+     */
     evt.missed_cnt = missed_cnt;
-    return evt;
+    return rc;
 }
 
 event_handle_t
@@ -495,30 +515,27 @@ events_deinit_subscriber(event_handle_t handle)
     EventSubscriber::drop_subscriber(handle);
 }
 
-event_receive_op_t
-event_receive(event_handle_t handle)
+int
+event_receive(event_handle_t handle,
+        event_receive_op_t *evt)
 {
-    return EventSubscriber::do_receive(handle);
+    int rc = -1;
+    RET_ON_ERR(evt != NULL, "Require non null evt pointer to receive event");
+    rc = EventSubscriber::do_receive(handle, *evt);
+out:
+    return rc;
 }
 
 void *
-events_init_publisher_wrap(const char *args)
+events_init_publisher_wrap(const char *event_source)
 {
-    SWSS_LOG_DEBUG("events_init_publisher_wrap: args=%s",
-            (args != NULL ? args : "<null pointer>"));
+    SWSS_LOG_DEBUG("events_init_publisher_wrap: event_source=%s",
+            (event_source != NULL ? event_source : "<null pointer>"));
 
-    if (args == NULL) {
+    if ((event_source == NULL) || (*event_source == 0)) {
         return NULL;
     }
-    const auto &data = nlohmann::json::parse(args);
-
-    string source;
-    for (auto it = data.cbegin(); it != data.cend(); ++it) {
-        if ((it.key() == ARGS_SOURCE) && (*it).is_string()) {
-            source = it.value();
-        }
-    }
-    return events_init_publisher(source);
+    return events_init_publisher(event_source);
 }
 
 
@@ -530,57 +547,50 @@ events_deinit_publisher_wrap(void *handle)
 
 
 int
-event_publish_wrap(void *handle, const char *args)
+event_publish_wrap(void *handle, const publish_data_t data)
 {
     string tag;
     event_params_t params;
 
-    SWSS_LOG_DEBUG("events_init_publisher_wrap: handle=%p args=%s",
-            handle, (args != NULL ? args : "<null pointer>"));
-
-    if (args == NULL) {
+    if ((data == NULL) || (data->tag == NULL) || (*data->tag == 0) ||
+            ((data->params_cnt != 0) && (data->params == NULL))) {
+        SWSS_LOG_ERROR("event_publish_wrap: missing required args);
         return -1;
     }
-    const auto &data = nlohmann::json::parse(args);
 
-    for (auto it = data.cbegin(); it != data.cend(); ++it) {
-        if ((it.key() == ARGS_TAG) && (*it).is_string()) {
-            tag = it.value();
+    SWSS_LOG_DEBUG("events_init_publisher_wrap: handle=%p tag=%s params_cnt = 0",
+            handle, data->tag, data->params_cnt);
+
+    tag = string(data->tag);
+
+    for (int i=0, const param_wrap_t *p=data->params; i<data->params_cnt; ++i,++p) {
+        if ((p->name == NULL) || (*p->name == 0) ||
+                (p->val == NULL) || (*p->val == 0)) {
+            SWSS_LOG_ERROR("event_publish_wrap: Missing param key/val");
+            return -1;
         }
-        else if ((it.key() == ARGS_PARAMS) && (*it).is_object()) {
-            const auto &params_data = *it;
-            for (auto itp = params_data.cbegin(); itp != params_data.cend(); ++itp) {
-                if ((*itp).is_string()) {
-                    params[itp.key()] = itp.value();
-                }
-            }
-        }
+        params[p->name] = p->val;
     }
-    return event_publish(handle, tag, &params);
+    return event_publish(handle, tag, params.empty() ? NULL : &params);
 }
 
 void *
-events_init_subscriber_wrap(const char *args)
+events_init_subscriber_wrap(const init_subs_t *init_data)
 {
-    bool use_cache = true;
+    bool use_cache = false;
     int recv_timeout = -1;
     event_subscribe_sources_t sources;
+    void *handle = NULL;
 
-    SWSS_LOG_DEBUG("events_init_subsriber_wrap: args:%s", args);
-
-    if (args != NULL) {
-        const auto &data = nlohmann::json::parse(args);
-
-        for (auto it = data.cbegin(); it != data.cend(); ++it) {
-            if ((it.key() == ARGS_USE_CACHE) && (*it).is_boolean()) {
-                use_cache = it.value();
-            }
-            else if ((it.key() == ARGS_RECV_TIMEOUT) && (*it).is_number_integer()) {
-                recv_timeout = it.value();
-            }
-        }
+    if (init_data != NULL) {
+        use_cache = init_data->use_cache;
+        recv_timeout = init_data->recv_timeout;
     }
-    void *handle = events_init_subscriber(use_cache, recv_timeout);
+
+    SWSS_LOG_DEBUG("events_init_subsriber_wrap: use_cache=%d timeout=%d",
+            use_cache, recv_timeout);
+
+    handle = events_init_subscriber(use_cache, recv_timeout);
     SWSS_LOG_DEBUG("events_init_subscriber_wrap: handle=%p", handle);
     return handle;
 }
@@ -596,77 +606,27 @@ events_deinit_subscriber_wrap(void *handle)
 
 
 int
-event_receive_wrap(void *handle, char *event_str, int event_str_sz)
+event_receive_wrap(void *handle, event_receive_op_t *evt)
 {
-    event_receive_op_t evt;
-    int rc = 0;
-
-    SWSS_LOG_DEBUG("events_receive_wrap handle=%p event-sz=%d\n",
-            handle, event_str_sz);
-
-    evt = EventSubscriber::do_receive(handle);
-
-    if (evt.rc == 0) {
-
-        string rcv_str(evt.to_json());
-        strncpy(event_str, rcv_str.c_str(), event_str_sz);
-        event_str[event_str_sz-1] = 0;
-        rc = (int)rcv_str.size();
-    }
-    else if (evt.rc > 0) {
-        // timeout
-        rc = 0;
-    }
-    else {
-        rc = evt.rc;
-    }
-
+    int rc = -1;
+    RET_ON_ERR(evt != NULL, "Require non null evt pointer to receive event");
+    rc = EventSubscriber::do_receive(handle, *evt);
     SWSS_LOG_DEBUG("events_receive_wrap rc=%d event_str=%s\n",
             rc, event_str);
-
+out:
     return rc;
-}
 
+}
 
 void swssSetLogPriority(int pri)
 {
     swss::Logger::setMinPrio((swss::Logger::Priority) pri);
 }
 
-const string event_receive_op::RC_KEY = "rc";
-const string event_receive_op::EVENT_KEY = "event";
-const string event_receive_op::MISSED_KEY = "missed_cnt";
-const string event_receive_op::EPOCH_KEY = "publish_epoch";
-
-string
-event_receive_op_t::to_json() const
-{
-    nlohmann::json res = nlohmann::json::object();
-
-    res[RC_KEY] = rc;
-    res[EVENT_KEY] = event;
-    res[MISSED_KEY] = missed_cnt;
-    res[EPOCH_KEY] = publish_epoch;
-
-    return res.dump();
-}
-
-
-void
-event_receive_op_t::from_json(const char *json_str)
-{
-    const auto &data = nlohmann::json::parse(json_str);
-
-    rc = data.value(RC_KEY, -1);
-    event = data.value(EVENT_KEY, "");
-    missed_cnt = data.value(MISSED_KEY, 0);
-    publish_epoch = data.value(EVENT_EPOCH, 0);
-}
-
-
 int
-event_receive_op_t::parse_event(string &key, map_str_str_t &params) const
+parse_json_event(const string event_str, string &key,
+        event_params_t &params) const
 {
-    return convert_from_json(event, key, params);
+    return convert_from_json(event_str, key, params);
 }
 

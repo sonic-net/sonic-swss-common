@@ -99,7 +99,8 @@ class EventSubscriber : public events_base
 
         static void drop_subscriber(event_handle_t handle);
 
-        static event_receive_op_t do_receive(event_handle_t handle);
+        static int do_receive(event_handle_t handle,
+                event_receive_op_t&);
 
     private:
         EventSubscriber();
@@ -108,7 +109,7 @@ class EventSubscriber : public events_base
                 int recv_timeout= -1,
                 const event_subscribe_sources_t *subs_sources=NULL);
 
-        event_receive_op_t event_receive();
+        int event_receive(event_receive_op_t &);
 
         void *m_zmq_ctx;
         void *m_socket;

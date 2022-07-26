@@ -5,6 +5,11 @@
 #include <vector>
 #include <map>
 
+#include "events_wrap.h"
+
+/* A json string of event's max size for sanity check. */
+#define EVENT_MAXSZ 1024
+
 /*
  * Events library 
  *
@@ -150,28 +155,6 @@ event_handle_t events_init_subscriber(bool use_cache=false,
  */
 void events_deinit_subscriber(event_handle_t handle);
 
-
-typedef struct event_receive_op {
-    event_receive_op() : rc(-1), missed_cnt(0), publish_epoch(0) {}
-
-    int rc;                 /* Return value of event_receive */
-    std::string event;      /* Event as JSON string */
-    int missed_cnt;         /* missed count */
-    uint64_t publish_epoch; /* Epoch timepoint of publish */
-
-    std::string to_json() const;
-    
-    void from_json(const char *);
-    
-    int parse_event(std::string &key, event_params_t &params) const;
-
-    /* JSON Keys */
-    static const std::string RC_KEY;
-    static const std::string EVENT_KEY;
-    static const std::string MISSED_KEY;
-    static const std::string EPOCH_KEY;
-} event_receive_op_t;
-
 /*
  * Receive an event.
  * A blocking call unless the subscriber is created with a timeout.
@@ -197,14 +180,15 @@ typedef struct event_receive_op {
  *  handle - As obtained from events_init_subscriber
  *
  * output:
- *  key : 
- *      YANG path as <event source module name>:<event tag/container name
- *      within the module that describes the event>
+ *  event_receive_op_t: 
+ *      Filled with received event, missed count & publish time for this
+ *      event. 
+ *      The publish time can be used to compute average latency
+ *      from publish to send to external client.
  *
- *  params:
- *      Parms associated.
+ *      missed count is the count of missed messages from this instance
+ *      of this publisher, before this event.
  *
- *  missed_cnt:
  *      Count of missed events from this sender, before this event. Sum of
  *      missed count from all received events will give the total missed.
  *
@@ -214,7 +198,10 @@ typedef struct event_receive_op {
  *  < 0 - For all other failures
  *
  */
-event_receive_op_t event_receive(event_handle_t handle);
+int event_receive(event_handle_t handle, event_receive_op_t *);
 
+/* Helper to parse JSON event string in event_receive_op_t */
+int parse_json_event(const std::string event_str, std::string &key,
+        event_params_t &params);
 
 #endif /* !_EVENTS_H */ 
