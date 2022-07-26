@@ -257,7 +257,7 @@ EventSubscriber::get_instance(event_handle_t handle)
 
     ret = s_subscriber;
 out:
-    return rc;
+    return ret;
 }
 
 EventSubscriber::EventSubscriber(): m_zmq_ctx(NULL), m_socket(NULL),
@@ -415,10 +415,10 @@ EventSubscriber::event_receive(event_receive_op_C_t &op)
 
     rc = -1;
     RET_ON_ERR(event_str.size() < op.event_sz,
-            "Event sz (%u) is too large for buffer sz=%u",
+            "Event sz (%lu) is too large for buffer sz=%u",
             event_str.size(), op.event_sz);
 
-    strncpy(op.event_str, event_str, op.event_sz);
+    strncpy(op.event_str, event_str.c_str(), op.event_sz);
     rc = 0;
 out:
     return rc;
@@ -604,7 +604,7 @@ event_publish_wrap(void *handle, const char *tag_ptr,
     event_params_t params;
 
     if ((tag_ptr == NULL) || (*tag_ptr == 0) ||
-            ((params_cnt != 0) && (params == NULL))) {
+            ((params_cnt != 0) && (params_ptr == NULL))) {
         SWSS_LOG_ERROR("event_publish_wrap: missing required args");
         return -1;
     }
