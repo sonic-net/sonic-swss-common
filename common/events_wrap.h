@@ -57,7 +57,7 @@ typedef struct param_C {
  *  < 0 -- Implies failure. Absoulte value is the error code
  */
 int event_publish_wrap(void *handle, const char *tag,
-        const param_C_t *params, size_t params_cnt);
+        const param_C_t *params, uint32_t params_cnt);
 
 
 /*
