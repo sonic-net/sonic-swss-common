@@ -214,7 +214,7 @@ void do_test_publish(bool wrap)
             ++params_ptr;
         }
         EXPECT_EQ(0, event_publish_wrap(h, evt_tag0.c_str(),
-                    params_list, params0.size()));
+                    params_list, (uint32_t)params0.size()));
     } 
     else {
         EXPECT_EQ(0, event_publish(h, evt_tag0, &params0));
