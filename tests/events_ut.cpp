@@ -204,14 +204,19 @@ void do_test_publish(bool wrap)
     this_thread::sleep_for(chrono::milliseconds(300));
 
     if (wrap) {
-        param_C_t params_list[params0.size()];
+        param_C_t params_list[10];
         param_C_t *params_ptr = params_list;
+        int i = 0;
 
         /* fill up list  of params with bare pointers */
         for (it_param = params0.begin(); it_param != params0.end(); ++it_param) {
             params_ptr->name = it_param->first.c_str();
             params_ptr->val = it_param->second.c_str();
             ++params_ptr;
+            if (++i >= ARRAY_SIZE(params_list)) {
+                EXPECT_TRUE(false, "Check params list size");
+                break;
+            }
         }
         EXPECT_EQ(0, event_publish_wrap(h, evt_tag0.c_str(),
                     params_list, (uint32_t)params0.size()));
