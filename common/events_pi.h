@@ -17,6 +17,7 @@
 #include "events.h"
 #include "events_common.h"
 #include "events_service.h"
+#include "events_wrap.h"
 
 using namespace std;
 
@@ -103,6 +104,8 @@ class EventSubscriber : public events_base
 
         int event_receive(event_receive_op_t &);
         int event_receive(event_receive_op_C_t &);
+        int event_receive(string &event_str, uint32_t &missed, uint64_t &pub_ms);
+
     private:
         EventSubscriber();
 
@@ -110,7 +113,6 @@ class EventSubscriber : public events_base
                 int recv_timeout= -1,
                 const event_subscribe_sources_t *subs_sources=NULL);
 
-        int event_receive(string &event_str, uint32_t &missed, uint64_t &pub_ms);
 
         void *m_zmq_ctx;
         void *m_socket;

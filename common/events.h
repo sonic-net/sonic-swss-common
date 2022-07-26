@@ -188,5 +188,9 @@ typedef struct {
  */
 int event_receive(event_handle_t handle, event_receive_op_t &evt);
 
+/* To receive as JSON */
+int event_receive_json(event_handle_t handle, std::string &evt,
+        uint32_t &missed_cnt, uint64_t &publish_epoch_ms);
+
 
 #endif /* !_EVENTS_H */ 

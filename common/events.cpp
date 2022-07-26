@@ -561,6 +561,21 @@ out:
     return rc;
 }
 
+int
+event_receive_json(event_handle_t handle, string &event_str,
+        uint32_t &missed_cnt, uint64_t &publish_epoch)
+{
+    int rc = -1;
+
+    EventSubscriber_ptr_t psubs = EventSubscriber::get_instance(handle);
+    RET_ON_ERR(psubs != NULL, "Invalid handle %p", handle);
+
+    rc = psubs->event_receive(event_str, missed_cnt, publish_epoch);
+out:
+    return rc;
+}
+
+
 void *
 events_init_publisher_wrap(const char *event_source)
 {
@@ -642,7 +657,7 @@ events_deinit_subscriber_wrap(void *handle)
 
 
 int
-event_receive_wrap(void *handle, event_receive_op_t *evt)
+event_receive_wrap(void *handle, event_receive_op_C_t *evt)
 {
     int rc = -1;
 
