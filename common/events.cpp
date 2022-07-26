@@ -628,12 +628,10 @@ event_publish_wrap(void *handle, const char *tag_ptr,
 void *
 events_init_subscriber_wrap(bool use_cache, int recv_timeout)
 {
-    void *handle = NULL;
-
     SWSS_LOG_DEBUG("events_init_subsriber_wrap: use_cache=%d timeout=%d",
             use_cache, recv_timeout);
 
-    handle = events_init_subscriber(use_cache, recv_timeout);
+    void *handle = events_init_subscriber(use_cache, recv_timeout);
     SWSS_LOG_DEBUG("events_init_subscriber_wrap: handle=%p", handle);
     return handle;
 }
