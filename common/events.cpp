@@ -129,7 +129,7 @@ EventPublisher::send_evt(const string str_data)
 
     if (str_data.size() > EVENT_MAXSZ) {
         SWSS_LOG_ERROR("event size (%d) > expected max(%d). Still published.",
-            str_data.size(), EVENT_MAXSZ);
+            (int)str_data.size(), EVENT_MAXSZ);
     }
     auto timepoint = system_clock::now();
     ss << duration_cast<microseconds>(timepoint.time_since_epoch()).count();
@@ -474,13 +474,14 @@ EventSubscriber::event_receive(event_receive_op_t &evt)
                  * event_sz - string size is verified against event string.
                  * Hence strncpy will put null at the end.
                  */
-                strncpy(evt.event_str, event_data[EVENT_STR_DATA], evt.event_sz);
+                strncpy(evt.event_str, event_data[EVENT_STR_DATA].c_str(),
+                        evt.event_sz);
                 iss >> evt.publish_epoch;
             } else {
                 missed_cnt += 1;
                 SWSS_LOG_ERROR(
                         "event size (%d) > expected (%d)",
-                        event_data[EVENT_STR_DATA].size(), evt.event_sz);
+                        (int)event_data[EVENT_STR_DATA].size(), evt.event_sz);
             }
             m_track[event_data[EVENT_RUNTIME_ID]] = evt_info_t(seq);
             break;
@@ -547,7 +548,7 @@ events_deinit_publisher_wrap(void *handle)
 
 
 int
-event_publish_wrap(void *handle, const publish_data_t data)
+event_publish_wrap(void *handle, const publish_data_t *data)
 {
     string tag;
     event_params_t params;

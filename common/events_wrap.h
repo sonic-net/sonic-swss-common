@@ -37,7 +37,7 @@ void * events_init_publisher_wrap(const char *event_source);
  */
 void events_deinit_publisher_wrap(void *handle);
 
-typedef param_wrap {
+typedef struct param_wrap {
     const char *name;
     const char *val;
 } param_wrap_t;
