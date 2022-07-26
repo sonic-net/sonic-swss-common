@@ -545,12 +545,7 @@ void do_test_subscribe(bool wrap)
     thread thr_pub(&run_pub);
 
     if (wrap) {
-        nlohmann::json obj = nlohmann::json::object();
-
-        obj[ARGS_USE_CACHE] = true;
-        
-        string jstr(obj.dump());
-        hsub = events_init_subscriber_wrap(jstr.c_str());
+        hsub = events_init_subscriber_wrap(true, -1);
     }
     else {
         hsub = events_init_subscriber(true);
@@ -581,12 +576,7 @@ void do_test_subscribe(bool wrap)
 
     /* We publish all events ahead of receive, so set a timeout */
     if (wrap) {
-        nlohmann::json obj = nlohmann::json::object();
-
-        obj[ARGS_USE_CACHE] = true;
-        obj[ARGS_RECV_TIMEOUT] = 100;
-        string jstr(obj.dump());
-        hsub = events_init_subscriber_wrap(jstr.c_str());
+        hsub = events_init_subscriber_wrap(true, 100);
     }
     else {
         hsub = events_init_subscriber(true, 100);
@@ -608,7 +598,7 @@ void do_test_subscribe(bool wrap)
             evtc.event_str = buff;
             evtc.event_sz = ARRAY_SIZE(buff);
 
-            int rc = event_receive_wrap(hsub, &evtc);
+            rc = event_receive_wrap(hsub, &evtc);
             if (rc == 0) {
                 evt.missed_cnt = evtc.missed_cnt;
                 evt.publish_epoch_ms = evtc.publish_epoch_ms;
@@ -632,7 +622,7 @@ void do_test_subscribe(bool wrap)
 
         EXPECT_EQ(ldata[i].missed_cnt, evt.missed_cnt);
 
-        EXPECT_NE(0, evt.publish_epoch);
+        EXPECT_NE(0, evt.publish_epoch_ms);
     }
 
     EXPECT_EQ(i, (int)ARRAY_SIZE(ldata));
