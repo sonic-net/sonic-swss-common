@@ -552,6 +552,7 @@ event_publish_wrap(void *handle, const publish_data_t *data)
 {
     string tag;
     event_params_t params;
+    const param_wrap_t *p;
 
     if ((data == NULL) || (data->tag == NULL) || (*data->tag == 0) ||
             ((data->params_cnt != 0) && (data->params == NULL))) {
@@ -559,12 +560,12 @@ event_publish_wrap(void *handle, const publish_data_t *data)
         return -1;
     }
 
-    SWSS_LOG_DEBUG("events_init_publisher_wrap: handle=%p tag=%s params_cnt = 0",
+    SWSS_LOG_DEBUG("events_init_publisher_wrap: handle=%p tag=%s params_cnt = %d",
             handle, data->tag, data->params_cnt);
 
     tag = string(data->tag);
 
-    for (int i=0, const param_wrap_t *p=data->params; i<data->params_cnt; ++i,++p) {
+    for (int i=0, p=data->params; i<data->params_cnt; ++i,++p) {
         if ((p->name == NULL) || (*p->name == 0) ||
                 (p->val == NULL) || (*p->val == 0)) {
             SWSS_LOG_ERROR("event_publish_wrap: Missing param key/val");
