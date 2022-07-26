@@ -565,7 +565,8 @@ event_publish_wrap(void *handle, const publish_data_t *data)
 
     tag = string(data->tag);
 
-    for (int i=0, p=data->params; i<data->params_cnt; ++i,++p) {
+    const param_wrap_t *p = data->params;
+    for (int i=0; i<data->params_cnt; ++i,++p) {
         if ((p->name == NULL) || (*p->name == 0) ||
                 (p->val == NULL) || (*p->val == 0)) {
             SWSS_LOG_ERROR("event_publish_wrap: Missing param key/val");
