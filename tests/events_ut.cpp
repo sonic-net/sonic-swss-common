@@ -193,13 +193,7 @@ void do_test_publish(bool wrap)
     thread thr_sub(&run_sub);
 
     if (wrap) {
-        string json_str;
-        nlohmann::json obj = nlohmann::json::object();
-
-        obj[ARGS_SOURCE] = evt_source0;
-
-        json_str = obj.dump();
-        h = events_init_publisher_wrap(json_str.c_str());
+        h = events_init_publisher_wrap(evt_source0.c_str());
     }
     else {
         h = events_init_publisher(evt_source0);
@@ -210,19 +204,17 @@ void do_test_publish(bool wrap)
     this_thread::sleep_for(chrono::milliseconds(300));
 
     if (wrap) {
-        string json_str;
-        nlohmann::json obj = nlohmann::json::object();
-        nlohmann::json obj_params = nlohmann::json::object();
+        param_C_t params_list[params0.size()];
+        param_C_t *params_ptr = params_list;
 
+        /* fill up list  of params with bare pointers */
         for (it_param = params0.begin(); it_param != params0.end(); ++it_param) {
-            obj_params[it_param->first] = it_param->second;
+            params_ptr->name = it_param->first.c_str();
+            params_ptr->val = it_param->second.c_str();
+            ++params_ptr;
         }
-        obj[ARGS_PARAMS] = obj_params;
-        obj[ARGS_TAG] = evt_tag0;
-
-        json_str = obj.dump();
-
-        EXPECT_EQ(0, event_publish_wrap(h, json_str.c_str()));
+        EXPECT_EQ(0, event_publish_wrap(h, evt_tag0.c_str(),
+                    params_list, params0.size()));
     } 
     else {
         EXPECT_EQ(0, event_publish(h, evt_tag0, &params0));
@@ -322,7 +314,7 @@ typedef struct {
     string rid;
     string seq;
     event_params_t params;
-    int missed_cnt;
+    uint32_t missed_cnt;
 } test_data_t;
 
 internal_event_t create_ev(const test_data_t &data)
@@ -607,41 +599,36 @@ void do_test_subscribe(bool wrap)
     for(i=0; true; ++i) {
         string exp_key;
         event_receive_op_t evt;
-        string key;
-        event_params_t params;
+        int rc;
 
         if (wrap) {
-            char event_str[1024];
+            char buff[1024];
+            event_receive_op_C_t evtc;
 
-            int rc = event_receive_wrap(hsub, event_str, sizeof(event_str));
-            EXPECT_LT(rc, sizeof(event_str));
+            evtc.event_str = buff;
+            evtc.event_sz = ARRAY_SIZE(buff);
 
-            if (rc != 0) {
-                evt.from_json(event_str);
-            }
-            else if (rc == 0) {
-                evt.rc = EAGAIN;
-            }
-            else {
-                evt.rc = rc;
+            int rc = event_receive_wrap(hsub, &evtc);
+            if (rc == 0) {
+                evt.missed_cnt = evtc.missed_cnt;
+                evt.publish_epoch_ms = evtc.publish_epoch_ms;
+                rc = convert_from_json(evtc.event_str, evt.key, evt.params);
             }
         }
         else {
-            evt = event_receive(hsub);
+            rc = event_receive(hsub, evt);
         }
 
-        if (evt.rc != 0) {
-            EXPECT_EQ(EAGAIN, evt.rc);
+        if (rc != 0) {
+            EXPECT_EQ(EAGAIN, rc);
             break;
         }
 
-        evt.parse_event(key, params);
-
-        EXPECT_EQ(ldata[i].params, params);
+        EXPECT_EQ(ldata[i].params, evt.params);
         
         exp_key = ldata[i].source + ":" + ldata[i].tag;
 
-        EXPECT_EQ(exp_key, key);
+        EXPECT_EQ(exp_key, evt.key);
 
         EXPECT_EQ(ldata[i].missed_cnt, evt.missed_cnt);
 

@@ -246,15 +246,16 @@ EventSubscriber::drop_subscriber(event_handle_t handle)
 }
 
 
-int
-EventSubscriber::do_receive(event_handle_t handle, event_receive_op_t &evt)
+EventSubscriber_ptr_t
+EventSubscriber::get_instance(event_handle_t handle)
 {
-    int rc = -1;
+
+    EventSubscriber_ptr_t ret;
 
     RET_ON_ERR ((handle == s_subscriber.get()) && (s_subscriber != NULL),
-            "Invalid handle for receive");
+            "Invalid handle for get_instance");
 
-    rc = s_subscriber->event_receive(evt);
+    ret = s_subscriber;
 out:
     return rc;
 }
@@ -400,10 +401,50 @@ EventSubscriber::prune_track()
 
 
 int
-EventSubscriber::event_receive(event_receive_op_t &evt)
+EventSubscriber::event_receive(event_receive_op_C_t &op)
 {
-    int missed_cnt = 0;
+    string event_str;
+    int rc = -1;
+
+    RET_ON_ERR (((op.event_sz != 0) && (op.event_str != NULL)),
+            "Require non null buffer(%p) of non zero size (%u)",
+            op.event_str, op.event_sz);
+    
+    rc = event_receive(event_str, op.missed_cnt, op.publish_epoch_ms);
+    RET_ON_ERR(rc == 0, "failed to receive event");
+
+    rc = -1;
+    RET_ON_ERR(event_str.size() < op.event_sz,
+            "Event sz (%u) is too large for buffer sz=%u",
+            event_str.size(), op.event_sz);
+
+    strncpy(op.event_str, event_str, op.event_sz);
+    rc = 0;
+out:
+    return rc;
+}
+
+int
+EventSubscriber::event_receive(event_receive_op_t &op)
+{   
+    string event_str;
+    int rc = -1;
+
+    rc = event_receive(event_str, op.missed_cnt, op.publish_epoch_ms);
+    RET_ON_ERR(rc == 0, "failed to receive event");
+
+    rc = convert_from_json(event_str, op.key, op.params);
+    RET_ON_ERR(rc == 0, "failed to parse %s", event_str.c_str());
+out:
+    return rc;
+}
+
+int
+EventSubscriber::event_receive(string &event_str, uint32_t &missed_cnt,
+        uint64_t &publish_epoch)
+{
     int rc = 0;
+    missed_cnt = 0;
 
     while (true) {
         internal_event_t event_data;
@@ -467,22 +508,14 @@ EventSubscriber::event_receive(event_receive_op_t &evt)
 
         if (event_data[EVENT_STR_DATA].compare(0, EVENT_STR_CTRL_PREFIX_SZ,
                     EVENT_STR_CTRL_PREFIX) != 0) {
-            if (evt.event_sz > event_data[EVENT_STR_DATA].size()) {
-                istringstream iss(event_data[EVENT_EPOCH]);
+            istringstream iss(event_data[EVENT_EPOCH]);
 
-                /*
-                 * event_sz - string size is verified against event string.
-                 * Hence strncpy will put null at the end.
-                 */
-                strncpy(evt.event_str, event_data[EVENT_STR_DATA].c_str(),
-                        evt.event_sz);
-                iss >> evt.publish_epoch;
-            } else {
-                missed_cnt += 1;
-                SWSS_LOG_ERROR(
-                        "event size (%d) > expected (%d)",
-                        (int)event_data[EVENT_STR_DATA].size(), evt.event_sz);
-            }
+            /*
+             * event_sz - string size is verified against event string.
+             * Hence strncpy will put null at the end.
+             */
+            event_str = event_data[EVENT_STR_DATA];
+            iss >> publish_epoch;
             m_track[event_data[EVENT_RUNTIME_ID]] = evt_info_t(seq);
             break;
         } else {
@@ -499,7 +532,6 @@ out:
      * Returns on receiving event or timeout or anyother receive failure.
      * Missed count is valid value, even when rc != 0
      */
-    evt.missed_cnt = missed_cnt;
     return rc;
 }
 
@@ -517,12 +549,14 @@ events_deinit_subscriber(event_handle_t handle)
 }
 
 int
-event_receive(event_handle_t handle,
-        event_receive_op_t *evt)
+event_receive(event_handle_t handle, event_receive_op_t &evt)
 {
     int rc = -1;
-    RET_ON_ERR(evt != NULL, "Require non null evt pointer to receive event");
-    rc = EventSubscriber::do_receive(handle, *evt);
+
+    EventSubscriber_ptr_t psubs = EventSubscriber::get_instance(handle);
+    RET_ON_ERR(psubs != NULL, "Invalid handle %p", handle);
+
+    rc = psubs->event_receive(evt);
 out:
     return rc;
 }
@@ -548,30 +582,30 @@ events_deinit_publisher_wrap(void *handle)
 
 
 int
-event_publish_wrap(void *handle, const publish_data_t *data)
+event_publish_wrap(void *handle, const char *tag_ptr,
+                const param_C_t *params_ptr, size_t params_cnt)
 {
     string tag;
     event_params_t params;
 
-    if ((data == NULL) || (data->tag == NULL) || (*data->tag == 0) ||
-            ((data->params_cnt != 0) && (data->params == NULL))) {
+    if ((tag_ptr == NULL) || (*tag_ptr == 0) ||
+            ((params_cnt != 0) && (params == NULL))) {
         SWSS_LOG_ERROR("event_publish_wrap: missing required args");
         return -1;
     }
 
-    SWSS_LOG_DEBUG("events_init_publisher_wrap: handle=%p tag=%s params_cnt = %d",
-            handle, data->tag, data->params_cnt);
+    SWSS_LOG_DEBUG("events_init_publisher_wrap: handle=%p tag=%s params_cnt = %u",
+            handle, tag_ptr, params_cnt);
 
-    tag = string(data->tag);
-
-    const param_wrap_t *p = data->params;
-    for (int i=0; i<data->params_cnt; ++i,++p) {
-        if ((p->name == NULL) || (*p->name == 0) ||
-                (p->val == NULL) || (*p->val == 0)) {
+    tag = string(tag_ptr);
+    for (size_t i=0; i<params_cnt; ++i) {
+        if ((params_ptr->name == NULL) || (*params_ptr->name == 0) ||
+                (params_ptr->val == NULL) || (*params_ptr->val == 0)) {
             SWSS_LOG_ERROR("event_publish_wrap: Missing param key/val");
             return -1;
         }
-        params[p->name] = p->val;
+        params[params_ptr->name] = params_ptr->val;
+        ++params_ptr;
     }
     return event_publish(handle, tag, params.empty() ? NULL : &params);
 }
@@ -611,10 +645,13 @@ int
 event_receive_wrap(void *handle, event_receive_op_t *evt)
 {
     int rc = -1;
+
     RET_ON_ERR(evt != NULL, "Require non null evt pointer to receive event");
-    rc = EventSubscriber::do_receive(handle, *evt);
-    SWSS_LOG_DEBUG("events_receive_wrap rc=%d event_str=%s\n",
-            rc, evt->event_str);
+
+    EventSubscriber_ptr_t psubs = EventSubscriber::get_instance(handle);
+    RET_ON_ERR(psubs != NULL, "Invalid handle %p", handle);
+
+    rc = psubs->event_receive(*evt);
 out:
     return rc;
 
@@ -623,12 +660,5 @@ out:
 void swssSetLogPriority(int pri)
 {
     swss::Logger::setMinPrio((swss::Logger::Priority) pri);
-}
-
-int
-parse_json_event(const string event_str, string &key,
-        event_params_t &params)
-{
-    return convert_from_json(event_str, key, params);
 }
 

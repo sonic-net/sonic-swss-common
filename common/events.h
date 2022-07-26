@@ -5,11 +5,6 @@
 #include <vector>
 #include <map>
 
-#include "events_wrap.h"
-
-/* A json string of event's max size for sanity check. */
-#define EVENT_MAXSZ 1024
-
 /*
  * Events library 
  *
@@ -105,6 +100,13 @@ typedef std::map<std::string, std::string> event_params_t;
  *  > 0 - On failure, returns zmq_errno, if failure is zmq socket related.
  *  < 0 - For all other failures
  */
+
+/*
+ * A sanity check on final JSON string size of event
+ * An error log will be written for too big events for alert.
+ */
+#define EVENT_MAXSZ 1024
+
 int event_publish(event_handle_t handle, const std::string event_tag,
         const event_params_t *params=NULL);
 
@@ -155,6 +157,14 @@ event_handle_t events_init_subscriber(bool use_cache=false,
  */
 void events_deinit_subscriber(event_handle_t handle);
 
+
+typedef struct {
+    std::string key;        /* key */
+    event_params_t params;  /* Params received */
+    uint32_t missed_cnt;        /* missed count */
+    uint64_t publish_epoch_ms;  /* Epoch time in milliseconds */
+} event_receive_op_t;
+
 /*
  * Receive an event.
  * A blocking call unless the subscriber is created with a timeout.
@@ -163,34 +173,12 @@ void events_deinit_subscriber(event_handle_t handle);
  *  sequence in event to compute missed events count. The missed count
  *  provides the count of events missed from this sender.
  *
- *  Received event:
- *      It is a form of JSON struct, with a single key and
- *      params as value. The key is <YANG schema module name>:<YANG schema tag
- *      name> and params is as per schema description for that event.
- *     
- *      e.g.
- *          { "sonic-events-bgp:bgp-state": {
- *              "ip": "100.126.188.90",
- *              "status": "down",
- *              "timestamp": "2022-08-17T02:39:21.286611Z"
- *              }
- *          }
- *
  * input:
  *  handle - As obtained from events_init_subscriber
  *
  * output:
- *  event_receive_op_t: 
- *      Filled with received event, missed count & publish time for this
- *      event. 
- *      The publish time can be used to compute average latency
- *      from publish to send to external client.
- *
- *      missed count is the count of missed messages from this instance
- *      of this publisher, before this event.
- *
- *      Count of missed events from this sender, before this event. Sum of
- *      missed count from all received events will give the total missed.
+ *  evt : 
+ *      The entire received event.
  *
  * return:
  *  0   - On success
@@ -198,10 +186,7 @@ void events_deinit_subscriber(event_handle_t handle);
  *  < 0 - For all other failures
  *
  */
-int event_receive(event_handle_t handle, event_receive_op_t *);
+int event_receive(event_handle_t handle, event_receive_op_t &evt);
 
-/* Helper to parse JSON event string in event_receive_op_t */
-int parse_json_event(const std::string event_str, std::string &key,
-        event_params_t &params);
 
 #endif /* !_EVENTS_H */ 

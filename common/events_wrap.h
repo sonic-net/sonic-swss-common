@@ -37,17 +37,10 @@ void * events_init_publisher_wrap(const char *event_source);
  */
 void events_deinit_publisher_wrap(void *handle);
 
-typedef struct param_wrap {
+typedef struct param_C {
     const char *name;
     const char *val;
-} param_wrap_t;
-
-typedef struct publish_data {
-    const char *    tag;
-
-    param_wrap_t  * params;
-    int             params_cnt;
-} publish_data_t;
+} param_C_t;
 
 /*
  * Publish an event.
@@ -63,13 +56,9 @@ typedef struct publish_data {
  *  == 0 -- Published successfully
  *  < 0 -- Implies failure. Absoulte value is the error code
  */
-int event_publish_wrap(void *handle, const publish_data_t *data);
+int event_publish_wrap(void *handle, const char *tag,
+        const param_C_t *params, size_t params_cnt);
 
-
-typedef struct init_subs {
-    bool use_cache;
-    int recv_timeout;
-} init_subs_t;
 
 /*
  * Init subscriber
@@ -84,7 +73,7 @@ typedef struct init_subs {
  *  < 0 -- Implies failure. Absoulte value is the error code
  */
 
-void *events_init_subscriber_wrap(const init_subs_t *init_data);
+void *events_init_subscriber_wrap(bool use_cache, int recv_timeout);
 
 
 /*
@@ -92,9 +81,6 @@ void *events_init_subscriber_wrap(const init_subs_t *init_data);
  *  handle -- as provided be events_init_subscriber 
  *
  */
-#define ARGS_KEY "key"
-#define ARGS_MISSED_CNT "missed_cnt"
-
 void events_deinit_subscriber_wrap(void *handle);
 
 /*
@@ -111,19 +97,19 @@ void events_deinit_subscriber_wrap(void *handle);
  *  < 0 - For all other failures
  */
 
-typedef struct event_receive_op {
+typedef struct event_receive_op_C {
     /* Event as JSON string; c-string  to help with C-binding for Go.*/
     char *event_str;
     uint32_t event_sz;      /* Sizeof event string */
 
     uint32_t missed_cnt;    /* missed count */
 
-    uint64_t publish_epoch; /* Epoch timepoint of publish */
+    uint64_t publish_epoch_ms;  /* Epoch timepoint of publish */
 
-} event_receive_op_t;
+} event_receive_op_C_t;
 
 
-int event_receive_wrap(void *handle, event_receive_op_t *evt);
+int event_receive_wrap(void *handle, event_receive_op_C_t *evt);
 
 /*
  * Set SWSS log priority
