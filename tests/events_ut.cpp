@@ -213,8 +213,8 @@ void do_test_publish(bool wrap)
             params_ptr->name = it_param->first.c_str();
             params_ptr->val = it_param->second.c_str();
             ++params_ptr;
-            if (++i >= ARRAY_SIZE(params_list)) {
-                EXPECT_TRUE(false, "Check params list size");
+            if (++i >= (int)ARRAY_SIZE(params_list)) {
+                EXPECT_TRUE(false);
                 break;
             }
         }
