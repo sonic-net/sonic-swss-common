@@ -8,6 +8,7 @@
  */
 
 lst_publishers_t EventPublisher::s_publishers;
+int EventPublisher::LINGER_TIMEOUT = 100;    // In milliseconds
 
 event_handle_t
 EventPublisher::get_publisher(const string event_source)
@@ -77,6 +78,9 @@ int EventPublisher::init(const string event_source)
 
     int rc = zmq_connect (sock, get_config(XSUB_END_KEY).c_str());
     RET_ON_ERR(rc == 0, "Publisher fails to connect %s", get_config(XSUB_END_KEY).c_str());
+
+    rc = zmq_setsockopt (sock, ZMQ_LINGER, &LINGER_TIMEOUT, sizeof (LINGER_TIMEOUT));
+    RET_ON_ERR(rc == 0, "Failed to ZMQ_LINGER to %d", LINGER_TIMEOUT);
 
     /*
      * Event service could be down. So have a timeout.
@@ -485,13 +489,12 @@ EventSubscriber::event_receive(string &event_str, uint32_t &missed_cnt,
         }
         else {
             /*
-             * First message seen from this runtime id, implying
-             * all earlier messages are lost.
+             * First message seen from this runtime id. We can't imply
+             * all earlier messages are lost, as eventd could have been
+             * restarted and this publisher is long running.
+             * Hence skip.
+             * eventd going down should be seldom.
              */
-            if (seq != 0) {
-                this_missed_cnt = seq - 1;
-            }
-            /* roll over is nearly impossible - 4GB events not seen */
 
             /* May need to add new ID to track; Prune if needed */
             if (m_track.size() > (MAX_PUBLISHERS_COUNT + 10)) {

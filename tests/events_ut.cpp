@@ -126,15 +126,11 @@ parse_read_evt(string &source, internal_event_t &evt,
     }
 
     EXPECT_FALSE(source.empty());
-    EXPECT_EQ(3, evt.size());
+    EXPECT_EQ(4, evt.size());
 
     for (const auto e: evt) {
         if (e.first == EVENT_STR_DATA) {
-            map_str_str_t m;
-            EXPECT_EQ(0, deserialize(e.second, m));
-            EXPECT_EQ(1, m.size());
-            key = m.begin()->first;
-            EXPECT_EQ(0, deserialize(m.begin()->second, params));
+            EXPECT_EQ(0, convert_from_json(e.second, key, params));
             // cout << "EVENT_STR_DATA: " << e.second << "\n";
         }
         else if (e.first == EVENT_RUNTIME_ID) {
@@ -145,6 +141,14 @@ parse_read_evt(string &source, internal_event_t &evt,
             stringstream ss(e.second);
             ss >> seq;
             // cout << "EVENT_SEQUENCE: " << seq << "\n";
+        }
+        else if (e.first == EVENT_EPOCH) {
+            istringstream iss(e.second);
+            uint64_t val;
+
+            iss >> val;
+            // cout << "EVENT_EPOCH: " << seq << "\n";
+            EXPECT_NE(val, 0);
         }
         else {
             EXPECT_FALSE(true);
@@ -326,15 +330,8 @@ internal_event_t create_ev(const test_data_t &data)
 {
     internal_event_t event_data;
 
-    {
-        string param_str;
-
-        EXPECT_EQ(0, serialize(data.params, param_str));
-
-        map_str_str_t event_str_map = { { data.source + ":" + data.tag, param_str}};
-
-        EXPECT_EQ(0, serialize(event_str_map, event_data[EVENT_STR_DATA]));
-    }
+    event_data[EVENT_STR_DATA] =
+        convert_to_json(data.source + ":" + data.tag, data.params);
 
     event_data[EVENT_RUNTIME_ID] = data.rid;
     event_data[EVENT_SEQUENCE] = data.seq;

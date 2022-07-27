@@ -44,6 +44,7 @@ typedef map <string, EventPublisher_ptr_t> lst_publishers_t;
 class EventPublisher : public events_base
 {
     static lst_publishers_t s_publishers;
+    static int LINGER_TIMEOUT;
 
     public:
         virtual ~EventPublisher();
