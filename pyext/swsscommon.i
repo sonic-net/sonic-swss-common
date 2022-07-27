@@ -149,7 +149,7 @@ T castSelectableObj(swss::Selectable *temp)
 
 // Return shared_ptr<PubSub> from DBConnector::pubsub():
 //        https://www.swig.org/Doc4.0/Library.html#Library_shared_ptr_basics
-%shared_ptr(PubSub);
+%shared_ptr(swss::PubSub)
 
 %include "schema.h"
 %include "dbconnector.h"
