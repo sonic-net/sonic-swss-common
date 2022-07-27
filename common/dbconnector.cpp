@@ -628,9 +628,9 @@ DBConnector *DBConnector::newConnector(unsigned int timeout) const
     return ret;
 }
 
-PubSub *DBConnector::pubsub()
+shared_ptr<PubSub> DBConnector::pubsub()
 {
-    return new PubSub(this);
+    return make_shared<PubSub>(this);
 }
 
 int64_t DBConnector::del(const string &key)

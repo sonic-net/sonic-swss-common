@@ -145,7 +145,6 @@ T castSelectableObj(swss::Selectable *temp)
 // Handle object ownership issue with %newobject:
 //        https://www.swig.org/Doc4.0/SWIGDocumentation.html#Customization_ownership
 // %newobject must declared before %include header files
-%newobject swss::DBConnector::pubsub;
 %newobject swss::DBConnector::newConnector;
 
 %include "schema.h"

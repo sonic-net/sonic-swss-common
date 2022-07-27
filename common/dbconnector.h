@@ -174,7 +174,7 @@ public:
     /* Create new context to DB */
     DBConnector *newConnector(unsigned int timeout) const;
 
-    PubSub *pubsub();
+    std::shared_ptr<PubSub> pubsub();
 
     int64_t del(const std::string &key);
 
