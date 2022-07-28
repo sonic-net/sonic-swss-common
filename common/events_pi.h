@@ -105,7 +105,7 @@ class EventSubscriber : public events_base
 
         int event_receive(event_receive_op_t &);
         int event_receive(event_receive_op_C_t &);
-        int event_receive(string &event_str, uint32_t &missed, uint64_t &pub_ms);
+        int event_receive(string &event_str, uint32_t &missed, int64_t &pub_ms);
 
     private:
         EventSubscriber();

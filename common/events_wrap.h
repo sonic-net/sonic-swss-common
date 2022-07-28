@@ -104,7 +104,7 @@ typedef struct event_receive_op_C {
 
     uint32_t missed_cnt;    /* missed count */
 
-    uint64_t publish_epoch_ms;  /* Epoch timepoint of publish */
+    int64_t publish_epoch_ms;   /* Epoch timepoint of publish */
 
 } event_receive_op_C_t;
 

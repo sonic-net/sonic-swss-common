@@ -136,7 +136,7 @@ EventPublisher::send_evt(const string str_data)
             (int)str_data.size(), EVENT_MAXSZ);
     }
     auto timepoint = system_clock::now();
-    ss << duration_cast<microseconds>(timepoint.time_since_epoch()).count();
+    ss << duration_cast<nanoseconds>(timepoint.time_since_epoch()).count();
 
     event_data[EVENT_STR_DATA] = str_data;
     event_data[EVENT_RUNTIME_ID] = m_runtime_id;
@@ -445,7 +445,7 @@ out:
 
 int
 EventSubscriber::event_receive(string &event_str, uint32_t &missed_cnt,
-        uint64_t &publish_epoch)
+        int64_t &publish_epoch)
 {
     int rc = 0;
     missed_cnt = 0;

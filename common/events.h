@@ -162,7 +162,7 @@ typedef struct {
     std::string key;        /* key */
     event_params_t params;  /* Params received */
     uint32_t missed_cnt;        /* missed count */
-    uint64_t publish_epoch_ms;  /* Epoch time in milliseconds */
+    int64_t publish_epoch_ms;  /* Epoch time in milliseconds */
 } event_receive_op_t;
 
 /*
