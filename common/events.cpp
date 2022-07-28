@@ -566,7 +566,7 @@ out:
 
 int
 event_receive_json(event_handle_t handle, string &event_str,
-        uint32_t &missed_cnt, uint64_t &publish_epoch)
+        uint32_t &missed_cnt, int64_t &publish_epoch)
 {
     int rc = -1;
 
