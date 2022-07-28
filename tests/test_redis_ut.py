@@ -381,7 +381,8 @@ def test_ConfigDBConnector():
 def test_ConfigDBConnectorSeparator():
     db = swsscommon.DBConnector("APPL_DB", 0, True)
     config_db = ConfigDBConnector()
-    config_db.db_connect("APPL_DB", False, False)
+    # set wait for init to True to cover wait_for_init code.
+    config_db.db_connect("APPL_DB", True, False)
     config_db.get_redis_client(config_db.APPL_DB).flushdb()
     config_db.set_entry("TEST_PORT", "Ethernet222", {"alias": "etp2x"})
     db.set("ItemWithoutSeparator", "item11")
