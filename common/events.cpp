@@ -415,7 +415,12 @@ EventSubscriber::event_receive(event_receive_op_C_t &op)
             op.event_str, op.event_sz);
     
     rc = event_receive(event_str, op.missed_cnt, op.publish_epoch_ms);
-    RET_ON_ERR(rc == 0, "failed to receive event");
+    if (rc != 0) {
+        if (rc != 11) {
+            SWSS_LOG_ERROR("failed to receive event");
+        }
+        goto out;
+    }
 
     rc = -1;
     RET_ON_ERR(event_str.size() < op.event_sz,
@@ -470,7 +475,12 @@ EventSubscriber::event_receive(string &event_str, uint32_t &missed_cnt,
             /* Read from SUBS channel */
             string evt_source;
             rc = zmq_message_read(m_socket, 0, evt_source, event_data);
-            RET_ON_ERR(rc == 0, "Failed to read message from sock rc=%d", rc);
+            if (rc != 0) {
+                if (rc != 11) {
+                    SWSS_LOG_ERROR("Failure to read message from sock rc=%d", rc);
+                }
+                goto out;
+            }
         }
 
         /* Find any missed events for this runtime ID */
