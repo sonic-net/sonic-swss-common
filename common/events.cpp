@@ -417,7 +417,7 @@ EventSubscriber::event_receive(event_receive_op_C_t &op)
     rc = event_receive(event_str, op.missed_cnt, op.publish_epoch_ms);
     if (rc != 0) {
         if (rc != 11) {
-            SWSS_LOG_ERROR("failed to receive event");
+            SWSS_LOG_ERROR("failed to receive event. rc=%d", rc);
         }
         goto out;
     }
@@ -440,7 +440,12 @@ EventSubscriber::event_receive(event_receive_op_t &op)
     int rc = -1;
 
     rc = event_receive(event_str, op.missed_cnt, op.publish_epoch_ms);
-    RET_ON_ERR(rc == 0, "failed to receive event");
+    if (rc != 0) {
+        if (rc != 11) {
+            SWSS_LOG_ERROR("failed to receive event. rc=%d", rc);
+        }
+        goto out;
+    }
 
     rc = convert_from_json(event_str, op.key, op.params);
     RET_ON_ERR(rc == 0, "failed to parse %s", event_str.c_str());
