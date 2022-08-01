@@ -13,13 +13,13 @@ resources:
   - repository: sonic-sairedis
     type: github
     ref: refs/heads/201911
-    name: Azure/sonic-sairedis
-    endpoint: build
+    name: sonic-net/sonic-sairedis
+    endpoint: sonic-net
   - repository: sonic-swss
     type: github
     ref: refs/heads/201911
-    name: Azure/sonic-swss
-    endpoint: build
+    name: sonic-net/sonic-swss
+    endpoint: sonic-net
 
 stages:
 - stage: Build
