@@ -24,7 +24,7 @@ void ConfigDBConnector_Native::db_connect(string db_name, bool wait_for_init, bo
     if (wait_for_init)
     {
         auto& client = get_redis_client(m_db_name);
-        auto pubsub = client.pubsub();
+        auto pubsub = make_shared<PubSub>(&client);
         auto initialized = client.get(INIT_INDICATOR);
         if (!initialized || initialized->empty())
         {
