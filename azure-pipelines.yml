@@ -64,8 +64,12 @@ stages:
                          libhiredis-dev libnl-3-dev libnl-genl-3-dev libnl-route-3-dev libnl-nf-3-dev swig3.0 \
                          libpython2.7-dev libboost-dev libboost1.71-dev libboost-serialization-dev uuid-dev libzmq5 libzmq3-dev
         sudo find /usr/include -name "zmq.h"
-        echo "Looking in usr/include"
+        echo "Looking in /usr/include"
         sudo ls -all /usr/include
+        echo "Looking in /usr/include/boost"
+        sudo ls -all /usr/include/boost
+        echo "Looking in /usr/include/uuid"
+        sudo ls -all /usr/include/uuid
         sudo apt-get install -y sudo
         sudo apt-get install -y redis-server redis-tools
         sudo apt-get install -y python3-pip
