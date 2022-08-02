@@ -249,12 +249,20 @@ TEST(sonic_db_cli, test_cli_help)
 
 TEST(sonic_db_cli, test_cli_ping_cmd)
 {
-    char *args[2];
+    char *args[3];
     args[0] = "sonic-db-cli";
     args[1] = "PING";
 
     auto output = runCli(2, args);
     EXPECT_EQ("PONG\n", output);
+
+    // When ping with DB name, result should be 'True'
+    args[0] = "sonic-db-cli";
+    args[1] = "TEST_DB";
+    args[2] = "PING";
+
+    output = runCli(3, args);
+    EXPECT_EQ("True\n", output);
 }
 
 TEST(sonic_db_cli, test_cli_save_cmd)
