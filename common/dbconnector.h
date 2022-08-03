@@ -174,6 +174,9 @@ public:
     /* Create new context to DB */
     DBConnector *newConnector(unsigned int timeout) const;
 
+#ifndef SWIG
+    __attribute__((deprecated))
+#endif
     PubSub *pubsub();
 
     int64_t del(const std::string &key);

@@ -381,6 +381,7 @@ def test_ConfigDBConnector():
 def test_ConfigDBConnectorSeparator():
     db = swsscommon.DBConnector("APPL_DB", 0, True)
     config_db = ConfigDBConnector()
+    # set wait for init to True to cover wait_for_init code.
     config_db.db_connect("APPL_DB", False, False)
     config_db.get_redis_client(config_db.APPL_DB).flushdb()
     config_db.set_entry("TEST_PORT", "Ethernet222", {"alias": "etp2x"})
@@ -696,3 +697,18 @@ def test_SonicV2Connector():
     db.set("TEST_DB", "test_key", "field1", 1)
     value = db.get("TEST_DB", "test_key", "field1")
     assert value == "1"
+
+def test_ConfigDBWaitInit():
+    config_db = ConfigDBConnector()
+    config_db.connect(wait_for_init=False)
+    client = config_db.get_redis_client(config_db.CONFIG_DB)
+    suc = client.set(config_db.INIT_INDICATOR, 1)
+    assert suc
+
+    # set wait for init to True to cover wait_for_init code.
+    config_db = ConfigDBConnector()
+    config_db.db_connect(config_db.CONFIG_DB, True, False)
+
+    config_db.set_entry("TEST_PORT", "Ethernet111", {"alias": "etp1x"})
+    allconfig = config_db.get_config()
+    assert allconfig["TEST_PORT"]["Ethernet111"]["alias"] == "etp1x"

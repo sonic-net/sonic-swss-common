@@ -62,6 +62,9 @@ jobs:
     displayName: "Download sonic-buildimage docker-sonic-vs"
   - script: |
       set -ex
+
+      sudo apt-get install -y uuid-dev libboost-serialization-dev
+
       echo $(Build.DefinitionName).$(Build.BuildNumber)
 
       docker load < $(Build.ArtifactStagingDirectory)/download/target/docker-sonic-vs.gz
