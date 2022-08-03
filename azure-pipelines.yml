@@ -30,12 +30,12 @@ resources:
   repositories:
   - repository: sonic-sairedis
     type: github
-    name: Azure/sonic-sairedis
-    endpoint: build
+    name: sonic-net/sonic-sairedis
+    endpoint: sonic-net
   - repository: sonic-swss
     type: github
-    name: Azure/sonic-swss
-    endpoint: build
+    name: sonic-net/sonic-swss
+    endpoint: sonic-net
 
 parameters:
   - name: debian_version
