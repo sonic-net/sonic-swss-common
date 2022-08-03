@@ -30,12 +30,12 @@ resources:
   repositories:
   - repository: sonic-sairedis
     type: github
-    name: Azure/sonic-sairedis
-    endpoint: build
+    name: sonic-net/sonic-sairedis
+    endpoint: sonic-net
   - repository: sonic-swss
     type: github
-    name: Azure/sonic-swss
-    endpoint: build
+    name: sonic-net/sonic-swss
+    endpoint: sonic-net
 
 parameters:
   - name: debian_version
@@ -62,7 +62,7 @@ stages:
         sudo apt-get update
         sudo apt-get install -y make libtool m4 autoconf dh-exec debhelper cmake pkg-config \
                          libhiredis-dev libnl-3-dev libnl-genl-3-dev libnl-route-3-dev libnl-nf-3-dev swig3.0 \
-                         libpython2.7-dev libboost-dev libboost1.71-dev
+                         libpython2.7-dev libboost-dev libboost1.71-dev libboost-serialization-dev uuid-dev libzmq5 libzmq3-dev
         sudo apt-get install -y sudo
         sudo apt-get install -y redis-server redis-tools
         sudo apt-get install -y python3-pip
