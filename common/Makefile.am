@@ -73,7 +73,7 @@ libswsscommon_la_SOURCES = \
     redisutility.cpp
 
 # Refer: https://github.com/nlohmann/json/issues/1861
-CMN_FLAGS = -Wno-psabi -Wall -Wextra -pedantic
+CMN_FLAGS = -Wno-psabi -Wall -Wextra
 
 libswsscommon_la_CXXFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CFLAGS) $(CODE_COVERAGE_CXXFLAGS) $(CMN_FLAGS)
 libswsscommon_la_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CPPFLAGS) $(CODE_COVERAGE_CPPFLAGS) $(CMN_FLAGS)
