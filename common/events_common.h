@@ -383,14 +383,14 @@ struct serialization
              */
             rc2 = zmq_read_part(sock, 0, more, pt2);
         }
-        RET_ON_ERR((rc == 0) || (rc == 11), "Failure to read part1");
+        RET_ON_ERR((rc == 0) || (rc == 11), "Failure to read part1 rc=%d", rc);
         if (rc2 != 0) {
             rc = rc2;
-            RET_ON_ERR(false, "Failed to read part2");
+            RET_ON_ERR(false, "Failed to read part2 rc=%d", rc);
         }
         if (more) {
             rc = -1;
-            RET_ON_ERR(false, "Don't expect more than 2 parts");
+            RET_ON_ERR(false, "Don't expect more than 2 parts, rc=%d", rc);
         }
     out:
         return rc;
