@@ -266,7 +266,7 @@ out:
 
 EventSubscriber::EventSubscriber(): m_zmq_ctx(NULL), m_socket(NULL),
     m_cache_read(false)
-{};
+{}
 
 
 EventSubscriber::~EventSubscriber()
@@ -623,7 +623,8 @@ event_publish_wrap(void *handle, const char *tag_ptr,
 
     if ((tag_ptr == NULL) || (*tag_ptr == 0) ||
             ((params_cnt != 0) && (params_ptr == NULL))) {
-        SWSS_LOG_ERROR("event_publish_wrap: missing required args");
+        SWSS_LOG_ERROR("event_publish_wrap: missing required args params_cnt=%u",
+                params_cnt);
         return -1;
     }
 
@@ -634,7 +635,7 @@ event_publish_wrap(void *handle, const char *tag_ptr,
     for (uint32_t i=0; i<params_cnt; ++i) {
         if ((params_ptr->name == NULL) || (*params_ptr->name == 0) ||
                 (params_ptr->val == NULL) || (*params_ptr->val == 0)) {
-            SWSS_LOG_ERROR("event_publish_wrap: Missing param key/val");
+            SWSS_LOG_ERROR("event_publish_wrap: Missing param key/val i=%u", i);
             return -1;
         }
         params[params_ptr->name] = params_ptr->val;
