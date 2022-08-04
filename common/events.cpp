@@ -87,7 +87,7 @@ int EventPublisher::init(const string event_source)
      * 
      */
     rc = m_event_service.init_client(m_zmq_ctx, EVENTS_SERVICE_TIMEOUT_MS_PUB);
-    RET_ON_ERR (rc == 0, "Failed to init event service");
+    RET_ON_ERR (rc == 0, "Failed to init event service rc=%d", rc);
 
     /*
      * REQ socket is connected and a message is sent & received, more to
@@ -98,7 +98,7 @@ int EventPublisher::init(const string event_source)
      * the first event is published, the echo response will be available locally.
      */
     rc = m_event_service.echo_send("hello");
-    RET_ON_ERR (rc == 0, "Failed to echo send in event service");
+    RET_ON_ERR (rc == 0, "Failed to echo send in event service rc=%d", rc);
 
     m_event_source = event_source;
 
@@ -232,7 +232,7 @@ EventSubscriber::get_subscriber(bool use_cache, int recv_timeout,
         EventSubscriber_ptr_t sub(new EventSubscriber());
 
         RET_ON_ERR(sub->init(use_cache, recv_timeout, sources) == 0,
-                "Failed to init subscriber");
+                "Failed to init subscriber recv_timeout=%d", recv_timeout);
 
         s_subscriber = sub;
     }
@@ -257,7 +257,7 @@ EventSubscriber::get_instance(event_handle_t handle)
     EventSubscriber_ptr_t ret;
 
     RET_ON_ERR ((handle == s_subscriber.get()) && (s_subscriber != NULL),
-            "Invalid handle for get_instance");
+            "Invalid handle for get_instance handle=%p", handle);
 
     ret = s_subscriber;
 out:
@@ -287,7 +287,7 @@ EventSubscriber::~EventSubscriber()
         event_serialized_lst_t events;
 
         rc = m_event_service.cache_init();
-        RET_ON_ERR(rc == 0, "Failed to init the cache");
+        RET_ON_ERR(rc == 0, "Failed to init the cache rc=%d", rc);
 
         /* Shadow the cache init request, as it is async */
         m_event_service.send_recv(EVENT_ECHO);
@@ -319,7 +319,7 @@ EventSubscriber::~EventSubscriber()
 
         /* Start cache service with locally read events as initial stock */
         RET_ON_ERR(m_event_service.cache_start(events) == 0,
-                "Failed to send cache start");
+                "Failed to send cache start rc=%d", rc);
         m_event_service.close_service();
     }
 out:
@@ -351,12 +351,12 @@ EventSubscriber::init(bool use_cache, int recv_timeout,
 
     if ((subs_sources == NULL) || (subs_sources->empty())) {
         rc = zmq_setsockopt(sock, ZMQ_SUBSCRIBE, "", 0);
-        RET_ON_ERR(rc == 0, "Fails to set option");
+        RET_ON_ERR(rc == 0, "Fails to set option rc=%d", rc);
     }
     else {
         for (const auto e: *subs_sources) {
             rc = zmq_setsockopt(sock, ZMQ_SUBSCRIBE, e.c_str(), e.size());
-            RET_ON_ERR(rc == 0, "Fails to set option");
+            RET_ON_ERR(rc == 0, "Fails to set option rc=%d", rc);
         }
     }
 
@@ -367,7 +367,7 @@ EventSubscriber::init(bool use_cache, int recv_timeout,
 
     if (use_cache) {
         rc = m_event_service.init_client(m_zmq_ctx, EVENTS_SERVICE_TIMEOUT_MS_SUB);
-        RET_ON_ERR(rc == 0, "Fails to init the service");
+        RET_ON_ERR(rc == 0, "Fails to init the service rc=%d", rc);
 
         if (m_event_service.cache_stop() == 0) {
             // Stopped an active cache 
@@ -473,7 +473,7 @@ EventSubscriber::event_receive(string &event_str, uint32_t &missed_cnt,
             event_serialized_lst_t::iterator it = m_from_cache.begin();
             rc = deserialize(*it, event_data);
             m_from_cache.erase(it);
-            RET_ON_ERR(rc == 0, "Failed to deserialize message from cache");
+            RET_ON_ERR(rc == 0, "Failed to deserialize message from cache rc=%d", rc);
 
         }
         else {
@@ -670,7 +670,7 @@ event_receive_wrap(void *handle, event_receive_op_C_t *evt)
     int rc = -1;
     EventSubscriber_ptr_t psubs;
 
-    RET_ON_ERR(evt != NULL, "Require non null evt pointer to receive event");
+    RET_ON_ERR(evt != NULL, "Require non null evt pointer to receive event rc=%d", rc);
 
     psubs = EventSubscriber::get_instance(handle);
     RET_ON_ERR(psubs != NULL, "Invalid handle %p", handle);
