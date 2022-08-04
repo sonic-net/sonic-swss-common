@@ -4,6 +4,8 @@ ARG docker_container_name
 
 ADD ["debs", "/debs"]
 
+RUN apt-get install -y libboost-serialization1.71-dev uuid-dev
+
 RUN dpkg --purge python-swsscommon python3-swsscommon swss libsairedis sonic-db-cli libswsscommon libsaimetadata libsaivs syncd-vs
 
 RUN dpkg -i /debs/libswsscommon_1.0.0_amd64.deb
