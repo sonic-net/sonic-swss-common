@@ -31,6 +31,12 @@ void err_exit(const char *fn, int ln, int e, const char *fmt, ...)
 #endif
         ;
 
+#define ABORT_IF_NOT(x, fmt, args...)                       \
+    if (!(x)) {                                             \
+        int e = errno;                                      \
+        err_exit(__FUNCTION__, __LINE__, e, (fmt), ##args); \
+    }
+
 #ifdef __GNUC__
 #    define ATTRIBUTE_NORTEURN __attribute__ ((noreturn))
 #else
