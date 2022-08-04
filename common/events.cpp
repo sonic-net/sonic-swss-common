@@ -424,8 +424,8 @@ EventSubscriber::event_receive(event_receive_op_C_t &op)
 
     rc = -1;
     RET_ON_ERR(event_str.size() < op.event_sz,
-            "Event sz (%lu) is too large for buffer sz=%u",
-            event_str.size(), op.event_sz);
+            "Event sz (%d) is too large for buffer sz=%u",
+            (int)event_str.size(), op.event_sz);
 
     strncpy(op.event_str, event_str.c_str(), op.event_sz);
     rc = 0;
