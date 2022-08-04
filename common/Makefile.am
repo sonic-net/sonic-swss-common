@@ -72,6 +72,7 @@ libswsscommon_la_SOURCES = \
     countertable.cpp          \
     redisutility.cpp
 
+# Refer: https://github.com/nlohmann/json/issues/1861
 CMN_FLAGS = -Wno-psabi -Wall -Wextra -pedantic
 
 libswsscommon_la_CXXFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CFLAGS) $(CODE_COVERAGE_CXXFLAGS) $(CMN_FLAGS)
