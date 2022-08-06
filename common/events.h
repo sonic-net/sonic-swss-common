@@ -27,7 +27,7 @@ typedef void* event_handle_t;
  *
  * NOTE:
  *      The initialization occurs asynchronously.
- *      Any event published before init is complete, is blocked until the init
+ *      Any event published before init is complete, is blocked until the init.
  *      is complete. Hence recommend, do the init as soon as the process starts.
  *
  * Input:
