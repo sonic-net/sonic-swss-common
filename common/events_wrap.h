@@ -18,15 +18,14 @@ extern "C" {
  * Init publisher
  *
  * input:
- *  args:   as JSON string as below
- *      ' { "source" : "<source to use for publishing" }'
- *      e.g: '{ "source": "bgp" }
+ *  event_source -
+ *      Refer core API events_init_publisher for details.
  *
  * Return:
  *  > 0 -- Handle to use for subsequent calls.
  *  < 0 -- Implies failure. Absoulte value is the error code
  */
-void * events_init_publisher_wrap(const char *args);
+void * events_init_publisher_wrap(const char *event_source);
 
 
 /*
@@ -38,58 +37,43 @@ void * events_init_publisher_wrap(const char *args);
  */
 void events_deinit_publisher_wrap(void *handle);
 
+typedef struct param_C {
+    const char *name;
+    const char *val;
+} param_C_t;
+
 /*
  * Publish an event.
  *
  * input:
  *  handle: Handle from init_publisher
  *
- *  args:
- *      '{ "tag" : "<event tag to use for publishing>",
- *         "params": {
- *             <map of string:string params>
- *          }
- *       }'
- *      e.g: '{
- *          "tag": "bgp-state":
- *          "params": {
- *               "timestamp": "2022-08-17T02:39:21.286611Z",
- *               "ip": "100.126.188.90",
- *               "status": "down"
- *           }
- *       }'
- *
+ *  data:
+ *      Data to be published.
+ *      Refer core API event_publish for more details.
  *
  * Return:
  *  == 0 -- Published successfully
  *  < 0 -- Implies failure. Absoulte value is the error code
  */
-#define ARGS_TAG "tag"
-#define ARGS_PARAMS "params"
-
-int event_publish_wrap(void *handle, const char *args);
+int event_publish_wrap(void *handle, const char *tag,
+        const param_C_t *params, uint32_t params_cnt);
 
 
 /*
  * Init subscriber
  *
  * input:
- *  args:   as JSON string as below
- *      '{
- *          "use_cache" : <true/false as bool. default: false>,
- *          "recv_timeout": <timeout value as int, default: -1>,
- *       }'
- *      A missing key will be implied for default.
- *      e.g: '{ "use_cache": false }
+ *  
+ *  init_data:
+ *      Refer core API events_init_subscriber for details.
  *
  * Return:
  *  > 0 -- Handle to use for subsequent calls.
  *  < 0 -- Implies failure. Absoulte value is the error code
  */
-#define ARGS_USE_CACHE "use_cache"
-#define ARGS_RECV_TIMEOUT "recv_timeout"
 
-void *events_init_subscriber_wrap(const char *args);
+void *events_init_subscriber_wrap(bool use_cache, int recv_timeout);
 
 
 /*
@@ -97,9 +81,6 @@ void *events_init_subscriber_wrap(const char *args);
  *  handle -- as provided be events_init_subscriber 
  *
  */
-#define ARGS_KEY "key"
-#define ARGS_MISSED_CNT "missed_cnt"
-
 void events_deinit_subscriber_wrap(void *handle);
 
 /*
@@ -107,34 +88,28 @@ void events_deinit_subscriber_wrap(void *handle);
  *
  * input:
  *  handle - Handle obtained from init subscriber
- *  event_str:
- *      Buffer for receiving event formatted as below.
- *      <publish_source + tag as key>: {
- *              <params as dict>
- *      }
- *      e.g: '{
- *          "sonic-events-bgp:bgp-state": {
- *               "timestamp": "2022-08-17T02:39:21.286611Z",
- *               "ip": "100.126.188.90",
- *               "status": "down"
- *           }
- *       }'
- *  event_str_sz:
- *      Size of the buffer for receiving event.
- *
- *  missed_cnt:
- *      Buffer to receive missed count as int converted to string.
- *
- *  missed_cnt_sz:
- *      Size of the missed_cnt buffer.
+ *  evt:
+ *      Received event. Refer struct for details.
  *
  * Return:
- *  > 0 -- Implies received an event
- *  = 0 -- implies no event received due to timeout
- *  < 0 -- Implies failure. Absoulte value is the error code
+ *  0   - On success
+ *  > 0 - Implies failure due to timeout.
+ *  < 0 - For all other failures
  */
-int event_receive_wrap(void *handle, char *event_str,
-        int event_str_sz, char *missed_cnt, int missed_cnt_sz);
+
+typedef struct event_receive_op_C {
+    /* Event as JSON string; c-string  to help with C-binding for Go.*/
+    char *event_str;
+    uint32_t event_sz;      /* Sizeof event string */
+
+    uint32_t missed_cnt;    /* missed count */
+
+    int64_t publish_epoch_ms;   /* Epoch timepoint of publish */
+
+} event_receive_op_C_t;
+
+
+int event_receive_wrap(void *handle, event_receive_op_C_t *evt);
 
 /*
  * Set SWSS log priority

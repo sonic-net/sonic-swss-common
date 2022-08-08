@@ -27,7 +27,7 @@ typedef void* event_handle_t;
  *
  * NOTE:
  *      The initialization occurs asynchronously.
- *      Any event published before init is complete, is blocked until the init
+ *      Any event published before init is complete, is blocked until the init.
  *      is complete. Hence recommend, do the init as soon as the process starts.
  *
  * Input:
@@ -100,6 +100,13 @@ typedef std::map<std::string, std::string> event_params_t;
  *  > 0 - On failure, returns zmq_errno, if failure is zmq socket related.
  *  < 0 - For all other failures
  */
+
+/*
+ * A sanity check on final JSON string size of event
+ * An error log will be written for too big events for alert.
+ */
+#define EVENT_MAXSZ 1024
+
 int event_publish(event_handle_t handle, const std::string event_tag,
         const event_params_t *params=NULL);
 
@@ -152,10 +159,10 @@ void events_deinit_subscriber(event_handle_t handle);
 
 
 typedef struct {
-    int rc;                 /* Return value of event_receive */
     std::string key;        /* key */
     event_params_t params;  /* Params received */
-    int missed_cnt;         /* missed count */
+    uint32_t missed_cnt;        /* missed count */
+    int64_t publish_epoch_ms;  /* Epoch time in milliseconds */
 } event_receive_op_t;
 
 /*
@@ -166,33 +173,12 @@ typedef struct {
  *  sequence in event to compute missed events count. The missed count
  *  provides the count of events missed from this sender.
  *
- *  Received event:
- *      It is a form of JSON struct, with a single key and
- *      params as value. The key is <YANG schema module name>:<YANG schema tag
- *      name> and params is as per schema description for that event.
- *     
- *      e.g.
- *          { "sonic-events-bgp:bgp-state": {
- *              "ip": "100.126.188.90",
- *              "status": "down",
- *              "timestamp": "2022-08-17T02:39:21.286611Z"
- *              }
- *          }
- *
  * input:
  *  handle - As obtained from events_init_subscriber
  *
  * output:
- *  key : 
- *      YANG path as <event source module name>:<event tag/container name
- *      within the module that describes the event>
- *
- *  params:
- *      Parms associated.
- *
- *  missed_cnt:
- *      Count of missed events from this sender, before this event. Sum of
- *      missed count from all received events will give the total missed.
+ *  evt : 
+ *      The entire received event.
  *
  * return:
  *  0   - On success
@@ -200,7 +186,11 @@ typedef struct {
  *  < 0 - For all other failures
  *
  */
-event_receive_op_t event_receive(event_handle_t handle);
+int event_receive(event_handle_t handle, event_receive_op_t &evt);
+
+/* To receive as JSON */
+int event_receive_json(event_handle_t handle, std::string &evt,
+        uint32_t &missed_cnt, int64_t &publish_epoch_ms);
 
 
 #endif /* !_EVENTS_H */ 

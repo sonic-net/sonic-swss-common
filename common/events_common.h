@@ -1,3 +1,5 @@
+
+/* The internal code that caches runtime-IDs could retire upon de-init */
 #ifndef _EVENTS_COMMON_H
 #define _EVENTS_COMMON_H
 /*
@@ -29,17 +31,16 @@ using namespace chrono;
  * Max count of possible concurrent event publishers
  * We maintain a cache of last seen sequence number per publisher.
  * This provides a MAX ceiling for cache.
- * A publisher exiting will be not known to receiver, so some publishers
- * who gets periodically invoked as every N seconds, could over time
- * cause the cache over flow. 
- * whenever the cache hits this max, old instances are removed.
+ * An exiting publisher retires its runtime-ID explicitly.
+ * A crashed publisher or event lost for any reason will leave
+ * behind the runtime ID. Overtime, these leaked IDs could fill the cache.
+ * Hence whenever the cache hits this max, old instances are removed.
+ * old instances are identified using time of last publish.
  *
- * RFE: Publishers who publish at least 1 event, declare their
- *      exit via a reserved event, so receivers could drop tracking
- *      hence avoid overflow. Else, a long running process with no event
- *      but still active could lose its record. This is still not very
- *      serious, as first message from such publisher is less likely
- *      to be lost and it could create a record.
+ * In the scenario of too many publisher crashed and an instance that
+ * that does not publish for a very long time, could get purged.
+ * But crashing publishers is a bigger issue and we need not be
+ * perfect in that scenario.
  */
 #define MAX_PUBLISHERS_COUNT  1000
 
@@ -182,19 +183,34 @@ const string get_timestamp();
 #define EVENT_STR_DATA "d"
 #define EVENT_RUNTIME_ID  "r"
 #define EVENT_SEQUENCE "s"
+#define EVENT_EPOCH "t"
 
 typedef map<string, string> internal_event_t;
 
 /* Sequence is converted to string in message */
 typedef uint32_t sequence_t;
+#define SEQUENCE_MAX UINT32_MAX
+
 typedef string runtime_id_t;
 
 /*
  * internal_event_t internal_event_ref = {
- *    { EVENT_STR_DATA, "" },
- *    { EVENT_RUNTIME_ID, "" },
- *    { EVENT_SEQUENCE, "" } };
+ *    { EVENT_STR_DATA, "<json string of event>" },
+ *    { EVENT_RUNTIME_ID, "<assigned runtime id of publisher>" },
+ *    { EVENT_SEQUENCE, "<sequence number of event>" },
+ *    { EVENT_EPOCH, "<epoch time at the point of publish>" } };
  */
+
+/*
+ * Control messages could be sent as events with specific
+ * prefix "CONTROL_"
+ * e.g. CONTROL_DEINIT
+ */
+#define EVENT_STR_CTRL_PREFIX "CONTROL_"
+#define EVENT_STR_CTRL_PREFIX_SZ ((int)sizeof(EVENT_STR_CTRL_PREFIX) - 1)
+
+/* The internal code that caches runtime-IDs could retire upon de-init */
+#define EVENT_STR_CTRL_DEINIT "CONTROL_DEINIT"
 
 typedef vector<internal_event_t> internal_events_lst_t;
 
@@ -305,7 +321,9 @@ struct serialization
         else {
             /* override with zmq err */
             rc = zmq_errno();
-            RET_ON_ERR(false, "Failed to read part rc=%d", rc);
+            if (rc != 11) {
+                SWSS_LOG_ERROR("Failure to read part rc=%d", rc);
+            }
         }
     out:
         zmq_msg_close(&msg);
@@ -365,14 +383,14 @@ struct serialization
              */
             rc2 = zmq_read_part(sock, 0, more, pt2);
         }
-        RET_ON_ERR(rc == 0, "Failed to read part1");
+        RET_ON_ERR((rc == 0) || (rc == 11), "Failure to read part1 rc=%d", rc);
         if (rc2 != 0) {
             rc = rc2;
-            RET_ON_ERR(false, "Failed to read part2");
+            RET_ON_ERR(false, "Failed to read part2 rc=%d", rc);
         }
         if (more) {
             rc = -1;
-            RET_ON_ERR(false, "Don't expect more than 2 parts");
+            RET_ON_ERR(false, "Don't expect more than 2 parts, rc=%d", rc);
         }
     out:
         return rc;
@@ -415,6 +433,12 @@ zmq_message_read(void *sock, int flag, P1 &pt1, P2 &pt2)
 
     return render.zmq_message_read(sock, flag, pt1, pt2);
 }
+
+/* Convert {<key>: < params >tttt a JSON string */
+string convert_to_json(const string key, const map_str_str_t &params);
+
+/* Parse JSON string into {<key>: < params >} */
+int convert_from_json(const string json_str, string &key, map_str_str_t &params);
 
 /*
  *  Cache drain timeout.

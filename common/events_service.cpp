@@ -33,7 +33,7 @@ event_service::init_client(void *zmq_ctx, int block_ms)
     int rc = -1;
 
     void *sock = zmq_socket (zmq_ctx, ZMQ_REQ);
-    RET_ON_ERR(sock != NULL, "Failed to get ZMQ_REQ socket");
+    RET_ON_ERR(sock != NULL, "Failed to get ZMQ_REQ socket rc=%d", rc);
 
     rc = zmq_connect (sock, get_config(REQ_REP_END_KEY).c_str());
     RET_ON_ERR(rc == 0, "Failed to connect to %s", get_config(REQ_REP_END_KEY).c_str());
@@ -58,7 +58,7 @@ event_service::init_server(void *zmq_ctx, int block_ms)
     int rc = -1;
 
     void *sock = zmq_socket (zmq_ctx, ZMQ_REP);
-    RET_ON_ERR(sock != NULL, "Failed to get ZMQ_REP socket");
+    RET_ON_ERR(sock != NULL, "Failed to get ZMQ_REP socket rc=%d", rc);
 
     rc = zmq_bind (sock, get_config(REQ_REP_END_KEY).c_str());
     RET_ON_ERR(rc == 0, "Failed to bind to %s", get_config(REQ_REP_END_KEY).c_str());
@@ -95,7 +95,7 @@ event_service::echo_receive(string &outs)
     int code;
 
     int rc = channel_read(code, l);
-    RET_ON_ERR(rc == 0, "failing to read echo");
+    RET_ON_ERR(rc == 0, "failing to read echo rc=%d", rc);
 
     RET_ON_ERR (code == 0, "echo receive resp %d not 0", code);
     RET_ON_ERR (l.size() == 1, "echo received resp size %d is not 1",
@@ -125,7 +125,7 @@ event_service::cache_start(const event_serialized_lst_t &lst)
     int rc;
 
     RET_ON_ERR((rc = send_recv(EVENT_CACHE_START, &lst)) == 0,
-                "Failed to send cache start");
+                "Failed to send cache start rc=%d", rc);
 out:
     return rc;
 }
@@ -137,7 +137,7 @@ event_service::cache_stop()
     int rc;
 
     RET_ON_ERR((rc = send_recv(EVENT_CACHE_STOP)) == 0,
-                "Failed to send cache stop");
+                "Failed to send cache stop rc=%d", rc);
 out:
     return rc;
 }
@@ -149,7 +149,7 @@ event_service::cache_read(event_serialized_lst_t &lst)
     int rc;
 
     RET_ON_ERR((rc = send_recv(EVENT_CACHE_READ, NULL, &lst)) == 0,
-                "Failed to send cache read");
+                "Failed to send cache read rc=%d", rc);
 out:
     return rc;
 }

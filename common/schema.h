@@ -200,11 +200,20 @@ namespace swss {
 #define COUNTERS_TWICE_NAPT_TABLE       "COUNTERS_TWICE_NAPT"
 #define COUNTERS_GLOBAL_NAT_TABLE       "COUNTERS_GLOBAL_NAT"
 
+#define COUNTERS_EVENTS_TABLE           "COUNTERS_EVENTS"
+
 #define PERIODIC_WATERMARKS_TABLE      "PERIODIC_WATERMARKS"
 #define PERSISTENT_WATERMARKS_TABLE    "PERSISTENT_WATERMARKS"
 #define USER_WATERMARKS_TABLE          "USER_WATERMARKS"
 
 #define RATES_TABLE                         "RATES"
+
+/***** EVENTS COUNTER KEYS *****/
+#define COUNTERS_EVENTS_PUBLISHED           "published"
+#define COUNTERS_EVENTS_MISSED_SLOW_RCVR    "missed_by_slow_receiver"
+#define COUNTERS_EVENTS_MISSED_INTERNAL     "missed_internal"
+#define COUNTERS_EVENTS_MISSED_CACHE        "missed_to_cache"
+#define COUNTERS_EVENTS_LATENCY             "latency_in_ms"
 
 /***** LOGLEVEL DATABASE *****/
 

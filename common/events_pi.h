@@ -17,6 +17,7 @@
 #include "events.h"
 #include "events_common.h"
 #include "events_service.h"
+#include "events_wrap.h"
 
 using namespace std;
 
@@ -43,6 +44,7 @@ typedef map <string, EventPublisher_ptr_t> lst_publishers_t;
 class EventPublisher : public events_base
 {
     static lst_publishers_t s_publishers;
+    static int LINGER_TIMEOUT;
 
     public:
         virtual ~EventPublisher();
@@ -59,7 +61,7 @@ class EventPublisher : public events_base
 
         int publish(const string event_tag,
                 const event_params_t *params);
-
+        int send_evt(const string str_data);
 
         void *m_zmq_ctx;
         void *m_socket;
@@ -99,7 +101,11 @@ class EventSubscriber : public events_base
 
         static void drop_subscriber(event_handle_t handle);
 
-        static event_receive_op_t do_receive(event_handle_t handle);
+        static EventSubscriber_ptr_t get_instance(event_handle_t handle);
+
+        int event_receive(event_receive_op_t &);
+        int event_receive(event_receive_op_C_t &);
+        int event_receive(string &event_str, uint32_t &missed, int64_t &pub_ms);
 
     private:
         EventSubscriber();
@@ -108,7 +114,6 @@ class EventSubscriber : public events_base
                 int recv_timeout= -1,
                 const event_subscribe_sources_t *subs_sources=NULL);
 
-        int event_receive(string &key, event_params_t &params, int &missed_cnt);
 
         void *m_zmq_ctx;
         void *m_socket;

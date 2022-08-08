@@ -8,6 +8,7 @@
  */
 
 lst_publishers_t EventPublisher::s_publishers;
+int EventPublisher::LINGER_TIMEOUT = 100;    // In milliseconds
 
 event_handle_t
 EventPublisher::get_publisher(const string event_source)
@@ -78,12 +79,15 @@ int EventPublisher::init(const string event_source)
     int rc = zmq_connect (sock, get_config(XSUB_END_KEY).c_str());
     RET_ON_ERR(rc == 0, "Publisher fails to connect %s", get_config(XSUB_END_KEY).c_str());
 
+    rc = zmq_setsockopt (sock, ZMQ_LINGER, &LINGER_TIMEOUT, sizeof (LINGER_TIMEOUT));
+    RET_ON_ERR(rc == 0, "Failed to ZMQ_LINGER to %d", LINGER_TIMEOUT);
+
     /*
      * Event service could be down. So have a timeout.
      * 
      */
     rc = m_event_service.init_client(m_zmq_ctx, EVENTS_SERVICE_TIMEOUT_MS_PUB);
-    RET_ON_ERR (rc == 0, "Failed to init event service");
+    RET_ON_ERR (rc == 0, "Failed to init event service rc=%d", rc);
 
     /*
      * REQ socket is connected and a message is sent & received, more to
@@ -94,11 +98,9 @@ int EventPublisher::init(const string event_source)
      * the first event is published, the echo response will be available locally.
      */
     rc = m_event_service.echo_send("hello");
-    RET_ON_ERR (rc == 0, "Failed to echo send in event service");
+    RET_ON_ERR (rc == 0, "Failed to echo send in event service rc=%d", rc);
 
     m_event_source = event_source;
-
-    m_runtime_id = get_uuid();
 
     m_socket = sock;
 out:
@@ -110,6 +112,10 @@ out:
 
 EventPublisher::~EventPublisher()
 {
+    if (!m_runtime_id.empty()) {
+        /* Retire the runtime ID */
+        send_evt(EVENT_STR_CTRL_DEINIT);
+    }
     m_event_service.close_service();
     if (m_socket != NULL) {
         zmq_close(m_socket);
@@ -119,11 +125,38 @@ EventPublisher::~EventPublisher()
 
 
 int
+EventPublisher::send_evt(const string str_data)
+{
+    internal_event_t event_data;
+    int rc;
+    stringstream ss;
+
+    if (str_data.size() > EVENT_MAXSZ) {
+        SWSS_LOG_ERROR("event size (%d) > expected max(%d). Still published.",
+            (int)str_data.size(), EVENT_MAXSZ);
+    }
+    auto timepoint = system_clock::now();
+    ss << duration_cast<nanoseconds>(timepoint.time_since_epoch()).count();
+
+    event_data[EVENT_STR_DATA] = str_data;
+    event_data[EVENT_RUNTIME_ID] = m_runtime_id;
+    /* A value of 0 will indicate rollover */
+    ++m_sequence;
+    event_data[EVENT_SEQUENCE] = seq_to_str(m_sequence);
+    event_data[EVENT_EPOCH] = ss.str();
+
+    rc = zmq_message_send(m_socket, m_event_source, event_data);
+    RET_ON_ERR(rc == 0, "failed to send for tag %s", str_data.substr(0, 20).c_str());
+out:
+    return rc;
+}
+
+
+int
 EventPublisher::publish(const string tag, const event_params_t *params)
 {
     int rc;
-    internal_event_t event_data;
-    string key(m_event_source + ":" + tag);
+    string str_data;
 
     if (m_event_service.is_active()) {
         string s;
@@ -136,6 +169,10 @@ EventPublisher::publish(const string tag, const event_params_t *params)
 
         /* Close it as we don't need it anymore */
         m_event_service.close_service();
+    }
+
+    if (m_runtime_id.empty()) {
+        m_runtime_id = get_uuid();
     }
 
     /* Check for timestamp in params. If not, provide it. */
@@ -153,38 +190,12 @@ EventPublisher::publish(const string tag, const event_params_t *params)
         params = &evt_params;
     }
 
-    rc = serialize(*params, param_str);
-    RET_ON_ERR(rc == 0, "failed to serialize params %s",
-            map_to_str(*params).c_str());
+    str_data = convert_to_json(m_event_source + ":" + tag, *params);
+    rc = send_evt(str_data);
+    RET_ON_ERR(rc == 0, "failed to send event str[%d]= %s", (int)str_data.size(),
+        str_data.substr(0, 20).c_str());
 
-    {
-    map_str_str_t event_str_map = { { key, param_str}};
-
-    rc = serialize(event_str_map, event_data[EVENT_STR_DATA]);
-    RET_ON_ERR(rc == 0, "failed to serialize event str %s", 
-            map_to_str(event_str_map).c_str());
-    }
-    event_data[EVENT_RUNTIME_ID] = m_runtime_id;
-    ++m_sequence;
-    event_data[EVENT_SEQUENCE] = seq_to_str(m_sequence);
-
-    rc = zmq_message_send(m_socket, m_event_source, event_data);
-    RET_ON_ERR(rc == 0, "failed to send for tag %s", tag.c_str());
-
-    {
-        nlohmann::json msg = nlohmann::json::object();
-        {
-            nlohmann::json params_data = nlohmann::json::object();
-
-            for (event_params_t::const_iterator itc = params->begin();
-                    itc != params->end(); ++itc) {
-                params_data[itc->first] = itc->second;
-            }
-            msg[key] = params_data;
-        }
-        string json_str(msg.dump());
-        SWSS_LOG_INFO("EVENT_PUBLISHED: %s", json_str.c_str());
-    }
+    SWSS_LOG_INFO("EVENT_PUBLISHED: %s", str_data.substr(0, 80).c_str());
 
 out:
     return rc;
@@ -221,7 +232,7 @@ EventSubscriber::get_subscriber(bool use_cache, int recv_timeout,
         EventSubscriber_ptr_t sub(new EventSubscriber());
 
         RET_ON_ERR(sub->init(use_cache, recv_timeout, sources) == 0,
-                "Failed to init subscriber");
+                "Failed to init subscriber recv_timeout=%d", recv_timeout);
 
         s_subscriber = sub;
     }
@@ -239,23 +250,23 @@ EventSubscriber::drop_subscriber(event_handle_t handle)
 }
 
 
-event_receive_op_t
-EventSubscriber::do_receive(event_handle_t handle)
+EventSubscriber_ptr_t
+EventSubscriber::get_instance(event_handle_t handle)
 {
-    event_receive_op_t op;
 
-    if ((handle == s_subscriber.get()) && (s_subscriber != NULL)) {
-        op.rc = s_subscriber->event_receive(op.key, op.params, op.missed_cnt);
-    }
-    else {
-        op.rc = -1;
-    }
-    return op;
+    EventSubscriber_ptr_t ret;
+
+    RET_ON_ERR ((handle == s_subscriber.get()) && (s_subscriber != NULL),
+            "Invalid handle for get_instance handle=%p", handle);
+
+    ret = s_subscriber;
+out:
+    return ret;
 }
 
 EventSubscriber::EventSubscriber(): m_zmq_ctx(NULL), m_socket(NULL),
     m_cache_read(false)
-{};
+{}
 
 
 EventSubscriber::~EventSubscriber()
@@ -276,7 +287,7 @@ EventSubscriber::~EventSubscriber()
         event_serialized_lst_t events;
 
         rc = m_event_service.cache_init();
-        RET_ON_ERR(rc == 0, "Failed to init the cache");
+        RET_ON_ERR(rc == 0, "Failed to init the cache rc=%d", rc);
 
         /* Shadow the cache init request, as it is async */
         m_event_service.send_recv(EVENT_ECHO);
@@ -308,7 +319,7 @@ EventSubscriber::~EventSubscriber()
 
         /* Start cache service with locally read events as initial stock */
         RET_ON_ERR(m_event_service.cache_start(events) == 0,
-                "Failed to send cache start");
+                "Failed to send cache start rc=%d", rc);
         m_event_service.close_service();
     }
 out:
@@ -340,12 +351,12 @@ EventSubscriber::init(bool use_cache, int recv_timeout,
 
     if ((subs_sources == NULL) || (subs_sources->empty())) {
         rc = zmq_setsockopt(sock, ZMQ_SUBSCRIBE, "", 0);
-        RET_ON_ERR(rc == 0, "Fails to set option");
+        RET_ON_ERR(rc == 0, "Fails to set option rc=%d", rc);
     }
     else {
         for (const auto e: *subs_sources) {
             rc = zmq_setsockopt(sock, ZMQ_SUBSCRIBE, e.c_str(), e.size());
-            RET_ON_ERR(rc == 0, "Fails to set option");
+            RET_ON_ERR(rc == 0, "Fails to set option rc=%d", rc);
         }
     }
 
@@ -356,7 +367,7 @@ EventSubscriber::init(bool use_cache, int recv_timeout,
 
     if (use_cache) {
         rc = m_event_service.init_client(m_zmq_ctx, EVENTS_SERVICE_TIMEOUT_MS_SUB);
-        RET_ON_ERR(rc == 0, "Fails to init the service");
+        RET_ON_ERR(rc == 0, "Fails to init the service rc=%d", rc);
 
         if (m_event_service.cache_stop() == 0) {
             // Stopped an active cache 
@@ -394,13 +405,62 @@ EventSubscriber::prune_track()
 
 
 int
-EventSubscriber::event_receive(string &key, event_params_t &params, int &missed_cnt)
+EventSubscriber::event_receive(event_receive_op_C_t &op)
 {
-    int rc = 0; 
-    key.clear();
-    event_params_t().swap(params);
+    string event_str;
+    int rc = -1;
 
-    while (key.empty()) {
+    RET_ON_ERR (((op.event_sz != 0) && (op.event_str != NULL)),
+            "Require non null buffer(%p) of non zero size (%u)",
+            op.event_str, op.event_sz);
+    
+    rc = event_receive(event_str, op.missed_cnt, op.publish_epoch_ms);
+    if (rc != 0) {
+        if (rc != 11) {
+            SWSS_LOG_ERROR("failed to receive event. rc=%d", rc);
+        }
+        goto out;
+    }
+
+    rc = -1;
+    RET_ON_ERR(event_str.size() < op.event_sz,
+            "Event sz (%d) is too large for buffer sz=%u",
+            (int)event_str.size(), op.event_sz);
+
+    strncpy(op.event_str, event_str.c_str(), op.event_sz);
+    rc = 0;
+out:
+    return rc;
+}
+
+int
+EventSubscriber::event_receive(event_receive_op_t &op)
+{   
+    string event_str;
+    int rc = -1;
+
+    rc = event_receive(event_str, op.missed_cnt, op.publish_epoch_ms);
+    if (rc != 0) {
+        if (rc != 11) {
+            SWSS_LOG_ERROR("failed to receive event. rc=%d", rc);
+        }
+        goto out;
+    }
+
+    rc = convert_from_json(event_str, op.key, op.params);
+    RET_ON_ERR(rc == 0, "failed to parse %s", event_str.c_str());
+out:
+    return rc;
+}
+
+int
+EventSubscriber::event_receive(string &event_str, uint32_t &missed_cnt,
+        int64_t &publish_epoch)
+{
+    int rc = 0;
+    missed_cnt = 0;
+
+    while (true) {
         internal_event_t event_data;
 
         if (m_cache_read && m_from_cache.empty()) {
@@ -413,56 +473,84 @@ EventSubscriber::event_receive(string &key, event_params_t &params, int &missed_
             event_serialized_lst_t::iterator it = m_from_cache.begin();
             rc = deserialize(*it, event_data);
             m_from_cache.erase(it);
-            RET_ON_ERR(rc == 0, "Failed to deserialize message from cache");
+            RET_ON_ERR(rc == 0, "Failed to deserialize message from cache rc=%d", rc);
 
         }
         else {
             /* Read from SUBS channel */
             string evt_source;
             rc = zmq_message_read(m_socket, 0, evt_source, event_data);
-            RET_ON_ERR(rc == 0, "Failed to read message from sock rc=%d", rc);
+            if (rc != 0) {
+                if (rc != 11) {
+                    SWSS_LOG_ERROR("Failure to read message from sock rc=%d", rc);
+                }
+                goto out;
+            }
         }
 
         /* Find any missed events for this runtime ID */
-        missed_cnt = 0;
+        int this_missed_cnt = 0;
         sequence_t seq = str_to_seq(event_data[EVENT_SEQUENCE]);
         track_info_t::const_iterator itc = m_track.find(event_data[EVENT_RUNTIME_ID]);
         if (itc != m_track.end()) {
             /* current seq - last read - 1 == 0 if none missed */
-            missed_cnt = seq - itc->second.seq - 1;
+            if (seq != 0) {
+                this_missed_cnt = seq - itc->second.seq - 1;
+            }
+            else {
+                /* handle rollover */
+                this_missed_cnt = SEQUENCE_MAX - itc->second.seq;
+            }
         }
         else {
+            /*
+             * First message seen from this runtime id. We can't imply
+             * all earlier messages are lost, as eventd could have been
+             * restarted and this publisher is long running.
+             * Hence skip.
+             * eventd going down should be seldom.
+             */
+
+            /* May need to add new ID to track; Prune if needed */
             if (m_track.size() > (MAX_PUBLISHERS_COUNT + 10)) {
                 prune_track();
             }
         }
-        if (missed_cnt >= 0) {
-            map_str_str_t ev;
 
-            rc = deserialize(event_data[EVENT_STR_DATA], ev);
-            RET_ON_ERR(rc == 0, "Failed to deserialize %s",
-                    event_data[EVENT_STR_DATA].substr(0, 32).c_str());
-
-            if (ev.size() != 1) rc = -1;
-            RET_ON_ERR(rc == 0, "Expect string (%s) deserialize to one key",
-                    event_data[EVENT_STR_DATA].substr(0, 32).c_str());
-            
-            key = ev.begin()->first;
-
-            rc = deserialize(ev.begin()->second, params);
-            RET_ON_ERR(rc == 0, "failed to deserialize params %s",
-                    ev.begin()->second.substr(0, 32).c_str());
-            
-            m_track[event_data[EVENT_RUNTIME_ID]] = evt_info_t(seq);
-
+        if (this_missed_cnt < 0) {
+            continue;       /* We read duplicate */
         }
-        else {
-            /* negative value implies duplicate; Possibly seen from cache */
+        missed_cnt += this_missed_cnt;
+
+        /* We have a valid publised or control event */
+
+        if (event_data[EVENT_STR_DATA].compare(0, EVENT_STR_CTRL_PREFIX_SZ,
+                    EVENT_STR_CTRL_PREFIX) != 0) {
+            istringstream iss(event_data[EVENT_EPOCH]);
+
+            /*
+             * event_sz - string size is verified against event string.
+             * Hence strncpy will put null at the end.
+             */
+            event_str = event_data[EVENT_STR_DATA];
+            iss >> publish_epoch;
+            m_track[event_data[EVENT_RUNTIME_ID]] = evt_info_t(seq);
+            break;
+        } else {
+            /* This is control message */
+            if (event_data[EVENT_STR_DATA] == EVENT_STR_CTRL_DEINIT) {
+                if (itc != m_track.end()) {
+                    m_track.erase(event_data[EVENT_RUNTIME_ID]);
+                }
+            }
         }
     }
 out:
+    /*
+     * Returns on receiving event or timeout or anyother receive failure.
+     * Missed count is valid value, even when rc != 0
+     */
     return rc;
-
 }
 
 event_handle_t
@@ -478,30 +566,44 @@ events_deinit_subscriber(event_handle_t handle)
     EventSubscriber::drop_subscriber(handle);
 }
 
-event_receive_op_t
-event_receive(event_handle_t handle)
+int
+event_receive(event_handle_t handle, event_receive_op_t &evt)
 {
-    return EventSubscriber::do_receive(handle);
+    int rc = -1;
+
+    EventSubscriber_ptr_t psubs = EventSubscriber::get_instance(handle);
+    RET_ON_ERR(psubs != NULL, "Invalid handle %p", handle);
+
+    rc = psubs->event_receive(evt);
+out:
+    return rc;
 }
 
-void *
-events_init_publisher_wrap(const char *args)
+int
+event_receive_json(event_handle_t handle, string &event_str,
+        uint32_t &missed_cnt, int64_t &publish_epoch)
 {
-    SWSS_LOG_DEBUG("events_init_publisher_wrap: args=%s",
-            (args != NULL ? args : "<null pointer>"));
+    int rc = -1;
 
-    if (args == NULL) {
+    EventSubscriber_ptr_t psubs = EventSubscriber::get_instance(handle);
+    RET_ON_ERR(psubs != NULL, "Invalid handle %p", handle);
+
+    rc = psubs->event_receive(event_str, missed_cnt, publish_epoch);
+out:
+    return rc;
+}
+
+
+void *
+events_init_publisher_wrap(const char *event_source)
+{
+    SWSS_LOG_DEBUG("events_init_publisher_wrap: event_source=%s",
+            (event_source != NULL ? event_source : "<null pointer>"));
+
+    if ((event_source == NULL) || (*event_source == 0)) {
         return NULL;
     }
-    const auto &data = nlohmann::json::parse(args);
-
-    string source;
-    for (auto it = data.cbegin(); it != data.cend(); ++it) {
-        if ((it.key() == ARGS_SOURCE) && (*it).is_string()) {
-            source = it.value();
-        }
-    }
-    return events_init_publisher(source);
+    return events_init_publisher(event_source);
 }
 
 
@@ -513,56 +615,41 @@ events_deinit_publisher_wrap(void *handle)
 
 
 int
-event_publish_wrap(void *handle, const char *args)
+event_publish_wrap(void *handle, const char *tag_ptr,
+                const param_C_t *params_ptr, uint32_t params_cnt)
 {
     string tag;
     event_params_t params;
 
-    SWSS_LOG_DEBUG("events_init_publisher_wrap: handle=%p args=%s",
-            handle, (args != NULL ? args : "<null pointer>"));
-
-    if (args == NULL) {
+    if ((tag_ptr == NULL) || (*tag_ptr == 0) ||
+            ((params_cnt != 0) && (params_ptr == NULL))) {
+        SWSS_LOG_ERROR("event_publish_wrap: missing required args params_cnt=%u",
+                params_cnt);
         return -1;
     }
-    const auto &data = nlohmann::json::parse(args);
 
-    for (auto it = data.cbegin(); it != data.cend(); ++it) {
-        if ((it.key() == ARGS_TAG) && (*it).is_string()) {
-            tag = it.value();
+    SWSS_LOG_DEBUG("events_init_publisher_wrap: handle=%p tag=%s params_cnt = %u",
+            handle, tag_ptr, params_cnt);
+
+    tag = string(tag_ptr);
+    for (uint32_t i=0; i<params_cnt; ++i) {
+        if ((params_ptr->name == NULL) || (*params_ptr->name == 0) ||
+                (params_ptr->val == NULL) || (*params_ptr->val == 0)) {
+            SWSS_LOG_ERROR("event_publish_wrap: Missing param key/val i=%u", i);
+            return -1;
         }
-        else if ((it.key() == ARGS_PARAMS) && (*it).is_object()) {
-            const auto &params_data = *it;
-            for (auto itp = params_data.cbegin(); itp != params_data.cend(); ++itp) {
-                if ((*itp).is_string()) {
-                    params[itp.key()] = itp.value();
-                }
-            }
-        }
+        params[params_ptr->name] = params_ptr->val;
+        ++params_ptr;
     }
-    return event_publish(handle, tag, &params);
+    return event_publish(handle, tag, params.empty() ? NULL : &params);
 }
 
 void *
-events_init_subscriber_wrap(const char *args)
+events_init_subscriber_wrap(bool use_cache, int recv_timeout)
 {
-    bool use_cache = true;
-    int recv_timeout = -1;
-    event_subscribe_sources_t sources;
+    SWSS_LOG_DEBUG("events_init_subsriber_wrap: use_cache=%d timeout=%d",
+            use_cache, recv_timeout);
 
-    SWSS_LOG_DEBUG("events_init_subsriber_wrap: args:%s", args);
-
-    if (args != NULL) {
-        const auto &data = nlohmann::json::parse(args);
-
-        for (auto it = data.cbegin(); it != data.cend(); ++it) {
-            if ((it.key() == ARGS_USE_CACHE) && (*it).is_boolean()) {
-                use_cache = it.value();
-            }
-            else if ((it.key() == ARGS_RECV_TIMEOUT) && (*it).is_number_integer()) {
-                recv_timeout = it.value();
-            }
-        }
-    }
     void *handle = events_init_subscriber(use_cache, recv_timeout);
     SWSS_LOG_DEBUG("events_init_subscriber_wrap: handle=%p", handle);
     return handle;
@@ -579,61 +666,24 @@ events_deinit_subscriber_wrap(void *handle)
 
 
 int
-event_receive_wrap(void *handle, char *event_str,
-        int event_str_sz, char *missed_cnt_str, int missed_cnt_str_sz)
+event_receive_wrap(void *handle, event_receive_op_C_t *evt)
 {
-    event_receive_op_t evt;
-    int rc = 0;
+    int rc = -1;
+    EventSubscriber_ptr_t psubs;
 
-    SWSS_LOG_DEBUG("events_receive_wrap handle=%p event-sz=%d missed-sz=%d\n",
-            handle, event_str_sz, missed_cnt_str_sz);
+    RET_ON_ERR(evt != NULL, "Require non null evt pointer to receive event rc=%d", rc);
 
-    evt = event_receive(handle);
+    psubs = EventSubscriber::get_instance(handle);
+    RET_ON_ERR(psubs != NULL, "Invalid handle %p", handle);
 
-    if (evt.rc == 0) {
-        nlohmann::json res = nlohmann::json::object();
-        
-        {
-            nlohmann::json params_data = nlohmann::json::object();
-
-            for (event_params_t::const_iterator itc = evt.params.begin(); itc != evt.params.end(); ++itc) {
-                params_data[itc->first] = itc->second;
-            }
-            res[evt.key] = params_data;
-        }
-        string json_str(res.dump());
-        rc = snprintf(event_str, event_str_sz, "%s", json_str.c_str());
-        if (rc >= event_str_sz) {
-            SWSS_LOG_ERROR("truncated event buffer.need=%d given=%d",
-                    rc, event_str_sz);
-            event_str[event_str_sz-1] = 0;
-        }
-
-        int rc_missed = snprintf(missed_cnt_str, missed_cnt_str_sz, "%d", evt.missed_cnt);
-        if (rc_missed >= missed_cnt_str_sz) {
-            SWSS_LOG_ERROR("missed cnt (%d) buffer.need=%d given=%d",
-                    evt.missed_cnt, rc_missed, missed_cnt_str_sz);
-            missed_cnt_str[missed_cnt_str_sz-1] = 0;
-        }
-    }
-    else if (evt.rc > 0) {
-        // timeout
-        rc = 0;
-    }
-    else {
-        rc = evt.rc;
-    }
-
-    SWSS_LOG_DEBUG("events_receive_wrap rc=%d event_str=%s missed=%s\n",
-            rc, event_str, missed_cnt_str);
-
+    rc = psubs->event_receive(*evt);
+out:
     return rc;
-}
 
+}
 
 void swssSetLogPriority(int pri)
 {
     swss::Logger::setMinPrio((swss::Logger::Priority) pri);
 }
-
 
