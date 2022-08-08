@@ -191,12 +191,11 @@ EventPublisher::publish(const string tag, const event_params_t *params)
     }
 
     str_data = convert_to_json(m_event_source + ":" + tag, *params);
+    SWSS_LOG_INFO("EVENT_PUBLISHED: %s", str_data.c_str());
+
     rc = send_evt(str_data);
     RET_ON_ERR(rc == 0, "failed to send event str[%d]= %s", (int)str_data.size(),
         str_data.substr(0, 20).c_str());
-
-    SWSS_LOG_INFO("EVENT_PUBLISHED: %s", str_data.substr(0, 80).c_str());
-
 out:
     return rc;
 }
