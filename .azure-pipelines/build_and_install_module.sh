@@ -29,6 +29,7 @@ function build_and_install_kmodule()
     apt-get install -y build-essential linux-headers-${KERNEL_RELEASE} autoconf pkg-config fakeroot
     apt-get install -y flex bison libssl-dev libelf-dev
     apt-get install -y libnl-route-3-200 libnl-route-3-dev libnl-cli-3-200 libnl-cli-3-dev libnl-3-dev
+    apt-get install -y lizmq3-dev libzmq5 libboost-serialization1.71.0 uuid-dev
 
     # Add the apt source mirrors and download the linux image source code
     cp /etc/apt/sources.list /etc/apt/sources.list.bk
