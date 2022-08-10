@@ -35,6 +35,7 @@
 #include "notificationproducer.h"
 #include "warm_restart.h"
 #include "logger.h"
+#include "events.h"
 #include "configdb.h"
 #include "status_code_util.h"
 %}
@@ -215,4 +216,6 @@ T castSelectableObj(swss::Selectable *temp)
 %include "warm_restart.h"
 %include "dbinterface.h"
 %include "logger.h"
+%include "events.h"
+
 %include "status_code_util.h"

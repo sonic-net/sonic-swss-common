@@ -28,6 +28,9 @@ DBGFLAGS = -g -DNDEBUG
 endif
 
 libswsscommon_la_SOURCES = \
+    events_common.cpp         \
+    events_service.cpp        \
+    events.cpp                \
     logger.cpp                \
     redisreply.cpp            \
     configdb.cpp              \
@@ -71,7 +74,7 @@ libswsscommon_la_SOURCES = \
 
 libswsscommon_la_CXXFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CFLAGS) $(CODE_COVERAGE_CXXFLAGS)
 libswsscommon_la_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CPPFLAGS) $(CODE_COVERAGE_CPPFLAGS)
-libswsscommon_la_LIBADD = -lpthread $(LIBNL_LIBS) $(CODE_COVERAGE_LIBS)
+libswsscommon_la_LIBADD = -lpthread $(LIBNL_LIBS) $(CODE_COVERAGE_LIBS) -lzmq -lboost_serialization -luuid
 
 swssloglevel_SOURCES = loglevel.cpp
 

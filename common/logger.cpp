@@ -78,7 +78,7 @@ void Logger::swssPrioNotify(const std::string& component, const std::string& pri
 
     if (priorityStringMap.find(prioStr) == priorityStringMap.end())
     {
-        SWSS_LOG_ERROR("Invalid loglevel. Setting to NOTICE.");
+        SWSS_LOG_ERROR("Invalid loglevel. Setting to NOTICE. %s", prioStr.c_str());
         logger.m_minPrio = SWSS_NOTICE;
     }
     else
@@ -99,7 +99,7 @@ void Logger::swssOutputNotify(const std::string& component, const std::string& o
 
     if (outputStringMap.find(outputStr) == outputStringMap.end())
     {
-        SWSS_LOG_ERROR("Invalid logoutput. Setting to SYSLOG.");
+        SWSS_LOG_ERROR("Invalid logoutput. Setting to SYSLOG. %s", outputStr.c_str());
         logger.m_output = SWSS_SYSLOG;
     }
     else
