@@ -51,6 +51,7 @@ using namespace chrono;
         SWSS_LOG_ERROR("last:errno=%d", _e); \
         goto out; }
 
+static const int LINGER_TIMEOUT = 100;  /* Linger timeout in milliseconds */
 
 /* helper API to print variable type */
 /*

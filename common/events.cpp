@@ -8,7 +8,6 @@
  */
 
 lst_publishers_t EventPublisher::s_publishers;
-int EventPublisher::LINGER_TIMEOUT = 100;    // In milliseconds
 
 event_handle_t
 EventPublisher::get_publisher(const string event_source)
