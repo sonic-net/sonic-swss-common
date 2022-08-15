@@ -20,7 +20,7 @@ static event_serialized_lst_t server_rd_lst, server_wr_lst;
 void serve_commands()
 {
     int code;
-    event_serialized_lst_t lst;
+    event_serialized_lst_t lst, hb_lst;
     EXPECT_EQ(0, service_svr.init_server(zmq_ctx, 1000));
     while(!do_terminate) {
         if (0 != service_svr.channel_read(code, lst)) {
@@ -50,6 +50,16 @@ void serve_commands()
             case EVENT_ECHO:
                 server_ret = 0;
                 server_wr_lst = lst;
+                break;
+            case EVENT_HEARTBEAT:
+                server_ret = 0;
+                if lst.empty() {
+                    server_wr_lst = hb_lst;
+                }
+                else {
+                    hb_lst = lst;
+                    server_wr_lst.clear();
+                }
                 break;
             default:
                 EXPECT_TRUE(false);
@@ -117,6 +127,13 @@ TEST(events_common, cache_cmds)
     EXPECT_EQ(EVENT_ECHO, server_rd_code);
     EXPECT_FALSE(server_rd_lst.empty());
     EXPECT_EQ(s1, s);
+
+    int hb = 777;
+    int hb_read = 0;
+    EXPECT_EQ(0, service_cl.heartbeat(true, &hb));
+    EXPECT_EQ(0, service_cl.heartbeat(false, &hb_read));
+    EXPECT_EQ(EVENT_HEARTBEAT, server_rd_code);
+    EXPECT_EQ(hb == hb_read);
 
     do_terminate = true;
     service_cl.close_service();

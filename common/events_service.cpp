@@ -162,6 +162,31 @@ out:
 
 
 int
+event_service::heartbeat(bool set, int *val)
+{
+    int rc;
+    event_serialized_lst_t lst, *inp = NULL, *outp = NULL;
+
+    if (set) {
+        lst.push_back(to_string(*val));
+
+        inp = &lst;
+    }
+    else {
+        outp = &lst;
+    }
+    
+    RET_ON_ERR((rc = send_recv(EVENT_HEARTBEAT, inp, outp)) == 0,
+                "Failed to send heartbeat request set=%d rc=%d", set, rc);
+    if (outp != NULL) {
+        *val = !lst.empty() ? stoi(*lst.begin()) : -1;
+    }
+out:
+    return rc;
+}
+
+
+int
 event_service::channel_read(int &code, event_serialized_lst_t &data)
 {
     event_serialized_lst_t().swap(data);
