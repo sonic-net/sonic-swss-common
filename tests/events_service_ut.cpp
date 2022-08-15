@@ -53,7 +53,7 @@ void serve_commands()
                 break;
             case EVENT_HEARTBEAT:
                 server_ret = 0;
-                if lst.empty() {
+                if (lst.empty()) {
                     server_wr_lst = hb_lst;
                 }
                 else {
@@ -133,7 +133,7 @@ TEST(events_common, cache_cmds)
     EXPECT_EQ(0, service_cl.heartbeat(true, &hb));
     EXPECT_EQ(0, service_cl.heartbeat(false, &hb_read));
     EXPECT_EQ(EVENT_HEARTBEAT, server_rd_code);
-    EXPECT_EQ(hb == hb_read);
+    EXPECT_EQ(hb, hb_read);
 
     do_terminate = true;
     service_cl.close_service();
