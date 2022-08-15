@@ -72,14 +72,17 @@ get_uuid()
 
 int EventPublisher::init(const string event_source)
 {
+    int rc = -1;
     m_zmq_ctx = zmq_ctx_new();
-    void *sock = zmq_socket (m_zmq_ctx, ZMQ_PUB);
 
-    int rc = zmq_connect (sock, get_config(XSUB_END_KEY).c_str());
-    RET_ON_ERR(rc == 0, "Publisher fails to connect %s", get_config(XSUB_END_KEY).c_str());
+    void *sock = zmq_socket (m_zmq_ctx, ZMQ_PUB);
+    RET_ON_ERR(sock != NULL, "Failed to ZMQ_PUB socket");
 
     rc = zmq_setsockopt (sock, ZMQ_LINGER, &LINGER_TIMEOUT, sizeof (LINGER_TIMEOUT));
     RET_ON_ERR(rc == 0, "Failed to ZMQ_LINGER to %d", LINGER_TIMEOUT);
+
+    rc = zmq_connect (sock, get_config(XSUB_END_KEY).c_str());
+    RET_ON_ERR(rc == 0, "Publisher fails to connect %s", get_config(XSUB_END_KEY).c_str());
 
     /*
      * Event service could be down. So have a timeout.

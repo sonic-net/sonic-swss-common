@@ -35,6 +35,9 @@ event_service::init_client(void *zmq_ctx, int block_ms)
     void *sock = zmq_socket (zmq_ctx, ZMQ_REQ);
     RET_ON_ERR(sock != NULL, "Failed to get ZMQ_REQ socket rc=%d", rc);
 
+    rc = zmq_setsockopt (sock, ZMQ_LINGER, &LINGER_TIMEOUT, sizeof (LINGER_TIMEOUT));
+    RET_ON_ERR(rc == 0, "Failed to ZMQ_LINGER to %d", LINGER_TIMEOUT);
+
     rc = zmq_connect (sock, get_config(REQ_REP_END_KEY).c_str());
     RET_ON_ERR(rc == 0, "Failed to connect to %s", get_config(REQ_REP_END_KEY).c_str());
     
@@ -42,9 +45,6 @@ event_service::init_client(void *zmq_ctx, int block_ms)
     //
     rc = zmq_setsockopt (sock, ZMQ_RCVTIMEO, &block_ms, sizeof (block_ms));
     RET_ON_ERR(rc == 0, "Failed to ZMQ_RCVTIMEO to %d", block_ms);
-
-    rc = zmq_setsockopt (sock, ZMQ_LINGER, &LINGER_TIMEOUT, sizeof (LINGER_TIMEOUT));
-    RET_ON_ERR(rc == 0, "Failed to ZMQ_LINGER to %d", LINGER_TIMEOUT);
 
     m_socket = sock;
     sock = NULL;
@@ -63,6 +63,9 @@ event_service::init_server(void *zmq_ctx, int block_ms)
     void *sock = zmq_socket (zmq_ctx, ZMQ_REP);
     RET_ON_ERR(sock != NULL, "Failed to get ZMQ_REP socket rc=%d", rc);
 
+    rc = zmq_setsockopt (sock, ZMQ_LINGER, &LINGER_TIMEOUT, sizeof (LINGER_TIMEOUT));
+    RET_ON_ERR(rc == 0, "Failed to ZMQ_LINGER to %d", LINGER_TIMEOUT);
+
     rc = zmq_bind (sock, get_config(REQ_REP_END_KEY).c_str());
     RET_ON_ERR(rc == 0, "Failed to bind to %s", get_config(REQ_REP_END_KEY).c_str());
     
@@ -70,9 +73,6 @@ event_service::init_server(void *zmq_ctx, int block_ms)
     //
     rc = zmq_setsockopt (sock, ZMQ_RCVTIMEO, &block_ms, sizeof (block_ms));
     RET_ON_ERR(rc == 0, "Failed to ZMQ_RCVTIMEO to %d", block_ms);
-
-    rc = zmq_setsockopt (sock, ZMQ_LINGER, &LINGER_TIMEOUT, sizeof (LINGER_TIMEOUT));
-    RET_ON_ERR(rc == 0, "Failed to ZMQ_LINGER to %d", LINGER_TIMEOUT);
 
     m_socket = sock;
     sock = NULL;
