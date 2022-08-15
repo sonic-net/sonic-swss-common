@@ -142,3 +142,4 @@ TEST(events_common, cache_cmds)
     zmq_ctx_term(zmq_ctx);
 }
 
+xx
