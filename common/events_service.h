@@ -40,7 +40,7 @@ typedef enum {
     EVENT_CACHE_STOP,   /* Stop the cache */
     EVENT_CACHE_READ,   /* Read cached events */
     EVENT_ECHO,         /* Echoes the received data in request via response */
-    EVENT_HEARTBEAT,    /* Heartbeat Set/Get */
+    EVENT_OPTIONS,      /* global options Set/Get */
     EVENT_EXIT          /* Exit the eventd service -- Useful for unit test.*/
 } event_req_type_t;
 
@@ -220,20 +220,35 @@ class event_service {
 
 
         /*
-         * Heartbeat request set/get
+         * Global options request set
          *
          * Input:
-         *  set - True for set; False for get
          *  val -- Put the interval for set
-         *
-         * Output:
-         *  val -- Get the current val for Get
          *
          * Return:
          *  0   - On Success
          *  -1  - On Failure
          */
-        int heartbeat(bool set, int *val);
+        int global_options_set(const char *val);
+
+
+        /*
+         * Global options request get.
+         *
+         * Input:
+         *  val_sz -- Size of val buffer
+         *
+         * Output:
+         *  val -- Get the current val
+         *
+         * Return:
+         *  > 0 - Count of bytes to copied/to-be-copied. 
+         *        Result is truncated if given size <= this value.
+         *        But copied string is *always* null termninated.
+         *
+         *  -1  - On Failure
+         */
+        int global_options_get(char *val, int val_sz);
 
         /*
          * The read for req/resp from client/server. The APIs above use this

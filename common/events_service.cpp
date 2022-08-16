@@ -162,27 +162,40 @@ out:
 
 
 int
-event_service::heartbeat(bool set, int *val)
+event_service::global_options_set(const char *val)
 {
     int rc;
-    event_serialized_lst_t lst, *inp = NULL, *outp = NULL;
+    event_serialized_lst_t lst;
 
-    if (set) {
-        lst.push_back(to_string(*val));
+    lst.push_back(string(val));
 
-        inp = &lst;
-    }
-    else {
-        outp = &lst;
-    }
-    
-    RET_ON_ERR((rc = send_recv(EVENT_HEARTBEAT, inp, outp)) == 0,
-                "Failed to send heartbeat request set=%d rc=%d", set, rc);
-    if (outp != NULL) {
-        *val = !lst.empty() ? stoi(*lst.begin()) : -1;
-    }
+    RET_ON_ERR((rc = send_recv(EVENT_HEARTBEAT, &lst, NULL)) == 0,
+                "Failed to send global options request set=%d rc=%d", set, rc);
 out:
     return rc;
+}
+
+
+int
+event_service::global_options_get(char *val, int sz)
+{
+    int ret = -1, rc;
+    string s;
+    event_serialized_lst_t lst;
+
+    RET_ON_ERR((rc = send_recv(EVENT_HEARTBEAT, NULL, &lst)) == 0,
+                "Failed to receive global options request set=%d rc=%d", set, rc);
+
+    if (!lst.empty()) {
+        s = *lst.begin();
+    }
+
+    strncpy(val, s.c_str(), sz);
+
+    val[sz - 1] = 0;
+    ret = s.size();
+out:
+    return ret;
 }
 
 
