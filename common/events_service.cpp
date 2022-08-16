@@ -169,8 +169,8 @@ event_service::global_options_set(const char *val)
 
     lst.push_back(string(val));
 
-    RET_ON_ERR((rc = send_recv(EVENT_HEARTBEAT, &lst, NULL)) == 0,
-                "Failed to send global options request set=%d rc=%d", set, rc);
+    RET_ON_ERR((rc = send_recv(EVENT_OPTIONS, &lst, NULL)) == 0,
+                "Failed to send global options request rc=%d", rc);
 out:
     return rc;
 }
@@ -183,8 +183,8 @@ event_service::global_options_get(char *val, int sz)
     string s;
     event_serialized_lst_t lst;
 
-    RET_ON_ERR((rc = send_recv(EVENT_HEARTBEAT, NULL, &lst)) == 0,
-                "Failed to receive global options request set=%d rc=%d", set, rc);
+    RET_ON_ERR((rc = send_recv(EVENT_OPTIONS, NULL, &lst)) == 0,
+                "Failed to receive global options request rc=%d", rc);
 
     if (!lst.empty()) {
         s = *lst.begin();
@@ -193,7 +193,7 @@ event_service::global_options_get(char *val, int sz)
     strncpy(val, s.c_str(), sz);
 
     val[sz - 1] = 0;
-    ret = s.size();
+    ret = (int)s.size();
 out:
     return ret;
 }
