@@ -212,7 +212,7 @@ int event_receive_json(event_handle_t handle, std::string &evt,
  *      Any negative value other than -1 is treated as invalid.
  *
  *
- *  Option name: OFFLINE_CACHE_SIZE
+ *  Option name: OFFLINE_CACHE_SIZE     TODO/Not Yet Implemented
  *  Option Value: Size in count MBs as int
  *      A value of 0 implies the system default
  *          This depends on implementation.
@@ -230,6 +230,9 @@ int event_receive_json(event_handle_t handle, std::string &evt,
  *  < 0 -   Implies failure. Either internal failure or invalid options or
  *          invalid values. Look at syslog for details.
  */
+
+#define GLOBAL_OPTION_HEARTBEAT "HEARTBEAT_INTERVAL"
+
 int event_set_global_options(const char *options);
 
 
