@@ -315,7 +315,6 @@ void do_test_publish(bool wrap)
     printf("************ PUBLISH wrap=%d DONE ***************\n", wrap);
 }
 
-#if 0
 TEST(events, publish)
 {
     do_test_publish(false);
@@ -666,7 +665,6 @@ TEST(events, subscribe_wrap)
 {
     do_test_subscribe(true);
 }
-#endif
 
 TEST(events, options)
 {
