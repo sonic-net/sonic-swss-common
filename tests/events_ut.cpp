@@ -667,15 +667,22 @@ TEST(events, subscribe_wrap)
 
 TEST(events, options)
 {
+    printf("events/options TEST start\n");
+
     string set_opt("{\"HEARTBEAT_INTERVAL\": 2000, \"OFFLINE_CACHE_SIZE\": 500}");
     char buff[100];
     buff[0] = 0;
 
+    printf("Set options .................\n");
     EXPECT_EQ(0, event_set_global_options(set_opt.c_str()));
 
+    printf("Get options .................\n");
     EXPECT_LT(0, event_get_global_options(buff, sizeof(buff)));
 
+    printf("Compare options .................\n");
     EXPECT_EQ(set_opt, string(buff));
+
+    printf("events/options TEST end\n");
 }
 
 
