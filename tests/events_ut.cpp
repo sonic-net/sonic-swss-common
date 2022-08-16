@@ -31,6 +31,7 @@ static bool terminate_svc = false;
 void pub_serve_commands()
 {
     event_service service_svr;
+    event_serialized_lst_t lst_opt;
 
     EXPECT_TRUE(NULL != zmq_ctx);
     EXPECT_EQ(0, service_svr.init_server(zmq_ctx, 1000));
@@ -64,6 +65,14 @@ void pub_serve_commands()
                 break;
             case EVENT_ECHO:
                 resp = 0;
+                break;
+            case EVENT_OPTIONS:
+                resp = 0;
+                /*
+                 * Saves on write & return last saved on read.
+                 * Only read upon set.
+                 */
+                lst_opt.swap(lst);
                 break;
             default:
                 EXPECT_TRUE(false);
@@ -655,5 +664,19 @@ TEST(events, subscribe_wrap)
 {
     do_test_subscribe(true);
 }
+
+TEST(events, options)
+{
+    string set_opt('{"HEARTBEAT_INTERVAL": 2000, "OFFLINE_CACHE_SIZE": 500}');
+    char buff[100];
+    buff[0] = 0;
+
+    EXPECT_EQ(0, event_set_global_options(set_opt.c_str()));
+
+    EXPECT_LT(0, event_get_global_options(buff, sizeof(buff)));
+
+    EXPECT_EQ(set_opt, string(buff));
+}
+
 
 
