@@ -128,7 +128,7 @@ TEST(events_common, cache_cmds)
     EXPECT_FALSE(server_rd_lst.empty());
     EXPECT_EQ(s1, s);
 
-    string sopt('{"HEARTBEAT_INTERVAL": 2000, "OFFLINE_CACHE_SIZE": 500}');
+    string sopt("{\"HEARTBEAT_INTERVAL\": 2000, \"OFFLINE_CACHE_SIZE\": 500}");
     char rd_opt[100];
     rd_opt[0] = 0;
     EXPECT_EQ(0, service_cl.global_options_set(sopt.c_str()));

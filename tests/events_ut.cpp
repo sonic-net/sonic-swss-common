@@ -667,7 +667,7 @@ TEST(events, subscribe_wrap)
 
 TEST(events, options)
 {
-    string set_opt('{"HEARTBEAT_INTERVAL": 2000, "OFFLINE_CACHE_SIZE": 500}');
+    string set_opt("{\"HEARTBEAT_INTERVAL\": 2000, \"OFFLINE_CACHE_SIZE\": 500}");
     char buff[100];
     buff[0] = 0;
 
