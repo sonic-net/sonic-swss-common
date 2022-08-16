@@ -652,6 +652,7 @@ void do_test_subscribe(bool wrap)
     thr_svc.join();
     thr_pub.join();
     zmq_ctx_term(zmq_ctx);
+    zmq_ctx = NULL;
     printf("************ SUBSCRIBE wrap=%d DONE ***************\n", wrap);
 }
 
@@ -671,6 +672,11 @@ TEST(events, options)
 {
     printf("events/options TEST start\n");
 
+    zmq_ctx = zmq_ctx_new();
+    EXPECT_TRUE(NULL != zmq_ctx);
+
+    thread thr_svc(&pub_serve_commands);
+
     string set_opt("{\"HEARTBEAT_INTERVAL\": 2000, \"OFFLINE_CACHE_SIZE\": 500}");
     char buff[100];
     buff[0] = 0;
@@ -684,6 +690,11 @@ TEST(events, options)
     printf("Compare options .................\n");
     EXPECT_EQ(set_opt, string(buff));
 
+    terminate_svc = true;
+
+    thr_svc.join();
+    zmq_ctx_term(zmq_ctx);
+    zmq_ctx = NULL;
     printf("events/options TEST end\n");
 }
 
