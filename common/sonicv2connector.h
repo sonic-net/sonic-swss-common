@@ -98,6 +98,9 @@ private:
                 return super(SonicV2Connector, self).set(db_name, _hash, key, value, blocking)
 
             return super(SonicV2Connector, self).set(db_name, _hash, key, str(value), blocking)
+
+        def del(self, db_name, key, blocking=False):
+            return super(SonicV2Connector, self).del(db_name,key, blocking)
 %}
 #endif
 }

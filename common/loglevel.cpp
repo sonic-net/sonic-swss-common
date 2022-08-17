@@ -44,6 +44,7 @@ void setLoglevel(swss::Table& logger_tbl, const std::string& component, const st
     SWSS_LOG_NOTICE("EDEN component: %s, loglevel: %s", component.c_str(), loglevel.c_str());
 
     logger_tbl.hset(component, "LOGLEVEL",loglevel);
+
     SWSS_LOG_NOTICE("EDEN end setLoglevel");
 
 }
@@ -98,7 +99,6 @@ void setAllLoglevel(swss::Table& logger_tbl, std::vector<std::string> components
 int main(int argc, char **argv)
 {
     SWSS_LOG_NOTICE("EDEN start main");
-    std::string key_prefix = "LOGGER|";
 
     int opt;
     bool applyToAll = false, print = false, default_loglevel = false;
@@ -137,9 +137,7 @@ int main(int argc, char **argv)
     SWSS_LOG_NOTICE("EDEN cearting config db connector");
 
     DBConnector config_db("CONFIG_DB", 0);
-    //TODO: change the "logger" to CFG_LOGGER_TABLE_NAME
-    std::string table_name = "LOGGER";
-    swss::Table logger_tbl(&config_db, table_name);
+    swss::Table logger_tbl(&config_db, CFG_LOGGER_TABLE_NAME);
     std::vector<std::string> keys;
     logger_tbl.getKeys(keys);
 
@@ -155,8 +153,7 @@ int main(int argc, char **argv)
         std::sort(keys.begin(), keys.end());
         for (const auto& key : keys)
         {
-            //todo: remove key_prefix and replace with CFG_LOGGER_TABLE_NAME+ "|"
-            const auto redis_key = key_prefix.append(key);
+            const auto redis_key = (std::string(CFG_LOGGER_TABLE_NAME).append(std::string("|"))).append(key);
             auto level = config_db.hget(redis_key, DAEMON_LOGLEVEL);
             if (nullptr == level)
             {
@@ -216,12 +213,8 @@ int main(int argc, char **argv)
         {
             keys.erase(std::remove_if(keys.begin(), keys.end(), filterOutSaiKeys), keys.end());
         }
-//todo change to setAllloglevel ?
-        for (const auto& key : keys)
-        {
-            setLoglevel(logger_tbl, key, loglevel);
-        }
 
+        setAllLoglevel(logger_tbl,keys, loglevel);
         exit(EXIT_SUCCESS);
     }
 

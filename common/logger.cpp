@@ -11,7 +11,7 @@
 #include "schema.h"
 #include "select.h"
 #include "dbconnector.h"
-#include "consumerstatetable.h"
+#include "subscriberstatetable.h"
 #include "producerstatetable.h"
 
 using namespace swss;
@@ -119,10 +119,10 @@ void Logger::linkToDbWithOutput(
 
     // Initialize internal DB with observer
     logger.m_settingChangeObservers.insert(std::make_pair(dbName, std::make_pair(prioNotify, outputNotify)));
-
-    DBConnector db("LOGLEVEL_DB", 0);
-
-    std::string key = dbName + ":" + dbName;
+    SWSS_LOG_NOTICE("EDEN in linkToDBNative func dbName:%s", dbName.c_str());
+    DBConnector db("CONFIG_DB", 0);
+    //TODO: change to table name from schema
+    std::string key = "LOGGER|" + dbName;
     std::string prio, output;
     bool doUpdate = false;
     auto prioPtr = db.hget(key, DAEMON_LOGLEVEL);
@@ -130,12 +130,14 @@ void Logger::linkToDbWithOutput(
 
     if (prioPtr == nullptr)
     {
+        SWSS_LOG_NOTICE("EDEN dbName:%s, prioPtr is NULL!!!!", dbName.c_str());
         prio = defPrio;
         doUpdate = true;
     }
     else
     {
         prio = *prioPtr;
+        SWSS_LOG_NOTICE("EDEN dbName:%s, prioPtr:%s", dbName.c_str(), prio.c_str());
     }
 
     if (outputPtr == nullptr)
@@ -149,9 +151,17 @@ void Logger::linkToDbWithOutput(
         output = *outputPtr;
     }
 
+    int intDoUpdate = 0;
     if (doUpdate)
     {
-        ProducerStateTable table(&db, dbName);
+        intDoUpdate = 1;
+    }
+    SWSS_LOG_NOTICE("EDEN dbName:%s, doUpdate:%d. if 1, doupdate=true", dbName.c_str(), intDoUpdate);
+    if (doUpdate)
+    {
+        //todo: change to table name
+        SWSS_LOG_NOTICE("EDEN dbName:%s, inside do update", dbName.c_str());
+        swss::Table table(&db, CFG_LOGGER_TABLE_NAME);
         FieldValueTuple fvLevel(DAEMON_LOGLEVEL, prio);
         FieldValueTuple fvOutput(DAEMON_LOGOUTPUT, output);
         std::vector<FieldValueTuple>fieldValues = { fvLevel, fvOutput };
@@ -193,27 +203,18 @@ Logger::Priority Logger::getMinPrio()
     return getInstance().m_minPrio;
 }
 
+
 void Logger::settingThread()
 {
     Select select;
-    DBConnector db("LOGLEVEL_DB", 0);
-    std::map<std::string, std::shared_ptr<ConsumerStateTable>> selectables;
+    DBConnector db("CONFIG_DB", 0);
+    std::map<std::string, std::shared_ptr<SubscriberStateTable>> selectables;
+    auto table = std::make_shared<SubscriberStateTable>(&db, CFG_LOGGER_TABLE_NAME);
+    selectables.emplace(CFG_LOGGER_TABLE_NAME, table);
+    select.addSelectable(table.get());
 
     while (m_runSettingThread)
     {
-        if (selectables.size() < m_settingChangeObservers.size())
-        {
-            for (const auto& i : m_settingChangeObservers.getCopy())
-            {
-                const std::string& dbName = i.first;
-                if (selectables.find(dbName) == selectables.end())
-                {
-                    auto table = std::make_shared<ConsumerStateTable>(&db, dbName);
-                    selectables.emplace(dbName, table);
-                    select.addSelectable(table.get());
-                }
-            }
-        }
 
         Selectable *selectable = nullptr;
 
@@ -233,14 +234,14 @@ void Logger::settingThread()
         }
 
         KeyOpFieldsValuesTuple koValues;
-        ConsumerStateTable *consumerStateTable = NULL;
-        consumerStateTable = dynamic_cast<ConsumerStateTable *>(selectable);
-        if (consumerStateTable == NULL)
+        SubscriberStateTable *subscriberStateTable = NULL;
+        subscriberStateTable = dynamic_cast<SubscriberStateTable *>(selectable);
+        if (subscriberStateTable == NULL)
         {
             SWSS_LOG_ERROR("dynamic_cast returned NULL");
             break;
         }
-        consumerStateTable->pop(koValues);
+        subscriberStateTable->pop(koValues);
         std::string key = kfvKey(koValues), op = kfvOp(koValues);
 
         if (op != SET_COMMAND || !m_settingChangeObservers.contains(key))
