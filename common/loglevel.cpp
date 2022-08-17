@@ -151,9 +151,10 @@ int main(int argc, char **argv)
         }
 
         std::sort(keys.begin(), keys.end());
+        std::string redis_key_prefix = CFG_LOGGER_TABLE_NAME + "|";
         for (const auto& key : keys)
         {
-            const auto redis_key = (std::string(CFG_LOGGER_TABLE_NAME).append(std::string("|"))).append(key);
+            const auto redis_key = redis_key_prefix.append(key);
             auto level = config_db.hget(redis_key, DAEMON_LOGLEVEL);
             if (nullptr == level)
             {

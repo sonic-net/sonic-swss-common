@@ -216,11 +216,6 @@ namespace swss {
 #define COUNTERS_EVENTS_MISSED_CACHE        "missed_to_cache"
 #define COUNTERS_EVENTS_LATENCY             "latency_in_ms"
 
-/***** LOGLEVEL DATABASE *****/
-//TODO: what to do with this fileds?
-#define DAEMON_TABLE_NAME "DAEMON_TABLE"
-#define DAEMON_LOGLEVEL "LOGLEVEL"
-#define DAEMON_LOGOUTPUT "LOGOUTPUT"
 
 /***** FLEX COUNTER DATABASE *****/
 

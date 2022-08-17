@@ -122,7 +122,8 @@ void Logger::linkToDbWithOutput(
     SWSS_LOG_NOTICE("EDEN in linkToDBNative func dbName:%s", dbName.c_str());
     DBConnector db("CONFIG_DB", 0);
     //TODO: change to table name from schema
-    std::string key = "LOGGER|" + dbName;
+
+    std::string key = CFG_LOGGER_TABLE_NAME + "|" + dbName;
     std::string prio, output;
     bool doUpdate = false;
     auto prioPtr = db.hget(key, DAEMON_LOGLEVEL);

@@ -46,6 +46,10 @@ void err_exit(const char *fn, int ln, int e, const char *fmt, ...)
 class Logger
 {
 public:
+
+#define DAEMON_LOGLEVEL "LOGLEVEL"
+#define DAEMON_LOGOUTPUT "LOGOUTPUT"
+
     enum Priority
     {
         SWSS_EMERG,
