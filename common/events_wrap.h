@@ -126,12 +126,12 @@ void swssSetLogPriority(int pri);
  *
  *  Supported options
  *     
- *  Option name: HEARTBEAT_INTERVAL
- *  Option Value: interval in milliseconds as int
+ *  Option name: HEARTBEAT_INTERVAL_SECS
+ *  Option Value: interval in seconds as int
  *      A value of -1 implies no heartbeat
  *      A value of 0 implies the lowest possible interval as possible/supported. 
  *          This depends on implementation.
- *      Any non zero value implies count of milliseconds.
+ *      Any non zero value implies count of seconds.
  *          NOTE: System will round it to the multiple of lowest interval supported.
  *      Any negative value other than -1 is treated as invalid.
  *
