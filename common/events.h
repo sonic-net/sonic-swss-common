@@ -6,7 +6,7 @@
 #include <map>
 
 /*
- * Events library 
+ * Events library APIs.
  *
  *  APIs are for publishing & receiving events with source, tag and params along with timestamp.
  *  Used by event publishers and those interested in receiving published events.
