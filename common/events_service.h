@@ -40,6 +40,7 @@ typedef enum {
     EVENT_CACHE_STOP,   /* Stop the cache */
     EVENT_CACHE_READ,   /* Read cached events */
     EVENT_ECHO,         /* Echoes the received data in request via response */
+    EVENT_OPTIONS,      /* global options Set/Get */
     EVENT_EXIT          /* Exit the eventd service -- Useful for unit test.*/
 } event_req_type_t;
 
@@ -216,6 +217,38 @@ class event_service {
          *  -1  - On failure
          */
         int echo_receive(string &s);
+
+
+        /*
+         * Global options request set
+         *
+         * Input:
+         *  val -- Put the interval for set
+         *
+         * Return:
+         *  0   - On Success
+         *  -1  - On Failure
+         */
+        int global_options_set(const char *val);
+
+
+        /*
+         * Global options request get.
+         *
+         * Input:
+         *  val_sz -- Size of val buffer
+         *
+         * Output:
+         *  val -- Get the current val
+         *
+         * Return:
+         *  > 0 - Count of bytes to copied/to-be-copied. 
+         *        Result is truncated if given size <= this value.
+         *        But copied string is *always* null termninated.
+         *
+         *  -1  - On Failure
+         */
+        int global_options_get(char *val, int val_sz);
 
         /*
          * The read for req/resp from client/server. The APIs above use this

@@ -35,6 +35,9 @@ event_service::init_client(void *zmq_ctx, int block_ms)
     void *sock = zmq_socket (zmq_ctx, ZMQ_REQ);
     RET_ON_ERR(sock != NULL, "Failed to get ZMQ_REQ socket rc=%d", rc);
 
+    rc = zmq_setsockopt (sock, ZMQ_LINGER, &LINGER_TIMEOUT, sizeof (LINGER_TIMEOUT));
+    RET_ON_ERR(rc == 0, "Failed to ZMQ_LINGER to %d", LINGER_TIMEOUT);
+
     rc = zmq_connect (sock, get_config(REQ_REP_END_KEY).c_str());
     RET_ON_ERR(rc == 0, "Failed to connect to %s", get_config(REQ_REP_END_KEY).c_str());
     
@@ -59,6 +62,9 @@ event_service::init_server(void *zmq_ctx, int block_ms)
 
     void *sock = zmq_socket (zmq_ctx, ZMQ_REP);
     RET_ON_ERR(sock != NULL, "Failed to get ZMQ_REP socket rc=%d", rc);
+
+    rc = zmq_setsockopt (sock, ZMQ_LINGER, &LINGER_TIMEOUT, sizeof (LINGER_TIMEOUT));
+    RET_ON_ERR(rc == 0, "Failed to ZMQ_LINGER to %d", LINGER_TIMEOUT);
 
     rc = zmq_bind (sock, get_config(REQ_REP_END_KEY).c_str());
     RET_ON_ERR(rc == 0, "Failed to bind to %s", get_config(REQ_REP_END_KEY).c_str());
@@ -152,6 +158,44 @@ event_service::cache_read(event_serialized_lst_t &lst)
                 "Failed to send cache read rc=%d", rc);
 out:
     return rc;
+}
+
+
+int
+event_service::global_options_set(const char *val)
+{
+    int rc;
+    event_serialized_lst_t lst;
+
+    lst.push_back(string(val));
+
+    RET_ON_ERR((rc = send_recv(EVENT_OPTIONS, &lst, NULL)) == 0,
+                "Failed to send global options request rc=%d", rc);
+out:
+    return rc;
+}
+
+
+int
+event_service::global_options_get(char *val, int sz)
+{
+    int ret = -1, rc;
+    string s;
+    event_serialized_lst_t lst;
+
+    RET_ON_ERR((rc = send_recv(EVENT_OPTIONS, NULL, &lst)) == 0,
+                "Failed to receive global options request rc=%d", rc);
+
+    if (!lst.empty()) {
+        s = *lst.begin();
+    }
+
+    strncpy(val, s.c_str(), sz);
+
+    val[sz - 1] = 0;
+    ret = (int)s.size();
+out:
+    return ret;
 }
 
 

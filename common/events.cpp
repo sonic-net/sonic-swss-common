@@ -8,7 +8,6 @@
  */
 
 lst_publishers_t EventPublisher::s_publishers;
-int EventPublisher::LINGER_TIMEOUT = 100;    // In milliseconds
 
 event_handle_t
 EventPublisher::get_publisher(const string event_source)
@@ -73,14 +72,17 @@ get_uuid()
 
 int EventPublisher::init(const string event_source)
 {
+    int rc = -1;
     m_zmq_ctx = zmq_ctx_new();
-    void *sock = zmq_socket (m_zmq_ctx, ZMQ_PUB);
 
-    int rc = zmq_connect (sock, get_config(XSUB_END_KEY).c_str());
-    RET_ON_ERR(rc == 0, "Publisher fails to connect %s", get_config(XSUB_END_KEY).c_str());
+    void *sock = zmq_socket (m_zmq_ctx, ZMQ_PUB);
+    RET_ON_ERR(sock != NULL, "Failed to ZMQ_PUB socket");
 
     rc = zmq_setsockopt (sock, ZMQ_LINGER, &LINGER_TIMEOUT, sizeof (LINGER_TIMEOUT));
     RET_ON_ERR(rc == 0, "Failed to ZMQ_LINGER to %d", LINGER_TIMEOUT);
+
+    rc = zmq_connect (sock, get_config(XSUB_END_KEY).c_str());
+    RET_ON_ERR(rc == 0, "Publisher fails to connect %s", get_config(XSUB_END_KEY).c_str());
 
     /*
      * Event service could be down. So have a timeout.
@@ -191,7 +193,7 @@ EventPublisher::publish(const string tag, const event_params_t *params)
     }
 
     str_data = convert_to_json(m_event_source + ":" + tag, *params);
-    SWSS_LOG_INFO("EVENT_PUBLISHED: %s", str_data.c_str());
+    SWSS_LOG_ERROR("EVENT_PUBLISHED: %s", str_data.c_str());
 
     rc = send_evt(str_data);
     RET_ON_ERR(rc == 0, "failed to send event str[%d]= %s", (int)str_data.size(),
@@ -681,8 +683,59 @@ out:
 
 }
 
+
 void swssSetLogPriority(int pri)
 {
     swss::Logger::setMinPrio((swss::Logger::Priority) pri);
+}
+
+
+int
+event_set_global_options(const char *options)
+{
+    int ret = -1, rc;
+    void *zmq_ctx;
+    event_service svc;
+
+    zmq_ctx = zmq_ctx_new();
+    RET_ON_ERR(zmq_ctx != NULL, "Failed to get zmq ctx");
+
+    rc = svc.init_client(zmq_ctx);
+    RET_ON_ERR (rc == 0, "Failed to init event service rc=%d", rc);
+
+    rc = svc.global_options_set(options);
+    RET_ON_ERR (rc == 0, "Failed to set options in event service rc=%d", rc);
+    ret = 0;
+out:
+    svc.close_service();
+    zmq_ctx_term(zmq_ctx);
+
+    return ret;
+}
+
+
+int
+event_get_global_options(char *options, int options_size)
+{
+    int ret = -1, rc;
+    void *zmq_ctx;
+    event_service svc;
+
+    zmq_ctx = zmq_ctx_new();
+    RET_ON_ERR(zmq_ctx != NULL, "Failed to get zmq ctx");
+
+    rc = svc.init_client(zmq_ctx);
+    RET_ON_ERR (rc == 0, "Failed to init event service rc=%d", rc);
+
+    rc = svc.global_options_get(options, options_size);
+    RET_ON_ERR (rc >= 0, "Failed to set options in event service rc=%d", rc);
+
+    ret = rc;
+
+out:
+    svc.close_service();
+    zmq_ctx_term(zmq_ctx);
+
+    return ret;
 }
 
