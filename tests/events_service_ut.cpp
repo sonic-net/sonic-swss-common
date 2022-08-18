@@ -20,7 +20,7 @@ static event_serialized_lst_t server_rd_lst, server_wr_lst;
 void serve_commands()
 {
     int code;
-    event_serialized_lst_t lst;
+    event_serialized_lst_t lst, opt_lst;
     EXPECT_EQ(0, service_svr.init_server(zmq_ctx, 1000));
     while(!do_terminate) {
         if (0 != service_svr.channel_read(code, lst)) {
@@ -50,6 +50,16 @@ void serve_commands()
             case EVENT_ECHO:
                 server_ret = 0;
                 server_wr_lst = lst;
+                break;
+            case EVENT_OPTIONS:
+                server_ret = 0;
+                if (lst.empty()) {
+                    server_wr_lst = opt_lst;
+                }
+                else {
+                    opt_lst = lst;
+                    server_wr_lst.clear();
+                }
                 break;
             default:
                 EXPECT_TRUE(false);
@@ -118,10 +128,19 @@ TEST(events_common, cache_cmds)
     EXPECT_FALSE(server_rd_lst.empty());
     EXPECT_EQ(s1, s);
 
+    string sopt("{\"HEARTBEAT_INTERVAL\": 2000, \"OFFLINE_CACHE_SIZE\": 500}");
+    char rd_opt[100];
+    rd_opt[0] = 0;
+    EXPECT_EQ(0, service_cl.global_options_set(sopt.c_str()));
+    EXPECT_LT(0, service_cl.global_options_get(rd_opt, (int)sizeof(rd_opt)));
+    EXPECT_EQ(EVENT_OPTIONS, server_rd_code);
+    EXPECT_EQ(sopt, string(rd_opt));
+
     do_terminate = true;
     service_cl.close_service();
     EXPECT_FALSE(service_cl.is_active());
     thr.join();
     zmq_ctx_term(zmq_ctx);
 }
+
 

@@ -51,6 +51,7 @@ using namespace chrono;
         SWSS_LOG_ERROR("last:errno=%d", _e); \
         goto out; }
 
+static const int LINGER_TIMEOUT = 100;  /* Linger timeout in milliseconds */
 
 /* helper API to print variable type */
 /*
@@ -210,7 +211,7 @@ typedef string runtime_id_t;
 #define EVENT_STR_CTRL_PREFIX_SZ ((int)sizeof(EVENT_STR_CTRL_PREFIX) - 1)
 
 /* The internal code that caches runtime-IDs could retire upon de-init */
-#define EVENT_STR_CTRL_DEINIT "CONTROL_DEINIT"
+#define EVENT_STR_CTRL_DEINIT EVENT_STR_CTRL_PREFIX "DEINIT"
 
 typedef vector<internal_event_t> internal_events_lst_t;
 
