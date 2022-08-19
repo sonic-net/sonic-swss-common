@@ -47,7 +47,7 @@ event_handle_t events_init_publisher(const std::string event_source);
  * De-init/free the publisher
  *
  * Input: 
- *  Handle returned from events_init_publisher
+ *  Handle returned from events_init_publisher.
  *
  * Output: 
  *  Handle is nullified.
