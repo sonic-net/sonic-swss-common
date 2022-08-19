@@ -69,7 +69,7 @@ typedef std::map<std::string, std::string> event_params_t;
  * Publish an event
  *
  *  Internally a globally unique sequence number is embedded in every published event,
- *  The sequence numbers from same publishing instances can be compared
+ *  The sequence numbers from same publishing instances can be compared,
  *  to see if there any missing events between.
  *
  *  The sequence has two components as run-time-id that distinguishes
