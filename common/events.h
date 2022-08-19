@@ -86,7 +86,7 @@ typedef std::map<std::string, std::string> event_params_t;
  *      Name of the YANG container that defines this event in the
  *      event-source module associated with this handle.
  *
- *      YANG path formatted as "< event_source >:< event_tag >"
+ *      YANG path formatted as "< event_source >:< event_tag >".
  *      e.g. {"sonic-events-bgp:bgp-state": { "ip": "10.10.10.10", ...}}
  *
  *  params -
