@@ -92,7 +92,7 @@ typedef std::map<std::string, std::string> event_params_t;
  *  params -
  *      Params associated with event; This may or may not contain
  *      timestamp. In the absence, the timestamp is added, transparently.
- *      The timestamp should be per rfc3339
+ *      The timestamp should be per rfc3339.
  *      e.g. "2022-08-17T02:39:21.286611Z"
  *
  * return:
