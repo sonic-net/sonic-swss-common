@@ -31,7 +31,7 @@ typedef void* event_handle_t;
  *      is complete. Hence recommend, do the init as soon as the process starts.
  *
  * Input:
- *  event_source
+ *  event_source:
  *      The YANG module name for the event source. All events published with the handle
  *      returned by this call is tagged with this source, transparently. The receiver
  *      could subscribe with this source as filter.
