@@ -8,7 +8,7 @@
 /*
  * Events library APIs.
  *
- *  APIs are for publishing & receiving events with source, tag and params along with timestamp.
+ *  APIs are  for publishing & receiving events with source, tag and params along with timestamp.
  *  Used by event publishers and those interested in receiving published events.
  *  Publishers are multiple run from different contexts, as processes running in hosts & containers.
  *  Receiver are often few. Telmetry container runs a receiver.
