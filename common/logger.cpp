@@ -119,11 +119,11 @@ void Logger::linkToDbWithOutput(
 
     // Initialize internal DB with observer
     logger.m_settingChangeObservers.insert(std::make_pair(dbName, std::make_pair(prioNotify, outputNotify)));
-    SWSS_LOG_NOTICE("EDEN in linkToDBNative func dbName:%s", dbName.c_str());
-    DBConnector db("CONFIG_DB", 0);
-    //TODO: change to table name from schema
 
-    std::string key = CFG_LOGGER_TABLE_NAME + "|" + dbName;
+    DBConnector db("CONFIG_DB", 0);
+    //TODO: change to be in h file
+    std::string key_prefix(strcat(CFG_LOGGER_TABLE_NAME, "|"));
+    std::string key = key_prefix + dbName;
     std::string prio, output;
     bool doUpdate = false;
     auto prioPtr = db.hget(key, DAEMON_LOGLEVEL);
@@ -131,16 +131,13 @@ void Logger::linkToDbWithOutput(
 
     if (prioPtr == nullptr)
     {
-        SWSS_LOG_NOTICE("EDEN dbName:%s, prioPtr is NULL!!!!", dbName.c_str());
         prio = defPrio;
         doUpdate = true;
     }
     else
     {
         prio = *prioPtr;
-        SWSS_LOG_NOTICE("EDEN dbName:%s, prioPtr:%s", dbName.c_str(), prio.c_str());
     }
-
     if (outputPtr == nullptr)
     {
         output = defOutput;
@@ -152,16 +149,9 @@ void Logger::linkToDbWithOutput(
         output = *outputPtr;
     }
 
-    int intDoUpdate = 0;
-    if (doUpdate)
-    {
-        intDoUpdate = 1;
-    }
-    SWSS_LOG_NOTICE("EDEN dbName:%s, doUpdate:%d. if 1, doupdate=true", dbName.c_str(), intDoUpdate);
     if (doUpdate)
     {
         //todo: change to table name
-        SWSS_LOG_NOTICE("EDEN dbName:%s, inside do update", dbName.c_str());
         swss::Table table(&db, CFG_LOGGER_TABLE_NAME);
         FieldValueTuple fvLevel(DAEMON_LOGLEVEL, prio);
         FieldValueTuple fvOutput(DAEMON_LOGOUTPUT, output);

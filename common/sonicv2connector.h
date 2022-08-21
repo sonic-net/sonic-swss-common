@@ -47,6 +47,7 @@ public:
     int64_t set(const std::string& db_name, const std::string& _hash, const std::string& key, const std::string& val, bool blocking=false);
 
     int64_t del(const std::string& db_name, const std::string& key, bool blocking=false);
+    int64_t del2(const std::string& db_name, const std::string& key, bool blocking=false);
 
     void delete_all_by_pattern(const std::string& db_name, const std::string& pattern);
 
@@ -99,8 +100,8 @@ private:
 
             return super(SonicV2Connector, self).set(db_name, _hash, key, str(value), blocking)
 
-        def del(self, db_name, key, blocking=False):
-            return super(SonicV2Connector, self).del(db_name,key, blocking)
+        def del_table(self, db_name, key):
+            return super(SonicV2Connector, self).del2(db_name,key)
 %}
 #endif
 }
