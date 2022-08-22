@@ -440,6 +440,7 @@ namespace swss {
 #define CFG_CHASSIS_MODULE_TABLE                    "CHASSIS_MODULE"
 
 #define CFG_TWAMP_SESSION_TABLE_NAME                "TWAMP_SESSION"
+#define CFG_LOGGING_TABLE_NAME                      "LOGGING"
 
 #define CFG_DHCP_TABLE                              "DHCP_RELAY"
 
