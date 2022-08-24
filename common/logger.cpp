@@ -122,8 +122,10 @@ void Logger::linkToDbWithOutput(
 
     DBConnector db("CONFIG_DB", 0);
     //TODO: change to be in h file
-    std::string key_prefix(strcat(CFG_LOGGER_TABLE_NAME, "|"));
+    std::string key_prefix(CFG_LOGGER_TABLE_NAME);
+    key_prefix=+"|";
     std::string key = key_prefix + dbName;
+    
     std::string prio, output;
     bool doUpdate = false;
     auto prioPtr = db.hget(key, DAEMON_LOGLEVEL);
