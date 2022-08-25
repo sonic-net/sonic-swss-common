@@ -240,6 +240,83 @@ protected:
                     entry = self.raw_to_typed(entry)
                     ret.setdefault(table_name, {})[self.deserialize_key(row)] = entry
             return ret
+
+    def OverlayConfigDBConnectorDecorator(config_db_connector):
+        # backup decorated methods
+        config_db_connector.ori_get_entry = config_db_connector.get_entry
+        config_db_connector.ori_get_table = config_db_connector.get_table
+        config_db_connector.ori_get_config = config_db_connector.get_config
+        config_db_connector.ori_set_entry = config_db_connector.set_entry
+        config_db_connector.ori_mod_entry = config_db_connector.mod_entry
+        config_db_connector.ori_delete_table = config_db_connector.delete_table
+        config_db_connector.ori_mod_config = config_db_connector.mod_config
+        def _append_static_config(table, key, data):
+            serialized_key = config_db_connector.serialize_key(key)
+            client = config_db_connector.get_redis_client(config_db_connector.db_name)
+            staticConfigs = StaticConfigProvider.Instance().GetConfigs(table, serialized_key, client)
+            for field in staticConfigs:
+                if field not in data:
+                    data[field] = staticConfigs[field]
+        def _append_default_value(table, key, data):
+            serialized_key = config_db_connector.serialize_key(key)
+            defaultValues = DefaultValueProvider.Instance().GetDefaultValues(table, serialized_key)
+            for field in defaultValues:
+                if field not in data:
+                    data[field] = defaultValues[field]
+        def _try_delete_static_config(table, key, data):
+            if data.empty():
+                serialized_key = config_db_connector.serialize_key(key)
+                client = config_db_connector.get_redis_client(config_db_connector.db_name)
+                StaticConfigProvider.Instance().TryDeleteItem(table, serialized_key, client)
+        def _try_delete_static_config_table(table):
+            client = config_db_connector.get_redis_client(config_db_connector.db_name)
+            keys = StaticConfigProvider.Instance().GetKeys(table, client)
+            for key in keys:
+                serialized_key = config_db_connector.serialize_key(key)
+                StaticConfigProvider.Instance().TryDeleteItem(table, serialized_key, client)
+        # override read APIs
+        def get_entry(table, key):
+            result = config_db_connector.ori_get_entry(table, key)
+            _append_static_config(table, key, result)
+            _append_default_value(table, key, result)
+            return result
+        def get_table(table):
+            result = config_db_connector.ori_get_table(table)
+            for key in result:
+                _append_static_config(table, key, result[key])
+                _append_default_value(table, key, result[key])
+            return result
+        def get_config():
+            result = config_db_connector.ori_get_config()
+            for table in result:
+                for key in result[table]:
+                    _append_static_config(table, key, result[table][key])
+                    _append_default_value(table, key, result[table][key])
+            return result
+        # override write and delete APIs
+        def set_entry(self, table, key, data):
+            _try_delete_static_config(table, key, data)
+            return config_db_connector.ori_set_entry(table, key, data)
+        def mod_entry(self, table, key, data):
+            _try_delete_static_config(table, key, data)
+            return config_db_connector.ori_mod_entry(table, key, data)
+        def delete_table(self, table):
+            _try_delete_static_config_table(table)
+            return config_db_connector.ori_delete_table(table)
+        def mod_config(self, data):
+            for key in data:
+                _try_delete_static_config(table, key, data[key])
+            return config_db_connector.ori_mod_config(data)
+        # set decorate methods
+        config_db_connector.get_entry = get_entry
+        config_db_connector.get_table = get_table
+        config_db_connector.get_config = get_config
+        config_db_connector.set_entry = set_entry
+        config_db_connector.mod_entry = mod_entry
+        config_db_connector.delete_table = delete_table
+        config_db_connector.mod_config = mod_config
+        return config_db_connector
+
 %}
 #endif
 
