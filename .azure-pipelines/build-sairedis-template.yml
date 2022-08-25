@@ -76,6 +76,8 @@ jobs:
         libnl-cli-3-dev \
         swig3.0 \
         libpython2.7-dev \
+        libyang \
+        libyang-dev \
         libzmq5 libzmq3-dev
 
       sudo apt-get install -y redis-server

@@ -412,7 +412,7 @@ FieldDefaultValueMappingPtr DefaultValueProvider::GetDefaultValueInfo(struct lys
         if (field->nodetype == LYS_LEAF)
         {
             SWSS_LOG_DEBUG("leaf field: %s\n",field->name);
-            struct lys_node_leaf *leafNode = (struct lys_node_leaf*)field;
+            struct lys_node_leaf *leafNode = reinterpret_cast<struct lys_node_leaf*>(field);
             if (leafNode->dflt)
             {
                 SWSS_LOG_DEBUG("field: %s, default: %s\n",leafNode->name, leafNode->dflt);
@@ -431,7 +431,7 @@ FieldDefaultValueMappingPtr DefaultValueProvider::GetDefaultValueInfo(struct lys
                 while (fieldInChoice)
                 {
                     SWSS_LOG_DEBUG("default choice leaf field: %s\n",fieldInChoice->name);
-                    struct lys_node_leaf *dfltLeafNode = (struct lys_node_leaf*)fieldInChoice;
+                    struct lys_node_leaf *dfltLeafNode = reinterpret_cast<struct lys_node_leaf*>(fieldInChoice);
                     if (dfltLeafNode->dflt)
                     {
                         SWSS_LOG_DEBUG("default choice leaf field: %s, default: %s\n",dfltLeafNode->name, dfltLeafNode->dflt);
@@ -445,7 +445,7 @@ FieldDefaultValueMappingPtr DefaultValueProvider::GetDefaultValueInfo(struct lys
         else if (field->nodetype == LYS_LEAFLIST)
         {
             SWSS_LOG_DEBUG("list field: %s\n",field->name);
-            struct lys_node_leaflist *listNode = (struct lys_node_leaflist *)field;
+            struct lys_node_leaflist *listNode = reinterpret_cast<struct lys_node_leaflist*>(field);
             if (listNode->dflt)
             {
                 const char** dfltValues = listNode->dflt;
