@@ -76,7 +76,7 @@ jobs:
         libnl-cli-3-dev \
         swig3.0 \
         libpython2.7-dev \
-        libyang \
+        libyang0.16 \
         libyang-dev \
         libzmq5 libzmq3-dev
 

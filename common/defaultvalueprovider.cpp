@@ -15,6 +15,17 @@
 #include "table.h"
 #include "json.h"
 
+#if defined(__arm__) || defined(__aarch64__)
+#define WARNINGS_NO_CAST_ALIGN \
+    _Pragma ("GCC diagnostic push") \
+    _Pragma ("GCC diagnostic ignored \"-Wcast-align\"")
+#define WARNINGS_RESET \
+   _Pragma ("GCC diagnostic pop")
+#else
+#define WARNINGS_NO_CAST_ALIGN
+#define WARNINGS_RESET
+#endif
+
 using namespace std;
 using namespace swss;
 
@@ -412,7 +423,9 @@ FieldDefaultValueMappingPtr DefaultValueProvider::GetDefaultValueInfo(struct lys
         if (field->nodetype == LYS_LEAF)
         {
             SWSS_LOG_DEBUG("leaf field: %s\n",field->name);
+            WARNINGS_NO_CAST_ALIGN
             struct lys_node_leaf *leafNode = reinterpret_cast<struct lys_node_leaf*>(field);
+            WARNINGS_RESET
             if (leafNode->dflt)
             {
                 SWSS_LOG_DEBUG("field: %s, default: %s\n",leafNode->name, leafNode->dflt);
@@ -431,7 +444,9 @@ FieldDefaultValueMappingPtr DefaultValueProvider::GetDefaultValueInfo(struct lys
                 while (fieldInChoice)
                 {
                     SWSS_LOG_DEBUG("default choice leaf field: %s\n",fieldInChoice->name);
+                    WARNINGS_NO_CAST_ALIGN
                     struct lys_node_leaf *dfltLeafNode = reinterpret_cast<struct lys_node_leaf*>(fieldInChoice);
+                    WARNINGS_RESET
                     if (dfltLeafNode->dflt)
                     {
                         SWSS_LOG_DEBUG("default choice leaf field: %s, default: %s\n",dfltLeafNode->name, dfltLeafNode->dflt);
@@ -445,7 +460,9 @@ FieldDefaultValueMappingPtr DefaultValueProvider::GetDefaultValueInfo(struct lys
         else if (field->nodetype == LYS_LEAFLIST)
         {
             SWSS_LOG_DEBUG("list field: %s\n",field->name);
+            WARNINGS_NO_CAST_ALIGN
             struct lys_node_leaflist *listNode = reinterpret_cast<struct lys_node_leaflist*>(field);
+            WARNINGS_RESET
             if (listNode->dflt)
             {
                 const char** dfltValues = listNode->dflt;
