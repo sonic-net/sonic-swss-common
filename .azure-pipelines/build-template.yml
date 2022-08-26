@@ -33,6 +33,10 @@ parameters:
   type: boolean
   default: false
 
+- name: debian_version
+  type: string
+  default: buster
+
 jobs:
 - job:
   displayName: ${{ parameters.arch }}
@@ -54,22 +58,41 @@ jobs:
   steps:
   - checkout: self
     clean: true
-  - script: |
-      sudo apt-get install -qq -y \
-        libhiredis-dev \
-        libnl-3-dev \
-        libnl-genl-3-dev \
-        libnl-route-3-dev \
-        libnl-nf-3-dev \
-        swig3.0
-    displayName: "Install dependencies"
-  - script: |
-      set -ex
-      rm ../*.deb || true
-      ./autogen.sh
-      fakeroot debian/rules DEB_CONFIGURE_EXTRA_FLAGS='--enable-code-coverage' CFLAGS="" CXXFLAGS="--coverage -fprofile-abs-path" LDFLAGS="--coverage -fprofile-abs-path" binary
-      mv ../*.deb .
-    displayName: "Compile sonic swss common with coverage enabled"
+  - ${{ if eq(parameters.debian_version, 'buster') }}:
+    - script: |
+        sudo apt-get install -qq -y \
+          libhiredis-dev \
+          libnl-3-dev \
+          libnl-genl-3-dev \
+          libnl-route-3-dev \
+          libnl-nf-3-dev \
+          swig3.0
+      displayName: "Install dependencies"
+  - ${{ if eq(parameters.debian_version, 'bullseye') }}:
+    - script: |
+        sudo apt-get install -qq -y \
+          libhiredis-dev \
+          libnl-3-dev \
+          libnl-genl-3-dev \
+          libnl-route-3-dev \
+          libnl-nf-3-dev
+      displayName: "Install dependencies"
+  - ${{ if eq(parameters.debian_version, 'buster') }}:
+    - script: |
+        set -ex
+        rm ../*.deb || true
+        ./autogen.sh
+        fakeroot debian/rules DEB_CONFIGURE_EXTRA_FLAGS='--enable-code-coverage' CFLAGS="" CXXFLAGS="--coverage -fprofile-abs-path" LDFLAGS="--coverage -fprofile-abs-path" binary
+        mv ../*.deb .
+      displayName: "Compile sonic swss common with coverage enabled"
+  - ${{ if eq(parameters.debian_version, 'bullseye') }}:
+    - script: |
+        set -ex
+        rm ../*.deb || true
+        ./autogen.sh
+        fakeroot debian/rules DEB_CONFIGURE_EXTRA_FLAGS='--enable-code-coverage' DEB_BUILD_PROFILES=nopython2 CFLAGS="" CXXFLAGS="--coverage -fprofile-abs-path" LDFLAGS="--coverage -fprofile-abs-path" binary
+        mv ../*.deb .
+      displayName: "Compile sonic swss common with coverage enabled"
   - ${{ if eq(parameters.run_unit_test, true) }}:
     - script: |
         set -ex
