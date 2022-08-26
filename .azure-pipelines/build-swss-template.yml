@@ -104,7 +104,7 @@ jobs:
         target/debs/${{ parameters.debian_version }}/libnl-genl*.deb
         target/debs/${{ parameters.debian_version }}/libnl-route*.deb
         target/debs/${{ parameters.debian_version }}/libnl-nf*.deb
-        target/debs/${{ parameters.debian_version }}/libyang*.deb
+        target/debs/${{ parameters.debian_version }}/libyang-dev*.deb
     displayName: "Download common libs"
 
   - script: |
