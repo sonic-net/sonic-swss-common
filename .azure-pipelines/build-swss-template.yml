@@ -87,7 +87,7 @@ jobs:
         libsairedis-dev_*.deb
         libsaimetadata_*.deb
         libsaimetadata-dev_*.deb
-        libyang*.deb
+        libyang-dev*.deb
         syncd-vs_*.deb
     displayName: "Download pre-stage built ${{ parameters.sairedis_artifact_name }}"
   - task: DownloadPipelineArtifact@2
