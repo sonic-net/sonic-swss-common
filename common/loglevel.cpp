@@ -153,8 +153,8 @@ int swssloglevel(int argc, char **argv)
 
         std::sort(keys.begin(), keys.end());
         //TODO: change to be in h file
-        std::string key_prefix(CFG_LOGGER_TABLE_NAME);
-        key_prefix=+"|";
+        std::string redis_key_prefix(CFG_LOGGER_TABLE_NAME);
+        redis_key_prefix=+"|";
         for (const auto& key : keys)
         {
             const auto redis_key = redis_key_prefix.append(key);
