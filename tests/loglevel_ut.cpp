@@ -24,11 +24,6 @@ void clearConfigDB()
     r.checkStatusOK();
 }
 
-void prioNotify(const string &component, const string &prioStr)
-{
-    Logger::priorityStringMap.at(prioStr);
-}
-
 void checkLoglevel(DBConnector& db, const string& key, const string& loglevel)
 {
     string redis_key = "LOGGER|" + key;
@@ -47,25 +42,20 @@ TEST(LOGGER, loglevel)
 
     string key1 = "table1", key2 = "table2", key3 = "table3";
 
-    cout << "Setting log level for table1." << endl;
-    Logger::linkToDbNative(key1);
-
-    sleep(1);
-
-    cout << "Checking log level for table1." << endl;
-    checkLoglevel(db, key1, "NOTICE");
-
-    cout << "Setting log level for tables." << endl;
-    Logger::linkToDb(key2, prioNotify, "NOTICE");
-    Logger::linkToDb(key3, prioNotify, "INFO");
+    cout << "Setting log level NOTICE for table1." << endl;
+    setLoglevel(db, key1, "NOTICE");
+    cout << "Setting log level DEBUG for table1." << endl;
     setLoglevel(db, key1, "DEBUG");
+    cout << "Setting log level SAI_LOG_LEVEL_ERROR for table1." << endl;
+    setLoglevel(db, key1, "SAI_LOG_LEVEL_ERROR");
 
     sleep(1);
-
-    cout << "Checking log levels." << endl;
-    checkLoglevel(db, key1, "DEBUG");
+    swssloglevel("-d");
+    sleep(1);
+    cout << "Checking log level for tables." << endl;
+    checkLoglevel(db, key1, "NOTICE");
     checkLoglevel(db, key2, "NOTICE");
-    checkLoglevel(db, key3, "INFO");
+    checkLoglevel(db, key3, "SAI_LOG_LEVEL_NOTICE");
 
     cout << "Done." << endl;
 }
