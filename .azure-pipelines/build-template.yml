@@ -24,6 +24,7 @@ parameters:
 
 - name: debian_version
   type: string
+  default: buster
 
 - name: artifact_name
   type: string

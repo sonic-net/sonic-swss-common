@@ -95,6 +95,7 @@ stages:
       artifact_name: sonic-swss-common
       run_unit_test: true
       archive_gcov: true
+      debian_version: ${{ parameters.debian_version }}
 
 - stage: BuildArm
   dependsOn: Build
@@ -107,7 +108,6 @@ stages:
       pool: sonicbld-armhf
       sonic_slave: sonic-slave-${{ parameters.debian_version }}-armhf
       artifact_name: sonic-swss-common.armhf
-      debian_version: ${{ parameters.debian_version }}
 
   - template: .azure-pipelines/build-template.yml
     parameters:
