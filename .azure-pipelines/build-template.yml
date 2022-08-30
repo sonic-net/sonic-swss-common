@@ -70,18 +70,17 @@ jobs:
       pipeline: Azure.sonic-buildimage.common_libs
       runVersion: 'latestFromBranch'
       runBranch: 'refs/heads/$(BUILD_BRANCH)'
-      path: $(Build.ArtifactStagingDirectory)/download
+      path: $(Build.ArtifactStagingDirectory)/libyang
       artifact: common-lib
       patterns: |
-        target/debs/${{ parameters.debian_version }}/libyang_*.deb
-        target/debs/${{ parameters.debian_version }}/libyang-dev*.deb
-    displayName: "Download common libs"
+        target/debs/${{ parameters.debian_version }}/libyang*.deb
+    displayName: "Download libyang from latest buildimage"
   - script: |
       set -ex
-      sudo dpkg -i $(find ./download -name *.deb)
-      rm -rf download || true
+      sudo rm ./libyang/libyang*-2_*.deb
+      sudo dpkg -i $(find ./libyang -name *.deb)
     workingDirectory: $(Build.ArtifactStagingDirectory)
-    displayName: "Install libyang"
+    displayName: "Install libyang from latest buildimage"
   - script: |
       set -ex
       rm ../*.deb || true

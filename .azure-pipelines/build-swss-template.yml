@@ -67,15 +67,11 @@ jobs:
       sudo apt-get install -y libteam-dev \
           libteam5 \
           libteamdctl0
-      sudo apt-get install -y libyang0.16 libyang-dev
     displayName: "Install dependencies"
   - task: DownloadPipelineArtifact@2
     inputs:
       artifact: ${{ parameters.swss_common_artifact_name }}
       path: $(Build.ArtifactStagingDirectory)/download
-      patterns: |
-        libswsscommon_1.0.0_*.deb
-        libswsscommon-dev_1.0.0*.deb
     displayName: "Download pre-stage built ${{ parameters.swss_common_artifact_name }}"
   - task: DownloadPipelineArtifact@2
     inputs:
@@ -108,6 +104,7 @@ jobs:
 
   - script: |
       set -ex
+      sudo dpkg -i $(find ./download/libyang -name *.deb)
       sudo dpkg -i $(find ./download -name *.deb)
       rm -rf download || true
     workingDirectory: $(Build.ArtifactStagingDirectory)

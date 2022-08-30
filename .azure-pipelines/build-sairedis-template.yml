@@ -76,8 +76,6 @@ jobs:
         libnl-cli-3-dev \
         swig3.0 \
         libpython2.7-dev \
-        libyang0.16 \
-        libyang-dev \
         libzmq5 libzmq3-dev
 
       sudo apt-get install -y redis-server
@@ -97,6 +95,7 @@ jobs:
     displayName: "Download pre-stage built ${{ parameters.swss_common_artifact_name }}"
   - script: |
       set -ex
+      sudo dpkg -i $(find download/libyang -name *.deb)
       sudo dpkg -i download/libswsscommon_1.0.0_${{ parameters.arch }}.deb
       sudo dpkg -i download/libswsscommon-dev_1.0.0_${{ parameters.arch }}.deb
       rm -rf download || true
