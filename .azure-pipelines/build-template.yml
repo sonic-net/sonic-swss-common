@@ -78,13 +78,12 @@ jobs:
       artifact: common-lib
       patterns: |
         target/debs/${{ parameters.debian_version }}/libyang*.deb
-    displayName: "Download libyang from latest buildimage"
+    displayName: "Download libyang from common lib"
   - script: |
       set -ex
-      ls ./libyang/*.deb
       sudo dpkg -i $(find ./libyang -name *.deb)
     workingDirectory: $(Build.ArtifactStagingDirectory)
-    displayName: "Install libyang from latest buildimage"
+    displayName: "Install libyang from common lib"
   - script: |
       set -ex
       rm ../*.deb || true
