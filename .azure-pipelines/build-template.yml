@@ -61,9 +61,27 @@ jobs:
         libnl-genl-3-dev \
         libnl-route-3-dev \
         libnl-nf-3-dev \
-        libyang-dev \
         swig3.0
     displayName: "Install dependencies"
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      source: specific
+      project: build
+      pipeline: Azure.sonic-buildimage.common_libs
+      runVersion: 'latestFromBranch'
+      runBranch: 'refs/heads/$(BUILD_BRANCH)'
+      path: $(Build.ArtifactStagingDirectory)/download
+      artifact: common-lib
+      patterns: |
+        target/debs/${{ parameters.debian_version }}/libyang_*.deb
+        target/debs/${{ parameters.debian_version }}/libyang-dev*.deb
+    displayName: "Download common libs"
+  - script: |
+      set -ex
+      sudo dpkg -i $(find ./download -name *.deb)
+      rm -rf download || true
+    workingDirectory: $(Build.ArtifactStagingDirectory)
+    displayName: "Install libyang"
   - script: |
       set -ex
       rm ../*.deb || true
