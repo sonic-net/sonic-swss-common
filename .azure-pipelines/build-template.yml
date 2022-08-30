@@ -81,7 +81,7 @@ jobs:
     displayName: "Download libyang from latest buildimage"
   - script: |
       set -ex
-      sudo rm ./libyang/libyang*-2_*.deb
+      ls ./libyang/*.deb
       sudo dpkg -i $(find ./libyang -name *.deb)
     workingDirectory: $(Build.ArtifactStagingDirectory)
     displayName: "Install libyang from latest buildimage"
