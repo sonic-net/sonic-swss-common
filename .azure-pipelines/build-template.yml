@@ -65,7 +65,7 @@ jobs:
         libnl-genl-3-dev \
         libnl-route-3-dev \
         libnl-nf-3-dev \
-        $( if [[ ${{ parameters.debian_version }} != "bullseye" ]]; then echo "swig3.0"; fi )
+        swig
     displayName: "Install dependencies"
   - script: |
       set -ex
