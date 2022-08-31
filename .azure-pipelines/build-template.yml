@@ -68,7 +68,8 @@ jobs:
         swig3.0
     displayName: "Install dependencies"
   - task: DownloadPipelineArtifact@2
-    condition: eq(parameters.arch, 'amd64')
+    # amd64 artifact name does not has arch suffix
+    condition: eq('${{ parameters.arch }}', 'amd64')
     inputs:
       source: specific
       project: build
@@ -82,6 +83,7 @@ jobs:
         target/debs/${{ parameters.debian_version }}/libyang_*.deb
     displayName: "Download libyang from amd64 common lib"
   - task: DownloadPipelineArtifact@2
+    condition: ne('${{ parameters.arch }}', 'amd64')
     inputs:
       source: specific
       project: build
