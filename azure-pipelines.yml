@@ -108,6 +108,7 @@ stages:
       pool: sonicbld-armhf
       sonic_slave: sonic-slave-${{ parameters.debian_version }}-armhf
       artifact_name: sonic-swss-common.armhf
+      debian_version: ${{ parameters.debian_version }}
 
   - template: .azure-pipelines/build-template.yml
     parameters:
@@ -116,6 +117,7 @@ stages:
       pool: sonicbld-arm64
       sonic_slave: sonic-slave-${{ parameters.debian_version }}-arm64
       artifact_name: sonic-swss-common.arm64
+      debian_version: ${{ parameters.debian_version }}
 
 - stage: BuildSairedis
   dependsOn: Build
@@ -128,6 +130,7 @@ stages:
       swss_common_artifact_name: sonic-swss-common
       artifact_name: sonic-sairedis
       syslog_artifact_name: sonic-sairedis.syslog
+      debian_version: ${{ parameters.debian_version }}
 
 - stage: BuildSwss
   dependsOn: BuildSairedis
