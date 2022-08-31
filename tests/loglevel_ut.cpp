@@ -5,7 +5,7 @@
 #include "common/schema.h"
 #include "gtest/gtest.h"
 #include <unistd.h>
-
+#include "common/loglevel.cpp"
 using namespace std;
 using namespace swss;
 
@@ -50,7 +50,8 @@ TEST(LOGGER, loglevel)
     setLoglevel(db, key1, "SAI_LOG_LEVEL_ERROR");
 
     sleep(1);
-    swssloglevel("-d");
+    char* argv[1] = {"-d"};
+    swssloglevel(1,argv);
     sleep(1);
     cout << "Checking log level for tables." << endl;
     checkLoglevel(db, key1, "NOTICE");
