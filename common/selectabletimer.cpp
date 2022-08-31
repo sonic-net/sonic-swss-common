@@ -44,6 +44,7 @@ void SelectableTimer::start()
         int rc = timerfd_settime(m_tfd, 0, &m_interval, NULL);
         if (rc == -1)
         {
+            m_mutex.unlock();
             SWSS_LOG_THROW("failed to set timerfd, errno: %s", strerror(errno));
         }
         else
@@ -63,6 +64,7 @@ void SelectableTimer::stop()
         int rc = timerfd_settime(m_tfd, 0, &m_zero, NULL);
         if (rc == -1)
         {
+            m_mutex.unlock();
             SWSS_LOG_THROW("failed to set timerfd to zero, errno: %s", strerror(errno));
         }
         else
