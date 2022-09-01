@@ -264,7 +264,8 @@ protected:
                 if field not in data:
                     data[field] = defaultValues[field]
         def _try_delete_static_config(table, key, data):
-            if data.empty():
+            if data is None or len(data) == 0:
+                # set a entry to empty will delete this entry
                 serialized_key = config_db_connector.serialize_key(key)
                 client = config_db_connector.get_redis_client(config_db_connector.db_name)
                 StaticConfigProvider.Instance().TryDeleteItem(table, serialized_key, client)
@@ -294,19 +295,22 @@ protected:
                     _append_default_value(table, key, result[table][key])
             return result
         # override write and delete APIs
-        def set_entry(self, table, key, data):
+        def set_entry(table, key, data):
+            # set a entry to empty will delete this entry
             _try_delete_static_config(table, key, data)
             return config_db_connector.ori_set_entry(table, key, data)
-        def mod_entry(self, table, key, data):
+        def mod_entry(table, key, data):
             _try_delete_static_config(table, key, data)
             return config_db_connector.ori_mod_entry(table, key, data)
-        def delete_table(self, table):
+        def delete_table(table):
             _try_delete_static_config_table(table)
             return config_db_connector.ori_delete_table(table)
-        def mod_config(self, data):
-            for key in data:
-                _try_delete_static_config(table, key, data[key])
-            return config_db_connector.ori_mod_config(data)
+        def mod_config(config):
+            for tablename in config:
+                table = config[tablename]
+                for key in table:
+                    _try_delete_static_config(table, key, table[key])
+            return config_db_connector.ori_mod_config(config)
         # set decorate methods
         config_db_connector.get_entry = get_entry
         config_db_connector.get_table = get_table
