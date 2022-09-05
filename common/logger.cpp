@@ -74,6 +74,8 @@ const Logger::PriorityStringMap Logger::priorityStringMap = {
 
 void Logger::swssPrioNotify(const std::string& component, const std::string& prioStr)
 {
+    SWSS_LOG_NOTICE("EDEN start swssPrioNotify");
+
     auto& logger = getInstance();
 
     if (priorityStringMap.find(prioStr) == priorityStringMap.end())
@@ -83,7 +85,10 @@ void Logger::swssPrioNotify(const std::string& component, const std::string& pri
     }
     else
     {
+        SWSS_LOG_NOTICE("EDEN changing min prio of logger");
         logger.m_minPrio = priorityStringMap.at(prioStr);
+        SWSS_LOG_NOTICE("EDEN changing min prio of logger end");
+
     }
 }
 
@@ -125,7 +130,7 @@ void Logger::linkToDbWithOutput(
     std::string key_prefix(CFG_LOGGER_TABLE_NAME);
     key_prefix=+"|";
     std::string key = key_prefix + dbName;
-    
+
     std::string prio, output;
     bool doUpdate = false;
     auto prioPtr = db.hget(key, DAEMON_LOGLEVEL);
@@ -265,8 +270,10 @@ void Logger::settingThread()
 
 void Logger::write(Priority prio, const char *fmt, ...)
 {
+
     if (prio > m_minPrio)
         return;
+
 
     // TODO
     // + add thread id using std::thread::id this_id = std::this_thread::get_id();
