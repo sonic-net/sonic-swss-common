@@ -477,12 +477,12 @@ string RedisReply::formatTupleReply(struct redisReply **element, size_t elements
 
 string RedisReply::formatStringWithQuot(string str)
 {
-    if (valuestr.find('\'') != std::string::npos)
+    if (str.find('\'') != std::string::npos)
     {
-        return "\"" + valuestr + "\"";
+        return "\"" + str + "\"";
     }
     
-    return "'" + valuestr + "'";
+    return "'" + str + "'";
 }
 
 }
