@@ -244,24 +244,7 @@ void ConfigDBConnector_Native::mod_config(const map<string, map<string, map<stri
 map<string, map<string, map<string, string>>> ConfigDBConnector_Native::get_config()
 {
     auto& client = get_redis_client(m_db_name);
-    auto const& keys = client.keys("*");
-    map<string, map<string, map<string, string>>> data;
-    for (string key: keys)
-    {
-        size_t pos = key.find(m_table_name_separator);
-        if (pos == string::npos) {
-            continue;
-        }
-        string table_name = key.substr(0, pos);
-        string row = key.substr(pos + 1);
-        auto const& entry = client.hgetall<map<string, string>>(key);
-
-        if (!entry.empty())
-        {
-            data[table_name][row] = entry;
-        }
-    }
-    return data;
+    return client.getall();
 }
 
 std::string ConfigDBConnector_Native::getKeySeparator() const

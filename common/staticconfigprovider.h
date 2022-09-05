@@ -5,6 +5,7 @@
 #include <vector>
 #include "common/table.h"
 #include "common/dbconnector.h"
+#include "common/converter.h"
 
 namespace swss {
 
@@ -19,9 +20,11 @@ public:
 
     void AppendConfigs(const std::string &table, KeyOpFieldsValuesTuple &operation, DBConnector* cfgDbConnector);
 
-    std::shared_ptr<std::string> GetConfig(const std::string &table, const std::string &key, std::string field, DBConnector* cfgDbConnector);
+    std::shared_ptr<std::string> GetConfig(const std::string &table, const std::string &key, const std::string &field, DBConnector* cfgDbConnector);
 
     std::map<std::string, std::string> GetConfigs(const std::string &table, const std::string &key, DBConnector* cfgDbConnector);
+
+    std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> GetConfigs(DBConnector* cfgDbConnector);
 
     std::vector<std::string> GetKeys(const std::string &table, DBConnector* cfgDbConnector);
 
@@ -33,23 +36,29 @@ private:
     StaticConfigProvider();
     ~StaticConfigProvider();
 
-    std::unordered_map<std::string, std::string> GetStaticConfig(const std::string &table, const std::string &key, DBConnector* cfgDbConnector);
-
-    std::string getKeyName(const std::string &table, const std::string &key)
+    std::string getKeyName(const std::string &table, const std::string &key, DBConnector* dbConnector)
     {
-        return table + m_tableSeparator + key;
+        const auto separator = SonicDBConfig::getSeparator(dbConnector);
+        // Profile DB follow Config DB: table name is case insensetive.
+        return to_upper(table) + separator + key;
     }
 
-    bool ItemDeleted(const std::string &key, DBConnector& staticCfgDbConnector);
+    std::string getDeletedKeyName(const std::string &table, const std::string &key, DBConnector* dbConnector)
+    {
+        auto itemKey = to_upper(table) + "_" + key;
+        return getKeyName(PROFILE_DELETE_TABLE, itemKey, dbConnector);
+    }
 
-    void DeleteItem(const std::string &key, DBConnector& staticCfgDbConnector);
 
-    void RevertItem(const std::string &key, DBConnector& staticCfgDbConnector);
+    bool ItemDeleted(const std::string &table, const std::string &key, DBConnector* cfgDbConnector);
+
+    void DeleteItem(const std::string &table, const std::string &key, DBConnector* cfgDbConnector);
+
+    void RevertItem(const std::string &table, const std::string &key, DBConnector* cfgDbConnector);
 
     DBConnector& GetStaticCfgDBConnector(DBConnector* cfgDbConnector);
 
     std::map<std::string, DBConnector> m_staticCfgDBMap;
-    std::string m_tableSeparator;
 };
 
 }

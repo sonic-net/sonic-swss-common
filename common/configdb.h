@@ -250,14 +250,34 @@ protected:
         config_db_connector.ori_mod_entry = config_db_connector.mod_entry
         config_db_connector.ori_delete_table = config_db_connector.delete_table
         config_db_connector.ori_mod_config = config_db_connector.mod_config
-        def _append_static_config(table, key, data):
+        # helper methods for append profile and default values to result.
+        def _append_profile(result):
+            client = config_db_connector.get_redis_client(config_db_connector.db_name)
+            profile_config = StaticConfigProvider.Instance().GetConfigs(client)
+            for table_name in profile_config:
+                profile_table = profile_config[table_name]
+                if table_name not in result:
+                    result[table_name] = profile_table
+                else:
+                    config_table = result[table_name]
+                    for profile_key in profile_table:
+                        if profile_key not in config_table:
+                            config_table[profile_key] = profile_table[profile_key]
+        def _append_table_profile(table, result):
+            client = config_db_connector.get_redis_client(config_db_connector.db_name)
+            profile_keys = StaticConfigProvider.Instance().GetKeys(table, client)
+            for profile_key in profile_keys:
+                if profile_key not in result:
+                    serialized_key = config_db_connector.serialize_key(profile_key)
+                    result[profile_key] = StaticConfigProvider.Instance().GetConfigs(table, serialized_key, client)
+        def _get_profile(table, key):
             serialized_key = config_db_connector.serialize_key(key)
             client = config_db_connector.get_redis_client(config_db_connector.db_name)
-            staticConfigs = StaticConfigProvider.Instance().GetConfigs(table, serialized_key, client)
-            for field in staticConfigs:
-                if field not in data:
-                    data[field] = staticConfigs[field]
+            return StaticConfigProvider.Instance().GetConfigs(table, serialized_key, client)
         def _append_default_value(table, key, data):
+            if data is None or len(data) == 0:
+                # empty entry means the entry been deleted
+                return data
             serialized_key = config_db_connector.serialize_key(key)
             defaultValues = DefaultValueProvider.Instance().GetDefaultValues(table, serialized_key)
             for field in defaultValues:
@@ -278,21 +298,27 @@ protected:
         # override read APIs
         def get_entry(table, key):
             result = config_db_connector.ori_get_entry(table, key)
-            _append_static_config(table, key, result)
+            if result is None or len(result) == 0:
+                # when there are any user config, profile will be overwrite.
+                result = _get_profile(table, key)
             _append_default_value(table, key, result)
             return result
         def get_table(table):
             result = config_db_connector.ori_get_table(table)
+            _append_table_profile(table, result)
             for key in result:
-                _append_static_config(table, key, result[key])
                 _append_default_value(table, key, result[key])
             return result
         def get_config():
             result = config_db_connector.ori_get_config()
+            _append_profile(result)
             for table in result:
                 for key in result[table]:
-                    _append_static_config(table, key, result[table][key])
-                    _append_default_value(table, key, result[table][key])
+                    # Can not pass result[table][key] as parameter here, because python will create a copy. re-assign entry to result to bypass this issue.
+                    entry = result[table][key]
+                    _append_default_value(table, key, entry)
+                    result[table][key] = entry
+                    
             return result
         # override write and delete APIs
         def set_entry(table, key, data):
@@ -309,7 +335,7 @@ protected:
             for tablename in config:
                 table = config[tablename]
                 for key in table:
-                    _try_delete_static_config(table, key, table[key])
+                    _try_delete_static_config(tablename, key, table[key])
             return config_db_connector.ori_mod_config(config)
         # set decorate methods
         config_db_connector.get_entry = get_entry

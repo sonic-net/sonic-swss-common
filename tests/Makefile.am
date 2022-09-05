@@ -8,6 +8,8 @@ else
 DBGFLAGS = -g -DNDEBUG
 endif
 
+UTFLAGS = -DUNITTEST
+
 CFLAGS_GTEST =
 LDADD_GTEST = -L/usr/src/gtest -lgtest -lgtest_main -lgmock -lgmock_main
 
@@ -41,8 +43,9 @@ tests_SOURCES = redis_ut.cpp                \
                 events_common_ut.cpp        \
                 events_service_ut.cpp       \
                 events_ut.cpp               \
+                profile_ut.cpp              \
                 main.cpp
 
-tests_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_GTEST) $(LIBNL_CFLAGS)
-tests_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_GTEST) $(LIBNL_CFLAGS)
+tests_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_GTEST) $(LIBNL_CFLAGS) $(UTFLAGS)
+tests_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_GTEST) $(LIBNL_CFLAGS) $(UTFLAGS)
 tests_LDADD = $(LDADD_GTEST) -lpthread -L$(top_srcdir)/common -lswsscommon $(LIBNL_LIBS) $(CODE_COVERAGE_LIBS) -L$(top_srcdir)/sonic-db-cli -lsonicdbcli -lzmq -luuid -lboost_serialization

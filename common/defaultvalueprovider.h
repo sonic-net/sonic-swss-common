@@ -82,16 +82,13 @@ public:
 
     void AppendDefaultValues(const std::string &table, KeyOpFieldsValuesTuple &operation);
 
-    std::shared_ptr<std::string> GetDefaultValue(const std::string &table, const std::string &key, std::string field);
+    std::shared_ptr<std::string> GetDefaultValue(const std::string &table, const std::string &key, const std::string &field);
 
     std::map<std::string, std::string> GetDefaultValues(const std::string &table, const std::string &key);
 
-
-#ifdef DEBUG
-    static bool FeatureEnabledByEnvironmentVariable();
-#endif
-
+#ifndef UNITTEST
 private:
+#endif
     DefaultValueProvider();
     ~DefaultValueProvider();
 

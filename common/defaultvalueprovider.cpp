@@ -154,10 +154,12 @@ bool TableInfoMultipleList::FindFieldMappingByKey(const string &key, FieldDefaul
 DefaultValueProvider& DefaultValueProvider::Instance()
 {
     static DefaultValueProvider instance;
+#ifndef UNITTEST
     if (instance.m_context == nullptr)
     {
         instance.Initialize();
     }
+#endif
 
     return instance;
 }
@@ -177,7 +179,7 @@ shared_ptr<TableInfoBase> DefaultValueProvider::FindDefaultValueInfo(const strin
     return findResult->second;
 }
 
-std::shared_ptr<string> DefaultValueProvider::GetDefaultValue(const string &table, const string &key, string field)
+std::shared_ptr<string> DefaultValueProvider::GetDefaultValue(const string &table, const string &key, const string &field)
 {
     assert(!table.empty());
     assert(!key.empty());

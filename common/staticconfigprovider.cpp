@@ -26,20 +26,21 @@ StaticConfigProvider& StaticConfigProvider::Instance()
     return instance;
 }
 
-std::shared_ptr<std::string> StaticConfigProvider::GetConfig(const std::string &table, const std::string &key, std::string field, DBConnector* cfgDbConnector)
+std::shared_ptr<std::string> StaticConfigProvider::GetConfig(const std::string &table, const std::string &key, const std::string &field, DBConnector* cfgDbConnector)
 {
     assert(!table.empty());
     assert(!key.empty());
     assert(!field.empty());
     
     // TODO: improve following POC code performance, get field from redis directly
-    auto staticConfig = GetStaticConfig(table, key, cfgDbConnector);
+    auto staticConfig = GetConfigs(table, key, cfgDbConnector);
     auto result = staticConfig.find(field);
     if (result != staticConfig.end())
     {
         return std::make_shared<string>(result->second);
     }
     
+    // Config not found is different with 'empty' config
     return nullptr;
 }
 
@@ -49,14 +50,8 @@ void StaticConfigProvider::AppendConfigs(const std::string &table, const std::st
     assert(!key.empty());
 
     SWSS_LOG_DEBUG("DefaultValueProvider::AppendDefaultValues %s %s\n", table.c_str(), key.c_str());
-#ifdef DEBUG
-    if (!FeatureEnabledByEnvironmentVariable())
-    {
-        return;
-    }
-#endif
 
-    auto staticConfig = GetStaticConfig(table, key, cfgDbConnector);
+    auto staticConfig = GetConfigs(table, key, cfgDbConnector);
 
     map<string, string> existedValues;
     for (auto& fieldValuePair : values)
@@ -80,14 +75,8 @@ void StaticConfigProvider::AppendConfigs(const string &table, const string &key,
     assert(!key.empty());
 
     SWSS_LOG_DEBUG("DefaultValueProvider::AppendDefaultValues %s %s\n", table.c_str(), key.c_str());
-#ifdef DEBUG
-    if (!FeatureEnabledByEnvironmentVariable())
-    {
-        return;
-    }
-#endif
 
-    auto staticConfig = GetStaticConfig(table, key, cfgDbConnector);
+    auto staticConfig = GetConfigs(table, key, cfgDbConnector);
 
     for (auto& fieldValuePair : staticConfig)
     {
@@ -109,7 +98,7 @@ void StaticConfigProvider::AppendConfigs(const string &table, KeyOpFieldsValuesT
     auto& key = kfvKey(kofv_tuple);
     auto& data = kfvFieldsValues(kofv_tuple);
 
-    auto staticConfig = GetStaticConfig(table, key, cfgDbConnector);
+    auto staticConfig = GetConfigs(table, key, cfgDbConnector);
 
     // TODO: following code dupe with default value provider, improve code by reuse it.
     for (auto& fieldValuePair : staticConfig)
@@ -133,18 +122,81 @@ void StaticConfigProvider::AppendConfigs(const string &table, KeyOpFieldsValuesT
     }
 }
 
-std::map<std::string, std::string> StaticConfigProvider::GetConfigs(const std::string &table, const std::string &key, DBConnector* cfgDbConnector)
+map<string, string> StaticConfigProvider::GetConfigs(const std::string &table, const std::string &key, DBConnector* cfgDbConnector)
 {
-    std::map<std::string, std::string> result;
-    AppendConfigs(table, key, result, cfgDbConnector);
-    return result;
+    if (ItemDeleted(table, key, cfgDbConnector))
+    {
+        SWSS_LOG_DEBUG("DefaultValueProvider::GetConfigs item %s %s deleted.\n", table.c_str(), key.c_str());
+        map<string, string> map;
+        return map;
+    }
+
+    auto& staticCfgDbConnector = GetStaticCfgDBConnector(cfgDbConnector);
+    auto itemkey = getKeyName(table, key, &staticCfgDbConnector);
+    return staticCfgDbConnector.hgetall<map<string, string>>(itemkey);
+}
+
+map<string, map<string, map<string, string>>> StaticConfigProvider::GetConfigs(DBConnector* cfgDbConnector)
+{
+    auto& staticCfgDbConnector = GetStaticCfgDBConnector(cfgDbConnector);
+    auto configs = staticCfgDbConnector.getall();
+    
+    // If a profile item mark as 'deleted', it's shoud not exist in result.
+    list<pair<string, string>> deletedItems;
+    for(auto const& tableItem: configs)
+    {
+        auto table = tableItem.first;
+        for(auto const& item: tableItem.second)
+        {
+            auto key = item.first;
+            if (ItemDeleted(table, key, cfgDbConnector))
+            {
+                SWSS_LOG_DEBUG("DefaultValueProvider::GetConfigs item %s %s deleted.\n", table.c_str(), key.c_str());
+                deletedItems.push_back(std::make_pair(table, key));
+            }
+        }
+    }
+
+    for(auto const& deletedItem: deletedItems)
+    {
+        auto table = deletedItem.first;
+        auto key = deletedItem.second;
+        SWSS_LOG_DEBUG("DefaultValueProvider::GetConfigs remove deleted item %s %s from result.\n", table.c_str(), key.c_str());
+        configs[table].erase(key);
+    }
+
+    return configs;
 }
 
 vector<string> StaticConfigProvider::GetKeys(const std::string &table, DBConnector* cfgDbConnector)
 {
-    auto pattern = getKeyName(table, "*");
     auto& staticCfgDbConnector = GetStaticCfgDBConnector(cfgDbConnector);
-    return staticCfgDbConnector.keys(pattern);
+    auto pattern = getKeyName(table, "*", &staticCfgDbConnector);
+    auto keys = staticCfgDbConnector.keys(pattern);
+    
+    const auto separator = SonicDBConfig::getSeparator(&staticCfgDbConnector);
+    vector<string> result;
+    for(auto const& itemKey: keys)
+    {
+        size_t pos = itemKey.find(separator);
+        if (pos == string::npos)
+        {
+            SWSS_LOG_DEBUG("DefaultValueProvider::GetConfigs can't find separator %s in %s.\n", separator.c_str(), itemKey.c_str());
+            continue;
+        }
+
+        auto row = itemKey.substr(pos + 1);
+        if (!ItemDeleted(table, row, cfgDbConnector))
+        {
+            result.push_back(row);
+        }
+        else
+        {
+            SWSS_LOG_DEBUG("DefaultValueProvider::GetConfigs item %s %s deleted.\n", table.c_str(), row.c_str());
+        }
+    }
+
+    return result;
 }
 
 StaticConfigProvider::StaticConfigProvider()
@@ -156,30 +208,11 @@ StaticConfigProvider::~StaticConfigProvider()
 {
 }
 
-
-unordered_map<string, string> StaticConfigProvider::GetStaticConfig(const string &table, const string &key, DBConnector* cfgDbConnector)
-{
-    auto itemkey = getKeyName(table, key);
-    auto deletedkey = getKeyName(PROFILE_DELETE_TABLE, itemkey);
-    auto& staticCfgDbConnector = GetStaticCfgDBConnector(cfgDbConnector);
-    if (ItemDeleted(deletedkey, staticCfgDbConnector))
-    {
-        unordered_map<string, string> map;
-        return map;
-    }
-    
-    return staticCfgDbConnector.hgetall<unordered_map<string, string>>(itemkey);
-}
-
-
 bool StaticConfigProvider::TryRevertItem(const std::string &table, const std::string &key, DBConnector* cfgDbConnector)
 {
-    auto itemkey = getKeyName(table, key);
-    auto deletedkey = getKeyName(PROFILE_DELETE_TABLE, itemkey);
-    auto& staticCfgDbConnector = GetStaticCfgDBConnector(cfgDbConnector);
-    if (ItemDeleted(deletedkey, staticCfgDbConnector))
+    if (ItemDeleted(table, key, cfgDbConnector))
     {
-        RevertItem(deletedkey, staticCfgDbConnector);
+        RevertItem(table, key, cfgDbConnector);
         return true;
     }
     
@@ -188,34 +221,32 @@ bool StaticConfigProvider::TryRevertItem(const std::string &table, const std::st
 
 bool StaticConfigProvider::TryDeleteItem(const std::string &table, const std::string &key, DBConnector* cfgDbConnector)
 {
-    auto itemkey = getKeyName(table, key);
-    auto deletedkey = getKeyName(PROFILE_DELETE_TABLE, itemkey);
-    auto& staticCfgDbConnector = GetStaticCfgDBConnector(cfgDbConnector);
-    if (!ItemDeleted(deletedkey, staticCfgDbConnector))
+    if (!ItemDeleted(table, key, cfgDbConnector))
     {
-        DeleteItem(deletedkey, staticCfgDbConnector);
+        DeleteItem(table, key, cfgDbConnector);
         return true;
     }
     
     return false;
 }
 
-bool StaticConfigProvider::ItemDeleted(const std::string &key, DBConnector& staticCfgDbConnector)
+bool StaticConfigProvider::ItemDeleted(const std::string &table, const std::string &key, DBConnector* cfgDbConnector)
 {
-    auto deletedkey = getKeyName(PROFILE_DELETE_TABLE, key);
-    return staticCfgDbConnector.exists(deletedkey) == false;
+    auto deletedkey = getDeletedKeyName(table, key, cfgDbConnector);
+    return cfgDbConnector->exists(deletedkey) == true;
 }
 
-void StaticConfigProvider::DeleteItem(const std::string &key, DBConnector& staticCfgDbConnector)
+void StaticConfigProvider::DeleteItem(const std::string &table, const std::string &key, DBConnector* cfgDbConnector)
 {
-    auto deletedkey = getKeyName(PROFILE_DELETE_TABLE, key);
-    staticCfgDbConnector.set(deletedkey, "");
+    auto deletedkey = getDeletedKeyName(table, key, cfgDbConnector);
+    // Set value as a empty dict, because PROFILE_DELETE_TABLE is a CONFIG_DB table.
+    cfgDbConnector->hset(deletedkey, "", "");
 }
 
-void StaticConfigProvider::RevertItem(const std::string &key, DBConnector& staticCfgDbConnector)
+void StaticConfigProvider::RevertItem(const std::string &table, const std::string &key, DBConnector* cfgDbConnector)
 {
-    auto deletedkey = getKeyName(PROFILE_DELETE_TABLE, key);
-    staticCfgDbConnector.del(deletedkey);
+    auto deletedkey = getDeletedKeyName(table, key,cfgDbConnector);
+    cfgDbConnector->del(deletedkey);
 }
 
 DBConnector& StaticConfigProvider::GetStaticCfgDBConnector(DBConnector* cfgDbConnector)
