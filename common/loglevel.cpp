@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <unistd.h>
 #include "schema.h"
+#include "loglevel.h"
 #include "logger.h"
 #include "dbconnector.h"
 #include "producerstatetable.h"
@@ -196,6 +197,7 @@ int swssloglevel(int argc, char **argv)
     if ((prefix == "SAI_API_") && !validateSaiLoglevel(loglevel))
     {
         exitWithUsage(EXIT_FAILURE, "Invalid SAI loglevel value");
+
     }
     else if ((prefix == "") && (Logger::priorityStringMap.find(loglevel) == Logger::priorityStringMap.end()))
     {
@@ -234,9 +236,4 @@ int swssloglevel(int argc, char **argv)
     return EXIT_SUCCESS;
 }
 
-int main(int argc, char **argv)
-{
 
-
-    return swssloglevel(argc, argv);
-}

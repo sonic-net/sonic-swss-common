@@ -3,13 +3,13 @@
 #include "common/consumerstatetable.h"
 #include "common/select.h"
 #include "common/schema.h"
+#include "common/loglevel.h"
 #include "gtest/gtest.h"
 #include <unistd.h>
-#include "common/loglevel.cpp"
 using namespace std;
 using namespace swss;
 
-void setLoglevel(DBConnector& db, const string& key, const string& loglevel)
+void setLoglevel2(DBConnector& db, const string& key, const string& loglevel)
 {
     swss::Table table(&db, key);
     FieldValueTuple fv(DAEMON_LOGLEVEL, loglevel);
@@ -17,14 +17,14 @@ void setLoglevel(DBConnector& db, const string& key, const string& loglevel)
     table.set(key, fieldValues);
 }
 
-void clearConfigDB()
+void clearConfigDB2()
 {
     DBConnector db("CONFIG_DB", 0);
     RedisReply r(&db, "FLUSHALL", REDIS_REPLY_STATUS);
     r.checkStatusOK();
 }
 
-void checkLoglevel(DBConnector& db, const string& key, const string& loglevel)
+void checkLoglevel2(DBConnector& db, const string& key, const string& loglevel)
 {
     string redis_key = "LOGGER|" + key;
     auto level = db.hget(redis_key, DAEMON_LOGLEVEL);
@@ -35,28 +35,28 @@ void checkLoglevel(DBConnector& db, const string& key, const string& loglevel)
     }
 }
 
-TEST(LOGGER, loglevel)
+TEST(LOGLEVEL, loglevel)
 {
     DBConnector db("CONFIG_DB", 0);
-    clearConfigDB();
+    clearConfigDB2();
 
     string key1 = "table1", key2 = "table2", key3 = "table3";
 
     cout << "Setting log level NOTICE for table1." << endl;
-    setLoglevel(db, key1, "NOTICE");
+    setLoglevel2(db, key1, "NOTICE");
     cout << "Setting log level DEBUG for table1." << endl;
-    setLoglevel(db, key1, "DEBUG");
+    setLoglevel2(db, key1, "DEBUG");
     cout << "Setting log level SAI_LOG_LEVEL_ERROR for table1." << endl;
-    setLoglevel(db, key1, "SAI_LOG_LEVEL_ERROR");
+    setLoglevel2(db, key1, "SAI_LOG_LEVEL_ERROR");
 
     sleep(1);
     char* argv[1] = {"-d"};
     swssloglevel(1,argv);
     sleep(1);
     cout << "Checking log level for tables." << endl;
-    checkLoglevel(db, key1, "NOTICE");
-    checkLoglevel(db, key2, "NOTICE");
-    checkLoglevel(db, key3, "SAI_LOG_LEVEL_NOTICE");
+    checkLoglevel2(db, key1, "NOTICE");
+    checkLoglevel2(db, key2, "NOTICE");
+    checkLoglevel2(db, key3, "SAI_LOG_LEVEL_NOTICE");
 
     cout << "Done." << endl;
 }
