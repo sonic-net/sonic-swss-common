@@ -145,6 +145,7 @@ T castSelectableObj(swss::Selectable *temp)
 
 %template(CastSelectableToRedisSelectObj) castSelectableObj<swss::RedisSelect *>;
 %template(CastSelectableToSubscriberTableObj) castSelectableObj<swss::SubscriberStateTable *>;
+%template(CastSelectableToOverlaySubscriberTableObj) castSelectableObj<swss::OverlaySubscriberStateTable *>;
 
 // Handle object ownership issue with %newobject:
 //        https://www.swig.org/Doc4.0/SWIGDocumentation.html#Customization_ownership

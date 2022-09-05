@@ -14,9 +14,9 @@ class StaticConfigProvider
 public:
     static StaticConfigProvider& Instance();
 
-    void AppendConfigs(const std::string &table, const std::string &key, std::map<std::string, std::string>& values, DBConnector* cfgDbConnector);
+    bool AppendConfigs(const std::string &table, const std::string &key, std::map<std::string, std::string>& values, DBConnector* cfgDbConnector);
 
-    void AppendConfigs(const std::string &table, const std::string &key, std::vector<std::pair<std::string, std::string> > &values, DBConnector* cfgDbConnector);
+    bool AppendConfigs(const std::string &table, const std::string &key, std::vector<std::pair<std::string, std::string> > &values, DBConnector* cfgDbConnector);
 
     void AppendConfigs(const std::string &table, KeyOpFieldsValuesTuple &operation, DBConnector* cfgDbConnector);
 

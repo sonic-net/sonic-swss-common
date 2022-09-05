@@ -13,18 +13,6 @@
 
 namespace swss {
 
-class OverlaySubscriberStateTable : public SubscriberStateTable 
-{
-public:
-    OverlaySubscriberStateTable(DBConnector *db, const std::string &tableName, int popBatchSize = swss::TableConsumable::DEFAULT_POP_BATCH_SIZE, int pri = 0);
-
-    /* Pop an action (set or del) on the table */
-    void pop(KeyOpFieldsValuesTuple &kco, const std::string &prefix = EMPTY_PREFIX) override;
-
-    /* Get all elements available */
-    void pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const std::string &prefix = EMPTY_PREFIX);
-};
-
 class OverlayTable : public Table  
 {
 public:

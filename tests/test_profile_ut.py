@@ -48,7 +48,27 @@ def check_item_deleted(decorator, table, key):
     config = decorator.get_config()
     assert key not in config[table]
 
-def test_read_yang_default_value(prepare_yang_module, reset_database):
+def check_table_read_api_result(table, key, fieldname, expected):
+    # check get
+    result, fields = table.get(key)
+    assert result
+    field_exist = False
+    for field in fields:
+        if field[0] == fieldname:
+            field_exist = True
+            assert field[1] == expected
+    assert field_exist
+    
+    # check hget
+    result, value = table.hget(key, fieldname)
+    assert result
+    assert value == expected
+    
+    # check getKeys
+    keys = table.getKeys()
+    assert key in keys
+
+def test_decorator_read_yang_default_value(prepare_yang_module, reset_database):
     """
     Test OverlayConfigDBConnectorDecorator read correct default values from Yang model.
     """
@@ -88,7 +108,7 @@ def test_read_yang_default_value(prepare_yang_module, reset_database):
     # check read API
     check_read_api_result(decorator, table, key, field, "3")
 
-def test_read_profile_config(prepare_yang_module, reset_database):
+def test_decorator_read_profile_config(prepare_yang_module, reset_database):
     """
     Test OverlayConfigDBConnectorDecorator read correct profile.
     """
@@ -118,7 +138,7 @@ def test_read_profile_config(prepare_yang_module, reset_database):
 
     check_read_api_result(decorator, table, key, field, profile_nat_zone)
 
-def test_delete_profile_config(prepare_yang_module, reset_database):
+def test_decorator_delete_profile_config(prepare_yang_module, reset_database):
     """
     Test OverlayConfigDBConnectorDecorator delete profile.
     """
@@ -186,3 +206,122 @@ def test_delete_profile_config(prepare_yang_module, reset_database):
     # profile avaliable again
     check_read_api_result(decorator, table, key, profile_field, profile_value)
 
+def test_table_read_yang_default_value(prepare_yang_module, reset_database):
+    """
+    Test OverlayTable read correct default values from Yang model.
+    """
+    # set to table without default value
+    conn = swsscommon.ConfigDBConnector()
+    decorator = swsscommon.OverlayConfigDBConnectorDecorator(conn)
+    decorator.connect(wait_for_init=False)
+    table = "INTERFACE"
+    key = "TEST_INTERFACE"
+    data = { "test_field": "test_value" }
+    fieldname = "nat_zone"
+    decorator.set_entry(table, key, data)
+
+    # check read API
+    db = swsscommon.DBConnector("CONFIG_DB", 0)
+    table = swsscommon.OverlayTable(db, 'INTERFACE')
+
+    # check read API
+    check_table_read_api_result(table, key, fieldname, "0")
+
+def test_table_read_profile_config(prepare_yang_module, reset_database):
+    """
+    Test OverlayTable read correct profile config.
+    """
+    # setup profile config
+    profile_conn = swsscommon.ConfigDBConnector()
+    profile_conn.db_connect("PROFILE_DB")
+    tablename = "INTERFACE"
+    key = "TEST_INTERFACE"
+    profile_field = "profile"
+    profile_value = "value"
+    profile = { profile_field: profile_value }
+    profile_conn.set_entry(tablename, key, profile)
+
+    # check read API
+    db = swsscommon.DBConnector("CONFIG_DB", 0)
+    table = swsscommon.OverlayTable(db, 'INTERFACE')
+
+    # check read API
+    yang_field_name = "nat_zone"
+    check_table_read_api_result(table, key, yang_field_name, "0")
+    check_table_read_api_result(table, key, profile_field, profile_value)
+    
+    # overwrite default value in profile
+    profile = { yang_field_name: "1" }
+    profile_conn.set_entry(tablename, key, profile)
+    check_table_read_api_result(table, key, yang_field_name, "1")
+
+def check_table_profile_deleted(table, key, fieldname):
+    # check get
+    result, fields = table.get(key)
+    assert result == False
+    
+    # check hget
+    result, value = table.hget(key, fieldname)
+    assert result == False
+    
+    # check getKeys
+    keys = table.getKeys()
+    assert len(keys) == 0
+
+def test_table_delete_profile_config(prepare_yang_module, reset_database):
+    """
+    Test OverlayTable read correct profile config.
+    """
+    # setup profile config
+    profile_conn = swsscommon.ConfigDBConnector()
+    profile_conn.db_connect("PROFILE_DB")
+    tablename = "INTERFACE"
+    key = "TEST_INTERFACE"
+    profile_field = "profile"
+    profile_value = "value"
+    profile = { profile_field: profile_value }
+    profile_conn.set_entry(tablename, key, profile)
+
+    # check read API
+    db = swsscommon.DBConnector("CONFIG_DB", 0)
+    table = swsscommon.OverlayTable(db, 'INTERFACE')
+
+    # check delete profile by set()
+    fvs = swsscommon.FieldValuePairs([])
+    table.set(key, fvs, "", "", 100)
+    check_table_profile_deleted(table, key, profile_field)
+
+    # revert profile
+    fvs = swsscommon.FieldValuePairs([(profile_field, profile_value)])
+    table.set(key, fvs, "", "", 100)
+
+    # check read API
+    yang_field_name = "nat_zone"
+    check_table_read_api_result(table, key, yang_field_name, "0")
+    check_table_read_api_result(table, key, profile_field, profile_value)
+
+    # check delete profile by delete()
+    table.delete(key, "", "")
+    check_table_profile_deleted(table, key, profile_field)
+
+    # revert profile
+    fvs = swsscommon.FieldValuePairs([(profile_field, profile_value)])
+    table.set(key, fvs, "", "", 100)
+
+    # check read API
+    yang_field_name = "nat_zone"
+    check_table_read_api_result(table, key, yang_field_name, "0")
+    check_table_read_api_result(table, key, profile_field, profile_value)
+
+    # check revert by hset
+    table.delete(key, "", "")
+    check_table_profile_deleted(table, key, profile_field)
+
+    # revert by hset
+    fvs = swsscommon.FieldValuePairs([(profile_field, profile_value)])
+    table.hset(key, profile_field, profile_value, "", "")
+
+    # check read API
+    yang_field_name = "nat_zone"
+    check_table_read_api_result(table, key, yang_field_name, "0")
+    check_table_read_api_result(table, key, profile_field, profile_value)

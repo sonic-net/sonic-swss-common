@@ -7,37 +7,8 @@
 using namespace std;
 using namespace swss;
 
-OverlaySubscriberStateTable::OverlaySubscriberStateTable(DBConnector *db, const string &tableName, int popBatchSize, int pri)
-:SubscriberStateTable(db, tableName, popBatchSize, pri)
-{
-}
-
-/* Pop an action (set or del) on the table */
-void OverlaySubscriberStateTable::pop(KeyOpFieldsValuesTuple &kco, const string &prefix)
-{
-    SubscriberStateTable::pop(kco, prefix);
-    auto connector = const_cast<DBConnector*>(getDbConnector());
-    auto table_name = getTableName();
-    StaticConfigProvider::Instance().AppendConfigs(table_name, kco, connector);
-    DefaultValueProvider::Instance().AppendDefaultValues(table_name, kco);
-}
-
-/* Get multiple pop elements */
-void OverlaySubscriberStateTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, const string &prefix)
-{
-    SubscriberStateTable::pops(vkco, prefix);
-    auto connector = const_cast<DBConnector*>(getDbConnector());
-    auto table_name = getTableName();
-
-    for (auto& kco : vkco)
-    {
-        StaticConfigProvider::Instance().AppendConfigs(table_name, kco, connector);
-        DefaultValueProvider::Instance().AppendDefaultValues(table_name, kco);
-    }
-}
-
 OverlayTable::OverlayTable(const DBConnector *db, const string &tableName)
-:Table(db, tableName)
+    : Table(db, tableName)
 {
 }
 
@@ -59,7 +30,12 @@ bool OverlayTable::get(const string &key, vector<pair<string, string>> &ovalues)
     auto table_name = getTableName();
 
     // append static configs
-    StaticConfigProvider::Instance().AppendConfigs(table_name, key, ovalues, connector);
+    bool appendProfile = StaticConfigProvider::Instance().AppendConfigs(table_name, key, ovalues, connector);
+    if (!result && appendProfile)
+    {
+        // No user config on this key, but found profile config on this key.
+        result = true;
+    }
 
     // append default values
     DefaultValueProvider::Instance().AppendDefaultValues(table_name, key, ovalues);
@@ -127,7 +103,15 @@ void OverlayTable::set(const std::string &key,
 {
     auto connector = const_cast<DBConnector*>(m_pipe->getDBConnector());
     auto table_name = getTableName();
-    StaticConfigProvider::Instance().TryRevertItem(table_name, key, connector);
+    if (values.size())
+    {
+        StaticConfigProvider::Instance().TryRevertItem(table_name, key, connector);
+    }
+    else
+    {
+        // set a entry to empty will delete entry.
+        StaticConfigProvider::Instance().TryDeleteItem(table_name, key, connector);
+    }
 
     Table::set(key,
                  values, 

@@ -44,7 +44,7 @@ std::shared_ptr<std::string> StaticConfigProvider::GetConfig(const std::string &
     return nullptr;
 }
 
-void StaticConfigProvider::AppendConfigs(const std::string &table, const std::string &key, std::vector<std::pair<std::string, std::string> > &values, DBConnector* cfgDbConnector)
+bool StaticConfigProvider::AppendConfigs(const std::string &table, const std::string &key, std::vector<std::pair<std::string, std::string> > &values, DBConnector* cfgDbConnector)
 {
     assert(!table.empty());
     assert(!key.empty());
@@ -59,17 +59,21 @@ void StaticConfigProvider::AppendConfigs(const std::string &table, const std::st
         existedValues.emplace(fieldValuePair.first, fieldValuePair.second);
     }
 
+    bool appendValues = false;
     for (auto& fieldValuePair : staticConfig)
     {
         auto findresult = existedValues.find(fieldValuePair.first);
         if (findresult == existedValues.end())
         {
+            appendValues = true;
             values.emplace_back(fieldValuePair.first, fieldValuePair.second);
         }
     }
+
+    return appendValues;
 }
 
-void StaticConfigProvider::AppendConfigs(const string &table, const string &key, std::map<std::string, std::string>& values, DBConnector* cfgDbConnector)
+bool StaticConfigProvider::AppendConfigs(const string &table, const string &key, std::map<std::string, std::string>& values, DBConnector* cfgDbConnector)
 {
     assert(!table.empty());
     assert(!key.empty());
@@ -78,14 +82,18 @@ void StaticConfigProvider::AppendConfigs(const string &table, const string &key,
 
     auto staticConfig = GetConfigs(table, key, cfgDbConnector);
 
+    bool appendValues = false;
     for (auto& fieldValuePair : staticConfig)
     {
         auto findresult = values.find(fieldValuePair.first);
         if (findresult == values.end())
         {
+            appendValues = true;
             values.emplace(fieldValuePair.first, fieldValuePair.second);
         }
     }
+
+    return appendValues;
 }
 
 void StaticConfigProvider::AppendConfigs(const string &table, KeyOpFieldsValuesTuple &kofv_tuple, DBConnector* cfgDbConnector)
