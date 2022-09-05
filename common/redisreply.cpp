@@ -475,7 +475,7 @@ string RedisReply::formatTupleReply(struct redisReply **element, size_t elements
     return swss::join(", ", '(', ')', elementvector.begin(), elementvector.end());
 }
 
-string RedisReply::formatStringWithQuot(string& str)
+string RedisReply::formatStringWithQuot(string str)
 {
     if (valuestr.find('\'') != std::string::npos)
     {

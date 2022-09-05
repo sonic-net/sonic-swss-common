@@ -109,7 +109,7 @@ private:
     static std::string formatArrayReply(struct redisReply **element, size_t elements);
     static std::string formatListReply(struct redisReply **element, size_t elements);
     static std::string formatTupleReply(struct redisReply **element, size_t elements);
-    static std::string formatStringWithQuot(std::string& str);
+    static std::string formatStringWithQuot(std::string str);
 
     redisReply *m_reply;
 };
