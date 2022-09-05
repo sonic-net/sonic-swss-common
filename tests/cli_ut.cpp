@@ -137,8 +137,8 @@ TEST(sonic_db_cli, test_cli_hscan_commands)
     args[4] = "testfield";
     args[5] = "{'value': 'with qute'}";
     output = runCli(6, args);
-    EXPECT_EQ("1\n", output);
-    
+    EXPECT_EQ("0\n", output);
+
     // hgetall from test db
     args[2] = "HGETALL";
     args[3] = "testkey";
