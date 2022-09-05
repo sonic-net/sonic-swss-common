@@ -33,6 +33,10 @@ parameters:
   type: boolean
   default: false
 
+- name: debian_version
+  type: string
+  default: buster
+
 jobs:
 - job:
   displayName: ${{ parameters.arch }}
@@ -61,13 +65,13 @@ jobs:
         libnl-genl-3-dev \
         libnl-route-3-dev \
         libnl-nf-3-dev \
-        swig3.0
+        swig
     displayName: "Install dependencies"
   - script: |
       set -ex
       rm ../*.deb || true
       ./autogen.sh
-      fakeroot debian/rules DEB_CONFIGURE_EXTRA_FLAGS='--enable-code-coverage' CFLAGS="" CXXFLAGS="--coverage -fprofile-abs-path" LDFLAGS="--coverage -fprofile-abs-path" binary
+      fakeroot debian/rules DEB_CONFIGURE_EXTRA_FLAGS='--enable-code-coverage' $( if [[ ${{ parameters.debian_version }} == "bullseye" ]]; then echo "DEB_BUILD_PROFILES=nopython2"; fi ) CFLAGS="" CXXFLAGS="--coverage -fprofile-abs-path" LDFLAGS="--coverage -fprofile-abs-path" binary
       mv ../*.deb .
     displayName: "Compile sonic swss common with coverage enabled"
   - ${{ if eq(parameters.run_unit_test, true) }}:
