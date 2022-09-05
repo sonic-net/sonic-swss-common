@@ -130,6 +130,20 @@ TEST(sonic_db_cli, test_cli_hscan_commands)
     args[4] = "0";
     output = runCli(5, args);
     EXPECT_EQ("(0, {})\n", output);
+
+    // hset to test DB
+    args[2] = "HSET";
+    args[3] = "testkey";
+    args[4] = "testfield";
+    args[5] = "{'value': 'with qute'}";
+    output = runCli(6, args);
+    EXPECT_EQ("1\n", output);
+    
+    // hgetall from test db
+    args[2] = "HGETALL";
+    args[3] = "testkey";
+    output = runCli(4, args);
+    EXPECT_EQ("{'testfield': \"{'value': 'with qute'}\"}\n", output);
 }
 
 TEST(sonic_db_cli, test_cli_pop_commands)
