@@ -5,7 +5,6 @@
 #include <algorithm>
 #include <unistd.h>
 #include "schema.h"
-#include "loglevel.h"
 #include "logger.h"
 #include "dbconnector.h"
 #include "producerstatetable.h"
@@ -97,7 +96,7 @@ void setAllLoglevel(swss::Table& logger_tbl, std::vector<std::string> components
     SWSS_LOG_NOTICE("EDEN end setAllLoglevel");
 }
 
-int swssloglevel(int argc, char **argv)
+int main(int argc, char **argv)
 {
     SWSS_LOG_NOTICE("EDEN start main");
 

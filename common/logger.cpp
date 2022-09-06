@@ -85,7 +85,7 @@ void Logger::swssPrioNotify(const std::string& component, const std::string& pri
     }
     else
     {
-        SWSS_LOG_NOTICE("EDEN changing min prio of logger");
+        SWSS_LOG_NOTICE("EDEN changing min prio of logger to %s", prioStr.c_str());
         logger.m_minPrio = priorityStringMap.at(prioStr);
         SWSS_LOG_NOTICE("EDEN changing min prio of logger end");
 
@@ -128,22 +128,26 @@ void Logger::linkToDbWithOutput(
     DBConnector db("CONFIG_DB", 0);
     //TODO: change to be in h file
     std::string key_prefix(CFG_LOGGER_TABLE_NAME);
-    key_prefix=+"|";
+    key_prefix+="|";
     std::string key = key_prefix + dbName;
 
     std::string prio, output;
     bool doUpdate = false;
     auto prioPtr = db.hget(key, DAEMON_LOGLEVEL);
     auto outputPtr = db.hget(key, DAEMON_LOGOUTPUT);
+    SWSS_LOG_NOTICE("EDEN hget for key: %s", key.c_str());
 
     if (prioPtr == nullptr)
     {
+        SWSS_LOG_NOTICE("EDEN hget for loglevel got nullptr");
         prio = defPrio;
         doUpdate = true;
     }
     else
     {
         prio = *prioPtr;
+        SWSS_LOG_NOTICE("EDEN hget for loglevel got: %s", prio.c_str());
+
     }
     if (outputPtr == nullptr)
     {
@@ -163,11 +167,13 @@ void Logger::linkToDbWithOutput(
         FieldValueTuple fvLevel(DAEMON_LOGLEVEL, prio);
         FieldValueTuple fvOutput(DAEMON_LOGOUTPUT, output);
         std::vector<FieldValueTuple>fieldValues = { fvLevel, fvOutput };
+        SWSS_LOG_NOTICE("EDEN setting loglevel to: %s in linkToDb", prio.c_str());
         table.set(dbName, fieldValues);
     }
 
     logger.m_currentPrios.set(dbName, prio);
     logger.m_currentOutputs.set(dbName, output);
+    SWSS_LOG_NOTICE("EDEN calling to swssnotify from linktodb witj loglevel %s", prio.c_str());
 
     prioNotify(dbName, prio);
     outputNotify(dbName, output);
