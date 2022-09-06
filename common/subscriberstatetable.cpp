@@ -9,7 +9,7 @@
 #include "redisapi.h"
 #include "tokenize.h"
 #include "subscriberstatetable.h"
-
+#include <iostream>
 using namespace std;
 
 namespace swss {
@@ -113,12 +113,14 @@ void SubscriberStateTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, const strin
         {
             continue;
         }
+        
+        cout << "pattern: " << message.pattern << endl;
 
         /* The second element should be the original pattern matched */
         auto ctx = event->getContext()->element[1];
         if (message.pattern != m_keyspace)
         {
-            SWSS_LOG_ERROR("invalid pattern %s returned for pmessage of %s", message.pattern.c_str(), m_keyspace.c_str());
+            onPopUnknownPattern(message, vkco);
             continue;
         }
 
@@ -175,6 +177,11 @@ shared_ptr<RedisReply> SubscriberStateTable::popEventBuffer()
     m_keyspace_event_buffer.pop_front();
 
     return reply;
+}
+
+void SubscriberStateTable::onPopUnknownPattern(RedisMessage& message, deque<KeyOpFieldsValuesTuple> &vkco)
+{
+    SWSS_LOG_ERROR("invalid pattern %s returned for pmessage of %s", message.pattern.c_str(), m_keyspace.c_str());
 }
 
 }

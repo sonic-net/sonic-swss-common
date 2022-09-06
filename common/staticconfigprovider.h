@@ -32,6 +32,12 @@ public:
 
     bool TryDeleteItem(const std::string &table, const std::string &key, DBConnector* cfgDbConnector);
 
+    std::string getDeletedKeyName(const std::string &table, const std::string &key, DBConnector* dbConnector)
+    {
+        auto itemKey = to_upper(table) + "_" + key;
+        return getKeyName(PROFILE_DELETE_TABLE, itemKey, dbConnector);
+    }
+
 private:
     StaticConfigProvider();
     ~StaticConfigProvider();
@@ -41,12 +47,6 @@ private:
         const auto separator = SonicDBConfig::getSeparator(dbConnector);
         // Profile DB follow Config DB: table name is case insensetive.
         return to_upper(table) + separator + key;
-    }
-
-    std::string getDeletedKeyName(const std::string &table, const std::string &key, DBConnector* dbConnector)
-    {
-        auto itemKey = to_upper(table) + "_" + key;
-        return getKeyName(PROFILE_DELETE_TABLE, itemKey, dbConnector);
     }
 
 

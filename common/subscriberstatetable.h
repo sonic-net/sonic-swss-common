@@ -25,11 +25,15 @@ public:
         return !m_buffer.empty();
     }
 
+protected:
+    virtual void onPopUnknownPattern(RedisMessage& message, std::deque<KeyOpFieldsValuesTuple> &vkco);
+
+    std::string m_keyspace;
+
 private:
     /* Pop keyspace event from event buffer. Caller should free resources. */
     std::shared_ptr<RedisReply> popEventBuffer();
 
-    std::string m_keyspace;
 
     std::deque<std::shared_ptr<RedisReply>> m_keyspace_event_buffer;
     Table m_table;

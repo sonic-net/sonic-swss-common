@@ -270,7 +270,7 @@ def check_table_profile_deleted(table, key, fieldname):
 
 def test_table_delete_profile_config(prepare_yang_module, reset_database):
     """
-    Test OverlayTable read correct profile config.
+    Test OverlayTable delete/revert profile config.
     """
     # setup profile config
     profile_conn = swsscommon.ConfigDBConnector()
@@ -282,11 +282,10 @@ def test_table_delete_profile_config(prepare_yang_module, reset_database):
     profile = { profile_field: profile_value }
     profile_conn.set_entry(tablename, key, profile)
 
-    # check read API
     db = swsscommon.DBConnector("CONFIG_DB", 0)
     table = swsscommon.OverlayTable(db, 'INTERFACE')
 
-    # check delete profile by set()
+    # test delete profile by set()
     fvs = swsscommon.FieldValuePairs([])
     table.set(key, fvs, "", "", 100)
     check_table_profile_deleted(table, key, profile_field)
@@ -300,7 +299,7 @@ def test_table_delete_profile_config(prepare_yang_module, reset_database):
     check_table_read_api_result(table, key, yang_field_name, "0")
     check_table_read_api_result(table, key, profile_field, profile_value)
 
-    # check delete profile by delete()
+    # test delete profile by delete()
     table.delete(key, "", "")
     check_table_profile_deleted(table, key, profile_field)
 
@@ -313,15 +312,92 @@ def test_table_delete_profile_config(prepare_yang_module, reset_database):
     check_table_read_api_result(table, key, yang_field_name, "0")
     check_table_read_api_result(table, key, profile_field, profile_value)
 
-    # check revert by hset
+    # test revert by hset
     table.delete(key, "", "")
     check_table_profile_deleted(table, key, profile_field)
 
     # revert by hset
-    fvs = swsscommon.FieldValuePairs([(profile_field, profile_value)])
     table.hset(key, profile_field, profile_value, "", "")
 
     # check read API
     yang_field_name = "nat_zone"
     check_table_read_api_result(table, key, yang_field_name, "0")
     check_table_read_api_result(table, key, profile_field, profile_value)
+
+def test_DecoratorSubscriberStateTable():
+    """
+    Test DecoratorSubscriberStateTable can listen delete event.
+    """
+    # setup profile config
+    profile_conn = swsscommon.ConfigDBConnector()
+    profile_conn.db_connect("PROFILE_DB")
+    tablename = "INTERFACE"
+    profile_key = "TEST_INTERFACE"
+    profile_field = "profile"
+    profile_value = "value"
+    profile = { profile_field: profile_value }
+    profile_conn.set_entry(tablename, profile_key, profile)
+    
+    # setup select
+    db = swsscommon.DBConnector("CONFIG_DB", 0, True)
+    db.flushdb()
+    table = swsscommon.OverlayTable(db, tablename)
+    sel = swsscommon.Select()
+    cst = swsscommon.DecoratorSubscriberStateTable(db, tablename)
+    sel.addSelectable(cst)
+
+    # delete profile by set empty value
+    fvs = swsscommon.FieldValuePairs([])
+    table.set(profile_key, fvs, "", "", 100)
+
+    # check select event
+    (state, c) = sel.select()
+    assert state == swsscommon.Select.OBJECT
+    (key, op, cfvs) = cst.pop()
+    assert key == profile_key
+    assert op == "DEL"
+    assert len(cfvs) == 0
+    
+    # revert deleted profile
+    fvs = swsscommon.FieldValuePairs([('a','b')])
+    table.set(profile_key, fvs, "", "", 100)
+
+    # check select event
+    (state, c) = sel.select()
+    assert state == swsscommon.Select.OBJECT
+
+    entries = swsscommon.transpose_pops(cst.pops())
+    entry_exist = False
+    for entry in entries:
+        (key, op, cfvs) = entry
+        if key == profile_key:
+            entry_exist = True
+            assert op == "SET"
+            assert len(cfvs) == 2
+            assert cfvs[0] == ('a', 'b')
+            assert cfvs[1] == ('nat_zone', '0')
+    assert entry_exist
+
+    # overwrite default value
+    fvs = swsscommon.FieldValuePairs([('a','b'), ('nat_zone','1')])
+    table.set(profile_key, fvs, "", "", 100)
+
+    # check select event
+    (state, c) = sel.select()
+    assert state == swsscommon.Select.OBJECT
+
+    print("start check")
+    entries = swsscommon.transpose_pops(cst.pops())
+    print(entries)
+    entry_exist = False
+    for entry in entries:
+        (key, op, cfvs) = entry
+        if key == profile_key:
+            entry_exist = True
+            assert op == "SET"
+            assert len(cfvs) == 2
+            assert cfvs[0] == ('a', 'b')
+            assert cfvs[1] == ('nat_zone', '1')
+    assert entry_exist
+    
+    

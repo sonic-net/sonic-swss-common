@@ -41,6 +41,7 @@
 #include "defaultvalueprovider.h"
 #include "staticconfigprovider.h"
 #include "overlayconfigtables.h"
+#include "decoratorsubscriberstatetable.h"
 %}
 
 %include <std_string.i>
@@ -145,7 +146,7 @@ T castSelectableObj(swss::Selectable *temp)
 
 %template(CastSelectableToRedisSelectObj) castSelectableObj<swss::RedisSelect *>;
 %template(CastSelectableToSubscriberTableObj) castSelectableObj<swss::SubscriberStateTable *>;
-%template(CastSelectableToOverlaySubscriberTableObj) castSelectableObj<swss::OverlaySubscriberStateTable *>;
+%template(CastSelectableToDecoratorSubscriberStateTableObj) castSelectableObj<swss::DecoratorSubscriberStateTable *>;
 
 // Handle object ownership issue with %newobject:
 //        https://www.swig.org/Doc4.0/SWIGDocumentation.html#Customization_ownership
@@ -210,6 +211,7 @@ T castSelectableObj(swss::Selectable *temp)
 %include "consumertable.h"
 %include "consumerstatetable.h"
 %include "subscriberstatetable.h"
+%include "decoratorsubscriberstatetable.h"
 
 %apply std::string& OUTPUT {std::string &op};
 %apply std::string& OUTPUT {std::string &data};
