@@ -113,3 +113,13 @@ TEST(PROFILE, GetDefaultValues)
     EXPECT_EQ(values["nat_zone"], "0");
 }
 
+TEST(PROFILE, LoadYangModelWithMissingReference)
+{
+    DefaultValueProvider instance;
+    instance.Initialize("./tests/yang-missing-ref");
+    
+    // when reference missing, load default value will failed
+    auto values = instance.GetDefaultValues(profile_table, profile_key);
+    EXPECT_EQ(values.size(), 0);
+}
+

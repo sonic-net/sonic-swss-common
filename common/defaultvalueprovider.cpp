@@ -340,6 +340,13 @@ void DefaultValueProvider::Initialize(char* modulePath)
                                                     m_context,
                                                     moduleName.c_str(),
                                                     EMPTY_STR); // Use EMPTY_STR to revision to load the latest revision
+            if (module == nullptr)
+            {
+                const char* err = ly_errmsg(m_context);
+                SWSS_LOG_ERROR("Load Yang file %s failed: %s.\n", subDir->d_name, err);
+                continue;
+            }
+
             if (module->data == nullptr)
             {
                 // Not every yang file should contains yang model
