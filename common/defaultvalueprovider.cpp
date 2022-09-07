@@ -32,7 +32,7 @@ using namespace swss;
 [[noreturn]] void ThrowRunTimeError(string message)
 {
     SWSS_LOG_ERROR("DefaultValueProvider: %s", message.c_str());
-    throw std::runtime_error(message);
+    throw runtime_error(message);
 }
 
 TableInfoBase::TableInfoBase()
@@ -40,7 +40,7 @@ TableInfoBase::TableInfoBase()
     // C++ need this empty ctor
 }
 
-std::shared_ptr<string> TableInfoBase::GetDefaultValue(const string &key, const string &field)
+shared_ptr<string> TableInfoBase::GetDefaultValue(const string &key, const string &field)
 {
     assert(!key.empty());
     assert(!field.empty());
@@ -60,11 +60,11 @@ std::shared_ptr<string> TableInfoBase::GetDefaultValue(const string &key, const 
     }
 
     SWSS_LOG_DEBUG("Found default value for field %s=%s\n", field.c_str(), fieldData->second.c_str());
-    return std::make_shared<string>(fieldData->second);
+    return make_shared<string>(fieldData->second);
 }
 
 // existedValues and targetValues can be same container.
-void TableInfoBase::AppendDefaultValues(const string &row, std::map<string, string>& existedValues, std::map<string, string>& targetValues)
+void TableInfoBase::AppendDefaultValues(const string &row, map<string, string>& existedValues, map<string, string>& targetValues)
 {
     assert(!row.empty());
 
@@ -96,6 +96,8 @@ TableInfoDict::TableInfoDict(KeyInfoToDefaultValueInfoMapping &fieldInfoMapping)
         // KeyInfo.first is key value
         string keyValue = fieldMapping.first.first;
         m_defaultValueMapping.emplace(keyValue, fieldMapping.second);
+
+        SWSS_LOG_DEBUG("TableInfoDict::TableInfoDict %s\n", keyValue.c_str());
     }
 }
 
@@ -107,7 +109,7 @@ bool TableInfoDict::FindFieldMappingByKey(const string &key, FieldDefaultValueMa
     SWSS_LOG_DEBUG("TableInfoDict::FindFieldMappingByKey %s\n", key.c_str());
     auto keyResult = m_defaultValueMapping.find(key);
     *foundedMappingPtr = keyResult->second.get();
-    return keyResult == m_defaultValueMapping.end();
+    return keyResult != m_defaultValueMapping.end();
 }
 
 TableInfoSingleList::TableInfoSingleList(KeyInfoToDefaultValueInfoMapping &fieldInfoMapping)
@@ -141,7 +143,7 @@ bool TableInfoMultipleList::FindFieldMappingByKey(const string &key, FieldDefaul
     assert(foundedMappingPtr != nullptr);
 
     SWSS_LOG_DEBUG("TableInfoMultipleList::FindFieldMappingByKey %s\n", key.c_str());
-    int fieldCount = (int)std::count(key.begin(), key.end(), '|') + 1;
+    int fieldCount = (int)count(key.begin(), key.end(), '|') + 1;
     auto keyInfo = m_defaultValueMapping.find(fieldCount);
     
     // when not found, key_info still a valied iterator
@@ -175,23 +177,17 @@ shared_ptr<TableInfoBase> DefaultValueProvider::FindDefaultValueInfo(const strin
         SWSS_LOG_DEBUG("Not found default value info for %s\n", table.c_str());
         return nullptr;
     }
-    
+
     return findResult->second;
 }
 
-std::shared_ptr<string> DefaultValueProvider::GetDefaultValue(const string &table, const string &key, const string &field)
+shared_ptr<string> DefaultValueProvider::GetDefaultValue(const string &table, const string &key, const string &field)
 {
     assert(!table.empty());
     assert(!key.empty());
     assert(!field.empty());
 
     SWSS_LOG_DEBUG("DefaultValueProvider::GetDefaultValue %s %s %s\n", table.c_str(), key.c_str(), field.c_str());
-#ifdef DEBUG
-    if (!FeatureEnabledByEnvironmentVariable())
-    {
-        return nullptr;
-    }
-#endif
 
     auto defaultValueInfo = FindDefaultValueInfo(table);
     if (defaultValueInfo == nullptr)
@@ -203,18 +199,13 @@ std::shared_ptr<string> DefaultValueProvider::GetDefaultValue(const string &tabl
     return defaultValueInfo->GetDefaultValue(key, field);
 }
 
-void DefaultValueProvider::AppendDefaultValues(const string &table, const string &key, std::vector<std::pair<string, string> > &values)
+
+void DefaultValueProvider::InternalAppendDefaultValues(const string &table, const string &key, map<string, string>& existedValues, map<string, string>& defaultValues)
 {
     assert(!table.empty());
     assert(!key.empty());
 
-    SWSS_LOG_DEBUG("DefaultValueProvider::AppendDefaultValues %s %s\n", table.c_str(), key.c_str());
-#ifdef DEBUG
-    if (!FeatureEnabledByEnvironmentVariable())
-    {
-        return;
-    }
-#endif
+    SWSS_LOG_DEBUG("DefaultValueProvider::InternalAppendDefaultValues %s %s\n", table.c_str(), key.c_str());
 
     auto defaultValueInfo = FindDefaultValueInfo(table);
     if (defaultValueInfo == nullptr)
@@ -222,7 +213,12 @@ void DefaultValueProvider::AppendDefaultValues(const string &table, const string
         SWSS_LOG_DEBUG("Not found default value info for %s\n", table.c_str());
         return;
     }
-    
+
+    defaultValueInfo->AppendDefaultValues(key, existedValues, defaultValues);
+}
+
+void DefaultValueProvider::AppendDefaultValues(const string &table, const string &key, vector<pair<string, string>> &values)
+{
     map<string, string> existedValues;
     map<string, string> defaultValues;
     for (auto& fieldValuePair : values)
@@ -230,7 +226,7 @@ void DefaultValueProvider::AppendDefaultValues(const string &table, const string
         existedValues.emplace(fieldValuePair.first, fieldValuePair.second);
     }
 
-    defaultValueInfo->AppendDefaultValues(key, existedValues, defaultValues);
+    InternalAppendDefaultValues(table, key, existedValues, defaultValues);
 
     for (auto& fieldValuePair : defaultValues)
     {
@@ -238,27 +234,9 @@ void DefaultValueProvider::AppendDefaultValues(const string &table, const string
     }
 }
 
-void DefaultValueProvider::AppendDefaultValues(const string &table, const string &key, std::map<string, string>& values)
+void DefaultValueProvider::AppendDefaultValues(const string &table, const string &key, map<string, string>& values)
 {
-    assert(!table.empty());
-    assert(!key.empty());
-
-    SWSS_LOG_DEBUG("DefaultValueProvider::AppendDefaultValues %s %s\n", table.c_str(), key.c_str());
-#ifdef DEBUG
-    if (!FeatureEnabledByEnvironmentVariable())
-    {
-        return;
-    }
-#endif
-
-    auto defaultValueInfo = FindDefaultValueInfo(table);
-    if (defaultValueInfo == nullptr)
-    {
-        SWSS_LOG_DEBUG("Not found default value info for %s\n", table.c_str());
-        return;
-    }
-
-    defaultValueInfo->AppendDefaultValues(key, values, values);
+    InternalAppendDefaultValues(table, key, values, values);
 }
 
 void DefaultValueProvider::AppendDefaultValues(const string &table, KeyOpFieldsValuesTuple &kofv_tuple)
@@ -269,33 +247,14 @@ void DefaultValueProvider::AppendDefaultValues(const string &table, KeyOpFieldsV
     }
 
     auto& key = kfvKey(kofv_tuple);
-    auto& data = kfvFieldsValues(kofv_tuple);
+    auto& fieldValues = kfvFieldsValues(kofv_tuple);
 
-    auto defaultvalues = GetDefaultValues(table, key);
-    for (auto& defaultvalue : defaultvalues)
-    {
-        auto field = defaultvalue.first;
-        bool append = true;
-        for (auto& kvpair : data)
-        {
-            auto current_field = fvField(kvpair);
-            if (current_field == field)
-            {
-                append = false;
-                break;
-            }
-        }
-
-        if (append)
-        {
-            data.push_back(FieldValueTuple(field, defaultvalue.second));
-        }
-    }
+    AppendDefaultValues(table, key, fieldValues);
 }
 
-std::map<string, string> DefaultValueProvider::GetDefaultValues(const string &table, const string &key)
+map<string, string> DefaultValueProvider::GetDefaultValues(const string &table, const string &key)
 {
-    std::map<string, string> result;
+    map<string, string> result;
     AppendDefaultValues(table, key, result);
     return result;
 }
@@ -329,60 +288,67 @@ void DefaultValueProvider::Initialize(char* modulePath)
     struct dirent *subDir;
     while ((subDir = readdir(moduleDir)) != nullptr)
     {
-        if (subDir->d_type == DT_REG)
+        if (subDir->d_type != DT_REG)
         {
-            SWSS_LOG_DEBUG("file name: %s\n", subDir->d_name);
-            string fileName(subDir->d_name);
-            int pos = (int)fileName.find(".yang");
-            string moduleName = fileName.substr(0, pos);
-
-            const struct lys_module *module = ly_ctx_load_module(
-                                                    m_context,
-                                                    moduleName.c_str(),
-                                                    EMPTY_STR); // Use EMPTY_STR to revision to load the latest revision
-            if (module == nullptr)
-            {
-                const char* err = ly_errmsg(m_context);
-                SWSS_LOG_ERROR("Load Yang file %s failed: %s.\n", subDir->d_name, err);
-                continue;
-            }
-
-            if (module->data == nullptr)
-            {
-                // Not every yang file should contains yang model
-                SWSS_LOG_WARN("Yang file %s does not contains model %s.\n", subDir->d_name, moduleName.c_str());
-                continue;
-            }
-
-            struct lys_node *topLevelNode = module->data;
-            while (topLevelNode)
-            {
-                if (topLevelNode->nodetype != LYS_CONTAINER)
-                {
-                    SWSS_LOG_DEBUG("ignore top level element %s, tyoe %d\n",topLevelNode->name, topLevelNode->nodetype);
-                    // Config DB table schema is defined by top level container
-                    topLevelNode = topLevelNode->next;
-                    continue;
-                }
-
-                SWSS_LOG_DEBUG("top level container: %s\n",topLevelNode->name);
-                auto container = topLevelNode->child;
-                while (container)
-                {
-                    SWSS_LOG_DEBUG("container name: %s\n",container->name);
-
-                    AppendTableInfoToMapping(container);
-                    container = container->next;
-                }
-
-                topLevelNode = topLevelNode->next;
-            }
+            continue;
         }
+
+        SWSS_LOG_DEBUG("file name: %s\n", subDir->d_name);
+        string fileName(subDir->d_name);
+        int pos = (int)fileName.find(".yang");
+        string moduleName = fileName.substr(0, pos);
+
+        LoadModule(moduleName, fileName, m_context);
     }
     closedir(moduleDir);
 }
 
-std::shared_ptr<KeyInfo> DefaultValueProvider::GetKeyInfo(struct lys_node* tableChildNode)
+void DefaultValueProvider::LoadModule(const string name, const string path, struct ly_ctx *context)
+{
+    const struct lys_module *module = ly_ctx_load_module(
+                                            context,
+                                            name.c_str(),
+                                            EMPTY_STR); // Use EMPTY_STR to revision to load the latest revision
+    if (module == nullptr)
+    {
+        const char* err = ly_errmsg(context);
+        SWSS_LOG_ERROR("Load Yang file %s failed: %s.\n", path.c_str(), err);
+        return;
+    }
+
+    if (module->data == nullptr)
+    {
+        // Not every yang file should contains yang model
+        SWSS_LOG_WARN("Yang file %s does not contains model %s.\n", path.c_str(), name.c_str());
+        return;
+    }
+
+    struct lys_node *topLevelNode = module->data;
+    while (topLevelNode)
+    {
+        if (topLevelNode->nodetype != LYS_CONTAINER)
+        {
+            SWSS_LOG_DEBUG("ignore top level element %s, tyoe %d\n",topLevelNode->name, topLevelNode->nodetype);
+            // Config DB table schema is defined by top level container
+            topLevelNode = topLevelNode->next;
+            continue;
+        }
+
+        SWSS_LOG_DEBUG("top level container: %s\n",topLevelNode->name);
+        auto container = topLevelNode->child;
+        while (container)
+        {
+            SWSS_LOG_DEBUG("container name: %s\n",container->name);
+
+            AppendTableInfoToMapping(container);
+            container = container->next;
+        }
+
+        topLevelNode = topLevelNode->next;
+    }
+}
+
+shared_ptr<KeyInfo> DefaultValueProvider::GetKeyInfo(struct lys_node* tableChildNode)
 {
     assert(tableChildNode != nullptr);
     SWSS_LOG_DEBUG("DefaultValueProvider::GetKeyInfo %s\n",tableChildNode->name);
@@ -402,7 +368,7 @@ std::shared_ptr<KeyInfo> DefaultValueProvider::GetKeyInfo(struct lys_node* table
         }
 
         string key(listNode->keys_str);
-        keyFieldCount = (int)std::count(key.begin(), key.end(), '|') + 1;
+        keyFieldCount = (int)count(key.begin(), key.end(), ' ') + 1;
     }
     else if (tableChildNode->nodetype == LYS_CONTAINER)
     {
@@ -420,6 +386,80 @@ std::shared_ptr<KeyInfo> DefaultValueProvider::GetKeyInfo(struct lys_node* table
     return make_shared<KeyInfo>(keyValue, keyFieldCount);
 }
 
+void DefaultValueProvider::GetDefaultValueInfoForLeaf(struct lys_node* field, shared_ptr<FieldDefaultValueMapping> fieldMapping)
+{
+    assert(field != nullptr);
+    assert(fieldMapping != nullptr);
+    assert(field->nodetype == LYS_LEAF);
+
+    WARNINGS_NO_CAST_ALIGN
+    struct lys_node_leaf *leafNode = reinterpret_cast<struct lys_node_leaf*>(field);
+    WARNINGS_RESET
+    if (leafNode->dflt)
+    {
+        SWSS_LOG_DEBUG("field: %s, default: %s\n",leafNode->name, leafNode->dflt);
+        fieldMapping->emplace(string(field->name), string(leafNode->dflt));
+    }
+}
+
+void DefaultValueProvider::GetDefaultValueInfoForChoice(struct lys_node* field, shared_ptr<FieldDefaultValueMapping> fieldMapping)
+{
+    assert(field != nullptr);
+    assert(fieldMapping != nullptr);
+    assert(field->nodetype == LYS_CHOICE);
+
+    struct lys_node_choice *choiceNode = (struct lys_node_choice *)field;
+    if (choiceNode->dflt == nullptr)
+    {
+        return;
+    }
+
+    // Get choice default value according to: https://www.rfc-editor.org/rfc/rfc7950.html#section-7.9
+    auto dfltChoice = choiceNode->dflt;
+    auto fieldInChoice  = dfltChoice->child;
+    while (fieldInChoice)
+    {
+        if (fieldInChoice->nodetype != LYS_LEAF)
+        {
+            SWSS_LOG_ERROR("choice case %s is not a leaf node\n",fieldInChoice->name);
+            continue;
+        }
+        
+        SWSS_LOG_DEBUG("default choice leaf field: %s\n",fieldInChoice->name);
+        WARNINGS_NO_CAST_ALIGN
+        struct lys_node_leaf *dfltLeafNode = reinterpret_cast<struct lys_node_leaf*>(fieldInChoice);
+        WARNINGS_RESET
+        if (dfltLeafNode->dflt)
+        {
+            SWSS_LOG_DEBUG("default choice leaf field: %s, default: %s\n",dfltLeafNode->name, dfltLeafNode->dflt);
+            fieldMapping->emplace(string(fieldInChoice->name), string(dfltLeafNode->dflt));
+        }
+
+        fieldInChoice = fieldInChoice->next;
+    }
+}
+
+void DefaultValueProvider::GetDefaultValueInfoForLeaflist(struct lys_node* field, shared_ptr<FieldDefaultValueMapping> fieldMapping)
+{
+    assert(field != nullptr);
+    assert(fieldMapping != nullptr);
+    assert(field->nodetype == LYS_LEAFLIST);
+
+    // Get leaf-list default value according to:https://www.rfc-editor.org/rfc/rfc7950.html#section-7.7
+    WARNINGS_NO_CAST_ALIGN
+    struct lys_node_leaflist *listNode = reinterpret_cast<struct lys_node_leaflist*>(field);
+    WARNINGS_RESET
+
+    if (listNode->dflt)
+    {
+        const char** dfltValues = listNode->dflt;
+        //convert list default value to json string
+        string dfltValueJson = JSon::buildJson(dfltValues);
+        SWSS_LOG_DEBUG("list field: %s, default: %s\n",field->name, dfltValueJson.c_str());
+        fieldMapping->emplace(string(field->name), dfltValueJson);
+    }
+}
+
 FieldDefaultValueMappingPtr DefaultValueProvider::GetDefaultValueInfo(struct lys_node* tableChildNode)
 {
     assert(tableChildNode != nullptr);
@@ -432,54 +472,17 @@ FieldDefaultValueMappingPtr DefaultValueProvider::GetDefaultValueInfo(struct lys
         if (field->nodetype == LYS_LEAF)
         {
             SWSS_LOG_DEBUG("leaf field: %s\n",field->name);
-            WARNINGS_NO_CAST_ALIGN
-            struct lys_node_leaf *leafNode = reinterpret_cast<struct lys_node_leaf*>(field);
-            WARNINGS_RESET
-            if (leafNode->dflt)
-            {
-                SWSS_LOG_DEBUG("field: %s, default: %s\n",leafNode->name, leafNode->dflt);
-                fieldMapping->emplace(string(field->name), string(leafNode->dflt));
-            }
+            GetDefaultValueInfoForLeaf(field, fieldMapping);
         }
         else if (field->nodetype == LYS_CHOICE)
         {
-            // TODO: create new method for code here
             SWSS_LOG_DEBUG("choice field: %s\n",field->name);
-            struct lys_node_choice *choiceNode = (struct lys_node_choice *)field;
-            if (choiceNode->dflt)
-            {
-                auto dfltChoice = choiceNode->dflt;
-                auto fieldInChoice  = dfltChoice->child;
-                while (fieldInChoice)
-                {
-                    SWSS_LOG_DEBUG("default choice leaf field: %s\n",fieldInChoice->name);
-                    WARNINGS_NO_CAST_ALIGN
-                    struct lys_node_leaf *dfltLeafNode = reinterpret_cast<struct lys_node_leaf*>(fieldInChoice);
-                    WARNINGS_RESET
-                    if (dfltLeafNode->dflt)
-                    {
-                        SWSS_LOG_DEBUG("default choice leaf field: %s, default: %s\n",dfltLeafNode->name, dfltLeafNode->dflt);
-                        fieldMapping->emplace(string(fieldInChoice->name), string(dfltLeafNode->dflt));
-                    }
-
-                    fieldInChoice = fieldInChoice->next;
-                }
-            }
+            GetDefaultValueInfoForChoice(field, fieldMapping);
         }
         else if (field->nodetype == LYS_LEAFLIST)
         {
             SWSS_LOG_DEBUG("list field: %s\n",field->name);
-            WARNINGS_NO_CAST_ALIGN
-            struct lys_node_leaflist *listNode = reinterpret_cast<struct lys_node_leaflist*>(field);
-            WARNINGS_RESET
-            if (listNode->dflt)
-            {
-                const char** dfltValues = listNode->dflt;
-                //convert list default value to json string
-                string dfltValueJson = JSon::buildJson(dfltValues);
-                SWSS_LOG_DEBUG("list field: %s, default: %s\n",field->name, dfltValueJson.c_str());
-                fieldMapping->emplace(string(field->name), dfltValueJson);
-            }
+            GetDefaultValueInfoForLeaflist(field, fieldMapping);
         }
 #ifdef DEBUG
         else
@@ -558,18 +561,3 @@ void DefaultValueProvider::AppendTableInfoToMapping(struct lys_node* table)
 
     m_defaultValueMapping.emplace(string(table->name), tableInfoPtr);
 }
-
-#ifdef DEBUG
-bool DefaultValueProvider::FeatureEnabledByEnvironmentVariable()
-{
-    const char* showDefault = getenv("CONFIG_DB_DEFAULT_VALUE");
-    if (showDefault == nullptr || strcmp(showDefault, "TRUE") != 0)
-    {
-        // enable feature with "export CONFIG_DB_DEFAULT_VALUE=TRUE"
-        SWSS_LOG_DEBUG("enable feature with \"export CONFIG_DB_DEFAULT_VALUE=TRUE\"\n");
-        return false;
-    }
-
-    return true;
-}
-#endif

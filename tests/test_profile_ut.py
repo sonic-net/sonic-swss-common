@@ -1,7 +1,5 @@
 import os
 import pytest
-import time
-import shutil
 from swsscommon import swsscommon
 
 @pytest.fixture

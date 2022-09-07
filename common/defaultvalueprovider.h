@@ -78,7 +78,7 @@ public:
 
     void AppendDefaultValues(const std::string &table, const std::string &key, std::map<std::string, std::string>& values);
 
-    void AppendDefaultValues(const std::string &table, const std::string &key, std::vector<std::pair<std::string, std::string> > &values);
+    void AppendDefaultValues(const std::string &table, const std::string &key, std::vector<std::pair<std::string, std::string>> &values);
 
     void AppendDefaultValues(const std::string &table, KeyOpFieldsValuesTuple &operation);
 
@@ -99,6 +99,8 @@ private:
     std::map<std::string, std::shared_ptr<TableInfoBase> > m_defaultValueMapping;
 
     void Initialize(char* modulePath = DEFAULT_YANG_MODULE_PATH);
+    
+    void LoadModule(const std::string name, const std::string path, struct ly_ctx *context);
 
     // Load default value info from yang model and append to default value mapping
     void AppendTableInfoToMapping(struct lys_node* table);
@@ -109,6 +111,12 @@ private:
     
     std::shared_ptr<KeyInfo> GetKeyInfo(struct lys_node* table_child_node);
     FieldDefaultValueMappingPtr GetDefaultValueInfo(struct lys_node* tableChildNode);
+
+    void InternalAppendDefaultValues(const std::string &table, const std::string &key, std::map<std::string, std::string>& existedValues, std::map<std::string, std::string>& defaultValues);
+
+    void GetDefaultValueInfoForChoice(struct lys_node* field, std::shared_ptr<FieldDefaultValueMapping> fieldMapping);
+    void GetDefaultValueInfoForLeaf(struct lys_node* field, std::shared_ptr<FieldDefaultValueMapping> fieldMapping);
+    void GetDefaultValueInfoForLeaflist(struct lys_node* field, std::shared_ptr<FieldDefaultValueMapping> fieldMapping);
 };
 
 }
