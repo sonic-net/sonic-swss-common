@@ -39,8 +39,8 @@
 #include "configdb.h"
 #include "status_code_util.h"
 #include "defaultvalueprovider.h"
-#include "staticconfigprovider.h"
-#include "overlayconfigtables.h"
+#include "profileprovider.h"
+#include "decoratortable.h"
 #include "decoratorsubscriberstatetable.h"
 %}
 
@@ -166,7 +166,7 @@ T castSelectableObj(swss::Selectable *temp)
 %include "redistran.h"
 %include "configdb.h"
 %include "defaultvalueprovider.h"
-%include "staticconfigprovider.h"
+%include "profileprovider.h"
 
 %extend swss::DBConnector {
     %template(hgetall) hgetall<std::map<std::string, std::string>>;
@@ -179,7 +179,7 @@ T castSelectableObj(swss::Selectable *temp)
 %apply std::vector<std::pair<std::string, std::string>>& OUTPUT {std::vector<std::pair<std::string, std::string>> &ovalues};
 %apply std::string& OUTPUT {std::string &value};
 %include "table.h"
-%include "overlayconfigtables.h"
+%include "decoratortable.h"
 %clear std::vector<std::string> &keys;
 %clear std::vector<std::string> &ops;
 %clear std::vector<std::vector<std::pair<std::string, std::string>>> &fvss;

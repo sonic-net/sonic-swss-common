@@ -241,7 +241,7 @@ protected:
                     ret.setdefault(table_name, {})[self.deserialize_key(row)] = entry
             return ret
 
-    def OverlayConfigDBConnectorDecorator(config_db_connector):
+    def YangDefaultDecorator(config_db_connector):
         # backup decorated methods
         config_db_connector.ori_get_entry = config_db_connector.get_entry
         config_db_connector.ori_get_table = config_db_connector.get_table
@@ -253,7 +253,7 @@ protected:
         # helper methods for append profile and default values to result.
         def _append_profile(result):
             client = config_db_connector.get_redis_client(config_db_connector.db_name)
-            profile_config = StaticConfigProvider.Instance().GetConfigs(client)
+            profile_config = ProfileProvider.instance().getConfigs(client)
             for table_name in profile_config:
                 profile_table = profile_config[table_name]
                 if table_name not in result:
@@ -263,38 +263,62 @@ protected:
                     for profile_key in profile_table:
                         if profile_key not in config_table:
                             config_table[profile_key] = profile_table[profile_key]
-        def _append_table_profile(table, result):
+        def _append_profile_table(table, result):
             client = config_db_connector.get_redis_client(config_db_connector.db_name)
-            profile_keys = StaticConfigProvider.Instance().GetKeys(table, client)
+            profile_keys = ProfileProvider.instance().getKeys(table, client)
             for profile_key in profile_keys:
                 if profile_key not in result:
                     serialized_key = config_db_connector.serialize_key(profile_key)
-                    result[profile_key] = StaticConfigProvider.Instance().GetConfigs(table, serialized_key, client)
+                    result[profile_key] = ProfileProvider.instance().getConfigs(table, serialized_key, client)
         def _get_profile(table, key):
             serialized_key = config_db_connector.serialize_key(key)
             client = config_db_connector.get_redis_client(config_db_connector.db_name)
-            return StaticConfigProvider.Instance().GetConfigs(table, serialized_key, client)
+            return ProfileProvider.instance().getConfigs(table, serialized_key, client)
         def _append_default_value(table, key, data):
             if data is None or len(data) == 0:
                 # empty entry means the entry been deleted
                 return data
             serialized_key = config_db_connector.serialize_key(key)
-            defaultValues = DefaultValueProvider.Instance().GetDefaultValues(table, serialized_key)
+            defaultValues = DefaultValueProvider.instance().getDefaultValues(table, serialized_key)
             for field in defaultValues:
                 if field not in data:
                     data[field] = defaultValues[field]
-        def _try_delete_static_config(table, key, data):
+        def _try_delete_or_revert_profile(table, key, data):
+            serialized_key = config_db_connector.serialize_key(key)
+            client = config_db_connector.get_redis_client(config_db_connector.db_name)
             if data is None or len(data) == 0:
                 # set a entry to empty will delete this entry
-                serialized_key = config_db_connector.serialize_key(key)
-                client = config_db_connector.get_redis_client(config_db_connector.db_name)
-                StaticConfigProvider.Instance().TryDeleteItem(table, serialized_key, client)
-        def _try_delete_static_config_table(table):
+                ProfileProvider.instance().tryDeleteItem(table, serialized_key, client)
+            else:
+                ProfileProvider.instance().tryRevertItem(table, serialized_key, client)
+        def _try_delete_profile_table(table):
             client = config_db_connector.get_redis_client(config_db_connector.db_name)
-            keys = StaticConfigProvider.Instance().GetKeys(table, client)
+            keys = ProfileProvider.instance().getKeys(table, client)
             for key in keys:
                 serialized_key = config_db_connector.serialize_key(key)
-                StaticConfigProvider.Instance().TryDeleteItem(table, serialized_key, client)
+                ProfileProvider.instance().tryDeleteItem(table, serialized_key, client)
+        def _try_delete_profile(config):
+            # the implementation of this method highly related with original mod_config behavior:
+            # 1. any table does not exist in config will not be changed.
+            # 2. any key remove from table will be deleted.
+            # 3. any key exist in table will be updated: if set data of that key to {}, the key also will be deleted.
+            client = config_db_connector.get_redis_client(config_db_connector.db_name)
+            profile_config = ProfileProvider.instance().getConfigs(client)
+            # delete/revert key in modified config tables, according to (1) not handle not existed tables
+            for tablename in config:
+                table = config[tablename]
+                if tablename not in profile_config:
+                    continue
+
+                profile_table = profile_config[tablename]
+                # delete removed key according to (2)
+                for key in profile_table:
+                    if key not in table:
+                        serialized_key = config_db_connector.serialize_key(key)
+                        ProfileProvider.instance().tryDeleteItem(tablename, serialized_key, client)
+                # try delete/revert still existed key according to (3)
+                for key in table:
+                    _try_delete_or_revert_profile(tablename, key, table[key])
         # override read APIs
         def get_entry(table, key):
             result = config_db_connector.ori_get_entry(table, key)
@@ -305,7 +329,7 @@ protected:
             return result
         def get_table(table):
             result = config_db_connector.ori_get_table(table)
-            _append_table_profile(table, result)
+            _append_profile_table(table, result)
             for key in result:
                 _append_default_value(table, key, result[key])
             return result
@@ -318,24 +342,20 @@ protected:
                     entry = result[table][key]
                     _append_default_value(table, key, entry)
                     result[table][key] = entry
-                    
             return result
         # override write and delete APIs
         def set_entry(table, key, data):
             # set a entry to empty will delete this entry
-            _try_delete_static_config(table, key, data)
+            _try_delete_or_revert_profile(table, key, data)
             return config_db_connector.ori_set_entry(table, key, data)
         def mod_entry(table, key, data):
-            _try_delete_static_config(table, key, data)
+            _try_delete_or_revert_profile(table, key, data)
             return config_db_connector.ori_mod_entry(table, key, data)
         def delete_table(table):
-            _try_delete_static_config_table(table)
+            _try_delete_profile_table(table)
             return config_db_connector.ori_delete_table(table)
         def mod_config(config):
-            for tablename in config:
-                table = config[tablename]
-                for key in table:
-                    _try_delete_static_config(tablename, key, table[key])
+            _try_delete_profile(config)
             return config_db_connector.ori_mod_config(config)
         # set decorate methods
         config_db_connector.get_entry = get_entry

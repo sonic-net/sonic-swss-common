@@ -68,10 +68,10 @@ def check_table_read_api_result(table, key, fieldname, expected):
 
 def test_decorator_read_yang_default_value(prepare_yang_module, reset_database):
     """
-    Test OverlayConfigDBConnectorDecorator read correct default values from Yang model.
+    Test YangDefaultDecorator read correct default values from Yang model.
     """
     conn = swsscommon.ConfigDBConnector()
-    decorator = swsscommon.OverlayConfigDBConnectorDecorator(conn)
+    decorator = swsscommon.YangDefaultDecorator(conn)
     decorator.connect(wait_for_init=False)
 
     # set to table without default value
@@ -108,10 +108,10 @@ def test_decorator_read_yang_default_value(prepare_yang_module, reset_database):
 
 def test_decorator_read_profile_config(prepare_yang_module, reset_database):
     """
-    Test OverlayConfigDBConnectorDecorator read correct profile.
+    Test YangDefaultDecorator read correct profile.
     """
     conn = swsscommon.ConfigDBConnector()
-    decorator = swsscommon.OverlayConfigDBConnectorDecorator(conn)
+    decorator = swsscommon.YangDefaultDecorator(conn)
     decorator.connect(wait_for_init=False)
 
     # setup profile config
@@ -138,10 +138,10 @@ def test_decorator_read_profile_config(prepare_yang_module, reset_database):
 
 def test_decorator_delete_profile_config(prepare_yang_module, reset_database):
     """
-    Test OverlayConfigDBConnectorDecorator delete profile.
+    Test YangDefaultDecorator delete profile.
     """
     conn = swsscommon.ConfigDBConnector()
-    decorator = swsscommon.OverlayConfigDBConnectorDecorator(conn)
+    decorator = swsscommon.YangDefaultDecorator(conn)
     decorator.connect(wait_for_init=False)
 
     # setup profile config
@@ -179,8 +179,9 @@ def test_decorator_delete_profile_config(prepare_yang_module, reset_database):
     # profile avaliable again
     check_read_api_result(decorator, table, key, profile_field, profile_value)
 
-    # check delete profile by mod_config
-    full_config[table].erase(key)
+    # check delete profile by remove key with mod_config
+    full_config = decorator.get_config()
+    full_config[table].pop(key)
     decorator.mod_config(full_config)
     
     # profile been deleted from result
@@ -204,13 +205,22 @@ def test_decorator_delete_profile_config(prepare_yang_module, reset_database):
     # profile avaliable again
     check_read_api_result(decorator, table, key, profile_field, profile_value)
 
+    # check mod_config without table
+    full_config = decorator.get_config()
+    full_config.pop(table)
+    print(full_config)
+    decorator.mod_config(full_config)
+
+    # profile should not be deleted
+    check_read_api_result(decorator, table, key, profile_field, profile_value)
+
 def test_table_read_yang_default_value(prepare_yang_module, reset_database):
     """
-    Test OverlayTable read correct default values from Yang model.
+    Test DecoratorTable read correct default values from Yang model.
     """
     # set to table without default value
     conn = swsscommon.ConfigDBConnector()
-    decorator = swsscommon.OverlayConfigDBConnectorDecorator(conn)
+    decorator = swsscommon.YangDefaultDecorator(conn)
     decorator.connect(wait_for_init=False)
     table = "INTERFACE"
     key = "TEST_INTERFACE"
@@ -220,14 +230,14 @@ def test_table_read_yang_default_value(prepare_yang_module, reset_database):
 
     # check read API
     db = swsscommon.DBConnector("CONFIG_DB", 0)
-    table = swsscommon.OverlayTable(db, 'INTERFACE')
+    table = swsscommon.DecoratorTable(db, 'INTERFACE')
 
     # check read API
     check_table_read_api_result(table, key, fieldname, "0")
 
 def test_table_read_profile_config(prepare_yang_module, reset_database):
     """
-    Test OverlayTable read correct profile config.
+    Test DecoratorTable read correct profile config.
     """
     # setup profile config
     profile_conn = swsscommon.ConfigDBConnector()
@@ -241,7 +251,7 @@ def test_table_read_profile_config(prepare_yang_module, reset_database):
 
     # check read API
     db = swsscommon.DBConnector("CONFIG_DB", 0)
-    table = swsscommon.OverlayTable(db, 'INTERFACE')
+    table = swsscommon.DecoratorTable(db, 'INTERFACE')
 
     # check read API
     yang_field_name = "nat_zone"
@@ -268,7 +278,7 @@ def check_table_profile_deleted(table, key, fieldname):
 
 def test_table_delete_profile_config(prepare_yang_module, reset_database):
     """
-    Test OverlayTable delete/revert profile config.
+    Test DecoratorTable delete/revert profile config.
     """
     # setup profile config
     profile_conn = swsscommon.ConfigDBConnector()
@@ -281,7 +291,7 @@ def test_table_delete_profile_config(prepare_yang_module, reset_database):
     profile_conn.set_entry(tablename, key, profile)
 
     db = swsscommon.DBConnector("CONFIG_DB", 0)
-    table = swsscommon.OverlayTable(db, 'INTERFACE')
+    table = swsscommon.DecoratorTable(db, 'INTERFACE')
 
     # test delete profile by set()
     fvs = swsscommon.FieldValuePairs([])
@@ -339,7 +349,7 @@ def test_DecoratorSubscriberStateTable():
     # setup select
     db = swsscommon.DBConnector("CONFIG_DB", 0, True)
     db.flushdb()
-    table = swsscommon.OverlayTable(db, tablename)
+    table = swsscommon.DecoratorTable(db, tablename)
     sel = swsscommon.Select()
     cst = swsscommon.DecoratorSubscriberStateTable(db, tablename)
     sel.addSelectable(cst)

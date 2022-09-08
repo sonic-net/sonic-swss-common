@@ -72,8 +72,8 @@ libswsscommon_la_SOURCES = \
     countertable.cpp          \
     redisutility.cpp          \
     defaultvalueprovider.cpp  \
-    staticconfigprovider.cpp  \
-    overlayconfigtables.cpp   \
+    profileprovider.cpp  \
+    decoratortable.cpp   \
     decoratorsubscriberstatetable.cpp
 
 libswsscommon_la_CXXFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CFLAGS) $(CODE_COVERAGE_CXXFLAGS)

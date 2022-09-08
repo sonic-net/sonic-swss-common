@@ -26,6 +26,7 @@ private:
 
     std::string m_profile_keyprefix;
 
+    /* Handle SubscriberStateTable unknown pattern */
     void onPopUnknownPattern(RedisMessage& message, std::deque<KeyOpFieldsValuesTuple> &vkco) override;
 
     void appendDefaultValue(std::string &key, std::string &op, std::vector<FieldValueTuple> &fvs);

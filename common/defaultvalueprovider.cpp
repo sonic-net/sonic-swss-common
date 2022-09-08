@@ -153,7 +153,7 @@ bool TableInfoMultipleList::FindFieldMappingByKey(const string &key, FieldDefaul
     return keyInfo != m_defaultValueMapping.end();
 }
 
-DefaultValueProvider& DefaultValueProvider::Instance()
+DefaultValueProvider& DefaultValueProvider::instance()
 {
     static DefaultValueProvider instance;
 #ifndef UNITTEST
@@ -181,7 +181,7 @@ shared_ptr<TableInfoBase> DefaultValueProvider::FindDefaultValueInfo(const strin
     return findResult->second;
 }
 
-shared_ptr<string> DefaultValueProvider::GetDefaultValue(const string &table, const string &key, const string &field)
+shared_ptr<string> DefaultValueProvider::getDefaultValue(const string &table, const string &key, const string &field)
 {
     assert(!table.empty());
     assert(!key.empty());
@@ -198,7 +198,6 @@ shared_ptr<string> DefaultValueProvider::GetDefaultValue(const string &table, co
 
     return defaultValueInfo->GetDefaultValue(key, field);
 }
-
 
 void DefaultValueProvider::InternalAppendDefaultValues(const string &table, const string &key, map<string, string>& existedValues, map<string, string>& defaultValues)
 {
@@ -217,7 +216,7 @@ void DefaultValueProvider::InternalAppendDefaultValues(const string &table, cons
     defaultValueInfo->AppendDefaultValues(key, existedValues, defaultValues);
 }
 
-void DefaultValueProvider::AppendDefaultValues(const string &table, const string &key, vector<pair<string, string>> &values)
+void DefaultValueProvider::appendDefaultValues(const string &table, const string &key, vector<pair<string, string>> &values)
 {
     map<string, string> existedValues;
     map<string, string> defaultValues;
@@ -234,28 +233,10 @@ void DefaultValueProvider::AppendDefaultValues(const string &table, const string
     }
 }
 
-void DefaultValueProvider::AppendDefaultValues(const string &table, const string &key, map<string, string>& values)
-{
-    InternalAppendDefaultValues(table, key, values, values);
-}
-
-void DefaultValueProvider::AppendDefaultValues(const string &table, KeyOpFieldsValuesTuple &kofv_tuple)
-{
-    if (kfvOp(kofv_tuple) != SET_COMMAND)
-    {
-        return;
-    }
-
-    auto& key = kfvKey(kofv_tuple);
-    auto& fieldValues = kfvFieldsValues(kofv_tuple);
-
-    AppendDefaultValues(table, key, fieldValues);
-}
-
-map<string, string> DefaultValueProvider::GetDefaultValues(const string &table, const string &key)
+map<string, string> DefaultValueProvider::getDefaultValues(const string &table, const string &key)
 {
     map<string, string> result;
-    AppendDefaultValues(table, key, result);
+    InternalAppendDefaultValues(table, key, result, result);
     return result;
 }
 

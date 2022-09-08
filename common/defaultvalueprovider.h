@@ -74,17 +74,13 @@ private:
 class DefaultValueProvider
 {
 public:
-    static DefaultValueProvider& Instance();
+    static DefaultValueProvider& instance();
 
-    void AppendDefaultValues(const std::string &table, const std::string &key, std::map<std::string, std::string>& values);
+    void appendDefaultValues(const std::string &table, const std::string &key, std::vector<std::pair<std::string, std::string>> &values);
 
-    void AppendDefaultValues(const std::string &table, const std::string &key, std::vector<std::pair<std::string, std::string>> &values);
+    std::shared_ptr<std::string> getDefaultValue(const std::string &table, const std::string &key, const std::string &field);
 
-    void AppendDefaultValues(const std::string &table, KeyOpFieldsValuesTuple &operation);
-
-    std::shared_ptr<std::string> GetDefaultValue(const std::string &table, const std::string &key, const std::string &field);
-
-    std::map<std::string, std::string> GetDefaultValues(const std::string &table, const std::string &key);
+    std::map<std::string, std::string> getDefaultValues(const std::string &table, const std::string &key);
 
 #ifndef UNITTEST
 private:

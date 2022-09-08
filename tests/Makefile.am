@@ -43,7 +43,7 @@ tests_SOURCES = redis_ut.cpp                \
                 events_common_ut.cpp        \
                 events_service_ut.cpp       \
                 events_ut.cpp               \
-                profile_ut.cpp              \
+                decorator_ut.cpp              \
                 main.cpp
 
 tests_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_GTEST) $(LIBNL_CFLAGS) $(UTFLAGS)

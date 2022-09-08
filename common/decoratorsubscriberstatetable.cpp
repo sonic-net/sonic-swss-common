@@ -1,9 +1,7 @@
-
 #include <boost/algorithm/string.hpp>
-
 #include "common/decoratorsubscriberstatetable.h"
 #include "common/defaultvalueprovider.h"
-#include "common/staticconfigprovider.h"
+#include "common/profileprovider.h"
 
 using namespace std;
 using namespace swss;
@@ -11,10 +9,9 @@ using namespace swss;
 DecoratorSubscriberStateTable::DecoratorSubscriberStateTable(DBConnector *db, const string &tableName, int popBatchSize, int pri)
 :SubscriberStateTable(db, tableName, popBatchSize, pri)
 {
-    // subscribe delete table for profile delete event
-    const string separator = SonicDBConfig::getSeparator(db);
+    // Subscribe PROFILE_DELETE table for profile delete event
     m_profile_keyspace = "__keyspace@";
-    m_profile_keyprefix = StaticConfigProvider::Instance().getDeletedKeyName(tableName, "", db);
+    m_profile_keyprefix = ProfileProvider::instance().getDeletedKeyName(tableName, "", db);
     m_profile_keyspace += to_string(db->getDbId()) + "__:" + m_profile_keyprefix + "*";
 
     m_subscribe->psubscribe(m_profile_keyspace);
@@ -39,8 +36,8 @@ void DecoratorSubscriberStateTable::appendDefaultValue(std::string &key, std::st
     }
 
     // Not append profile config, because 'SET' command will overwrite profile config.
-    auto table_name = getTableName();
-    DefaultValueProvider::Instance().AppendDefaultValues(table_name, key, fvs);
+    auto table = getTableName();
+    DefaultValueProvider::instance().appendDefaultValues(table, key, fvs);
 }
 
 void DecoratorSubscriberStateTable::onPopUnknownPattern(RedisMessage& message, deque<KeyOpFieldsValuesTuple> &vkco)
@@ -55,7 +52,7 @@ void DecoratorSubscriberStateTable::onPopUnknownPattern(RedisMessage& message, d
     string op = message.data;
     if ("del" == op)
     {
-        // 'DEL' from delete table is revert profile config, ignore this because there will always be a user config 'SET' command.
+        // 'DEL' from PROFILE_DETETE table will revert profile config, ignore this event because there will always be a user config 'SET' event after this event.
         return;
     }
 
@@ -66,8 +63,8 @@ void DecoratorSubscriberStateTable::onPopUnknownPattern(RedisMessage& message, d
         SWSS_LOG_ERROR("invalid key returned for pmessage of %s", m_profile_keyspace.c_str());
         return;
     }
-    
-    // 'SET' to delete table is delete profile config
+
+    // 'SET' to PROFILE_DETETE table is delete profile config, convert this event to a config 'DEL' event
     string key = msg.substr(pos + m_profile_keyprefix.length());
     KeyOpFieldsValuesTuple kco;
     kfvKey(kco) = key;
