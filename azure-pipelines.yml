@@ -119,6 +119,18 @@ stages:
       artifact_name: sonic-swss-common.arm64
       debian_version: ${{ parameters.debian_version }}
 
+- stage: BuildBullseye
+  dependsOn: Build
+  condition: succeeded('Build')
+  jobs:
+  - template: .azure-pipelines/build-template.yml
+    parameters:
+      arch: amd64
+      timeout: 180
+      sonic_slave: sonic-slave-bullseye
+      artifact_name: sonic-swss-common.bullseye.amd64
+      debian_version: bullseye
+
 - stage: BuildSairedis
   dependsOn: Build
   condition: succeeded('Build')
