@@ -9,7 +9,7 @@
 #include "redisapi.h"
 #include "tokenize.h"
 #include "subscriberstatetable.h"
-#include <iostream>
+
 using namespace std;
 
 namespace swss {
@@ -113,13 +113,12 @@ void SubscriberStateTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, const strin
         {
             continue;
         }
-        
-        cout << "pattern: " << message.pattern << endl;
 
         /* The second element should be the original pattern matched */
         auto ctx = event->getContext()->element[1];
         if (message.pattern != m_keyspace)
         {
+            // Inherited class may subscribe more pattern and handle their pattern by override  onPopUnknownPattern method.
             onPopUnknownPattern(message, vkco);
             continue;
         }
