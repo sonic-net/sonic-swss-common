@@ -31,6 +31,7 @@ using namespace swss;
               << "Examples:" << std::endl
               << "\t" << program << " -l NOTICE -c orchagent # set orchagent severity level to NOTICE" << std::endl
               << "\t" << program << " -l SAI_LOG_LEVEL_ERROR -s -c SWITCH # set SAI_API_SWITCH severity to ERROR" << std::endl
+              << "\t" << program << " -l DEBUG -a # set all not SAI components severity to DEBUG" << std::endl
               << "\t" << program << " -l SAI_LOG_LEVEL_DEBUG -s -a # set all SAI_API_* severity to DEBUG" << std::endl
               << "\t" << program << " -d # return all components to default loglevel" << std::endl;
 
