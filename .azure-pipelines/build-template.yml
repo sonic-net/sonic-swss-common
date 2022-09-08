@@ -22,10 +22,6 @@ parameters:
 - name: sonic_slave
   type: string
 
-- name: debian_version
-  type: string
-  default: buster
-
 - name: artifact_name
   type: string
 
