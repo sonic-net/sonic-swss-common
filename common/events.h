@@ -8,7 +8,7 @@
 /*
  * Events library APIs.
  *
- *  APIs are  for publishing & receiving events with source, tag and params along with timestamp.
+ *  APIs are for publishing & receiving events with source, tag and params along with timestamp.
  *  Used by event publishers and those interested in receiving published events.
  *  Publishers are multiple run from different contexts, as processes running in hosts & containers.
  *  Receiver are often few. Telmetry container runs a receiver.
@@ -86,13 +86,13 @@ typedef std::map<std::string, std::string> event_params_t;
  *      Name of the YANG container that defines this event in the
  *      event-source module associated with this handle.
  *
- *      YANG path formatted as "< event_source >:< event_tag >".
+ *      YANG path formatted as "< event_source >:< event_tag >"
  *      e.g. {"sonic-events-bgp:bgp-state": { "ip": "10.10.10.10", ...}}
  *
  *  params -
  *      Params associated with event; This may or may not contain
  *      timestamp. In the absence, the timestamp is added, transparently.
- *      The timestamp should be per rfc3339.
+ *      The timestamp should be per rfc3339
  *      e.g. "2022-08-17T02:39:21.286611Z"
  *
  * return:
