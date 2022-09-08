@@ -103,10 +103,6 @@ int64_t SonicV2Connector_Native::del(const std::string& db_name, const std::stri
 {
     return m_dbintf.del(db_name, key, blocking);
 }
-int64_t SonicV2Connector_Native::del2(const std::string& db_name, const std::string& key, bool blocking)
-{
-    return m_dbintf.del(db_name, key, blocking);
-}
 
 void SonicV2Connector_Native::delete_all_by_pattern(const std::string& db_name, const std::string& pattern)
 {
