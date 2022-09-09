@@ -72,6 +72,9 @@ jobs:
     inputs:
       artifact: ${{ parameters.swss_common_artifact_name }}
       path: $(Build.ArtifactStagingDirectory)/download
+      patterns: |
+        libswsscommon_1.0.0_*.deb
+        libswsscommon-dev_1.0.0*.deb
     displayName: "Download pre-stage built ${{ parameters.swss_common_artifact_name }}"
   - task: DownloadPipelineArtifact@2
     inputs:
