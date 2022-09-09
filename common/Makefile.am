@@ -62,6 +62,7 @@ libswsscommon_la_SOURCES = \
     linkcache.cpp             \
     portmap.cpp               \
     pubsub.cpp                \
+    profileprovider.cpp       \
     tokenize.cpp              \
     exec.cpp                  \
     saiaclschema.cpp          \
