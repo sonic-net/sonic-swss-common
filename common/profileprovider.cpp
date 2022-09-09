@@ -8,8 +8,6 @@
 #include <dirent.h> 
 #include <stdio.h> 
 
-#include <libyang/libyang.h>
-
 #include "profileprovider.h"
 #include "logger.h"
 #include "table.h"
