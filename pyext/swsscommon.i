@@ -15,6 +15,7 @@
 #include "schema.h"
 #include "dbconnector.h"
 #include "dbinterface.h"
+#include "defaultvalueprovider.h"
 #include "sonicv2connector.h"
 #include "pubsub.h"
 #include "select.h"
@@ -151,6 +152,7 @@ T castSelectableObj(swss::Selectable *temp)
 
 %include "schema.h"
 %include "dbconnector.h"
+%include "defaultvalueprovider.h"
 %include "sonicv2connector.h"
 %include "pubsub.h"
 %include "selectable.h"

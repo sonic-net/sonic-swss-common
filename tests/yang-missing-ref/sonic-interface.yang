@@ -1,0 +1,54 @@
+module sonic-interface {
+
+	yang-version 1.1;
+
+	namespace "http://github.com/Azure/sonic-interface";
+	prefix intf;
+
+	import sonic-types {
+		prefix stypes;
+	}
+
+	description "INTERFACE yang Module for SONiC OS";
+
+	revision 2021-03-30 {
+		description "Modify the type of vrf name";
+	}
+
+	revision 2019-07-01 {
+		description "First Revision";
+	}
+
+	container sonic-interface {
+
+		container INTERFACE {
+
+			description "INTERFACE part of config_db.json";
+
+			list INTERFACE_LIST {
+
+				description "INTERFACE part of config_db.json with vrf";
+
+				key "name";
+
+				leaf name {
+					type string;
+				}
+
+				leaf nat_zone {
+					description "NAT Zone for the interface";
+					type uint8 {
+						range "0..3" {
+							error-message "Invalid nat zone for the interface.";
+							error-app-tag nat-zone-invalid;
+						}
+					}
+                                        default "0";
+				}
+			}
+			/* end of INTERFACE_LIST */
+
+		}
+		/* end of INTERFACE container */
+	}
+}

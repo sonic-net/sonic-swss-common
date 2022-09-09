@@ -1,0 +1,80 @@
+module sonic-vlan {
+
+    yang-version 1.1;
+
+	namespace "http://github.com/Azure/sonic-vlan";
+	prefix vlan;
+
+	description "VLAN yang Module for SONiC OS";
+
+	revision 2021-04-22 {
+		description "Modify Vlan Member to include PortChannel along with Port";
+	}
+
+	revision 2021-03-30 {
+		description "Modify the type of vrf name";
+	}
+
+	revision 2019-07-01 {
+		description "First Revision";
+	}
+
+	container sonic-vlan {
+
+		container VLAN_INTERFACE {
+
+			description "VLAN_INTERFACE part of config_db.json";
+
+			list VLAN_INTERFACE_LIST {
+
+				description "VLAN INTERFACE part of config_db.json with vrf";
+
+				key "name";
+
+				leaf name {
+					type string;
+				}
+
+				leaf nat_zone {
+					description "NAT Zone for the vlan interface";
+					type uint8 {
+						range "0..3" {
+							error-message "Invalid nat zone for the vlan interface.";
+							error-app-tag nat-zone-invalid;
+						}
+					}
+                                        default "0";
+				}
+			}
+			/* end of VLAN_INTERFACE_LIST */
+
+			list VLAN_INTERFACE_IPPREFIX_LIST {
+
+				key "name ip-prefix";
+
+				leaf name {
+					type string;
+				}
+
+				leaf ip-prefix {
+					type string;
+				}
+
+				leaf nat_zone {
+					description "NAT Zone for the vlan interface";
+					type uint8 {
+						range "0..3" {
+							error-message "Invalid nat zone for the vlan interface.";
+							error-app-tag nat-zone-invalid;
+						}
+					}
+                                        default "1";
+				}
+			}
+			/* end of VLAN_INTERFACE_LIST */
+		}
+		/* end of VLAN_INTERFACE container */
+	}
+    /* end of container sonic-vlan */
+}
+/* end of module sonic-vlan */
