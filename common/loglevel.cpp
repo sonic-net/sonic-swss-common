@@ -40,14 +40,7 @@ using namespace swss;
 
 void setLoglevel(swss::Table& logger_tbl, const std::string& component, const std::string& loglevel)
 {
-
-    SWSS_LOG_NOTICE("EDEN start set log level function");
-    SWSS_LOG_NOTICE("EDEN component: %s, loglevel: %s", component.c_str(), loglevel.c_str());
-
     logger_tbl.hset(component, "LOGLEVEL",loglevel);
-
-    SWSS_LOG_NOTICE("EDEN end setLoglevel");
-
 }
 
 bool validateSaiLoglevel(const std::string &prioStr)
@@ -88,21 +81,16 @@ std::vector<std::string> get_no_sai_keys(std::vector<std::string> keys)
 //TODO change to MSET command
 void setAllLoglevel(swss::Table& logger_tbl, std::vector<std::string> components,std::string loglevel)
 {
-    SWSS_LOG_NOTICE("EDEN start setAllLoglevel");
     for (const auto& component : components)
     {
-        SWSS_LOG_NOTICE("EDEN in setAllLoglevel component: %s, loglevel: %s", component.c_str(), loglevel.c_str());
         setLoglevel(logger_tbl, component, loglevel);
     }
-    SWSS_LOG_NOTICE("EDEN end setAllLoglevel");
+    SWSS_LOG_DEBUG("All components are with default loglevel");
 }
 
 
 int swssloglevel(int argc, char** argv)
 {
-
-    SWSS_LOG_NOTICE("EDEN start main");
-
     int opt;
     bool applyToAll = false, print = false, default_loglevel = false;
     std::string prefix = "", component, loglevel;
@@ -138,8 +126,6 @@ int swssloglevel(int argc, char** argv)
                 exitWithUsage(EXIT_FAILURE, "Invalid option");
         }
     }
-
-    SWSS_LOG_NOTICE("EDEN cearting config db connector");
 
     DBConnector config_db("CONFIG_DB", 0);
     swss::Table logger_tbl(&config_db, CFG_LOGGER_TABLE_NAME);
@@ -182,8 +168,6 @@ int swssloglevel(int argc, char** argv)
 
     if(default_loglevel)
     {
-        std::cout <<"EDEN in the default opt"<< std::endl;
-
         //check if the command right I mean there is no loglevel or somthing like this
         //todo change the apply all???
         std::vector<std::string> sai_keys = get_sai_keys(keys);
@@ -232,8 +216,6 @@ int swssloglevel(int argc, char** argv)
     {
         exitWithUsage(EXIT_FAILURE, "Component not present in DB");
     }
-    SWSS_LOG_NOTICE("EDEN calling set log level");
-
     setLoglevel(logger_tbl, component, loglevel);
 
     return EXIT_SUCCESS;

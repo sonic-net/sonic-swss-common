@@ -74,8 +74,6 @@ const Logger::PriorityStringMap Logger::priorityStringMap = {
 
 void Logger::swssPrioNotify(const std::string& component, const std::string& prioStr)
 {
-    SWSS_LOG_NOTICE("EDEN start swssPrioNotify");
-
     auto& logger = getInstance();
 
     if (priorityStringMap.find(prioStr) == priorityStringMap.end())
@@ -85,10 +83,8 @@ void Logger::swssPrioNotify(const std::string& component, const std::string& pri
     }
     else
     {
-        SWSS_LOG_NOTICE("EDEN changing min prio of logger to %s", prioStr.c_str());
+        SWSS_LOG_DEBUG("Changing logger minPrio to %s", prioStr.c_str());
         logger.m_minPrio = priorityStringMap.at(prioStr);
-        SWSS_LOG_NOTICE("EDEN changing min prio of logger end");
-
     }
 }
 
@@ -130,24 +126,21 @@ void Logger::linkToDbWithOutput(
     std::string key_prefix(CFG_LOGGER_TABLE_NAME);
     key_prefix+="|";
     std::string key = key_prefix + dbName;
+    SWSS_LOG_DEBUG("Component %s register to logger with the key: %s", dbName.c_str(), key.c_str());
 
     std::string prio, output;
     bool doUpdate = false;
     auto prioPtr = db.hget(key, DAEMON_LOGLEVEL);
     auto outputPtr = db.hget(key, DAEMON_LOGOUTPUT);
-    SWSS_LOG_NOTICE("EDEN hget for key: %s", key.c_str());
 
     if (prioPtr == nullptr)
     {
-        SWSS_LOG_NOTICE("EDEN hget for loglevel got nullptr");
         prio = defPrio;
         doUpdate = true;
     }
     else
     {
         prio = *prioPtr;
-        SWSS_LOG_NOTICE("EDEN hget for loglevel got: %s", prio.c_str());
-
     }
     if (outputPtr == nullptr)
     {
@@ -167,13 +160,14 @@ void Logger::linkToDbWithOutput(
         FieldValueTuple fvLevel(DAEMON_LOGLEVEL, prio);
         FieldValueTuple fvOutput(DAEMON_LOGOUTPUT, output);
         std::vector<FieldValueTuple>fieldValues = { fvLevel, fvOutput };
-        SWSS_LOG_NOTICE("EDEN setting loglevel to: %s in linkToDb", prio.c_str());
+
+        SWSS_LOG_DEBUG("Set %s loglevel to %s", dbName, prio);
+
         table.set(dbName, fieldValues);
     }
 
     logger.m_currentPrios.set(dbName, prio);
     logger.m_currentOutputs.set(dbName, output);
-    SWSS_LOG_NOTICE("EDEN calling to swssnotify from linktodb witj loglevel %s", prio.c_str());
 
     prioNotify(dbName, prio);
     outputNotify(dbName, output);
