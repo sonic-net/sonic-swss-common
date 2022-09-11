@@ -97,44 +97,47 @@ void setAllLoglevel(swss::Table& logger_tbl, std::vector<std::string> components
     SWSS_LOG_NOTICE("EDEN end setAllLoglevel");
 }
 
-int main(int argc, char **argv)
+
+int swssloglevel(int argc, char** argv)
 {
+
     SWSS_LOG_NOTICE("EDEN start main");
 
-        int opt;
-        bool applyToAll = false, print = false, default_loglevel = false;
-        std::string prefix = "", component, loglevel;
-        auto exitWithUsage = std::bind(usage, argv[0], std::placeholders::_1, std::placeholders::_2);
-        //todo what is th : in the thired variable?
-        while ((opt = getopt (argc, argv, "c:l:sapdh")) != -1)
+    int opt;
+    bool applyToAll = false, print = false, default_loglevel = false;
+    std::string prefix = "", component, loglevel;
+    auto exitWithUsage = std::bind(usage, argv[0], std::placeholders::_1, std::placeholders::_2);
+
+    //todo what is th : in the thired variable?
+    while ( (opt = getopt (argc, argv, "c:l:sapdh")) != -1)
+    {
+        switch(opt)
         {
-            switch(opt)
-            {
-                case 'c':
-                    component = optarg;
-                    break;
-                case 'l':
-                    loglevel = optarg;
-                    break;
-                case 's':
-                    prefix = "SAI_API_";
-                    break;
-                case 'a':
-                    applyToAll = true;
-                    break;
-                case 'p':
-                    print = true;
-                    break;
-                case 'd':
-                    default_loglevel = true;
-                    break;
-                case 'h':
-                    exitWithUsage(EXIT_SUCCESS, "");
-                    break;
-                default:
-                    exitWithUsage(EXIT_FAILURE, "Invalid option");
-            }
+            case 'c':
+                component = optarg;
+                break;
+            case 'l':
+                loglevel = optarg;
+                break;
+            case 's':
+                prefix = "SAI_API_";
+                break;
+            case 'a':
+                applyToAll = true;
+                break;
+            case 'p':
+                print = true;
+                break;
+            case 'd':
+                default_loglevel = true;
+                break;
+            case 'h':
+                exitWithUsage(EXIT_SUCCESS, "");
+                break;
+            default:
+                exitWithUsage(EXIT_FAILURE, "Invalid option");
         }
+    }
 
     SWSS_LOG_NOTICE("EDEN cearting config db connector");
 
@@ -179,6 +182,8 @@ int main(int argc, char **argv)
 
     if(default_loglevel)
     {
+        std::cout <<"EDEN in the default opt"<< std::endl;
+
         //check if the command right I mean there is no loglevel or somthing like this
         //todo change the apply all???
         std::vector<std::string> sai_keys = get_sai_keys(keys);
@@ -191,9 +196,7 @@ int main(int argc, char **argv)
         setAllLoglevel(logger_tbl,sai_keys, "SAI_LOG_LEVEL_NOTICE");
 
         return (EXIT_SUCCESS);
-
     }
-
     if ((prefix == "SAI_API_") && !validateSaiLoglevel(loglevel))
     {
         exitWithUsage(EXIT_FAILURE, "Invalid SAI loglevel value");
@@ -235,5 +238,7 @@ int main(int argc, char **argv)
 
     return EXIT_SUCCESS;
 }
+
+
 
 
