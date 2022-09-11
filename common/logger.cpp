@@ -122,7 +122,6 @@ void Logger::linkToDbWithOutput(
     logger.m_settingChangeObservers.insert(std::make_pair(dbName, std::make_pair(prioNotify, outputNotify)));
 
     DBConnector db("CONFIG_DB", 0);
-    //TODO: change to be in h file
     std::string key_prefix(CFG_LOGGER_TABLE_NAME);
     key_prefix+="|";
     std::string key = key_prefix + dbName;
@@ -155,13 +154,12 @@ void Logger::linkToDbWithOutput(
 
     if (doUpdate)
     {
-        //todo: change to table name
         swss::Table table(&db, CFG_LOGGER_TABLE_NAME);
         FieldValueTuple fvLevel(DAEMON_LOGLEVEL, prio);
         FieldValueTuple fvOutput(DAEMON_LOGOUTPUT, output);
         std::vector<FieldValueTuple>fieldValues = { fvLevel, fvOutput };
 
-        SWSS_LOG_DEBUG("Set %s loglevel to %s", dbName, prio);
+        SWSS_LOG_DEBUG("Set %s loglevel to %s", dbName.c_str() , prio.c_str());
 
         table.set(dbName, fieldValues);
     }
@@ -273,7 +271,6 @@ void Logger::write(Priority prio, const char *fmt, ...)
 
     if (prio > m_minPrio)
         return;
-
 
     // TODO
     // + add thread id using std::thread::id this_id = std::this_thread::get_id();

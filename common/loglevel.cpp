@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <unistd.h>
 #include "schema.h"
+#include "loglevel.h"
 #include "logger.h"
 #include "dbconnector.h"
 #include "producerstatetable.h"
@@ -78,7 +79,7 @@ std::vector<std::string> get_no_sai_keys(std::vector<std::string> keys)
     keys.erase(std::remove_if(keys.begin(), keys.end(), filterOutSaiKeys), keys.end());
     return keys;
 }
-//TODO change to MSET command
+
 void setAllLoglevel(swss::Table& logger_tbl, std::vector<std::string> components,std::string loglevel)
 {
     for (const auto& component : components)
@@ -92,11 +93,10 @@ void setAllLoglevel(swss::Table& logger_tbl, std::vector<std::string> components
 int swssloglevel(int argc, char** argv)
 {
     int opt;
-    bool applyToAll = false, print = false, default_loglevel = false;
+    bool applyToAll = false, print = false, default_loglevel_opt = false;
     std::string prefix = "", component, loglevel;
     auto exitWithUsage = std::bind(usage, argv[0], std::placeholders::_1, std::placeholders::_2);
 
-    //todo what is th : in the thired variable?
     while ( (opt = getopt (argc, argv, "c:l:sapdh")) != -1)
     {
         switch(opt)
@@ -117,7 +117,7 @@ int swssloglevel(int argc, char** argv)
                 print = true;
                 break;
             case 'd':
-                default_loglevel = true;
+                default_loglevel_opt = true;
                 break;
             case 'h':
                 exitWithUsage(EXIT_SUCCESS, "");
@@ -142,7 +142,7 @@ int swssloglevel(int argc, char** argv)
         }
 
         std::sort(keys.begin(), keys.end());
-        //TODO: change to be in h file
+
         std::string redis_key_prefix(CFG_LOGGER_TABLE_NAME);
         redis_key_prefix=+"|";
         for (const auto& key : keys)
@@ -166,18 +166,13 @@ int swssloglevel(int argc, char** argv)
         return (EXIT_SUCCESS);
     }
 
-    if(default_loglevel)
+    if(default_loglevel_opt)
     {
-        //check if the command right I mean there is no loglevel or somthing like this
-        //todo change the apply all???
         std::vector<std::string> sai_keys = get_sai_keys(keys);
         std::vector<std::string> no_sai_keys = get_no_sai_keys(keys);
 
-
-        setAllLoglevel(logger_tbl,no_sai_keys, "NOTICE");
-        //todo add the default as constant
-
-        setAllLoglevel(logger_tbl,sai_keys, "SAI_LOG_LEVEL_NOTICE");
+        setAllLoglevel(logger_tbl,no_sai_keys, std::string(DEFAULT_LOGLEVEL));
+        setAllLoglevel(logger_tbl,sai_keys, std::string(SAI_DEFAULT_LOGLEVEL));
 
         return (EXIT_SUCCESS);
     }
