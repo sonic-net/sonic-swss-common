@@ -28,8 +28,8 @@ tests_SOURCES = redis_ut.cpp                \
                 warm_restart_ut.cpp         \
                 redis_multi_db_ut.cpp       \
                 logger_ut.cpp               \
-                ../common/loglevel.cpp		\
-                loglevel_ut.cpp				\
+                ../common/loglevel.cpp      \
+                loglevel_ut.cpp             \
                 redis_multi_ns_ut.cpp       \
                 fdb_flush.cpp               \
                 stringutility_ut.cpp        \

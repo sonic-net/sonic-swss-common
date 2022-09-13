@@ -89,7 +89,6 @@ void setAllLoglevel(swss::Table& logger_tbl, std::vector<std::string> components
     SWSS_LOG_DEBUG("All components are with default loglevel");
 }
 
-
 int swssloglevel(int argc, char** argv)
 {
     int opt;
@@ -142,7 +141,6 @@ int swssloglevel(int argc, char** argv)
         }
 
         std::sort(keys.begin(), keys.end());
-
         std::string redis_key_prefix(CFG_LOGGER_TABLE_NAME);
         redis_key_prefix=+"|";
         for (const auto& key : keys)
@@ -170,16 +168,13 @@ int swssloglevel(int argc, char** argv)
     {
         std::vector<std::string> sai_keys = get_sai_keys(keys);
         std::vector<std::string> no_sai_keys = get_no_sai_keys(keys);
-
         setAllLoglevel(logger_tbl,no_sai_keys, std::string(DEFAULT_LOGLEVEL));
         setAllLoglevel(logger_tbl,sai_keys, std::string(SAI_DEFAULT_LOGLEVEL));
-
         return (EXIT_SUCCESS);
     }
     if ((prefix == "SAI_API_") && !validateSaiLoglevel(loglevel))
     {
         exitWithUsage(EXIT_FAILURE, "Invalid SAI loglevel value");
-
     }
     else if ((prefix == "") && (Logger::priorityStringMap.find(loglevel) == Logger::priorityStringMap.end()))
     {
@@ -215,7 +210,3 @@ int swssloglevel(int argc, char** argv)
 
     return EXIT_SUCCESS;
 }
-
-
-
-

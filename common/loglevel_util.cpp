@@ -3,5 +3,4 @@
 int main(int argc, char** argv)
 {
     swssloglevel(argc,argv);
-
 }

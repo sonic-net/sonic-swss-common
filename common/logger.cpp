@@ -141,6 +141,7 @@ void Logger::linkToDbWithOutput(
     {
         prio = *prioPtr;
     }
+
     if (outputPtr == nullptr)
     {
         output = defOutput;
@@ -158,9 +159,7 @@ void Logger::linkToDbWithOutput(
         FieldValueTuple fvLevel(DAEMON_LOGLEVEL, prio);
         FieldValueTuple fvOutput(DAEMON_LOGOUTPUT, output);
         std::vector<FieldValueTuple>fieldValues = { fvLevel, fvOutput };
-
         SWSS_LOG_DEBUG("Set %s loglevel to %s", dbName.c_str() , prio.c_str());
-
         table.set(dbName, fieldValues);
     }
 
@@ -198,7 +197,6 @@ Logger::Priority Logger::getMinPrio()
 {
     return getInstance().m_minPrio;
 }
-
 
 void Logger::settingThread()
 {
@@ -268,7 +266,6 @@ void Logger::settingThread()
 
 void Logger::write(Priority prio, const char *fmt, ...)
 {
-
     if (prio > m_minPrio)
         return;
 
