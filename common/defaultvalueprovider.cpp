@@ -7,8 +7,6 @@
 #include <dirent.h> 
 #include <stdio.h> 
 
-#include <libyang/libyang.h>
-
 #include "defaultvalueprovider.h"
 #include "logger.h"
 #include "table.h"
@@ -180,7 +178,7 @@ void DefaultValueHelper::GetDefaultValueInfoForLeaf(struct lys_node_leaf* leafNo
     if (leafNode->dflt)
     {
         SWSS_LOG_DEBUG("field: %s, default: %s\n",leafNode->name, leafNode->dflt);
-        fieldMapping->emplace(string(field->name), string(leafNode->dflt));
+        fieldMapping->emplace(string(leafNode->name), string(leafNode->dflt));
     }
 }
 
@@ -227,8 +225,8 @@ void DefaultValueHelper::GetDefaultValueInfoForLeaflist(struct lys_node_leaflist
     const char** dfltValues = listNode->dflt;
     //convert list default value to json string
     string dfltValueJson = JSon::buildJson(dfltValues);
-    SWSS_LOG_DEBUG("list field: %s, default: %s\n",field->name, dfltValueJson.c_str());
-    fieldMapping->emplace(string(field->name), dfltValueJson);
+    SWSS_LOG_DEBUG("list field: %s, default: %s\n",listNode->name, dfltValueJson.c_str());
+    fieldMapping->emplace(string(listNode->name), dfltValueJson);
 }
 
 FieldDefaultValueMappingPtr DefaultValueHelper::GetDefaultValueInfo(struct lys_node* tableChildNode)

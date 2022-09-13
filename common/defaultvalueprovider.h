@@ -5,6 +5,8 @@
 #include <vector>
 #include "common/table.h"
 
+#include <libyang/libyang.h>
+
 #define DEFAULT_YANG_MODULE_PATH "/usr/local/yang-models"
 #define EMPTY_STR ""
 
@@ -83,7 +85,7 @@ private:
 
 class DefaultValueHelper
 {
-public
+public:
     static int BuildTableDefaultValueMapping(struct lys_node* table, TableDefaultValueMapping& tableDefaultValueMapping);
 
     static std::shared_ptr<KeySchema> GetKeySchema(struct lys_node* table_child_node);
@@ -95,7 +97,7 @@ public
     static void GetDefaultValueInfoForLeaf(struct lys_node_leaf* leafNode, std::shared_ptr<FieldDefaultValueMapping> fieldMapping);
 
     static void GetDefaultValueInfoForLeaflist(struct lys_node_leaflist *listNode, std::shared_ptr<FieldDefaultValueMapping> fieldMapping);
-}
+};
 
 class DefaultValueProvider
 {
