@@ -191,7 +191,7 @@ void SonicDBConfig::validateNamespace(const string &netns)
 
     SWSS_LOG_ENTER();
 
-    // With valid namespace input and database_global.json is not loaded, ask user to initializeGlobalConfig first
+    // With valid namespace input and database_global.json is not loaded, ask user to initializeGlobalConfig first.
     if(!netns.empty())
     {
         // If global initialization is not done, ask user to initialize global DB Config first.
