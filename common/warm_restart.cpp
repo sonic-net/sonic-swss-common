@@ -10,7 +10,8 @@ const WarmStart::WarmStartStateNameMap WarmStart::warmStartStateNameMap =
 {
     {INITIALIZED,   "initialized"},
     {RESTORED,      "restored"},
-    {RECONCILED,    "reconciled"}
+    {RECONCILED,    "reconciled"},
+    {WSDISABLED,    "disabled"}
 };
 
 const WarmStart::DataCheckStateNameMap WarmStart::dataCheckStateNameMap =

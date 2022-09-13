@@ -17,6 +17,7 @@ public:
         INITIALIZED,
         RESTORED,
         RECONCILED,
+        WSDISABLED,
     };
 
     enum DataCheckState
