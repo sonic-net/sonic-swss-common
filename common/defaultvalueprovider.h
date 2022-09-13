@@ -110,19 +110,19 @@ public:
 
     std::map<std::string, std::string> getDefaultValues(const std::string &table, const std::string &key);
 
-#ifndef UNITTEST
-private:
-#endif
+protected:
     DefaultValueProvider();
-    ~DefaultValueProvider();
+    virtual ~DefaultValueProvider();
 
+    void Initialize(const char* modulePath = DEFAULT_YANG_MODULE_PATH);
+
+private:
     // libyang context
     struct ly_ctx *m_context = nullptr;
 
     // The table name to table default value info mapping
     std::map<std::string, std::shared_ptr<TableInfoBase> > m_defaultValueMapping;
 
-    void Initialize(char* modulePath = DEFAULT_YANG_MODULE_PATH);
     
     void LoadModule(const std::string &name, const std::string &path, struct ly_ctx *context);
 

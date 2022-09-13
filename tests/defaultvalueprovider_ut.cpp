@@ -7,10 +7,19 @@ using namespace swss;
 string profile_table = "INTERFACE";
 string profile_key = "TEST_INTERFACE";
 
+class MockDefaultValueProvider : public DefaultValueProvider
+{
+public:
+    void MockInitialize(const char* modulePath)
+    {
+        this->Initialize(modulePath);
+    }
+};
+
 TEST(DECORATOR, ChoiceAndLeaflistDefaultValue)
 {
-    DefaultValueProvider instance;
-    instance.Initialize("./tests/yang");
+    MockDefaultValueProvider instance;
+    instance.MockInitialize("./tests/yang");
     
     // load default values from container with signle list
     auto values = instance.getDefaultValues("TEST_YANGE_DEFAULT_VALUE", "TEST_KEY");
@@ -25,8 +34,8 @@ TEST(DECORATOR, ChoiceAndLeaflistDefaultValue)
 
 TEST(DECORATOR, GetDefaultValues)
 {
-    DefaultValueProvider instance;
-    instance.Initialize("./tests/yang");
+    MockDefaultValueProvider instance;
+    instance.MockInitialize("./tests/yang");
     
     // load default values from container with signle list
     auto values = instance.getDefaultValues(profile_table, profile_key);
@@ -57,8 +66,8 @@ TEST(DECORATOR, GetDefaultValues)
 
 TEST(DECORATOR, AppendDefaultValuesVector)
 {
-    DefaultValueProvider instance;
-    instance.Initialize("./tests/yang");
+    MockDefaultValueProvider instance;
+    instance.MockInitialize("./tests/yang");
 
     // test AppendDefaultValues with vector
     vector<pair<string, string>> values;
@@ -88,8 +97,8 @@ TEST(DECORATOR, AppendDefaultValuesVector)
 
 TEST(DECORATOR, LoadYangModelWithMissingReference)
 {
-    DefaultValueProvider instance;
-    instance.Initialize("./tests/yang-missing-ref");
+    MockDefaultValueProvider instance;
+    instance.MockInitialize("./tests/yang-missing-ref");
     
     // when reference missing, load default value will failed
     auto values = instance.getDefaultValues(profile_table, profile_key);

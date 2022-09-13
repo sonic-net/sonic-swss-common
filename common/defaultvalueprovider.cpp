@@ -333,12 +333,10 @@ void DefaultValueProvider::AppendTableInfoToMapping(struct lys_node* table)
 DefaultValueProvider& DefaultValueProvider::instance()
 {
     static DefaultValueProvider instance;
-#ifndef UNITTEST
     if (instance.m_context == nullptr)
     {
         instance.Initialize();
     }
-#endif
 
     return instance;
 }
@@ -422,7 +420,7 @@ DefaultValueProvider::~DefaultValueProvider()
     }
 }
 
-void DefaultValueProvider::Initialize(char* modulePath)
+void DefaultValueProvider::Initialize(const char* modulePath)
 {
     DIR *moduleDir = opendir(modulePath);
     if (!moduleDir)
