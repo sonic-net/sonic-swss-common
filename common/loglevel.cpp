@@ -86,7 +86,7 @@ void setAllLoglevel(swss::Table& logger_tbl, std::vector<std::string> components
     {
         setLoglevel(logger_tbl, component, loglevel);
     }
-    SWSS_LOG_DEBUG("All components are with default loglevel");
+    SWSS_LOG_DEBUG("All components are with %s loglevel", loglevel.c_str());
 }
 
 int swssloglevel(int argc, char** argv)
