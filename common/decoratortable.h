@@ -10,6 +10,7 @@
 #include <deque>
 #include "table.h"
 #include "subscriberstatetable.h"
+#include "defaultvalueprovider.h"
 
 namespace swss {
 
@@ -47,6 +48,9 @@ public:
                      const std::string &value,
                      const std::string &op = "",
                      const std::string &prefix = EMPTY_PREFIX) override;
+
+private:
+    DefaultValueProvider *m_defaultValueProvider;
 };
 
 }

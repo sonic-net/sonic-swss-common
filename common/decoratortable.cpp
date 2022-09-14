@@ -1,7 +1,6 @@
 #include <boost/algorithm/string.hpp>
 
 #include "common/decoratortable.h"
-#include "common/defaultvalueprovider.h"
 #include "common/profileprovider.h"
 
 using namespace std;
@@ -10,15 +9,18 @@ using namespace swss;
 DecoratorTable::DecoratorTable(const DBConnector *db, const string &tableName)
     : Table(db, tableName)
 {
+    m_defaultValueProvider = new DefaultValueProvider();
 }
 
 DecoratorTable::DecoratorTable(RedisPipeline *pipeline, const string &tableName, bool buffered)
 :Table(pipeline, tableName, buffered)
 {
+    m_defaultValueProvider = new DefaultValueProvider();
 }
 
 DecoratorTable::~DecoratorTable()
 {
+    delete m_defaultValueProvider;
 }
 
 /* Get all the field-value tuple of the table entry with the key */
@@ -37,7 +39,7 @@ bool DecoratorTable::get(const string &key, vector<pair<string, string>> &ovalue
     }
 
     // Append default values
-    DefaultValueProvider::instance().appendDefaultValues(table, key, ovalues);
+    m_defaultValueProvider.appendDefaultValues(table, key, ovalues);
 
     return result;
 }
@@ -64,7 +66,7 @@ bool DecoratorTable::hget(const string &key, const string &field,  string &value
     }
 
     // Try append default values
-    auto default_value = DefaultValueProvider::instance().getDefaultValue(table, key, field);
+    auto default_value = m_defaultValueProvider.getDefaultValue(table, key, field);
     if (default_value != nullptr)
     {
         value = *default_value;

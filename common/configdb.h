@@ -250,6 +250,7 @@ protected:
         config_db_connector.ori_mod_entry = config_db_connector.mod_entry
         config_db_connector.ori_delete_table = config_db_connector.delete_table
         config_db_connector.ori_mod_config = config_db_connector.mod_config
+        config_db_connector.default_value_provider = DefaultValueProvider()
         # helper methods for append profile and default values to result.
         def _append_profile(result):
             client = config_db_connector.get_redis_client(config_db_connector.db_name)
@@ -279,7 +280,7 @@ protected:
                 # empty entry means the entry been deleted
                 return data
             serialized_key = config_db_connector.serialize_key(key)
-            defaultValues = DefaultValueProvider.instance().getDefaultValues(table, serialized_key)
+            defaultValues = config_db_connector.default_value_provider.getDefaultValues(table, serialized_key)
             for field in defaultValues:
                 if field not in data:
                     data[field] = defaultValues[field]

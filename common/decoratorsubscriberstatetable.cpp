@@ -15,6 +15,13 @@ DecoratorSubscriberStateTable::DecoratorSubscriberStateTable(DBConnector *db, co
     m_profile_keyspace += to_string(db->getDbId()) + "__:" + m_profile_keyprefix + "*";
 
     m_subscribe->psubscribe(m_profile_keyspace);
+
+    m_defaultValueProvider = new DefaultValueProvider();
+}
+
+DecoratorSubscriberStateTable::~DecoratorSubscriberStateTable()
+{
+    m_defaultValueProvider = new DefaultValueProvider();
 }
 
 /* Get multiple pop elements */
