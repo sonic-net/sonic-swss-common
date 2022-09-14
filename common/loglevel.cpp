@@ -141,20 +141,17 @@ int swssloglevel(int argc, char** argv)
         }
 
         std::sort(keys.begin(), keys.end());
-        std::string redis_key_prefix(CFG_LOGGER_TABLE_NAME);
-        redis_key_prefix=+"|";
         for (const auto& key : keys)
         {
-            const auto redis_key = redis_key_prefix.append(key);
-            auto level = config_db.hget(redis_key, DAEMON_LOGLEVEL);
-            if (nullptr == level)
+            std::string level;
+            if (!(logger_tbl.hget(key, DAEMON_LOGLEVEL, level)))
             {
                 std::cerr << std::left << std::setw(30) << key << "Unknown log level" << std::endl;
                 errorCount ++;
             }
             else
             {
-                std::cout << std::left << std::setw(30) << key << *level << std::endl;
+                std::cout << std::left << std::setw(30) << key << level << std::endl;
             }
         }
 
