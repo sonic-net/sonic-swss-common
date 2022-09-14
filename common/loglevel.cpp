@@ -133,6 +133,10 @@ int main(int argc, char **argv)
         std::sort(keys.begin(), keys.end());
         for (const auto& key : keys)
         {
+            if(key == "JINJA2_CACHE")
+            {
+                continue;
+            }
             const auto redis_key = std::string(key).append(":").append(key);
             auto level = db.hget(redis_key, DAEMON_LOGLEVEL);
             if (nullptr == level)
