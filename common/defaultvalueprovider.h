@@ -102,7 +102,8 @@ public:
 class DefaultValueProvider
 {
 public:
-    static DefaultValueProvider& instance();
+    DefaultValueProvider();
+    virtual ~DefaultValueProvider();
 
     void appendDefaultValues(const std::string &table, const std::string &key, std::vector<std::pair<std::string, std::string>> &fvs);
 
@@ -111,9 +112,6 @@ public:
     std::map<std::string, std::string> getDefaultValues(const std::string &table, const std::string &key);
 
 protected:
-    DefaultValueProvider();
-    virtual ~DefaultValueProvider();
-
     void Initialize(const char* modulePath = DEFAULT_YANG_MODULE_PATH);
 
 private:

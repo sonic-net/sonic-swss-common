@@ -14,8 +14,8 @@
 
 #if defined(__arm__) || defined(__aarch64__)
 #define WARNINGS_NO_CAST_ALIGN \
-     _Pragma ("GCC diagnostic push") \
-     _Pragma ("GCC diagnostic ignored \"-Wcast-align\"")
+    _Pragma ("GCC diagnostic push") \
+    _Pragma ("GCC diagnostic ignored \"-Wcast-align\"")
 #define WARNINGS_RESET \
     _Pragma ("GCC diagnostic pop")
 #else
@@ -61,6 +61,7 @@ shared_ptr<string> TableInfoBase::GetDefaultValue(const string &key, const strin
 void TableInfoBase::AppendDefaultValues(const string &key, map<string, string>& existedValues, map<string, string>& targetValues)
 {
     SWSS_LOG_DEBUG("TableInfoBase::AppendDefaultValues %s\n", key.c_str());
+
     FieldDefaultValueMapping *fieldMappingPtr;
     if (!FoundFieldMappingByKey(key, &fieldMappingPtr)) {
         SWSS_LOG_DEBUG("Can't found default value mapping for key %s\n", key.c_str());
@@ -330,17 +331,6 @@ void DefaultValueProvider::AppendTableInfoToMapping(struct lys_node* table)
     m_defaultValueMapping.emplace(string(table->name), tableInfoPtr);
 }
 
-DefaultValueProvider& DefaultValueProvider::instance()
-{
-    static DefaultValueProvider instance;
-    if (instance.m_context == nullptr)
-    {
-        instance.Initialize();
-    }
-
-    return instance;
-}
-
 shared_ptr<TableInfoBase> DefaultValueProvider::FindDefaultValueInfo(const string &table)
 {
     SWSS_LOG_DEBUG("DefaultValueProvider::FindDefaultValueInfo %s\n", table.c_str());
@@ -357,6 +347,8 @@ shared_ptr<TableInfoBase> DefaultValueProvider::FindDefaultValueInfo(const strin
 shared_ptr<string> DefaultValueProvider::getDefaultValue(const string &table, const string &key, const string &field)
 {
     SWSS_LOG_DEBUG("DefaultValueProvider::GetDefaultValue %s %s %s\n", table.c_str(), key.c_str(), field.c_str());
+
+    Initialize();
 
     auto defaultValueInfo = FindDefaultValueInfo(table);
     if (defaultValueInfo == nullptr)
@@ -384,6 +376,8 @@ void DefaultValueProvider::InternalAppendDefaultValues(const string &table, cons
 
 void DefaultValueProvider::appendDefaultValues(const string &table, const string &key, vector<pair<string, string>> &fvs)
 {
+    Initialize();
+
     map<string, string> existedValues;
     map<string, string> defaultValues;
     for (auto& fieldValuePair : fvs)
@@ -401,6 +395,8 @@ void DefaultValueProvider::appendDefaultValues(const string &table, const string
 
 map<string, string> DefaultValueProvider::getDefaultValues(const string &table, const string &key)
 {
+    Initialize();
+
     map<string, string> result;
     InternalAppendDefaultValues(table, key, result, result);
     return result;
@@ -409,7 +405,6 @@ map<string, string> DefaultValueProvider::getDefaultValues(const string &table, 
 DefaultValueProvider::DefaultValueProvider()
 {
 }
-
 
 DefaultValueProvider::~DefaultValueProvider()
 {
@@ -422,6 +417,11 @@ DefaultValueProvider::~DefaultValueProvider()
 
 void DefaultValueProvider::Initialize(const char* modulePath)
 {
+    if (m_context != nullptr)
+    {
+        return;
+    }
+
     DIR *moduleDir = opendir(modulePath);
     if (!moduleDir)
     {
