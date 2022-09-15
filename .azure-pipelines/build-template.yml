@@ -67,6 +67,47 @@ jobs:
         libnl-nf-3-dev \
         swig
     displayName: "Install dependencies"
+  - task: DownloadPipelineArtifact@2
+    # amd64 artifact name does not has arch suffix
+    condition: eq('${{ parameters.arch }}', 'amd64')
+    inputs:
+      source: specific
+      project: build
+      pipeline: Azure.sonic-buildimage.common_libs
+      runVersion: 'latestFromBranch'
+      runBranch: 'refs/heads/$(BUILD_BRANCH)'
+      path: $(Build.ArtifactStagingDirectory)/download
+      artifact: common-lib
+      patterns: |
+        target/debs/${{ parameters.debian_version }}/libyang-*.deb
+        target/debs/${{ parameters.debian_version }}/libyang_*.deb
+    displayName: "Download libyang from amd64 common lib"
+  - task: DownloadPipelineArtifact@2
+    condition: ne('${{ parameters.arch }}', 'amd64')
+    inputs:
+      source: specific
+      project: build
+      pipeline: Azure.sonic-buildimage.common_libs
+      runVersion: 'latestFromBranch'
+      runBranch: 'refs/heads/$(BUILD_BRANCH)'
+      path: $(Build.ArtifactStagingDirectory)/download
+      artifact: common-lib.${{ parameters.arch }}
+      patterns: |
+        target/debs/${{ parameters.debian_version }}/libyang-*.deb
+        target/debs/${{ parameters.debian_version }}/libyang_*.deb
+    displayName: "Download libyang from common lib"
+  - script: |
+      set -ex
+      sudo dpkg -i $(find ./download -name *.deb)
+    workingDirectory: $(Build.ArtifactStagingDirectory)
+    condition: ne('${{ parameters.debian_version }}', 'bullseye')
+    displayName: "Install libyang from common lib"
+    # Azure.sonic-buildimage.common_libs does not build libs for bullseye, so install libyang-dev by apt-get
+  - script: |
+      sudo apt-get install -qq -y \
+        libyang-dev
+    condition: eq('${{ parameters.debian_version }}', 'bullseye')
+    displayName: "Install libyang for bullseye"
   - script: |
       set -ex
       rm ../*.deb || true
@@ -94,6 +135,7 @@ jobs:
         sudo sed -ri 's/^unixsocketperm .../unixsocketperm 777/' /etc/redis/redis.conf
         sudo sed -ri 's/redis-server.sock/redis.sock/' /etc/redis/redis.conf
         sudo service redis-server restart
+        sudo mkdir /usr/local/yang-models
 
         sudo dpkg -i libswsscommon_*.deb
         sudo dpkg -i python-swsscommon_*.deb
@@ -103,6 +145,8 @@ jobs:
         pytest --cov=. --cov-report=xml
         mv coverage.xml tests/coverage.xml
         gcovr -r ./ -e ".*/swsscommon_wrap.cpp" --exclude-unreachable-branches --exclude-throw-branches -x --xml-pretty  -o coverage.xml
+
+        rm -rf $(Build.ArtifactStagingDirectory)/download
       displayName: "Run swss common unit tests"
   - publish: $(System.DefaultWorkingDirectory)/
     artifact: ${{ parameters.artifact_name }}

@@ -20,6 +20,10 @@ parameters:
 - name: sonic_slave
   type: string
 
+- name: debian_version
+  type: string
+  default: buster
+
 - name: swss_common_artifact_name
   type: string
 
@@ -82,12 +86,31 @@ jobs:
       sudo sed -ri 's/^# unixsocket/unixsocket/' /etc/redis/redis.conf
       sudo sed -ri 's/^unixsocketperm .../unixsocketperm 777/' /etc/redis/redis.conf
       sudo sed -ri 's/redis-server.sock/redis.sock/' /etc/redis/redis.conf
+      sudo sed -ri 's/^databases .*/databases 17/' /etc/redis/redis.conf
       sudo service redis-server start
 
       sudo apt-get install -y rsyslog
       sudo service rsyslog start
 
     displayName: "Install dependencies"
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      source: specific
+      project: build
+      pipeline: Azure.sonic-buildimage.common_libs
+      runVersion: 'latestFromBranch'
+      runBranch: 'refs/heads/$(BUILD_BRANCH)'
+      path: $(Build.ArtifactStagingDirectory)/download
+      artifact: common-lib
+      patterns: |
+        target/debs/${{ parameters.debian_version }}/libyang-*.deb
+        target/debs/${{ parameters.debian_version }}/libyang_*.deb
+    displayName: "Download libyang from common lib"
+  - script: |
+      set -ex
+      sudo dpkg -i $(find ./download -name *.deb)
+    workingDirectory: $(Build.ArtifactStagingDirectory)
+    displayName: "Install libyang from common lib"
   - task: DownloadPipelineArtifact@2
     inputs:
       artifact: ${{ parameters.swss_common_artifact_name }}
@@ -136,6 +159,7 @@ jobs:
         contents: 'syslog-all.tgz'
         targetFolder: $(Build.ArtifactStagingDirectory)
   - publish: $(Build.ArtifactStagingDirectory)/
-    artifact: ${{ parameters.syslog_artifact_name }}
+    # publish artifact with retry count, otherwise "artifact already exist" error will block job re-run.
+    artifact: ${{ parameters.syslog_artifact_name }}_$(System.JobAttempt)
     displayName: "Publish syslog artifacts"
     condition: always()
