@@ -233,6 +233,7 @@ void Logger::settingThread()
         }
 
         KeyOpFieldsValuesTuple koValues;
+
         ConsumerStateTable *consumerStateTable;
         consumerStateTable = dynamic_cast<ConsumerStateTable *>(selectable);
         if (consumerStateTable == NULL)
