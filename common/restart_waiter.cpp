@@ -54,6 +54,12 @@ bool RestartWaiter::waitFastRestartDone(unsigned int maxWaitSec,
 bool RestartWaiter::doWait(DBConnector &stateDb,
                            unsigned int maxWaitSec)
 {
+    if (maxWaitSec == 0)
+    {
+        SWSS_LOG_ERROR("Error: invalid maxWaitSec value 0, must be larger than 0");
+        return false;
+    }
+
     int selectTimeout = static_cast<int>(maxWaitSec);
 
     SubscriberStateTable restartEnableTable(&stateDb, STATE_WARM_RESTART_ENABLE_TABLE_NAME);
@@ -110,7 +116,7 @@ bool RestartWaiter::doWait(DBConnector &stateDb,
                     std::chrono::duration_cast<std::chrono::seconds>(end - start).count());
 
         selectTimeout -= delay;
-        if (selectTimeout < 0)
+        if (selectTimeout <= 0)
         {
             return false;
         }
