@@ -60,7 +60,7 @@ bool RestartWaiter::doWait(DBConnector &stateDb,
         return false;
     }
 
-    int selectTimeout = static_cast<int>(maxWaitSec);
+    int selectTimeout = static_cast<int>(maxWaitSec) * 1000;
 
     SubscriberStateTable restartEnableTable(&stateDb, STATE_WARM_RESTART_ENABLE_TABLE_NAME);
     Select s;
@@ -70,7 +70,7 @@ bool RestartWaiter::doWait(DBConnector &stateDb,
     while (1)
     {
         Selectable *sel = NULL;
-        int ret = s.select(&sel, selectTimeout * 1000, true);
+        int ret = s.select(&sel, selectTimeout, true);
 
         if (ret == Select::OBJECT)
         {
@@ -113,7 +113,7 @@ bool RestartWaiter::doWait(DBConnector &stateDb,
 
         auto end = std::chrono::steady_clock::now();
         int delay = static_cast<int>(
-                    std::chrono::duration_cast<std::chrono::seconds>(end - start).count());
+                    std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count());
 
         selectTimeout -= delay;
         if (selectTimeout <= 0)
