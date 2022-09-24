@@ -4,6 +4,7 @@
 #include "schema.h"
 #include "subscriberstatetable.h"
 #include "table.h"
+#include <boost/algorithm/string.hpp>
 #include <string>
 
 using namespace swss;
@@ -76,23 +77,31 @@ bool RestartWaiter::doWait(DBConnector &stateDb,
         {
             KeyOpFieldsValuesTuple kco;
             restartEnableTable.pop(kco);
-            auto &key = kfvKey(kco);
-            if (key == RESTART_KEY)
+            auto &op = kfvOp(kco);
+            if (op == SET_COMMAND)
             {
-                auto& values = kfvFieldsValues(kco);
-                for (auto& fvt: values)
+                auto &key = kfvKey(kco);
+                if (key == RESTART_KEY)
                 {
-                    auto& field = fvField(fvt);
-                    auto& value = fvValue(fvt);
-                    if (field == RESTART_ENABLE_FIELD)
+                    auto& values = kfvFieldsValues(kco);
+                    for (auto& fvt: values)
                     {
-                        if (value == "false")
+                        auto& field = fvField(fvt);
+                        auto& value = fvValue(fvt);
+                        if (field == RESTART_ENABLE_FIELD)
                         {
-                            return true;
-                        }
-                        else
-                        {
-                            break;
+                            // During system warm/fast restart, STATE_DB WARM_RESTART_ENABLE_TABLE|system enable
+                            // field will be set to "true", it indicates warm/fast restart is in progress.
+                            // After warm/fast restart done, warm reboot finalizer set the field back to false,
+                            // it indicates warm/fast restart is done. So, we wait for this field here.
+                            if (boost::to_lower(value) == "false")
+                            {
+                                return true;
+                            }
+                            else
+                            {
+                                break;
+                            }
                         }
                     }
                 }
@@ -126,7 +135,7 @@ bool RestartWaiter::doWait(DBConnector &stateDb,
 bool RestartWaiter::isWarmOrFastRestartInProgress(DBConnector &stateDb)
 {
     auto ret = stateDb.hget(STATE_WARM_RESTART_ENABLE_TABLE_NAME + STATE_DB_SEPARATOR + RESTART_KEY, RESTART_ENABLE_FIELD);
-    return ret && *ret.get() == "true";
+    return ret && boost::to_lower(*ret.get()) == "true";
 }
 
 bool RestartWaiter::isFastRestartInProgress(DBConnector &stateDb)
