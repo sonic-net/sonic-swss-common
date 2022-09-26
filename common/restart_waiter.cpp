@@ -143,3 +143,8 @@ bool RestartWaiter::isFastRestartInProgress(DBConnector &stateDb)
     auto ret = stateDb.get(FAST_REBOOT_TABLE_NAME + STATE_DB_SEPARATOR + RESTART_KEY);
     return ret.get() != nullptr;
 }
+
+bool RestartWaiter::isWarmRestartInProgress(swss::DBConnector &stateDb)
+{
+    return isWarmOrFastRestartInProgress(stateDb) && !isFastRestartInProgress(stateDb);
+}

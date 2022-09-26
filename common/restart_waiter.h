@@ -21,12 +21,13 @@ public:
                                     unsigned int dbTimeout = 0,
                                     bool isTcpConn = false);
 
+    static bool isWarmOrFastRestartInProgress(swss::DBConnector &stateDb);
+    static bool isFastRestartInProgress(swss::DBConnector &stateDb);
+    static bool isWarmRestartInProgress(swss::DBConnector &stateDb);
+
 private:
     static bool doWait(swss::DBConnector &stateDb,
                        unsigned int maxWaitSec);
-
-    static bool isWarmOrFastRestartInProgress(swss::DBConnector &stateDb);
-    static bool isFastRestartInProgress(swss::DBConnector &stateDb);
 };
 
 }
