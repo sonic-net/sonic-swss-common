@@ -87,14 +87,16 @@ bool RestartWaiter::doWait(DBConnector &stateDb,
                     for (auto& fvt: values)
                     {
                         auto& field = fvField(fvt);
-                        auto& value = fvValue(fvt);
+
                         if (field == RESTART_ENABLE_FIELD)
                         {
                             // During system warm/fast restart, STATE_DB WARM_RESTART_ENABLE_TABLE|system enable
                             // field will be set to "true", it indicates warm/fast restart is in progress.
                             // After warm/fast restart done, warm reboot finalizer set the field back to false,
                             // it indicates warm/fast restart is done. So, we wait for this field here.
-                            if (boost::to_lower(value) == "false")
+                            std::string value = fvValue(fvt);
+                            boost::to_lower(value);
+                            if (value == "false")
                             {
                                 return true;
                             }
@@ -135,7 +137,12 @@ bool RestartWaiter::doWait(DBConnector &stateDb,
 bool RestartWaiter::isWarmOrFastRestartInProgress(DBConnector &stateDb)
 {
     auto ret = stateDb.hget(STATE_WARM_RESTART_ENABLE_TABLE_NAME + STATE_DB_SEPARATOR + RESTART_KEY, RESTART_ENABLE_FIELD);
-    return ret && boost::to_lower(*ret.get()) == "true";
+    if (ret) {
+        std::string value = *ret.get();
+        boost::to_lower(value);
+        return value == "true";
+    }
+    return false;
 }
 
 bool RestartWaiter::isFastRestartInProgress(DBConnector &stateDb)
