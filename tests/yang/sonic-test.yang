@@ -1,0 +1,55 @@
+module sonic-test {
+
+    yang-version 1.1;
+
+	namespace "http://github.com/Azure/sonic-test";
+	prefix test;
+
+	description "TEST yang Module";
+
+	container sonic-test {
+
+		container TEST_YANGE_DEFAULT_VALUE {
+
+			list TEST_YANGE_DEFAULT_LIST {
+
+				key "name";
+
+				leaf name {
+					type string;
+				}
+
+                choice how {
+                    default interval;
+                    case interval {
+                         leaf interval {
+                             type uint16;
+                             default 30;
+                             units minutes;
+                         }
+                    }
+                    case daily {
+                         leaf daily {
+                             type empty;
+                         }
+                         leaf time-of-day {
+                             type string;
+                             units 24-hour-clock;
+                             default 1am;
+                         }
+                    }
+                    case manual {
+                         leaf manual {
+                             type empty;
+                         }
+                    }
+                }
+
+                leaf-list domain-search {
+                    type string;
+                    default "test";
+                }
+			}
+		}
+	}
+}
