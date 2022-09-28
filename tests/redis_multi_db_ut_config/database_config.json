@@ -92,6 +92,11 @@
             "separator": ":",
             "instance": "redis"
         },
+        "PROFILE_DB" : {
+            "id" : 12,
+            "separator": ":",
+            "instance" : "redis"
+        },
         "STATE_DB2" : {
             "id" : 13,
             "separator": "|",
@@ -104,11 +109,6 @@
         },
         "TEST_DB" : {
             "id" : 15,
-            "separator": ":",
-            "instance" : "redis"
-        },
-        "PROFILE_DB" : {
-            "id" : 16,
             "separator": ":",
             "instance" : "redis"
         }
