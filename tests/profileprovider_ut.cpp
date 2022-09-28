@@ -6,10 +6,10 @@
 using namespace std;
 using namespace swss;
 
-string profile_table = "INTERFACE";
-string profile_key = "TEST_INTERFACE";
-string profile_field = "profile";
-string profile_value = "value";
+static string profile_table = "INTERFACE";
+static string profile_key = "TEST_INTERFACE";
+static string profile_field = "profile";
+static string profile_value = "value";
 
 void clearDB(const string &dbName)
 {
