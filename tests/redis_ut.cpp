@@ -1109,3 +1109,21 @@ TEST(Connector, hmset)
     // test empty multi hash
     db.hmset({});
 }
+
+TEST(Connector, ThreadSafeGuard)
+{
+    DBConnector db("TEST_DB", 0, true);
+
+    string exceptionMessage;
+    try
+    {
+        ThreadSafeGuard safeguard1(db.getRunningFlag(), "command 1");
+        ThreadSafeGuard safeguard2(db.getRunningFlag(), "command 2");
+    }
+    catch (const system_error& ex)
+    {
+        exceptionMessage = ex.what();
+    }
+
+    ASSERT_EQ(exceptionMessage, "Current thread 'command 2' conflict with other thread.: Operation now in progress");
+}

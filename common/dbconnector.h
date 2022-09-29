@@ -8,10 +8,12 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <atomic>
 
 #include <hiredis/hiredis.h>
 #include "rediscommand.h"
 #include "redisreply.h"
+#include "threadsafeguard.h"
 #define EMPTY_NAMESPACE std::string()
 
 namespace swss {
@@ -129,6 +131,8 @@ public:
 
     std::string getClientName();
 
+    std::atomic<bool> &getRunningFlag();
+
 protected:
     RedisContext();
     void initContext(const char *host, int port, const timeval *tv);
@@ -137,6 +141,11 @@ protected:
 
 private:
     redisContext *m_conn;
+
+    /*
+     * Use this flag and ThreadSafeGuard to check and throw exception when multiple thread run command on same redis context.
+     */
+    std::atomic<bool> m_running;
 };
 
 class DBConnector : public RedisContext
