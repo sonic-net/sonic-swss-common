@@ -63,20 +63,6 @@
 %exception {
     try
     {
-        class PyThreadStateGuard
-        {
-            PyThreadState *m_save;
-        public:
-            PyThreadStateGuard()
-            {
-                m_save = PyEval_SaveThread();
-            }
-            ~PyThreadStateGuard()
-            {
-                PyEval_RestoreThread(m_save);
-            }
-        } thread_state_guard;
-
         $action
     }
     SWIG_CATCH_STDEXCEPT // catch std::exception derivatives

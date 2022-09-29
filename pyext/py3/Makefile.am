@@ -8,7 +8,7 @@ _swsscommon_la_CPPFLAGS = -std=c++11 -I../../common -I/usr/include/python$(PYTHO
 _swsscommon_la_LDFLAGS = -module
 _swsscommon_la_LIBADD = ../../common/libswsscommon.la $(PYTHON3_BLDLIBRARY)
 
-SWIG_FLAG = -Wall -c++ -python -keyword
+SWIG_FLAG = -Wall -c++ -python -keyword -threads
 if ARCH64
 SWIG_FLAG += -DSWIGWORDSIZE64
 endif
