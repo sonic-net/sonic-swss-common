@@ -91,11 +91,6 @@
             "id" : 14,
             "separator": ":",
             "instance" : "redis"
-        },
-        "PROFILE_DB" : {
-            "id" : 15,
-            "separator": ":",
-            "instance" : "redis"
         }
     },
     "VERSION" : "1.0"
