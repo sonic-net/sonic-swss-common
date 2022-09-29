@@ -94,7 +94,7 @@
         },
         "PROFILE_DB" : {
             "id" : 12,
-            "separator": ":",
+            "separator": "|",
             "instance" : "redis"
         },
         "STATE_DB2" : {
