@@ -1,8 +1,8 @@
 *static analysis:*
 
-[![Total alerts](https://img.shields.io/lgtm/alerts/g/Azure/sonic-swss-common.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/Azure/sonic-swss-common/alerts/)
-[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/Azure/sonic-swss-common.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/Azure/sonic-swss-common/context:python)
-[![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/Azure/sonic-swss-common.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/Azure/sonic-swss-common/context:cpp)
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/sonic-net/sonic-swss-common.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/sonic-net/sonic-swss-common/alerts/)
+[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/sonic-net/sonic-swss-common.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/sonic-net/sonic-swss-common/context:python)
+[![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/sonic-net/sonic-swss-common.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/sonic-net/sonic-swss-common/context:cpp)
 
 *sonic-swss-common builds:*
 
@@ -24,7 +24,7 @@ The SWitch State Service (SWSS) common library provides libraries for database c
 
 Checkout the source:
 
-    git clone --recursive https://github.com/Azure/sonic-swss-common
+    git clone --recursive https://github.com/sonic-net/sonic-swss-common
 
 
 Install build dependencies:
@@ -73,13 +73,13 @@ tests/tests
 ## Need Help?
 
 For general questions, setup help, or troubleshooting:
-- [sonicproject on Google Groups](https://groups.google.com/d/forum/sonicproject)
+- [sonicproject on Google Groups](https://groups.google.com/g/sonicproject)
 
 For bug reports or feature requests, please open an Issue.
 
 ## Contribution guide
 
-See the [contributors guide](https://github.com/Azure/SONiC/blob/gh-pages/CONTRIBUTING.md) for information about how to contribute.
+See the [contributors guide](https://github.com/sonic-net/SONiC/blob/gh-pages/CONTRIBUTING.md) for information about how to contribute.
 
 ### GitHub Workflow
 
