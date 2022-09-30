@@ -1,9 +1,17 @@
+*static analysis:*
+
 [![Total alerts](https://img.shields.io/lgtm/alerts/g/Azure/sonic-swss-common.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/Azure/sonic-swss-common/alerts/)
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/Azure/sonic-swss-common.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/Azure/sonic-swss-common/context:python)
 [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/Azure/sonic-swss-common.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/Azure/sonic-swss-common/context:cpp)
 
-[![Build Status](https://sonic-jenkins.westus2.cloudapp.azure.com/job/common/job/sonic-swss-common-build/badge/icon)](https://sonic-jenkins.westus2.cloudapp.azure.com/job/common/job/sonic-swss-common-build/)
-[![Build Status](https://dev.azure.com/sonicswitch/build/_apis/build/status/Azure.sonic-swss-common?branchName=master)](https://dev.azure.com/sonicswitch/build/_build/latest?definitionId=9&branchName=master)
+*sonic-swss-common builds:*
+
+[![master build](https://dev.azure.com/mssonic/build/_apis/build/status/Azure.sonic-swss-common?branchName=master&label=master)](https://dev.azure.com/mssonic/build/_build/latest?definitionId=9&branchName=master)
+[![202205 build](https://dev.azure.com/mssonic/build/_apis/build/status/Azure.sonic-swss-common?branchName=202205&label=202205)](https://dev.azure.com/mssonic/build/_build/latest?definitionId=9&branchName=202205)
+[![202111 build](https://dev.azure.com/mssonic/build/_apis/build/status/Azure.sonic-swss-common?branchName=202111&label=202111)](https://dev.azure.com/mssonic/build/_build/latest?definitionId=9&branchName=202111)
+[![202106 build](https://dev.azure.com/mssonic/build/_apis/build/status/Azure.sonic-swss-common?branchName=202106&label=202106)](https://dev.azure.com/mssonic/build/_build/latest?definitionId=9&branchName=202106)
+[![202012 build](https://dev.azure.com/mssonic/build/_apis/build/status/Azure.sonic-swss-common?branchName=202012&label=202012)](https://dev.azure.com/mssonic/build/_build/latest?definitionId=9&branchName=202012)
+[![201911 build](https://dev.azure.com/mssonic/build/_apis/build/status/Azure.sonic-swss-common?branchName=201911&label=201911)](https://dev.azure.com/mssonic/build/_build/latest?definitionId=9&branchName=201911)
 
 # SONiC - SWitch State Service Common Library - SWSS-COMMON
 
