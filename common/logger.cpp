@@ -122,40 +122,24 @@ void Logger::linkToDbWithOutput(
     logger.m_settingChangeObservers.insert(std::make_pair(dbName, std::make_pair(prioNotify, outputNotify)));
 
     DBConnector db("CONFIG_DB", 0);
-    std::string key_prefix(CFG_LOGGER_TABLE_NAME);
-    key_prefix+="|";
-    std::string key = key_prefix + dbName;
-    SWSS_LOG_DEBUG("Component %s register to logger with the key: %s", dbName.c_str(), key.c_str());
+    swss::Table table(&db, CFG_LOGGER_TABLE_NAME);
+    SWSS_LOG_DEBUG("Component %s register to logger", dbName.c_str());
 
     std::string prio, output;
     bool doUpdate = false;
-    auto prioPtr = db.hget(key, DAEMON_LOGLEVEL);
-    auto outputPtr = db.hget(key, DAEMON_LOGOUTPUT);
-
-    if (prioPtr == nullptr)
+    if(!table.hget(dbName, DAEMON_LOGLEVEL, prio))
     {
         prio = defPrio;
         doUpdate = true;
     }
-    else
-    {
-        prio = *prioPtr;
-    }
-
-    if (outputPtr == nullptr)
+    if(!table.hget(dbName, DAEMON_LOGLEVEL, output))
     {
         output = defOutput;
         doUpdate = true;
-
-    }
-    else
-    {
-        output = *outputPtr;
     }
 
     if (doUpdate)
     {
-        swss::Table table(&db, CFG_LOGGER_TABLE_NAME);
         FieldValueTuple fvLevel(DAEMON_LOGLEVEL, prio);
         FieldValueTuple fvOutput(DAEMON_LOGOUTPUT, output);
         std::vector<FieldValueTuple>fieldValues = { fvLevel, fvOutput };

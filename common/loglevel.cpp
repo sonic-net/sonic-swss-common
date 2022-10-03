@@ -80,7 +80,7 @@ std::vector<std::string> get_no_sai_keys(std::vector<std::string> keys)
     return keys;
 }
 
-void setAllLoglevel(swss::Table& logger_tbl, std::vector<std::string> components,std::string loglevel)
+void setAllLoglevel(swss::Table& logger_tbl, std::vector<std::string> components, std::string loglevel)
 {
     for (const auto& component : components)
     {
@@ -194,7 +194,7 @@ int swssloglevel(int argc, char** argv)
             keys.erase(std::remove_if(keys.begin(), keys.end(), filterOutSaiKeys), keys.end());
         }
 
-        setAllLoglevel(logger_tbl,keys, loglevel);
+        setAllLoglevel(logger_tbl, keys, loglevel);
         exit(EXIT_SUCCESS);
     }
 
