@@ -228,9 +228,10 @@ void Table::dump(TableDump& tableDump)
 
     lazyLoadRedisScriptFile(m_pipe->getDBConnector(), "table_dump.lua", m_shaDump);
     RedisCommand command;
-    command.format("EVALSHA %s 1 %s ''",
-            m_shaDump.c_str(),
-            getTableName().c_str());
+    command.format("EVALSHA %s 1 %s%s ''",
+                   m_shaDump.c_str(),
+                   getTableName().c_str(),
+                   getTableNameSeparator().c_str());
 
     RedisReply r = m_pipe->push(command, REDIS_REPLY_STRING);
 

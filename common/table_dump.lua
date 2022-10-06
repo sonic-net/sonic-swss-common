@@ -1,4 +1,4 @@
-local keys = redis.call("KEYS", KEYS[1] .. ":*")
+local keys = redis.call("KEYS", KEYS[1] .. "*")
 local res = {}
 
 for i,k in pairs(keys) do
