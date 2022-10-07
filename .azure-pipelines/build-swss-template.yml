@@ -103,6 +103,8 @@ jobs:
         target/debs/${{ parameters.debian_version }}/libnl-genl*.deb
         target/debs/${{ parameters.debian_version }}/libnl-route*.deb
         target/debs/${{ parameters.debian_version }}/libnl-nf*.deb
+        target/debs/${{ parameters.debian_version }}/libyang-*.deb
+        target/debs/${{ parameters.debian_version }}/libyang_*.deb
     displayName: "Download common libs"
 
   - script: |
@@ -110,7 +112,7 @@ jobs:
       sudo dpkg -i $(find ./download -name *.deb)
       rm -rf download || true
     workingDirectory: $(Build.ArtifactStagingDirectory)
-    displayName: "Install libnl3, sonic swss common, and sairedis"
+    displayName: "Install libnl3, libyang, sonic swss common, and sairedis"
   - script: |
       set -ex
       rm ../*.deb || true

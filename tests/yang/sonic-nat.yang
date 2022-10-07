@@ -1,0 +1,69 @@
+module sonic-nat {
+    namespace "http://github.com/Azure/sonic-nat";
+    prefix snat;
+    yang-version 1.1;
+
+    organization
+        "SONiC";
+
+    contact
+        "SONiC";
+
+    description
+        "SONiC NAT yang model";
+
+    revision 2021-03-14 {
+        description
+            "Initial revision.";
+    }
+
+
+    container sonic-nat {
+
+        container NAT_GLOBAL {
+
+            description "NAT_GLOBAL table part of config_db.json";
+
+            container Values {
+
+                leaf admin_mode {
+					type string;
+                }
+
+                leaf nat_timeout {
+                    description "Timeout for the nat entries within the range of 300 sec to 432000 secs.";
+
+                    type uint32 {
+                        range "300..432000" {
+                            error-message "Invalid NAT Timeout, valid range 300 sec to 432000 sec.";
+                            error-app-tag nat-timeout-invalid;
+                        }
+                    }
+                    default "600";
+                }
+                leaf nat_tcp_timeout {
+                    description "Timeout for the nat tcp entries within the range of 300 sec to 432000 secs.";
+
+                    type uint32 {
+                        range "300..432000" {
+                            error-message "Invalid NAT TCP Timeout, valid range 300 sec to 432000 sec.";
+                            error-app-tag nat-tcp-timeout-invalid;
+                        }
+                    }
+                    default "86400";
+                }
+                leaf nat_udp_timeout {
+                    description "Timeout for the nat udp entries within the range of 120 sec to 600 secs.";
+
+                    type uint16 {
+                        range "120..600" {
+                            error-message "Invalid NAT UDP Timeout, valid range 120 sec to 600 sec.";
+                            error-app-tag nat-udp-timeout-invalid;
+                        }
+                    }
+                    default "300";
+                }
+            }
+        }
+    }
+}

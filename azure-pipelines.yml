@@ -68,7 +68,7 @@ stages:
         sudo apt-get install -y python3-pip
         sudo pip3 install pytest
         sudo apt-get install -y python
-        sudo apt-get install cmake libgtest-dev libgmock-dev
+        sudo apt-get install cmake libgtest-dev libgmock-dev libyang-dev
         cd /usr/src/gtest && sudo cmake . && sudo make
         ARCH=$(dpkg --print-architecture)
         set -x
@@ -95,6 +95,7 @@ stages:
       artifact_name: sonic-swss-common
       run_unit_test: true
       archive_gcov: true
+      debian_version: ${{ parameters.debian_version }}
 
 - stage: BuildArm
   dependsOn: Build
@@ -107,6 +108,7 @@ stages:
       pool: sonicbld-armhf
       sonic_slave: sonic-slave-${{ parameters.debian_version }}-armhf
       artifact_name: sonic-swss-common.armhf
+      debian_version: ${{ parameters.debian_version }}
 
   - template: .azure-pipelines/build-template.yml
     parameters:
@@ -115,6 +117,19 @@ stages:
       pool: sonicbld-arm64
       sonic_slave: sonic-slave-${{ parameters.debian_version }}-arm64
       artifact_name: sonic-swss-common.arm64
+      debian_version: ${{ parameters.debian_version }}
+
+- stage: BuildBullseye
+  dependsOn: Build
+  condition: succeeded('Build')
+  jobs:
+  - template: .azure-pipelines/build-template.yml
+    parameters:
+      arch: amd64
+      timeout: 180
+      sonic_slave: sonic-slave-bullseye
+      artifact_name: sonic-swss-common.bullseye.amd64
+      debian_version: bullseye
 
 - stage: BuildSairedis
   dependsOn: Build
@@ -127,6 +142,7 @@ stages:
       swss_common_artifact_name: sonic-swss-common
       artifact_name: sonic-sairedis
       syslog_artifact_name: sonic-sairedis.syslog
+      debian_version: ${{ parameters.debian_version }}
 
 - stage: BuildSwss
   dependsOn: BuildSairedis

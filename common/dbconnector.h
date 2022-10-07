@@ -248,6 +248,7 @@ public:
 
     bool flushdb();
 
+    std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> getall();
 private:
     void setNamespace(const std::string &netns);
 
