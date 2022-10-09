@@ -126,11 +126,12 @@ bool RestartWaiter::doWait(DBConnector &stateDb,
         int delay = static_cast<int>(
                     std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count());
 
-        selectTimeout -= delay;
-        if (selectTimeout <= 0)
+        if (delay >= static_cast<int>(maxWaitSec) * 1000)
         {
             return false;
         }
+
+        selectTimeout -= delay;
     }
 }
 
