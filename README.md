@@ -1,9 +1,17 @@
-[![Total alerts](https://img.shields.io/lgtm/alerts/g/Azure/sonic-swss-common.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/Azure/sonic-swss-common/alerts/)
-[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/Azure/sonic-swss-common.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/Azure/sonic-swss-common/context:python)
-[![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/Azure/sonic-swss-common.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/Azure/sonic-swss-common/context:cpp)
+*static analysis:*
 
-[![Build Status](https://sonic-jenkins.westus2.cloudapp.azure.com/job/common/job/sonic-swss-common-build/badge/icon)](https://sonic-jenkins.westus2.cloudapp.azure.com/job/common/job/sonic-swss-common-build/)
-[![Build Status](https://dev.azure.com/sonicswitch/build/_apis/build/status/Azure.sonic-swss-common?branchName=master)](https://dev.azure.com/sonicswitch/build/_build/latest?definitionId=9&branchName=master)
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/sonic-net/sonic-swss-common.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/sonic-net/sonic-swss-common/alerts/)
+[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/sonic-net/sonic-swss-common.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/sonic-net/sonic-swss-common/context:python)
+[![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/sonic-net/sonic-swss-common.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/sonic-net/sonic-swss-common/context:cpp)
+
+*sonic-swss-common builds:*
+
+[![master build](https://dev.azure.com/mssonic/build/_apis/build/status/Azure.sonic-swss-common?branchName=master&label=master)](https://dev.azure.com/mssonic/build/_build/latest?definitionId=9&branchName=master)
+[![202205 build](https://dev.azure.com/mssonic/build/_apis/build/status/Azure.sonic-swss-common?branchName=202205&label=202205)](https://dev.azure.com/mssonic/build/_build/latest?definitionId=9&branchName=202205)
+[![202111 build](https://dev.azure.com/mssonic/build/_apis/build/status/Azure.sonic-swss-common?branchName=202111&label=202111)](https://dev.azure.com/mssonic/build/_build/latest?definitionId=9&branchName=202111)
+[![202106 build](https://dev.azure.com/mssonic/build/_apis/build/status/Azure.sonic-swss-common?branchName=202106&label=202106)](https://dev.azure.com/mssonic/build/_build/latest?definitionId=9&branchName=202106)
+[![202012 build](https://dev.azure.com/mssonic/build/_apis/build/status/Azure.sonic-swss-common?branchName=202012&label=202012)](https://dev.azure.com/mssonic/build/_build/latest?definitionId=9&branchName=202012)
+[![201911 build](https://dev.azure.com/mssonic/build/_apis/build/status/Azure.sonic-swss-common?branchName=201911&label=201911)](https://dev.azure.com/mssonic/build/_build/latest?definitionId=9&branchName=201911)
 
 # SONiC - SWitch State Service Common Library - SWSS-COMMON
 
@@ -16,7 +24,7 @@ The SWitch State Service (SWSS) common library provides libraries for database c
 
 Checkout the source:
 
-    git clone --recursive https://github.com/Azure/sonic-swss-common
+    git clone --recursive https://github.com/sonic-net/sonic-swss-common
 
 
 Install build dependencies:
@@ -65,13 +73,16 @@ tests/tests
 ## Need Help?
 
 For general questions, setup help, or troubleshooting:
-- [sonicproject on Google Groups](https://groups.google.com/d/forum/sonicproject)
+- [sonicproject on Google Groups](https://groups.google.com/g/sonicproject)
 
 For bug reports or feature requests, please open an Issue.
 
 ## Contribution guide
 
-See the [contributors guide](https://github.com/Azure/SONiC/blob/gh-pages/CONTRIBUTING.md) for information about how to contribute.
+Please read the [contributors guide](https://github.com/sonic-net/SONiC/blob/gh-pages/CONTRIBUTING.md) for information about how to contribute.
+
+All contributors must sign an [Individual Contributor License Agreement (ICLA)](https://docs.linuxfoundation.org/lfx/easycla/v2-current/contributors/individual-contributor) before contributions can be accepted. This process is managed by the [Linux Foundation - EasyCLA](https://easycla.lfx.linuxfoundation.org/) and automated
+via a GitHub bot. If the contributor has not yet signed a CLA, the bot will create a comment on the pull request containing a link to electronically sign the CLA.
 
 ### GitHub Workflow
 
