@@ -19,6 +19,7 @@ private:
     static const int el_count = 2;
 public:
     static std::string buildJson(const std::vector<FieldValueTuple> &fv);
+    static std::string buildJson(const char** values);
     static void readJson(const std::string &json, std::vector<FieldValueTuple> &fv);
     /*
        bool loadJsonFromFile(std::ifstream &fs, std::vector<KeyOpFieldsValuesTuple> &db_items);

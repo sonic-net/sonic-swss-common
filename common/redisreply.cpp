@@ -434,7 +434,9 @@ string RedisReply::formatDictReply(struct redisReply **element, size_t elements)
     vector<string> elementvector;
     for (unsigned int i = 0; i < elements; i += 2)
     {
-        elementvector.push_back("'" + to_string(element[i]) + "': '" + to_string(element[i+1]) + "'");
+        string key = formatStringWithQuot(to_string(element[i]));
+        string value = formatStringWithQuot(to_string(element[i + 1]));
+        elementvector.push_back(key + ": " + value);
     }
 
     return swss::join(", ", '{', '}', elementvector.begin(), elementvector.end());
@@ -445,7 +447,7 @@ string RedisReply::formatArrayReply(struct redisReply **element, size_t elements
     vector<string> elementvector;
     for (unsigned int i = 0; i < elements; i++)
     {
-        elementvector.push_back("'" + to_string(element[i]) + "'");
+        elementvector.push_back(formatStringWithQuot(to_string(element[i])));
     }
 
     return swss::join(", ", '[', ']', elementvector.begin(), elementvector.end());
@@ -467,10 +469,20 @@ string RedisReply::formatTupleReply(struct redisReply **element, size_t elements
     vector<string> elementvector;
     for (unsigned int i = 0; i < elements; i++)
     {
-        elementvector.push_back("'" + to_string(element[i]) + "'");
+        elementvector.push_back(formatStringWithQuot(to_string(element[i])));
     }
 
     return swss::join(", ", '(', ')', elementvector.begin(), elementvector.end());
+}
+
+string RedisReply::formatStringWithQuot(string str)
+{
+    if (str.find('\'') != std::string::npos)
+    {
+        return "\"" + str + "\"";
+    }
+    
+    return "'" + str + "'";
 }
 
 }

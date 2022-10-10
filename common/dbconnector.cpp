@@ -905,3 +905,26 @@ void DBConnector::del(const std::vector<std::string>& keys)
 
     pipe.flush();
 }
+
+map<string, map<string, map<string, string>>> DBConnector::getall()
+{
+    const string separator = SonicDBConfig::getSeparator(this);
+    auto const& keys = this->keys("*");
+    map<string, map<string, map<string, string>>> data;
+    for (string key: keys)
+    {
+        size_t pos = key.find(separator);
+        if (pos == string::npos) {
+            continue;
+        }
+        string table_name = key.substr(0, pos);
+        string row = key.substr(pos + 1);
+        auto const& entry = this->hgetall<map<string, string>>(key);
+
+        if (!entry.empty())
+        {
+            data[table_name][row] = entry;
+        }
+    }
+    return data;
+}
