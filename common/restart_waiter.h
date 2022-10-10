@@ -9,21 +9,21 @@ namespace swss
 class RestartWaiter
 {
 public:
-    static bool waitRestartDone(unsigned int maxWaitSec = 180,
-                                unsigned int dbTimeout = 0,
-                                bool isTcpConn = false);
+    static bool waitAdvancedBootDone(unsigned int maxWaitSec = 180,
+                                     unsigned int dbTimeout = 0,
+                                     bool isTcpConn = false);
 
-    static bool waitWarmRestartDone(unsigned int maxWaitSec = 180,
+    static bool waitWarmBootDone(unsigned int maxWaitSec = 180,
                                     unsigned int dbTimeout = 0,
                                     bool isTcpConn = false);
 
-    static bool waitFastRestartDone(unsigned int maxWaitSec = 180,
+    static bool waitFastBootDone(unsigned int maxWaitSec = 180,
                                     unsigned int dbTimeout = 0,
                                     bool isTcpConn = false);
 
-    static bool isWarmOrFastRestartInProgress(swss::DBConnector &stateDb);
-    static bool isFastRestartInProgress(swss::DBConnector &stateDb);
-    static bool isWarmRestartInProgress(swss::DBConnector &stateDb);
+    static bool isWarmOrFastBootInProgress(swss::DBConnector &stateDb);
+    static bool isFastBootInProgress(swss::DBConnector &stateDb);
+    static bool isWarmBootInProgress(swss::DBConnector &stateDb);
 
 private:
     static bool doWait(swss::DBConnector &stateDb,

@@ -46,35 +46,35 @@ TEST(RestartWaiter, success)
 {
     set_reboot_status("true");
     thread t(set_reboot_status, "false", 3);
-    EXPECT_TRUE(RestartWaiter::waitRestartDone());
+    EXPECT_TRUE(RestartWaiter::waitAdvancedBootDone());
     t.join();
 }
 
-TEST(RestartWaiter, successWarmRestart)
+TEST(RestartWaiter, successWarmReboot)
 {
     set_reboot_status("true");
     thread t(set_reboot_status, "false", 3);
-    EXPECT_TRUE(RestartWaiter::waitWarmRestartDone());
+    EXPECT_TRUE(RestartWaiter::waitWarmBootDone());
     t.join();
 }
 
-TEST(RestartWaiter, successFastRestart)
+TEST(RestartWaiter, successFastReboot)
 {
     FastBootHelper helper;
     set_reboot_status("true");
     thread t(set_reboot_status, "false", 3);
-    EXPECT_TRUE(RestartWaiter::waitFastRestartDone());
+    EXPECT_TRUE(RestartWaiter::waitFastBootDone());
     t.join();
 }
 
 TEST(RestartWaiter, timeout)
 {
     set_reboot_status("true");
-    EXPECT_FALSE(RestartWaiter::waitRestartDone(1));
-    EXPECT_FALSE(RestartWaiter::waitWarmRestartDone(1));
+    EXPECT_FALSE(RestartWaiter::waitAdvancedBootDone(1));
+    EXPECT_FALSE(RestartWaiter::waitWarmBootDone(1));
 
     FastBootHelper helper;
-    EXPECT_FALSE(RestartWaiter::waitFastRestartDone(1));
+    EXPECT_FALSE(RestartWaiter::waitFastBootDone(1));
 
     set_reboot_status("false");
 }
@@ -82,11 +82,11 @@ TEST(RestartWaiter, timeout)
 TEST(RestartWaiter, successNoDelay)
 {
     set_reboot_status("false");
-    EXPECT_TRUE(RestartWaiter::waitRestartDone());
-    EXPECT_TRUE(RestartWaiter::waitWarmRestartDone());
+    EXPECT_TRUE(RestartWaiter::waitAdvancedBootDone());
+    EXPECT_TRUE(RestartWaiter::waitWarmBootDone());
 
     FastBootHelper helper;
-    EXPECT_TRUE(RestartWaiter::waitFastRestartDone());
+    EXPECT_TRUE(RestartWaiter::waitFastBootDone());
 }
 
 TEST(RestartWaiter, successNoKey)
@@ -94,20 +94,20 @@ TEST(RestartWaiter, successNoKey)
     DBConnector db("STATE_DB", 0);
     string key = string(STATE_WARM_RESTART_ENABLE_TABLE_NAME) + string("|system");
     db.del({key});
-    EXPECT_TRUE(RestartWaiter::waitRestartDone());
-    EXPECT_TRUE(RestartWaiter::waitWarmRestartDone());
+    EXPECT_TRUE(RestartWaiter::waitAdvancedBootDone());
+    EXPECT_TRUE(RestartWaiter::waitWarmBootDone());
 
     FastBootHelper helper;
-    EXPECT_TRUE(RestartWaiter::waitFastRestartDone());
+    EXPECT_TRUE(RestartWaiter::waitFastBootDone());
 }
 
 TEST(RestartWaiter, waitWarmButFastInProgress)
 {
     FastBootHelper helper;
-    EXPECT_TRUE(RestartWaiter::waitWarmRestartDone());
+    EXPECT_TRUE(RestartWaiter::waitWarmBootDone());
 }
 
 TEST(RestartWaiter, waitFastButFastNotInProgress)
 {
-    EXPECT_TRUE(RestartWaiter::waitFastRestartDone());
+    EXPECT_TRUE(RestartWaiter::waitFastBootDone());
 }

@@ -1,9 +1,7 @@
 #include "restart_waiter.h"
+#include "redis_table_waiter.h"
 #include "redispipeline.h"
-#include "select.h"
 #include "schema.h"
-#include "subscriberstatetable.h"
-#include "table.h"
 #include <boost/algorithm/string.hpp>
 #include <string>
 
@@ -15,127 +13,63 @@ static const std::string RESTART_KEY = "system";
 static const std::string RESTART_ENABLE_FIELD = "enable";
 static const std::string FAST_REBOOT_TABLE_NAME = "FAST_REBOOT";
 
-bool RestartWaiter::waitRestartDone(
+// waitAdvancedBootDone
+bool RestartWaiter::waitAdvancedBootDone(
     unsigned int maxWaitSec,
     unsigned int dbTimeout,
     bool isTcpConn)
 {
     DBConnector stateDb(STATE_DB_NAME, dbTimeout, isTcpConn);
-    return isWarmOrFastRestartInProgress(stateDb) ? doWait(stateDb, maxWaitSec) : true;
+    return isWarmOrFastBootInProgress(stateDb) ? doWait(stateDb, maxWaitSec) : true;
 }
 
-bool RestartWaiter::waitWarmRestartDone(unsigned int maxWaitSec,
-                                        unsigned int dbTimeout,
-                                        bool isTcpConn)
+bool RestartWaiter::waitWarmBootDone(
+    unsigned int maxWaitSec,
+    unsigned int dbTimeout,
+    bool isTcpConn)
 {
     DBConnector stateDb(STATE_DB_NAME, dbTimeout, isTcpConn);
-    if (isFastRestartInProgress(stateDb))
+    if (isFastBootInProgress(stateDb))
     {
         // It is fast boot, just return
         return true;
     }
 
-    return isWarmOrFastRestartInProgress(stateDb) ? doWait(stateDb, maxWaitSec) : true;
+    return isWarmOrFastBootInProgress(stateDb) ? doWait(stateDb, maxWaitSec) : true;
 }
 
-bool RestartWaiter::waitFastRestartDone(unsigned int maxWaitSec,
-                                        unsigned int dbTimeout,
-                                        bool isTcpConn)
+bool RestartWaiter::waitFastBootDone(
+    unsigned int maxWaitSec,
+    unsigned int dbTimeout,
+    bool isTcpConn)
 {
     DBConnector stateDb(STATE_DB_NAME, dbTimeout, isTcpConn);
-    if (!isFastRestartInProgress(stateDb))
+    if (!isFastBootInProgress(stateDb))
     {
         // Fast boot is not in progress
         return true;
     }
 
-    return isWarmOrFastRestartInProgress(stateDb) ? doWait(stateDb, maxWaitSec) : true;
+    return isWarmOrFastBootInProgress(stateDb) ? doWait(stateDb, maxWaitSec) : true;
 }
 
 bool RestartWaiter::doWait(DBConnector &stateDb,
                            unsigned int maxWaitSec)
 {
-    if (maxWaitSec == 0)
-    {
-        SWSS_LOG_ERROR("Error: invalid maxWaitSec value 0, must be larger than 0");
-        return false;
-    }
-
-    int selectTimeout = static_cast<int>(maxWaitSec) * 1000;
-
-    SubscriberStateTable restartEnableTable(&stateDb, STATE_WARM_RESTART_ENABLE_TABLE_NAME);
-    Select s;
-    s.addSelectable(&restartEnableTable);
-
-    auto start = std::chrono::steady_clock::now();
-    while (1)
-    {
-        Selectable *sel = NULL;
-        int ret = s.select(&sel, selectTimeout, true);
-
-        if (ret == Select::OBJECT)
-        {
-            KeyOpFieldsValuesTuple kco;
-            restartEnableTable.pop(kco);
-            auto &op = kfvOp(kco);
-            if (op == SET_COMMAND)
-            {
-                auto &key = kfvKey(kco);
-                if (key == RESTART_KEY)
-                {
-                    auto& values = kfvFieldsValues(kco);
-                    for (auto& fvt: values)
-                    {
-                        auto& field = fvField(fvt);
-
-                        if (field == RESTART_ENABLE_FIELD)
-                        {
-                            // During system warm/fast restart, STATE_DB WARM_RESTART_ENABLE_TABLE|system enable
-                            // field will be set to "true", it indicates warm/fast restart is in progress.
-                            // After warm/fast restart done, warm reboot finalizer set the field back to false,
-                            // it indicates warm/fast restart is done. So, we wait for this field here.
-                            std::string value = fvValue(fvt);
-                            boost::to_lower(value);
-                            if (value == "false")
-                            {
-                                return true;
-                            }
-                            else
-                            {
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        else if (ret == Select::ERROR)
-        {
-            SWSS_LOG_NOTICE("Error: wait restart done got error - %s!", strerror(errno));
-        }
-        else if (ret == Select::TIMEOUT)
-        {
-            SWSS_LOG_INFO("Timeout: wait restart done got select timeout");
-        }
-        else if (ret == Select::SIGNALINT)
-        {
-            return false;
-        }
-
-        auto end = std::chrono::steady_clock::now();
-        int delay = static_cast<int>(
-                    std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count());
-
-        if (delay >= static_cast<int>(maxWaitSec) * 1000)
-        {
-            return false;
-        }
-
-        selectTimeout -= delay;
-    }
+    auto condFunc = [](const std::string &value) -> bool {
+        std::string copy = value;
+        boost::to_lower(copy);
+        return copy == "false";
+    };
+    return RedisTableWaiter::waitUntilFieldSet(stateDb,
+                                               STATE_WARM_RESTART_ENABLE_TABLE_NAME,
+                                               RESTART_KEY,
+                                               RESTART_ENABLE_FIELD,
+                                               maxWaitSec,
+                                               condFunc);
 }
 
-bool RestartWaiter::isWarmOrFastRestartInProgress(DBConnector &stateDb)
+bool RestartWaiter::isWarmOrFastBootInProgress(DBConnector &stateDb)
 {
     auto ret = stateDb.hget(STATE_WARM_RESTART_ENABLE_TABLE_NAME + STATE_DB_SEPARATOR + RESTART_KEY, RESTART_ENABLE_FIELD);
     if (ret) {
@@ -146,13 +80,13 @@ bool RestartWaiter::isWarmOrFastRestartInProgress(DBConnector &stateDb)
     return false;
 }
 
-bool RestartWaiter::isFastRestartInProgress(DBConnector &stateDb)
+bool RestartWaiter::isFastBootInProgress(DBConnector &stateDb)
 {
     auto ret = stateDb.get(FAST_REBOOT_TABLE_NAME + STATE_DB_SEPARATOR + RESTART_KEY);
     return ret.get() != nullptr;
 }
 
-bool RestartWaiter::isWarmRestartInProgress(swss::DBConnector &stateDb)
+bool RestartWaiter::isWarmBootInProgress(swss::DBConnector &stateDb)
 {
-    return isWarmOrFastRestartInProgress(stateDb) && !isFastRestartInProgress(stateDb);
+    return isWarmOrFastBootInProgress(stateDb) && !isFastBootInProgress(stateDb);
 }
