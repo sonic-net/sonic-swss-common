@@ -490,6 +490,10 @@ namespace swss {
 
 #define STATE_FLOW_COUNTER_CAPABILITY_TABLE_NAME    "FLOW_COUNTER_CAPABILITY_TABLE"
 
+/***** PROFILE DATABASE *****/
+
+#define PROFILE_DELETE_TABLE                  "PROFILE_DELETE"
+
 /***** MISC *****/
 
 #define IPV4_NAME "IPv4"

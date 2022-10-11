@@ -25,6 +25,19 @@ string JSon::buildJson(const vector<FieldValueTuple> &fv)
     return j.dump();
 }
 
+string JSon::buildJson(const char** values)
+{
+    nlohmann::json j = nlohmann::json::array();
+
+    while (*values)
+    {
+        j.push_back(string(*values));
+        values++;
+    }
+
+    return j.dump();
+}
+
 void JSon::readJson(const string &jsonstr, vector<FieldValueTuple> &fv)
 {
     nlohmann::json j = nlohmann::json::parse(jsonstr);

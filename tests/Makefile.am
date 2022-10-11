@@ -38,9 +38,11 @@ tests_SOURCES = redis_ut.cpp                \
                 countertable_ut.cpp         \
                 timer_ut.cpp                \
                 cli_ut.cpp                  \
+                defaultvalueprovider_ut.cpp \
                 events_common_ut.cpp        \
                 events_service_ut.cpp       \
                 events_ut.cpp               \
+                profileprovider_ut.cpp      \
                 main.cpp
 
 tests_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_GTEST) $(LIBNL_CFLAGS)

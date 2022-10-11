@@ -36,6 +36,7 @@ libswsscommon_la_SOURCES = \
     configdb.cpp              \
     dbconnector.cpp           \
     dbinterface.cpp           \
+    defaultvalueprovider.cpp  \
     sonicv2connector.cpp      \
     table.cpp                 \
     decoratortable.cpp        \
@@ -63,6 +64,7 @@ libswsscommon_la_SOURCES = \
     linkcache.cpp             \
     portmap.cpp               \
     pubsub.cpp                \
+    profileprovider.cpp       \
     tokenize.cpp              \
     exec.cpp                  \
     saiaclschema.cpp          \
@@ -76,7 +78,7 @@ libswsscommon_la_SOURCES = \
 
 libswsscommon_la_CXXFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CFLAGS) $(CODE_COVERAGE_CXXFLAGS)
 libswsscommon_la_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CPPFLAGS) $(CODE_COVERAGE_CPPFLAGS)
-libswsscommon_la_LIBADD = -lpthread $(LIBNL_LIBS) $(CODE_COVERAGE_LIBS) -lzmq -lboost_serialization -luuid
+libswsscommon_la_LIBADD = -lpthread $(LIBNL_LIBS) $(CODE_COVERAGE_LIBS) -lzmq -lboost_serialization -luuid -lyang
 
 swssloglevel_SOURCES = loglevel.cpp
 
