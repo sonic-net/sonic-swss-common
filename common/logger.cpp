@@ -8,6 +8,7 @@
 #include <sstream>
 #include <iomanip>
 #include <stdexcept>
+#include <assert.h>
 #include "schema.h"
 #include "select.h"
 #include "dbconnector.h"
@@ -233,12 +234,8 @@ void Logger::settingThread()
         }
 
         KeyOpFieldsValuesTuple koValues;
-        ConsumerStateTable *consumerStateTable = NULL;
-        consumerStateTable = dynamic_cast<ConsumerStateTable *>(selectable);
-        if (consumerStateTable == NULL)
-        {
-            continue;
-        }
+        ConsumerStateTable *consumerStateTable = dynamic_cast<ConsumerStateTable *>(selectable);
+        assert(consumerStateTable != NULL);
         consumerStateTable->pop(koValues);
         std::string key = kfvKey(koValues), op = kfvOp(koValues);
 
