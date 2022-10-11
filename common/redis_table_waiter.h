@@ -19,7 +19,7 @@ public:
                           const std::string &key,
                           const std::string &fieldName,
                           unsigned int maxWaitSec,
-                          ConditionFunc cond);
+                          ConditionFunc &cond);
 
 
     static bool waitUntilKeySet(DBConnector &db,
@@ -36,7 +36,7 @@ public:
         DBConnector &db,
         const std::string &tableName,
         unsigned int maxWaitSec,
-        CheckFunc checkFunc);
+        CheckFunc &checkFunc);
 
 };
 

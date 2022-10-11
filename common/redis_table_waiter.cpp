@@ -8,7 +8,7 @@ bool RedisTableWaiter::waitUntil(
     DBConnector &db,
     const std::string &tableName,
     unsigned int maxWaitSec,
-    CheckFunc checkFunc)
+    CheckFunc &checkFunc)
 {
     if (maxWaitSec == 0)
     {
@@ -70,7 +70,7 @@ bool RedisTableWaiter::waitUntilFieldSet(
     const std::string &key,
     const std::string &fieldName,
     unsigned int maxWaitSec,
-    ConditionFunc cond)
+    ConditionFunc &cond)
 {
     auto sep = SonicDBConfig::getSeparator(&db);
     auto value = db.hget(tableName + sep + key, fieldName);
@@ -79,7 +79,7 @@ bool RedisTableWaiter::waitUntilFieldSet(
         return true;
     }
 
-    auto checkFunc = [&](const KeyOpFieldsValuesTuple &kco) -> bool {
+    CheckFunc checkFunc = [&](const KeyOpFieldsValuesTuple &kco) -> bool {
         if (SET_COMMAND == kfvOp(kco))
         {
             if (key == kfvKey(kco))
@@ -112,7 +112,7 @@ bool RedisTableWaiter::waitUntilKeySet(
         return true;
     }
 
-    auto checkFunc = [&](const KeyOpFieldsValuesTuple &kco) -> bool {
+    CheckFunc checkFunc = [&](const KeyOpFieldsValuesTuple &kco) -> bool {
         if (SET_COMMAND == kfvOp(kco))
         {
             return key == kfvKey(kco);
@@ -134,7 +134,7 @@ bool RedisTableWaiter::waitUntilKeyDel(
         return true;
     }
 
-    auto checkFunc = [&](const KeyOpFieldsValuesTuple &kco) -> bool {
+    CheckFunc checkFunc = [&](const KeyOpFieldsValuesTuple &kco) -> bool {
         if (DEL_COMMAND == kfvOp(kco))
         {
             return key == kfvKey(kco);

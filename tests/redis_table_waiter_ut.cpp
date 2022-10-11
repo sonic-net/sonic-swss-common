@@ -44,7 +44,7 @@ TEST(RedisTableWaiter, waitUntilFieldSet)
 {
     del_key(0);
     DBConnector db(dbName, 0);
-    auto condFunc = [&](const std::string &value) -> bool {
+    RedisTableWaiter::ConditionFunc condFunc = [&](const std::string &value) -> bool {
         return value == setValue;
     };
     thread t(set_field, 1);

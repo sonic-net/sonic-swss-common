@@ -21,7 +21,7 @@ public:
                                     unsigned int dbTimeout = 0,
                                     bool isTcpConn = false);
 
-    static bool isWarmOrFastBootInProgress(swss::DBConnector &stateDb);
+    static bool isAdvancedBootInProgress(swss::DBConnector &stateDb);
     static bool isFastBootInProgress(swss::DBConnector &stateDb);
     static bool isWarmBootInProgress(swss::DBConnector &stateDb);
 
