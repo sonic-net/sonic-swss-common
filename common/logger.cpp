@@ -1,5 +1,5 @@
 #include "logger.h"
-
+#include <assert.h>
 #include <algorithm>
 #include <stdarg.h>
 #include <stdio.h>
@@ -8,7 +8,6 @@
 #include <sstream>
 #include <iomanip>
 #include <stdexcept>
-#include <assert.h>
 #include "schema.h"
 #include "select.h"
 #include "dbconnector.h"
