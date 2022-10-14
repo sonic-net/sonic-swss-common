@@ -39,7 +39,7 @@ bool DecoratorTable::get(const string &key, vector<pair<string, string>> &ovalue
     }
 
     // Append default values
-    m_defaultValueProvider.appendDefaultValues(table, key, ovalues);
+    m_defaultValueProvider->appendDefaultValues(table, key, ovalues);
 
     return result;
 }
@@ -66,7 +66,7 @@ bool DecoratorTable::hget(const string &key, const string &field,  string &value
     }
 
     // Try append default values
-    auto default_value = m_defaultValueProvider.getDefaultValue(table, key, field);
+    auto default_value = m_defaultValueProvider->getDefaultValue(table, key, field);
     if (default_value != nullptr)
     {
         value = *default_value;

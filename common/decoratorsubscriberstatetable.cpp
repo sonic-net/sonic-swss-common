@@ -21,7 +21,7 @@ DecoratorSubscriberStateTable::DecoratorSubscriberStateTable(DBConnector *db, co
 
 DecoratorSubscriberStateTable::~DecoratorSubscriberStateTable()
 {
-    m_defaultValueProvider = new DefaultValueProvider();
+    delete m_defaultValueProvider;
 }
 
 /* Get multiple pop elements */
@@ -44,7 +44,7 @@ void DecoratorSubscriberStateTable::appendDefaultValue(std::string &key, std::st
 
     // Not append profile config, because 'SET' command will overwrite profile config.
     auto table = getTableName();
-    DefaultValueProvider::instance().appendDefaultValues(table, key, fvs);
+    m_defaultValueProvider->appendDefaultValues(table, key, fvs);
 }
 
 void DecoratorSubscriberStateTable::onPopUnknownPattern(RedisMessage& message, deque<KeyOpFieldsValuesTuple> &vkco)
