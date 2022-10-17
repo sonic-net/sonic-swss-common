@@ -332,7 +332,7 @@ def test_table_delete_profile_config(prepare_yang_module, reset_database):
     check_table_read_api_result(table, key, yang_field_name, "0")
     check_table_read_api_result(table, key, profile_field, profile_value)
 
-def test_DecoratorSubscriberStateTable():
+def test_DecoratorSubscriberStateTable(prepare_yang_module, reset_database):
     """
     Test DecoratorSubscriberStateTable can listen delete event.
     """
