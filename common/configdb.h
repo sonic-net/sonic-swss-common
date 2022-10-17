@@ -315,20 +315,20 @@ protected:
                 for key in table:
                     _try_delete_or_revert_profile(tablename, key, table[key])
         # override read APIs
-        def new_get_entry(table, key):
+        def new_get_entry(self, table, key):
             result = self.connector.get_entry(table, key)
             if result is None or len(result) == 0:
                 # when there are any user config, profile will be overwrite.
                 result = _get_profile(table, key)
             _append_default_value(table, key, result)
             return result
-        def new_get_table(table):
+        def new_get_table(self, table):
             result = self.connector.get_table(table)
             _append_profile_table(table, result)
             for key in result:
                 _append_default_value(table, key, result[key])
             return result
-        def new_get_config():
+        def new_get_config(self):
             result = self.connector.get_config()
             _append_profile(result)
             for table in result:
@@ -339,17 +339,17 @@ protected:
                     result[table][key] = entry
             return result
         # override write and delete APIs
-        def new_set_entry(table, key, data):
+        def new_set_entry(self, table, key, data):
             # set a entry to empty will delete this entry
             _try_delete_or_revert_profile(table, key, data)
             return self.connector.set_entry(table, key, data)
-        def new_mod_entry(table, key, data):
+        def new_mod_entry(self, table, key, data):
             _try_delete_or_revert_profile(table, key, data)
             return self.connector.mod_entry(table, key, data)
-        def new_delete_table(table):
+        def new_delete_table(self, table):
             _try_delete_profile_table(table)
             return self.connector.delete_table(table)
-        def new_mod_config(config):
+        def new_mod_config(self, config):
             _try_delete_profile(config)
             return self.connector.mod_config(config)
         def __getattr__(self, name):
