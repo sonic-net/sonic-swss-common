@@ -49,6 +49,8 @@ public:
                      const std::string &op = "",
                      const std::string &prefix = EMPTY_PREFIX) override;
 
+    /* Unhide override 'set' methods in base class */
+    using Table::set;
 private:
     DefaultValueProvider *m_defaultValueProvider;
 };
