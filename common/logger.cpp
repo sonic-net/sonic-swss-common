@@ -1,5 +1,5 @@
 #include "logger.h"
-#include <assert.h>
+
 #include <algorithm>
 #include <stdarg.h>
 #include <stdio.h>
@@ -233,8 +233,10 @@ void Logger::settingThread()
         }
 
         KeyOpFieldsValuesTuple koValues;
-        ConsumerStateTable *consumerStateTable = dynamic_cast<ConsumerStateTable *>(selectable);
-        assert(consumerStateTable != NULL);
+        ConsumerStateTable *consumerStateTable = NULL;
+        consumerStateTable = dynamic_cast<ConsumerStateTable *>(selectable);
+        if (consumerStateTable == NULL)
+            continue;
         consumerStateTable->pop(koValues);
         std::string key = kfvKey(koValues), op = kfvOp(koValues);
 
