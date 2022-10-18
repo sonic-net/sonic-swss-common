@@ -8,7 +8,7 @@ DPKG_EXPORT_BUILDFLAGS = 1
 include /usr/share/dpkg/default.mk
 
 # see FEATURE AREAS in dpkg-buildflags(1)
-#export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 
 # see ENVIRONMENT in dpkg-buildflags(1)
 # package maintainers to append CFLAGS
@@ -18,6 +18,8 @@ include /usr/share/dpkg/default.mk
 
 DOPACKAGES = $(shell dh_listpackages)
 
+CONFIGURE_ARGS = --disable-static
+
 # For Debian jessie, stretch, and buster, and Ubuntu bionic and focal, build
 # Python 2 bindings. This is controlled by the build profile being used.
 ifneq (,$(filter python-swsscommon,$(DOPACKAGES)))
@@ -26,9 +28,9 @@ else
 CONFIGURE_ARGS += --disable-python2
 endif
 
-# main packaging script based on dh7 syntax
+# main packaging script
 %:
-	dh $@  --with autoreconf
+	dh $@
 
 # dh_make generated override targets
 # This is example for Cmake (See https://bugs.debian.org/641051 )
