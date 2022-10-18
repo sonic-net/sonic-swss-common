@@ -1,8 +1,6 @@
 lib_LTLIBRARIES =
 bin_PROGRAMS =
 
-INCLUDES = -I $(srcdir)
-
 if DEBUG
 DBGFLAGS = -ggdb -DDEBUG
 else

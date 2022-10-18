@@ -16,8 +16,6 @@ include /usr/share/dpkg/default.mk
 # package maintainers to append LDFLAGS
 #export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
 
-DEBIAN_DIST_CODENAME := $(shell lsb_release -sc | sed -e 's/\#/ /g')
-
 DOPACKAGES = $(shell dh_listpackages)
 
 # For Debian jessie, stretch, and buster, and Ubuntu bionic and focal, build
@@ -37,10 +35,3 @@ endif
 override_dh_auto_configure:
 	dh_auto_configure -- $(CONFIGURE_ARGS) $(DEB_CONFIGURE_EXTRA_FLAGS)
 #	-DCMAKE_LIBRARY_PATH=$(DEB_HOST_MULTIARCH)
-
-override_dh_clean:
-	dh_clean
-	rm -f pyext/swsscommon.py pyext/swsscommon_wrap.cpp
-
-override_dh_strip:
-	dh_strip -plibswsscommon --dbg-package=libswsscommon-dbg
