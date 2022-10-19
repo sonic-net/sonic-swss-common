@@ -236,7 +236,10 @@ void Logger::settingThread()
         ConsumerStateTable *consumerStateTable = NULL;
         consumerStateTable = dynamic_cast<ConsumerStateTable *>(selectable);
         if (consumerStateTable == NULL)
-            continue;
+        {
+            SWSS_LOG_ERROR("dynamic_cast returns NULL.");
+            break;
+        }
         consumerStateTable->pop(koValues);
         std::string key = kfvKey(koValues), op = kfvOp(koValues);
 
