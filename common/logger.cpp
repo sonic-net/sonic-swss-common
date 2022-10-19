@@ -237,7 +237,7 @@ void Logger::settingThread()
         consumerStateTable = dynamic_cast<ConsumerStateTable *>(selectable);
         if (consumerStateTable == NULL)
         {
-            SWSS_LOG_ERROR("dynamic_cast returns NULL.");
+            SWSS_LOG_ERROR("dynamic_cast returns NULL");
             break;
         }
         consumerStateTable->pop(koValues);
