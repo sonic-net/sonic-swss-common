@@ -29,7 +29,6 @@ int64_t swss::NotificationProducer::send(const std::string &op, const std::strin
     RedisCommand command;
     command.format("PUBLISH %s %s", m_channel.c_str(), msg.c_str());
 
-
     if (m_buffered)
     {
         m_pipe->push(command, REDIS_REPLY_INTEGER);

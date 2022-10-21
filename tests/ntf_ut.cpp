@@ -214,3 +214,4 @@ TEST(Notifications, pipelineProducer)
     int rc = nc.peek();
     EXPECT_EQ(rc, 0);
 }
+
