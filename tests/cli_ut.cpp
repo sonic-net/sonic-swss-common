@@ -311,19 +311,6 @@ TEST(sonic_db_cli, test_cli_ping_cmd_no_config)
                     initializeConfig);
 
     EXPECT_EQ(1, exit_code);
-
-    args[0] = "sonic-db-cli";
-    args[1] = "TEST_DB";
-    args[2] = "PING";
-
-    optind = 0;
-    exit_code = sonic_db_cli(
-                    3,
-                    args,
-                    initializeGlobalConfig,
-                    initializeConfig);
-
-    EXPECT_EQ(1, exit_code);
 }
 
 TEST(sonic_db_cli, test_cli_save_cmd)
