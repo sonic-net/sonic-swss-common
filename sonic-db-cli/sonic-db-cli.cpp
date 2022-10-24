@@ -296,7 +296,11 @@ int sonic_db_cli(
         {
             auto commands = options.m_cmd;
 
-            initializeConfig();
+            if (netns.empty())
+            {
+                initializeConfig();
+            }
+
             return executeCommands(dbOrOperation, commands, netns, isTcpConn);
         }
         else if (dbOrOperation == "PING"
@@ -307,8 +311,12 @@ int sonic_db_cli(
             // sonic-db-cli catch all possible exceptions and handle it as a failure case which not return 'OK' or 'PONG'
             try
             {
-                // When database config does not exist, sonic-db-cli will ignore exception and return 1.
-                initializeConfig();
+                if (netns.empty())
+                {
+                    // When database_config.json does not exist, sonic-db-cli will ignore exception and return 1.
+                    initializeConfig();
+                }
+
                 return handleAllInstances(netns, dbOrOperation, isTcpConn);
             }
             catch (const exception& e)
