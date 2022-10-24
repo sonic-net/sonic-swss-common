@@ -289,18 +289,12 @@ TEST(sonic_db_cli, test_cli_ping_cmd_no_config)
     // data base file does not exist, will throw exception
     auto initializeGlobalConfig = []()
     {
-        if (!SonicDBConfig::isGlobalInit())
-        {
-            SonicDBConfig::initializeGlobalConfig(not_exist_config_file);
-        }
+        SonicDBConfig::initializeGlobalConfig(not_exist_config_file);
     };
 
     auto initializeConfig = []()
     {
-        if (!SonicDBConfig::isInit())
-        {
-            SonicDBConfig::initialize(not_exist_config_file);
-        }
+        SonicDBConfig::initialize(not_exist_config_file);
     };
 
     optind = 0;
