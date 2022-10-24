@@ -305,6 +305,28 @@ TEST(sonic_db_cli, test_cli_ping_cmd_no_config)
                     initializeConfig);
 
     EXPECT_EQ(1, exit_code);
+
+    // When ping with DB name, exception will happen
+    args[0] = "sonic-db-cli";
+    args[1] = "TEST_DB";
+    args[2] = "PING";
+
+    bool exception_happen = false;
+    try
+    {
+        optind = 0;
+        exit_code = sonic_db_cli(
+                        3,
+                        args,
+                        initializeGlobalConfig,
+                        initializeConfig);
+    }
+    catch (const exception& e)
+    {
+        exception_happen = true;
+    }
+
+    EXPECT_EQ(true, exception_happen);
 }
 
 TEST(sonic_db_cli, test_cli_save_cmd)
