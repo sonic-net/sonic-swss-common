@@ -11,6 +11,7 @@
 using namespace swss;
 using namespace std;
 
+const string not_exist_config_file = "./tests/redis_multi_db_ut_config/database_config_not_exist.json";
 const string config_file = "./tests/redis_multi_db_ut_config/database_config.json";
 const string global_config_file = "./tests/redis_multi_db_ut_config/database_global.json";
 
@@ -277,6 +278,47 @@ TEST(sonic_db_cli, test_cli_ping_cmd)
 
     output = runCli(3, args);
     EXPECT_EQ("True\n", output);
+}
+
+TEST(sonic_db_cli, test_cli_ping_cmd_no_config)
+{
+    char *args[3];
+    args[0] = "sonic-db-cli";
+    args[1] = "PING";
+
+    auto output = runCli(2, args);
+    EXPECT_EQ("PONG\n", output);
+
+    // When ping with DB name, result should be 'True'
+    args[0] = "sonic-db-cli";
+    args[1] = "TEST_DB";
+    args[2] = "PING";
+
+    // data base file does not exist, will throw exception
+    auto initializeGlobalConfig = []()
+    {
+        if (!SonicDBConfig::isGlobalInit())
+        {
+            SonicDBConfig::initializeGlobalConfig(not_exist_config_file);
+        }
+    };
+
+    auto initializeConfig = []()
+    {
+        if (!SonicDBConfig::isInit())
+        {
+            SonicDBConfig::initialize(not_exist_config_file);
+        }
+    };
+
+    optind = 0;
+    int exit_code = sonic_db_cli(
+                    3,
+                    args,
+                    initializeGlobalConfig,
+                    initializeConfig);
+
+    EXPECT_EQ(1, exit_code);
 }
 
 TEST(sonic_db_cli, test_cli_save_cmd)

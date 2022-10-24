@@ -287,8 +287,6 @@ int sonic_db_cli(
         }
         else
         {
-            // SonicDBConfig may initialized when run cli with UT
-            initializeConfig();
             // Use the tcp connectivity if namespace is local and unixsocket cmd_option is present.
             isTcpConn = true;
             netns = "";
@@ -297,6 +295,8 @@ int sonic_db_cli(
         if (options.m_cmd.size() != 0)
         {
             auto commands = options.m_cmd;
+
+            initializeConfig();
             return executeCommands(dbOrOperation, commands, netns, isTcpConn);
         }
         else if (dbOrOperation == "PING"
@@ -307,6 +307,8 @@ int sonic_db_cli(
             // sonic-db-cli catch all possible exceptions and handle it as a failure case which not return 'OK' or 'PONG'
             try
             {
+                // When database config does not exist, sonic-db-cli will ignore exception and return 1.
+                initializeConfig();
                 return handleAllInstances(netns, dbOrOperation, isTcpConn);
             }
             catch (const exception& e)
