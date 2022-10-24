@@ -286,14 +286,6 @@ TEST(sonic_db_cli, test_cli_ping_cmd_no_config)
     args[0] = "sonic-db-cli";
     args[1] = "PING";
 
-    auto output = runCli(2, args);
-    EXPECT_EQ("PONG\n", output);
-
-    // When ping with DB name, result should be 'True'
-    args[0] = "sonic-db-cli";
-    args[1] = "TEST_DB";
-    args[2] = "PING";
-
     // data base file does not exist, will throw exception
     auto initializeGlobalConfig = []()
     {
@@ -313,6 +305,19 @@ TEST(sonic_db_cli, test_cli_ping_cmd_no_config)
 
     optind = 0;
     int exit_code = sonic_db_cli(
+                    2,
+                    args,
+                    initializeGlobalConfig,
+                    initializeConfig);
+
+    EXPECT_EQ(1, exit_code);
+
+    args[0] = "sonic-db-cli";
+    args[1] = "TEST_DB";
+    args[2] = "PING";
+
+    optind = 0;
+    exit_code = sonic_db_cli(
                     3,
                     args,
                     initializeGlobalConfig,
