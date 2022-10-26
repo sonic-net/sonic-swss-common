@@ -132,7 +132,7 @@ void Logger::linkToDbWithOutput(
         prio = defPrio;
         doUpdate = true;
     }
-    if(!table.hget(dbName, DAEMON_LOGLEVEL, output))
+    if(!table.hget(dbName, DAEMON_LOGOUTPUT, output))
     {
         output = defOutput;
         doUpdate = true;
