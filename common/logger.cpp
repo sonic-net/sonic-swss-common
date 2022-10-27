@@ -233,7 +233,14 @@ void Logger::settingThread()
         }
 
         KeyOpFieldsValuesTuple koValues;
-        dynamic_cast<ConsumerStateTable *>(selectable)->pop(koValues);
+        ConsumerStateTable *consumerStateTable = NULL;
+        consumerStateTable = dynamic_cast<ConsumerStateTable *>(selectable);
+        if (consumerStateTable == NULL)
+        {
+            SWSS_LOG_ERROR("dynamic_cast returned NULL");
+            break;
+        }
+        consumerStateTable->pop(koValues);
         std::string key = kfvKey(koValues), op = kfvOp(koValues);
 
         if (op != SET_COMMAND || !m_settingChangeObservers.contains(key))

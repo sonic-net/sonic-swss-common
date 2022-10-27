@@ -42,6 +42,8 @@
 #include "events.h"
 #include "configdb.h"
 #include "status_code_util.h"
+#include "redis_table_waiter.h"
+#include "restart_waiter.h"
 %}
 
 %include <std_string.i>
@@ -227,3 +229,5 @@ T castSelectableObj(swss::Selectable *temp)
 %include "events.h"
 
 %include "status_code_util.h"
+#include "redis_table_waiter.h"
+%include "restart_waiter.h"

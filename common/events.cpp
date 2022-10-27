@@ -418,7 +418,7 @@ EventSubscriber::event_receive(event_receive_op_C_t &op)
     rc = event_receive(event_str, op.missed_cnt, op.publish_epoch_ms);
     if (rc != 0) {
         if (rc != 11) {
-            SWSS_LOG_ERROR("failed to receive event. rc=%d", rc);
+            SWSS_LOG_INFO("failed to receive event. rc=%d", rc);
         }
         goto out;
     }
@@ -443,7 +443,7 @@ EventSubscriber::event_receive(event_receive_op_t &op)
     rc = event_receive(event_str, op.missed_cnt, op.publish_epoch_ms);
     if (rc != 0) {
         if (rc != 11) {
-            SWSS_LOG_ERROR("failed to receive event. rc=%d", rc);
+            SWSS_LOG_INFO("failed to receive event. rc=%d", rc);
         }
         goto out;
     }
@@ -483,7 +483,7 @@ EventSubscriber::event_receive(string &event_str, uint32_t &missed_cnt,
             rc = zmq_message_read(m_socket, 0, evt_source, event_data);
             if (rc != 0) {
                 if (rc != 11) {
-                    SWSS_LOG_ERROR("Failure to read message from sock rc=%d", rc);
+                    SWSS_LOG_INFO("Failure to read message from sock rc=%d", rc);
                 }
                 goto out;
             }
