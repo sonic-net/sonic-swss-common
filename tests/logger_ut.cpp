@@ -3,6 +3,7 @@
 #include "common/consumerstatetable.h"
 #include "common/select.h"
 #include "common/schema.h"
+#include "logger_ut.h"
 #include "gtest/gtest.h"
 #include <unistd.h>
 
@@ -11,15 +12,15 @@ using namespace swss;
 
 void setLoglevel(DBConnector& db, const string& key, const string& loglevel)
 {
-    ProducerStateTable table(&db, key);
+    swss::Table table(&db, CFG_LOGGER_TABLE_NAME);
     FieldValueTuple fv(DAEMON_LOGLEVEL, loglevel);
     std::vector<FieldValueTuple>fieldValues = { fv };
     table.set(key, fieldValues);
 }
 
-void clearLoglevelDB()
+void clearConfigDB()
 {
-    DBConnector db("LOGLEVEL_DB", 0);
+    DBConnector db("CONFIG_DB", 0);
     RedisReply r(&db, "FLUSHALL", REDIS_REPLY_STATUS);
     r.checkStatusOK();
 }
@@ -31,7 +32,9 @@ void prioNotify(const string &component, const string &prioStr)
 
 void checkLoglevel(DBConnector& db, const string& key, const string& loglevel)
 {
-    string redis_key = key + ":" + key;
+    std::string key_prefix(CFG_LOGGER_TABLE_NAME);
+    key_prefix+="|";
+    string redis_key = key_prefix + key;
     auto level = db.hget(redis_key, DAEMON_LOGLEVEL);
     EXPECT_FALSE(level == nullptr);
     if (level != nullptr)
@@ -42,8 +45,8 @@ void checkLoglevel(DBConnector& db, const string& key, const string& loglevel)
 
 TEST(LOGGER, loglevel)
 {
-    DBConnector db("LOGLEVEL_DB", 0);
-    clearLoglevelDB();
+    DBConnector db("CONFIG_DB", 0);
+    clearConfigDB();
 
     string key1 = "table1", key2 = "table2", key3 = "table3";
 
