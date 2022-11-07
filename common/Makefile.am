@@ -71,13 +71,17 @@ libswsscommon_la_SOURCES = \
     warm_restart.cpp          \
     luatable.cpp              \
     countertable.cpp          \
-    redisutility.cpp
+    redisutility.cpp          \
+    restart_waiter.cpp        \
+    redis_table_waiter.cpp
 
 libswsscommon_la_CXXFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CFLAGS) $(CODE_COVERAGE_CXXFLAGS)
 libswsscommon_la_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CPPFLAGS) $(CODE_COVERAGE_CPPFLAGS)
 libswsscommon_la_LIBADD = -lpthread $(LIBNL_LIBS) $(CODE_COVERAGE_LIBS) -lzmq -lboost_serialization -luuid -lyang
 
-swssloglevel_SOURCES = loglevel.cpp
+swssloglevel_SOURCES =  \
+	loglevel.cpp        \
+	loglevel_util.cpp	
 
 swssloglevel_CXXFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CODE_COVERAGE_CXXFLAGS)
 swssloglevel_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CODE_COVERAGE_CPPFLAGS)
