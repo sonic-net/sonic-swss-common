@@ -1,9 +1,9 @@
 #include "notificationproducer.h"
 
-#include <memory>
+#define NON_BUFFERED_COMMAND_BUFFER_SIZE 1
 
 swss::NotificationProducer::NotificationProducer(swss::DBConnector *db, const std::string &channel):
-    m_ownedpipe(std::make_unique<swss::RedisPipeline>(db, 1)), m_pipe(m_ownedpipe.get()), m_channel(channel), m_buffered(false)
+    m_ownedpipe(std::make_unique<swss::RedisPipeline>(db, NON_BUFFERED_COMMAND_BUFFER_SIZE)), m_pipe(m_ownedpipe.get()), m_channel(channel), m_buffered(false)
 {
 }
 
