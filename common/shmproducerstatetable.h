@@ -9,6 +9,8 @@
 #include "redispipeline.h"
 #include "producerstatetable.h"
 
+#include <boost/interprocess/ipc/message_queue.hpp>
+
 namespace swss {
     
 enum ShmOperationType
@@ -114,9 +116,13 @@ public:
 
     virtual void del(const std::vector<std::string>& keys);
 private:
-    void initializeThread();
+    void initialize();
 
     void updateTableThreadFunction();
+
+    void sendMsg(const std::string& key,
+                 const std::vector<swss::FieldValueTuple>& values,
+                 const std::string& command);
 
     std::shared_ptr<std::thread> m_updateTableThread;
 
@@ -125,6 +131,10 @@ private:
     std::queue<std::shared_ptr<ShmOperationItem>> m_operationQueue;
 
     std::mutex m_operationQueueMutex;
+    
+    std::string m_queueName;
+
+    std::shared_ptr<boost::interprocess::message_queue> m_queue;
 };
 
 }

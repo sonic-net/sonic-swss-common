@@ -50,7 +50,7 @@ public:
     void create_temp_view();
 
     void apply_temp_view();
-private:
+protected:
     bool m_buffered;
     bool m_pipeowned;
     bool m_tempViewActive;
