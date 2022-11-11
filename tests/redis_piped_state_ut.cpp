@@ -12,6 +12,7 @@
 #include "common/selectableevent.h"
 #include "common/table.h"
 #include "common/producerstatetable.h"
+#include "common/shmproducerstatetable.h"
 #include "common/consumerstatetable.h"
 
 using namespace std;
@@ -180,6 +181,86 @@ TEST(ConsumerStateTable, async_double_set)
         p.set(key, fields);
     }
     p.flush();
+
+    /* Prepare consumer */
+    ConsumerStateTable c(&db, tableName);
+    Select cs;
+    Selectable *selectcs;
+    cs.addSelectable(&c);
+
+    /* First pop operation */
+    {
+        int ret = cs.select(&selectcs);
+        EXPECT_EQ(ret, Select::OBJECT);
+        KeyOpFieldsValuesTuple kco;
+        c.pop(kco);
+        EXPECT_EQ(kfvKey(kco), key);
+        EXPECT_EQ(kfvOp(kco), "SET");
+
+        auto fvs = kfvFieldsValues(kco);
+        EXPECT_EQ(fvs.size(), (unsigned int)(maxNumOfFields + maxNumOfFields/2));
+
+        map<string, string> mm;
+        for (auto fv: fvs)
+        {
+            mm[fvField(fv)] = fvValue(fv);
+        }
+
+        for (int j = 0; j < maxNumOfFields; j++)
+        {
+            EXPECT_EQ(mm[field(j)], value(j));
+        }
+        for (int j = 0; j < maxNumOfFields * 2; j += 2)
+        {
+            EXPECT_EQ(mm[field(j)], value(j));
+        }
+    }
+
+    /* Second select operation */
+    {
+        int ret = cs.select(&selectcs, 1000);
+        EXPECT_EQ(ret, Select::TIMEOUT);
+    }
+}
+
+TEST(ShmProducerStateTable, async_double_set)
+{
+    clearDB();
+
+    /* Prepare producer */
+    int index = 0;
+    string tableName = "UT_REDIS_THREAD_" + to_string(index);
+    DBConnector db(TEST_DB, 0, true);
+    RedisPipeline pipeline(&db);
+    ShmProducerStateTable p(&pipeline, tableName, true);
+    string key = "TheKey";
+    int maxNumOfFields = 2;
+
+    /* First set operation */
+    {
+        vector<FieldValueTuple> fields;
+        for (int j = 0; j < maxNumOfFields; j++)
+        {
+            FieldValueTuple t(field(j), value(j));
+            fields.push_back(t);
+        }
+        p.set(key, fields);
+    }
+
+    /* Second set operation */
+    {
+        vector<FieldValueTuple> fields;
+        for (int j = 0; j < maxNumOfFields * 2; j += 2)
+        {
+            FieldValueTuple t(field(j), value(j));
+            fields.push_back(t);
+        }
+        p.set(key, fields);
+    }
+    p.flush();
+    
+    // wait for ShmProducerStateTable m_updateTableThread thread run all operations
+    sleep(1000);
 
     /* Prepare consumer */
     ConsumerStateTable c(&db, tableName);
