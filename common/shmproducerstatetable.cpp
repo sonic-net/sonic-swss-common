@@ -127,6 +127,9 @@ void ShmProducerStateTable::del(const std::vector<std::string>& keys)
 
 void ShmProducerStateTable::updateTableThreadFunction()
 {
+    DBConnector db(m_pipe->getDbName(), 0, true);
+    ProducerStateTable table(&db, getTableName());
+
     while (m_runUpdateTableThread)
     {
         while (!m_operationQueue.empty())
@@ -140,28 +143,28 @@ void ShmProducerStateTable::updateTableThreadFunction()
                     auto* set = (const ShmOperationSet*)operation.get();
                     auto& key = kfvKey(set->m_values);
                     auto& values = kfvFieldsValues(set->m_values);
-                    ProducerStateTable::set(key, values);
+                    table.set(key, values);
                     break;
                 }
                 
                 case ShmOperationType::DEL:
                 {
                     auto* del = (const ShmOperationDel*)operation.get();
-                    ProducerStateTable::del(del->m_key);
+                    table.del(del->m_key);
                     break;
                 }
                 
                 case ShmOperationType::BATCH_SET:
                 {
                     auto* batch = (const ShmOperationBatchSet*)operation.get();
-                    ProducerStateTable::set(batch->m_values);
+                    table.set(batch->m_values);
                     break;
                 }
                 
                 case ShmOperationType::BATCH_DEL:
                 {
                     auto* batch = (const ShmOperationBatchDel*)operation.get();
-                    ProducerStateTable::del(batch->m_keys);
+                    table.del(batch->m_keys);
                     break;
                 }
                 
@@ -179,7 +182,7 @@ void ShmProducerStateTable::updateTableThreadFunction()
             }
         }
         
-        ProducerStateTable::flush();
+        table.flush();
         
         sleep(1);
     }
@@ -214,14 +217,14 @@ void ShmProducerStateTable::sendMsg(
         {
             if (i >= MQ_MAX_RETRY)
             {
-                SWSS_LOG_THROW("message queue %s send failed: %s",
+                SWSS_LOG_ERROR("message queue %s send failed: %s",
                         m_queueName.c_str(),
                         e.what());
             }
         }
     }
 
-    SWSS_LOG_THROW("message queue %s send failed after retry.",
+    SWSS_LOG_ERROR("message queue %s send failed after retry.",
             m_queueName.c_str());
 }
 

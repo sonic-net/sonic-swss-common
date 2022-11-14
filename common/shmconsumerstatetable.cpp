@@ -9,88 +9,99 @@
 #include "redisapi.h"
 #include "shmShmConsumerStateTable.h"
 
+using namespace std;
+
+using namespace boost::interprocess;
+
+#define MQ_RESPONSE_BUFFER_SIZE (4*1024*1024)
+#define MQ_SIZE 100
+#define MQ_MAX_RETRY 10
+#define MQ_POLL_TIMEOUT (1000)
+
 namespace swss {
 
 ShmConsumerStateTable::ShmConsumerStateTable(DBConnector *db, const std::string &tableName, int popBatchSize, int pri)
-    : ConsumerTableBase(db, tableName, popBatchSize, pri)
-    , TableName_KeySet(tableName)
+    : Selectable(pri)
 {
-    std::string luaScript = loadLuaScript("consumer_state_table_pops.lua");
-    m_shaPop = loadRedisScript(db, luaScript);
-
-    for (;;)
+    m_queueName = db->getDbName() + "_" + tableName;
+    
+    try
     {
-        RedisReply watch(m_db, "WATCH " + getKeySetName(), REDIS_REPLY_STATUS);
-        watch.checkStatusOK();
-        multi();
-        enqueue(std::string("SCARD ") + getKeySetName(), REDIS_REPLY_INTEGER);
-        subscribe(m_db, getChannelName(m_db->getDbId()));
-        bool succ = exec();
-        if (succ) break;
+        m_queue = std::make_shared<message_queue>(open_or_create,
+                                                   m_queueName.c_str(),
+                                                   MQ_SIZE,
+                                                   MQ_RESPONSE_BUFFER_SIZE);
+    }
+    catch (const interprocess_exception& e)
+    {
+        SWSS_LOG_THROW("failed to open or create main message queue %s: %s",
+                m_queueName.c_str(),
+                e.what());
     }
 
-    RedisReply r(dequeueReply());
-    setQueueLength(r.getReply<long long int>());
+    m_runThread = true;
+    m_mqPollThread = std::make_shared<std::thread>(&ShmProducerStateTable::updateTableThreadFunction, this);
+    
 }
 
-void ShmConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const std::string& /*prefix*/)
+ShmConsumerStateTable::~ShmConsumerStateTable()
 {
+    m_runThread = false;
+}
 
-    RedisCommand command;
-    command.format(
-        "EVALSHA %s 3 %s %s%s %s %d %s",
-        m_shaPop.c_str(),
-        getKeySetName().c_str(),
-        getTableName().c_str(),
-        getTableNameSeparator().c_str(),
-        getDelKeySetName().c_str(),
-        POP_BATCH_SIZE,
-        getStateHashPrefix().c_str());
+void ShmConsumerStateTable::mqPollThread()
+{
+    SWSS_LOG_ENTER();
+    SWSS_LOG_NOTICE("mqPollThread begin");
+    std::vector<uint8_t> buffer;
+    buffer.resize(MQ_RESPONSE_BUFFER_SIZE);
 
-    RedisReply r(m_db, command);
-    auto ctx0 = r.getContext();
-    vkco.clear();
-
-    // if the set is empty, return an empty kco object
-    if (ctx0->type == REDIS_REPLY_NIL)
+    while (m_runThread)
     {
-        return;
+        unsigned int priority;
+        message_queue::size_type recvd_size;
+
+        try
+        {
+            bool received = m_messageQueue->timed_receive(buffer.data(),
+                                                MQ_RESPONSE_BUFFER_SIZE,
+                                                recvd_size,
+                                                priority,
+                                                boost::posix_time::ptime(microsec_clock::universal_time()) + boost::posix_time::milliseconds(MQ_POLL_TIMEOUT));
+
+            if (m_runThread == false)
+            {
+                SWSS_LOG_NOTICE("ending pool thread, since run is false");
+                break;
+            }
+
+            if (!received)
+            {
+                // Not receive message
+                SWSS_LOG_DEBUG("message queue timed receive: no events, continue");
+                continue;
+            }
+
+            if (recvd_size >= MQ_RESPONSE_BUFFER_SIZE)
+            {
+                SWSS_LOG_THROW("message queue received message was truncated (over %d bytes, received %d), increase buffer size, message DROPPED",
+                        MQ_RESPONSE_BUFFER_SIZE,
+                        recvd_size);
+            }
+
+            m_buffer.at(recvd_size) = 0; // make sure that we end string with zero before parse
+            //m_queue.push((char*)m_buffer.data());
+
+            m_selectableEvent.notify(); // will release epoll
+        }
+        catch (const interprocess_exception& e)
+        {
+            SWSS_LOG_ERROR("message queue %s timed receive failed: %s", m_queueName.c_str(), e.what());
+            break;
+        }
     }
 
-    assert(ctx0->type == REDIS_REPLY_ARRAY);
-    size_t n = ctx0->elements;
-    vkco.resize(n);
-    for (size_t ie = 0; ie < n; ie++)
-    {
-        auto& kco = vkco[ie];
-        auto& values = kfvFieldsValues(kco);
-        assert(values.empty());
-
-        auto& ctx = ctx0->element[ie];
-        assert(ctx->element[0]->type == REDIS_REPLY_STRING);
-        std::string key = ctx->element[0]->str;
-        kfvKey(kco) = key;
-
-        assert(ctx->element[1]->type == REDIS_REPLY_ARRAY);
-        auto ctx1 = ctx->element[1];
-        for (size_t i = 0; i < ctx1->elements / 2; i++)
-        {
-            FieldValueTuple e;
-            fvField(e) = ctx1->element[i * 2]->str;
-            fvValue(e) = ctx1->element[i * 2 + 1]->str;
-            values.push_back(e);
-        }
-
-        // if there is no field-value pair, the key is already deleted
-        if (values.empty())
-        {
-            kfvOp(kco) = DEL_COMMAND;
-        }
-        else
-        {
-            kfvOp(kco) = SET_COMMAND;
-        }
-    }
+    SWSS_LOG_NOTICE("end");
 }
 
 }
