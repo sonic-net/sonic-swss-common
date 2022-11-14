@@ -102,10 +102,8 @@ jobs:
     workingDirectory: $(Build.ArtifactStagingDirectory)
     condition: ne('${{ parameters.debian_version }}', 'bullseye')
     displayName: "Install libyang from common lib"
-    # Azure.sonic-buildimage.common_libs does not build libs for bullseye, so install libyang-dev by apt-get
   - script: |
-      sudo apt-get install -qq -y \
-        libyang-dev
+        sudo dpkg -i libyang*.deb
     condition: eq('${{ parameters.debian_version }}', 'bullseye')
     displayName: "Install libyang for bullseye"
   - script: |
