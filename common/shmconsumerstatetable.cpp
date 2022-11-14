@@ -5,9 +5,11 @@
 #include "dbconnector.h"
 #include "table.h"
 #include "selectable.h"
+#include "selectableevent.h"
 #include "redisselect.h"
 #include "redisapi.h"
-#include "shmShmConsumerStateTable.h"
+#include "shmconsumerstatetable.h"
+#include "json.h"
 
 using namespace std;
 
@@ -27,7 +29,7 @@ ShmConsumerStateTable::ShmConsumerStateTable(DBConnector *db, const std::string 
     
     try
     {
-        m_queue = std::make_shared<message_queue>(open_or_create,
+        m_msgQueue = std::make_shared<message_queue>(open_or_create,
                                                    m_queueName.c_str(),
                                                    MQ_SIZE,
                                                    MQ_RESPONSE_BUFFER_SIZE);
@@ -40,7 +42,7 @@ ShmConsumerStateTable::ShmConsumerStateTable(DBConnector *db, const std::string 
     }
 
     m_runThread = true;
-    m_mqPollThread = std::make_shared<std::thread>(&ShmProducerStateTable::updateTableThreadFunction, this);
+    m_mqPollThread = std::make_shared<std::thread>(&ShmConsumerStateTable::mqPollThread, this);
     
 }
 
@@ -63,7 +65,7 @@ void ShmConsumerStateTable::mqPollThread()
 
         try
         {
-            bool received = m_messageQueue->timed_receive(buffer.data(),
+            bool received = m_msgQueue->timed_receive(buffer.data(),
                                                 MQ_RESPONSE_BUFFER_SIZE,
                                                 recvd_size,
                                                 priority,
@@ -86,11 +88,15 @@ void ShmConsumerStateTable::mqPollThread()
             {
                 SWSS_LOG_THROW("message queue received message was truncated (over %d bytes, received %d), increase buffer size, message DROPPED",
                         MQ_RESPONSE_BUFFER_SIZE,
-                        recvd_size);
+                        (int)recvd_size);
             }
 
-            m_buffer.at(recvd_size) = 0; // make sure that we end string with zero before parse
-            //m_queue.push((char*)m_buffer.data());
+            buffer.at(recvd_size) = 0; // make sure that we end string with zero before parse
+
+            {
+                std::lock_guard<std::mutex> lock(m_dataQueueMutex);
+                m_dataQueue.push((char*)buffer.data());
+            }
 
             m_selectableEvent.notify(); // will release epoll
         }
@@ -100,8 +106,52 @@ void ShmConsumerStateTable::mqPollThread()
             break;
         }
     }
+    
+    try
+    {
+        message_queue::remove(m_queueName.c_str());
+    }
+    catch (const interprocess_exception& e)
+    {
+        // message queue still use by some other process
+        SWSS_LOG_NOTICE("Failed to close a using message queue '%s': %s", m_queueName.c_str(), e.what());
+    }
 
     SWSS_LOG_NOTICE("end");
+}
+
+/* Get multiple pop elements */
+void ShmConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const std::string& /*prefix*/)
+{
+    if (m_dataQueue.empty())
+    {
+        return;
+    }
+    
+    // For new data append to m_dataQueue during pops, will not be include in result.
+    auto count = m_dataQueue.size();
+    vkco.clear();
+    vkco.resize(count);
+    for (size_t ie = 0; ie < count; ie++)
+    {
+        auto& kco = vkco[ie];
+        auto& values = kfvFieldsValues(kco);
+        values.clear();
+
+        swss::JSon::readJson(m_dataQueue.front(), values);
+        
+        // set key and OP
+        swss::FieldValueTuple fvt = values.at(0);
+        kfvKey(kco) = fvField(fvt);
+        kfvOp(kco) = fvValue(fvt);
+
+        values.erase(values.begin());
+
+        {
+            std::lock_guard<std::mutex> lock(m_dataQueueMutex);
+            m_dataQueue.pop();
+        }
+    }
 }
 
 }

@@ -3,6 +3,7 @@
 #include <string>
 #include <deque>
 #include "dbconnector.h"
+#include "table.h"
 #include "consumertablebase.h"
 
 #include <boost/interprocess/ipc/message_queue.hpp>
@@ -12,23 +13,26 @@ namespace swss {
 class ShmConsumerStateTable : public Selectable
 {
 public:
+    /* The default value of pop batch size is 128 */
+    static constexpr int DEFAULT_POP_BATCH_SIZE = 128;
+
     ShmConsumerStateTable(DBConnector *db, const std::string &tableName, int popBatchSize = DEFAULT_POP_BATCH_SIZE, int pri = 0);
     ~ShmConsumerStateTable();
 
     /* Get multiple pop elements */
     void pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const std::string &prefix = EMPTY_PREFIX);
 
-    void pop(KeyOpFieldsValuesTuple &kco, const std::string &prefix = EMPTY_PREFIX);
-
-    void pop(std::string &key, std::string &op, std::vector<FieldValueTuple> &fvs, const std::string &prefix = EMPTY_PREFIX);
-
-    bool empty() const { return m_buffer.empty(); };
-    
     /* return file handler for the Selectable */
-    virtual int getFd() = 0;
+    int getFd() override
+    {
+        return m_selectableEvent.getFd();
+    }
 
     /* Read all data from the fd assicaited with Selectable */
-    virtual uint64_t readData() = 0;
+    uint64_t readData() override
+    {
+        return 0;
+    }
 
     /*
        true if Selectable has data in it for immediate read
@@ -38,38 +42,30 @@ public:
        and we have a Selectable with no data in the m_ready queue (Select class).
        The class without hasCachedData never is going to be in m_ready state without the data
     */
-    virtual bool hasData()
+    bool hasData() override
     {
-        return true;
+        return !m_dataQueue.empty();
     }
 
     /* true if Selectable has data in its cache */
-    virtual bool hasCachedData()
+    bool hasCachedData() override
     {
-        return false;
+        return !m_dataQueue.empty();
     }
 
     /* true if Selectable was initialized with data */
-    virtual bool initializedWithData()
+    bool initializedWithData() override
     {
+        // TODO, if we need load data from redis during initialize, don't forget change code here.
         return false;
     }
 
-    /* run this function after every read */
-    virtual void updateAfterRead()
-    {
-    }
-
-    virtual int getPri() const
-    {
-        return m_priority;
-    }
 private:
     void mqPollThread();
 
     std::string m_queueName;
 
-    std::shared_ptr<boost::interprocess::message_queue> m_queue;
+    std::shared_ptr<boost::interprocess::message_queue> m_msgQueue;
 
     volatile bool m_runThread;
 
