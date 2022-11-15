@@ -99,13 +99,9 @@ jobs:
   - script: |
       set -ex
       sudo dpkg -i $(find ./download -name *.deb)
-    workingDirectory: $(Build.ArtifactStagingDirectory)
+    workingDirectory: $(Build.ArtifactStagingDirectory)/download
     condition: ne('${{ parameters.debian_version }}', 'bullseye')
     displayName: "Install libyang from common lib"
-  - script: |
-        sudo dpkg -i libyang*.deb
-    condition: eq('${{ parameters.debian_version }}', 'bullseye')
-    displayName: "Install libyang for bullseye"
   - script: |
       set -ex
       rm ../*.deb || true
