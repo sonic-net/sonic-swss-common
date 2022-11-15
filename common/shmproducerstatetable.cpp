@@ -9,16 +9,12 @@
 #include "redisapi.h"
 #include "redispipeline.h"
 #include "shmproducerstatetable.h"
+#include "shmconsumerstatetable.h"
 #include "json.h"
 
 using namespace std;
 
 using namespace boost::interprocess;
-
-#define MQ_RESPONSE_BUFFER_SIZE (4*1024*1024)
-#define MQ_SIZE 100
-#define MQ_MAX_RETRY 10
-#define MQ_POLL_TIMEOUT (1000)
 
 namespace swss {
 
@@ -37,25 +33,18 @@ ShmProducerStateTable::ShmProducerStateTable(RedisPipeline *pipeline, const stri
 ShmProducerStateTable::~ShmProducerStateTable()
 {
     m_runUpdateTableThread = false;
+    m_updateTableThread->join();
     
-    try
-    {
-        message_queue::remove(m_queueName.c_str());
-    }
-    catch (const interprocess_exception& e)
-    {
-        // message queue still use by some other process
-        SWSS_LOG_NOTICE("Failed to close a using message queue '%s': %s", m_queueName.c_str(), e.what());
-    }
+    ShmConsumerStateTable::TryRemoveShmQueue(m_queueName);
 }
-
+    
 void ShmProducerStateTable::initialize()
 {
     m_runUpdateTableThread = true;
     m_updateTableThread = std::make_shared<std::thread>(&ShmProducerStateTable::updateTableThreadFunction, this);
     
     // every table can only have 1 queue.
-    m_queueName =  m_pipe->getDbName() + "_" + getTableName();
+    m_queueName =  ShmConsumerStateTable::GetQueueName(m_pipe->getDbName(), getTableName());
     
     try
     {
@@ -82,7 +71,7 @@ void ShmProducerStateTable::set(
     std::lock_guard<std::mutex> lock(m_operationQueueMutex);
     m_operationQueue.emplace(operation);
     
-    //sendMsg(key, values, op);
+    sendMsg(key, values, op);
 }
 
 void ShmProducerStateTable::del(
@@ -94,7 +83,7 @@ void ShmProducerStateTable::del(
     std::lock_guard<std::mutex> lock(m_operationQueueMutex);
     m_operationQueue.emplace(operation);
     
-    //sendMsg(key, vector<FieldValueTuple>(), op);
+    sendMsg(key, vector<FieldValueTuple>(), op);
 }
 
 void ShmProducerStateTable::set(const std::vector<KeyOpFieldsValuesTuple>& values)
@@ -103,12 +92,10 @@ void ShmProducerStateTable::set(const std::vector<KeyOpFieldsValuesTuple>& value
     std::lock_guard<std::mutex> lock(m_operationQueueMutex);
     m_operationQueue.emplace(operation);
 
-    /*
     for (const auto &value : values)
     {
         sendMsg(kfvKey(value), kfvFieldsValues(value), SET_COMMAND);
     }
-    */
 }
 
 void ShmProducerStateTable::del(const std::vector<std::string>& keys)
@@ -117,12 +104,10 @@ void ShmProducerStateTable::del(const std::vector<std::string>& keys)
     std::lock_guard<std::mutex> lock(m_operationQueueMutex);
     m_operationQueue.emplace(operation);
 
-    /*
     for (const auto &key : keys)
     {
         sendMsg(key, vector<FieldValueTuple>(), DEL_COMMAND);
     }
-    */
 }
 
 void ShmProducerStateTable::updateTableThreadFunction()
@@ -199,19 +184,18 @@ void ShmProducerStateTable::sendMsg(
     std::string msg = JSon::buildJson(copy);
 
     SWSS_LOG_DEBUG("sending: %s", msg.c_str());
-
-    for (int i = 0; true ; ++i)
+    for (int i = 0; i <=  MQ_MAX_RETRY; ++i)
     {
-        if (m_queue->get_num_msg() >= m_queue->get_max_msg())
-        {
-            SWSS_LOG_DEBUG("message queue %s is full, retry later.", m_queueName.c_str());
-            sleep(MQ_POLL_TIMEOUT);
-        }
-
         try
         {
-            m_queue->send(msg.c_str(), msg.length(), 0);
-            return;
+            // retry when send failed because timeout
+            if (m_queue->timed_send(msg.c_str(),
+                            msg.length(),
+                            0,
+                            boost::posix_time::ptime(microsec_clock::universal_time()) + boost::posix_time::milliseconds(MQ_POLL_TIMEOUT)))
+            {
+                return;
+            }
         }
         catch (const interprocess_exception& e)
         {
@@ -224,8 +208,8 @@ void ShmProducerStateTable::sendMsg(
         }
     }
 
-    SWSS_LOG_ERROR("message queue %s send failed after retry.",
-            m_queueName.c_str());
+    // message send failed because timeout
+    SWSS_LOG_ERROR("message queue %s send failed because timeout.", m_queueName.c_str());
 }
 
 }

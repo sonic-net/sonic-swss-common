@@ -5,8 +5,14 @@
 #include "dbconnector.h"
 #include "table.h"
 #include "consumertablebase.h"
+#include "selectableevent.h"
 
 #include <boost/interprocess/ipc/message_queue.hpp>
+
+#define MQ_RESPONSE_BUFFER_SIZE (4*1024*1024)
+#define MQ_SIZE 100
+#define MQ_MAX_RETRY 10
+#define MQ_POLL_TIMEOUT (1000)
 
 namespace swss {
 
@@ -18,6 +24,9 @@ public:
 
     ShmConsumerStateTable(DBConnector *db, const std::string &tableName, int popBatchSize = DEFAULT_POP_BATCH_SIZE, int pri = 0);
     ~ShmConsumerStateTable();
+    
+    static bool TryRemoveShmQueue(const std::string &queueName);
+    static std::string GetQueueName(const std::string &dbName, const std::string &tableName);
 
     /* Get multiple pop elements */
     void pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const std::string &prefix = EMPTY_PREFIX);

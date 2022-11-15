@@ -15,17 +15,12 @@ using namespace std;
 
 using namespace boost::interprocess;
 
-#define MQ_RESPONSE_BUFFER_SIZE (4*1024*1024)
-#define MQ_SIZE 100
-#define MQ_MAX_RETRY 10
-#define MQ_POLL_TIMEOUT (1000)
-
 namespace swss {
 
 ShmConsumerStateTable::ShmConsumerStateTable(DBConnector *db, const std::string &tableName, int popBatchSize, int pri)
     : Selectable(pri)
 {
-    m_queueName = db->getDbName() + "_" + tableName;
+    m_queueName = GetQueueName(db->getDbName(), tableName);
     
     try
     {
@@ -49,6 +44,28 @@ ShmConsumerStateTable::ShmConsumerStateTable(DBConnector *db, const std::string 
 ShmConsumerStateTable::~ShmConsumerStateTable()
 {
     m_runThread = false;
+    m_mqPollThread->join();
+}
+
+bool ShmConsumerStateTable::TryRemoveShmQueue(const std::string &queueName)
+{
+    try
+    {
+        message_queue::remove(queueName.c_str());
+        return true;
+    }
+    catch (const interprocess_exception& e)
+    {
+        // message queue still use by some other process
+        SWSS_LOG_NOTICE("Failed to close a using message queue '%s': %s", queueName.c_str(), e.what());
+    }
+    
+    return false;
+}
+
+std::string ShmConsumerStateTable::GetQueueName(const std::string &dbName, const std::string &tableName)
+{
+    return dbName + "_" + tableName;
 }
 
 void ShmConsumerStateTable::mqPollThread()
@@ -106,16 +123,8 @@ void ShmConsumerStateTable::mqPollThread()
             break;
         }
     }
-    
-    try
-    {
-        message_queue::remove(m_queueName.c_str());
-    }
-    catch (const interprocess_exception& e)
-    {
-        // message queue still use by some other process
-        SWSS_LOG_NOTICE("Failed to close a using message queue '%s': %s", m_queueName.c_str(), e.what());
-    }
+
+    TryRemoveShmQueue(m_queueName);
 
     SWSS_LOG_NOTICE("end");
 }
