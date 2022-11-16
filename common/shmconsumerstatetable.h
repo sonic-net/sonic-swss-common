@@ -69,6 +69,21 @@ public:
         return false;
     }
 
+    const DBConnector* getDbConnector() const
+    {
+        return m_db;
+    }
+    
+    std::string getTableName() const
+    {
+        return m_tableName;
+    }
+
+    std::string getTableNameSeparator() const
+    {
+        return m_tableSeparator;
+    }
+
 private:
     void mqPollThread();
 
@@ -85,6 +100,12 @@ private:
     std::mutex m_dataQueueMutex;
 
     std::queue<std::string> m_dataQueue;
+
+    DBConnector *m_db;
+    
+    std::string m_tableName;
+    
+    std::string m_tableSeparator;
 };
 
 }

@@ -19,7 +19,10 @@ namespace swss {
 
 ShmConsumerStateTable::ShmConsumerStateTable(DBConnector *db, const std::string &tableName, int popBatchSize, int pri)
     : Selectable(pri)
+    , m_db(db)
+    , m_tableName(tableName)
 {
+    m_tableSeparator = TableBase::gettableSeparator(db->getDbId());
     m_queueName = GetQueueName(db->getDbName(), tableName);
     
     try
