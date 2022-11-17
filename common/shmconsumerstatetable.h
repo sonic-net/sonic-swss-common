@@ -7,8 +7,6 @@
 #include "consumertablebase.h"
 #include "selectableevent.h"
 
-#include <boost/interprocess/ipc/message_queue.hpp>
-
 #define MQ_RESPONSE_BUFFER_SIZE (4*1024*1024)
 #define MQ_SIZE 100
 #define MQ_MAX_RETRY 10
@@ -88,8 +86,6 @@ private:
     void mqPollThread();
 
     std::string m_queueName;
-
-    std::shared_ptr<boost::interprocess::message_queue> m_msgQueue;
 
     volatile bool m_runThread;
 

@@ -12,6 +12,8 @@
 #include "shmconsumerstatetable.h"
 #include "json.h"
 
+#include <boost/interprocess/ipc/message_queue.hpp>
+
 using namespace std;
 
 using namespace boost::interprocess;
@@ -36,6 +38,8 @@ ShmProducerStateTable::~ShmProducerStateTable()
     m_updateTableThread->join();
     
     ShmConsumerStateTable::TryRemoveShmQueue(m_queueName);
+
+    delete (message_queue*)m_queue;
 }
     
 void ShmProducerStateTable::initialize()
@@ -48,10 +52,10 @@ void ShmProducerStateTable::initialize()
     
     try
     {
-        m_queue = std::make_shared<message_queue>(open_or_create,
-                                                   m_queueName.c_str(),
-                                                   MQ_SIZE,
-                                                   MQ_RESPONSE_BUFFER_SIZE);
+        m_queue = new message_queue(open_or_create,
+                                       m_queueName.c_str(),
+                                       MQ_SIZE,
+                                       MQ_RESPONSE_BUFFER_SIZE);
     }
     catch (const interprocess_exception& e)
     {
@@ -189,7 +193,7 @@ void ShmProducerStateTable::sendMsg(
         try
         {
             // retry when send failed because timeout
-            if (m_queue->timed_send(msg.c_str(),
+            if (((message_queue*)m_queue)->timed_send(msg.c_str(),
                             msg.length(),
                             0,
                             boost::posix_time::ptime(microsec_clock::universal_time()) + boost::posix_time::milliseconds(MQ_POLL_TIMEOUT)))

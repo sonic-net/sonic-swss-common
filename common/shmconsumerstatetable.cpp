@@ -11,6 +11,8 @@
 #include "shmconsumerstatetable.h"
 #include "json.h"
 
+#include <boost/interprocess/ipc/message_queue.hpp>
+
 using namespace std;
 
 using namespace boost::interprocess;
@@ -24,20 +26,6 @@ ShmConsumerStateTable::ShmConsumerStateTable(DBConnector *db, const std::string 
 {
     m_tableSeparator = TableBase::gettableSeparator(db->getDbId());
     m_queueName = GetQueueName(db->getDbName(), tableName);
-    
-    try
-    {
-        m_msgQueue = std::make_shared<message_queue>(open_or_create,
-                                                   m_queueName.c_str(),
-                                                   MQ_SIZE,
-                                                   MQ_RESPONSE_BUFFER_SIZE);
-    }
-    catch (const interprocess_exception& e)
-    {
-        SWSS_LOG_THROW("failed to open or create main message queue %s: %s",
-                m_queueName.c_str(),
-                e.what());
-    }
 
     m_runThread = true;
     m_mqPollThread = std::make_shared<std::thread>(&ShmConsumerStateTable::mqPollThread, this);
@@ -77,6 +65,22 @@ void ShmConsumerStateTable::mqPollThread()
     SWSS_LOG_NOTICE("mqPollThread begin");
     std::vector<uint8_t> buffer;
     buffer.resize(MQ_RESPONSE_BUFFER_SIZE);
+    
+    std::shared_ptr<message_queue> msgQueue;
+    
+    try
+    {
+        msgQueue = std::make_shared<message_queue>(open_or_create,
+                                                   m_queueName.c_str(),
+                                                   MQ_SIZE,
+                                                   MQ_RESPONSE_BUFFER_SIZE);
+    }
+    catch (const interprocess_exception& e)
+    {
+        SWSS_LOG_THROW("failed to open or create main message queue %s: %s",
+                m_queueName.c_str(),
+                e.what());
+    }
 
     while (m_runThread)
     {
@@ -85,7 +89,7 @@ void ShmConsumerStateTable::mqPollThread()
 
         try
         {
-            bool received = m_msgQueue->timed_receive(buffer.data(),
+            bool received = msgQueue->timed_receive(buffer.data(),
                                                 MQ_RESPONSE_BUFFER_SIZE,
                                                 recvd_size,
                                                 priority,

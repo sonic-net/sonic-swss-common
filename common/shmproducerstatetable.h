@@ -9,8 +9,6 @@
 #include "redispipeline.h"
 #include "producerstatetable.h"
 
-#include <boost/interprocess/ipc/message_queue.hpp>
-
 namespace swss {
     
 enum ShmOperationType
@@ -134,7 +132,8 @@ private:
     
     std::string m_queueName;
 
-    std::shared_ptr<boost::interprocess::message_queue> m_queue;
+    // Define boost/interprocess/ipc/message_queue.hpp to void* to avoid other application using libswsscommon report shm_open() undefined issue.
+    void* m_queue;
 };
 
 }
