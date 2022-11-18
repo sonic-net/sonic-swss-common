@@ -15,7 +15,7 @@ cc_library(
     includes = [
         "common",
     ],
-    linkopts = ["-lpthread -lhiredis -lnl-genl-3 -lnl-nf-3 -lnl-route-3 -lnl-3 -lzmq -lboost_serialization -luuid -lyang"],
+    linkopts = ["-lpthread -lhiredis -lnl-genl-3 -lnl-nf-3 -lnl-route-3 -lnl-3 -lzmq -lboost_serialization -luuid -lyang -lrt"],
     visibility = ["//visibility:public"],
 )
 

@@ -11,7 +11,7 @@
 
 namespace swss {
     
-enum ShmOperationType
+enum ConfigOperationType
 {
     SET,
     DEL,
@@ -19,23 +19,23 @@ enum ShmOperationType
     BATCH_DEL
 };
 
-struct ShmOperationItem
+struct ConfigOperationItem
 {
-    ShmOperationType m_type;
+    ConfigOperationType m_type;
     
-    ShmOperationItem(ShmOperationType type) 
+    ConfigOperationItem(ConfigOperationType type) 
         : m_type(type)
     {}
 
-    virtual ~ShmOperationItem(){};
+    virtual ~ConfigOperationItem(){};
 };
 
-struct ShmOperationSet : public ShmOperationItem
+struct ConfigOperationSet : public ConfigOperationItem
 {
     KeyOpFieldsValuesTuple m_values;
     
-    ShmOperationSet(const std::string &key, const std::vector<FieldValueTuple> &values) 
-        : ShmOperationItem(ShmOperationType::SET)
+    ConfigOperationSet(const std::string &key, const std::vector<FieldValueTuple> &values) 
+        : ConfigOperationItem(ConfigOperationType::SET)
     {
         kfvKey(m_values) = key;
         for (const auto &value : values)
@@ -45,22 +45,22 @@ struct ShmOperationSet : public ShmOperationItem
     }
 };
 
-struct ShmOperationDel : public ShmOperationItem
+struct ConfigOperationDel : public ConfigOperationItem
 {
     std::string m_key;
     
-    ShmOperationDel(const std::string &key) 
-        : ShmOperationItem(ShmOperationType::DEL)
+    ConfigOperationDel(const std::string &key) 
+        : ConfigOperationItem(ConfigOperationType::DEL)
         , m_key(key) 
     {}
 };
 
-struct ShmOperationBatchSet : public ShmOperationItem
+struct ConfigOperationBatchSet : public ConfigOperationItem
 {
     std::vector<KeyOpFieldsValuesTuple> m_values;
     
-    ShmOperationBatchSet(const std::vector<KeyOpFieldsValuesTuple>& values) 
-        : ShmOperationItem(ShmOperationType::BATCH_SET)
+    ConfigOperationBatchSet(const std::vector<KeyOpFieldsValuesTuple>& values) 
+        : ConfigOperationItem(ConfigOperationType::BATCH_SET)
     {
         
         for (const auto &value : values)
@@ -78,12 +78,12 @@ struct ShmOperationBatchSet : public ShmOperationItem
     }
 };
 
-struct ShmOperationBatchDel : public ShmOperationItem
+struct ConfigOperationBatchDel : public ConfigOperationItem
 {
     std::vector<std::string> m_keys;
     
-    ShmOperationBatchDel(const std::vector<std::string>& keys) 
-        : ShmOperationItem(ShmOperationType::BATCH_DEL)
+    ConfigOperationBatchDel(const std::vector<std::string>& keys) 
+        : ConfigOperationItem(ConfigOperationType::BATCH_DEL)
     {
         for (const auto &key : keys)
         {
@@ -92,12 +92,12 @@ struct ShmOperationBatchDel : public ShmOperationItem
     }
 };
 
-class ShmProducerStateTable : public ProducerStateTable
+class ZmqProducerStateTable : public ProducerStateTable
 {
 public:
-    ShmProducerStateTable(DBConnector *db, const std::string &tableName);
-    ShmProducerStateTable(RedisPipeline *pipeline, const std::string &tableName, bool buffered = false);
-    ~ShmProducerStateTable();
+    ZmqProducerStateTable(DBConnector *db, const std::string &tableName, const std::string& endpoint);
+    ZmqProducerStateTable(RedisPipeline *pipeline, const std::string &tableName, const std::string& endpoint, bool buffered = false);
+    ~ZmqProducerStateTable();
 
     /* Implements set() and del() commands using notification messages */
     virtual void set(const std::string &key,
@@ -114,7 +114,7 @@ public:
 
     virtual void del(const std::vector<std::string>& keys);
 private:
-    void initialize();
+    void initialize(const std::string& endpoint);
 
     void updateTableThreadFunction();
 
@@ -126,14 +126,15 @@ private:
 
     bool m_runUpdateTableThread;
     
-    std::queue<std::shared_ptr<ShmOperationItem>> m_operationQueue;
+    std::queue<std::shared_ptr<ConfigOperationItem>> m_operationQueue;
 
     std::mutex m_operationQueueMutex;
-    
-    std::string m_queueName;
 
-    // Define boost/interprocess/ipc/message_queue.hpp to void* to avoid other application using libswsscommon report shm_open() undefined issue.
-    void* m_queue;
+    std::string m_endpoint;
+
+    void* m_context;
+
+    void* m_socket;
 };
 
 }

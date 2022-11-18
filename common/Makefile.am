@@ -42,7 +42,7 @@ libswsscommon_la_SOURCES = \
     json.cpp                  \
     producertable.cpp         \
     producerstatetable.cpp    \
-    shmproducerstatetable.cpp \
+    zmqproducerstatetable.cpp \
     rediscommand.cpp          \
     redistran.cpp             \
     redisselect.cpp           \
@@ -52,7 +52,7 @@ libswsscommon_la_SOURCES = \
     consumertable.cpp         \
     consumertablebase.cpp     \
     consumerstatetable.cpp    \
-    shmconsumerstatetable.cpp \
+    zmqconsumerstatetable.cpp \
     ipaddress.cpp             \
     ipprefix.cpp              \
     ipaddresses.cpp           \

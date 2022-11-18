@@ -12,7 +12,7 @@
 #include "common/selectableevent.h"
 #include "common/table.h"
 #include "common/producerstatetable.h"
-#include "common/shmproducerstatetable.h"
+#include "common/zmqproducerstatetable.h"
 #include "common/consumerstatetable.h"
 
 using namespace std;
@@ -146,16 +146,17 @@ static inline void clearDB()
     r.checkStatusOK();
 }
 
-TEST(ConsumerStateTable, async_double_set)
+TEST(ZmqProducerStateTable, async_double_set)
 {
     clearDB();
 
     /* Prepare producer */
     int index = 0;
     string tableName = "UT_REDIS_THREAD_" + to_string(index);
+    std::string pushEndpoint = "tcp://localhost:1234";
     DBConnector db(TEST_DB, 0, true);
     RedisPipeline pipeline(&db);
-    ProducerStateTable p(&pipeline, tableName, true);
+    ZmqProducerStateTable p(&pipeline, tableName, pushEndpoint, true);
     string key = "TheKey";
     int maxNumOfFields = 2;
 
@@ -181,6 +182,9 @@ TEST(ConsumerStateTable, async_double_set)
         p.set(key, fields);
     }
     p.flush();
+
+    // wait for ZmqProducerStateTable m_updateTableThread thread run all operations
+    sleep(10);
 
     /* Prepare consumer */
     ConsumerStateTable c(&db, tableName);
@@ -218,12 +222,14 @@ TEST(ConsumerStateTable, async_double_set)
 
     /* Second select operation */
     {
-        int ret = cs.select(&selectcs, 1000);
+        cout << "start wait" << endl;
+        int ret = cs.select(&selectcs, 10);
+        cout << "timeout" << endl;
         EXPECT_EQ(ret, Select::TIMEOUT);
     }
 }
 
-TEST(ShmProducerStateTable, async_double_set)
+TEST(ConsumerStateTable, async_double_set)
 {
     clearDB();
 
@@ -232,7 +238,7 @@ TEST(ShmProducerStateTable, async_double_set)
     string tableName = "UT_REDIS_THREAD_" + to_string(index);
     DBConnector db(TEST_DB, 0, true);
     RedisPipeline pipeline(&db);
-    ShmProducerStateTable p(&pipeline, tableName, true);
+    ProducerStateTable p(&pipeline, tableName, true);
     string key = "TheKey";
     int maxNumOfFields = 2;
 
@@ -258,9 +264,6 @@ TEST(ShmProducerStateTable, async_double_set)
         p.set(key, fields);
     }
     p.flush();
-    
-    // wait for ShmProducerStateTable m_updateTableThread thread run all operations
-    sleep(1000);
 
     /* Prepare consumer */
     ConsumerStateTable c(&db, tableName);

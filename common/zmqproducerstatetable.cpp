@@ -8,96 +8,97 @@
 #include "table.h"
 #include "redisapi.h"
 #include "redispipeline.h"
-#include "shmproducerstatetable.h"
-#include "shmconsumerstatetable.h"
+#include "zmqproducerstatetable.h"
+#include "zmqconsumerstatetable.h"
 #include "json.h"
+#include <iostream>
 
-// try include these header so some bazel project will know link to librt
-#include <sys/mman.h>
-#include <sys/stat.h>        /* For mode constants */
-#include <fcntl.h>           /* For O_* constants */
-
-#include <boost/interprocess/ipc/message_queue.hpp>
+#include <zmq.h>
 
 using namespace std;
 
-using namespace boost::interprocess;
-
 namespace swss {
 
-ShmProducerStateTable::ShmProducerStateTable(DBConnector *db, const string &tableName)
+ZmqProducerStateTable::ZmqProducerStateTable(DBConnector *db, const string &tableName, const std::string& endpoint)
     : ProducerStateTable(db, tableName)
 {
-    initialize();
+    initialize(endpoint);
 }
 
-ShmProducerStateTable::ShmProducerStateTable(RedisPipeline *pipeline, const string &tableName, bool buffered)
+ZmqProducerStateTable::ZmqProducerStateTable(RedisPipeline *pipeline, const string &tableName, const std::string& endpoint, bool buffered)
     : ProducerStateTable(pipeline, tableName, buffered)
 {
-    initialize();
+    initialize(endpoint);
 }
 
-ShmProducerStateTable::~ShmProducerStateTable()
+ZmqProducerStateTable::~ZmqProducerStateTable()
 {
     m_runUpdateTableThread = false;
     m_updateTableThread->join();
-    
-    ShmConsumerStateTable::TryRemoveShmQueue(m_queueName);
 
-    delete (message_queue*)m_queue;
+    int rc = zmq_close(m_socket);
+    if (rc != 0)
+    {
+        SWSS_LOG_ERROR("failed to close zmq socket, zmqerrno: %d",
+                zmq_errno());
+    }
+
+    zmq_ctx_destroy(m_context);
 }
     
-void ShmProducerStateTable::initialize()
+void ZmqProducerStateTable::initialize(const std::string& endpoint)
 {
     m_runUpdateTableThread = true;
-    m_updateTableThread = std::make_shared<std::thread>(&ShmProducerStateTable::updateTableThreadFunction, this);
+    m_updateTableThread = std::make_shared<std::thread>(&ZmqProducerStateTable::updateTableThreadFunction, this);
+
+    // Producer/Consumer state table are n:m mapping, so need use PUSH/PUUL pattern http://api.zeromq.org/master:zmq-socket
+    m_context = zmq_ctx_new();
+    m_socket = zmq_socket(m_context, ZMQ_PUSH);
     
-    // every table can only have 1 queue.
-    m_queueName =  ShmConsumerStateTable::GetQueueName(m_pipe->getDbName(), getTableName());
-    
-    try
+    // timeout all pending send package, so zmq will not block in dtor of this class: http://api.zeromq.org/master:zmq-setsockopt
+    int linger = 0;
+    zmq_setsockopt(m_socket, ZMQ_LINGER, &linger, sizeof(linger));
+
+    SWSS_LOG_NOTICE("opening zmq main endpoint: %s", endpoint.c_str());
+
+    m_endpoint = endpoint;
+    int rc = zmq_connect(m_socket, endpoint.c_str());
+    if (rc != 0)
     {
-        m_queue = new message_queue(open_or_create,
-                                       m_queueName.c_str(),
-                                       MQ_SIZE,
-                                       MQ_RESPONSE_BUFFER_SIZE);
-    }
-    catch (const interprocess_exception& e)
-    {
-        SWSS_LOG_THROW("failed to open or create main message queue %s: %s",
-                m_queueName.c_str(),
-                e.what());
+        SWSS_LOG_THROW("failed to open zmq main endpoint %s, zmqerrno: %d",
+                endpoint.c_str(),
+                zmq_errno());
     }
 }
 
-void ShmProducerStateTable::set(
+void ZmqProducerStateTable::set(
                     const string &key,
                     const vector<FieldValueTuple> &values,
                     const string &op /*= SET_COMMAND*/,
                     const string &prefix)
 {
-    auto* operation = new ShmOperationSet(key, values);
+    auto* operation = new ConfigOperationSet(key, values);
     std::lock_guard<std::mutex> lock(m_operationQueueMutex);
     m_operationQueue.emplace(operation);
     
     sendMsg(key, values, op);
 }
 
-void ShmProducerStateTable::del(
+void ZmqProducerStateTable::del(
                     const string &key,
                     const string &op /*= DEL_COMMAND*/,
                     const string &prefix)
 {
-    auto* operation = new ShmOperationDel(key);
+    auto* operation = new ConfigOperationDel(key);
     std::lock_guard<std::mutex> lock(m_operationQueueMutex);
     m_operationQueue.emplace(operation);
     
     sendMsg(key, vector<FieldValueTuple>(), op);
 }
 
-void ShmProducerStateTable::set(const std::vector<KeyOpFieldsValuesTuple>& values)
+void ZmqProducerStateTable::set(const std::vector<KeyOpFieldsValuesTuple>& values)
 {
-    auto* operation = new ShmOperationBatchSet(values);
+    auto* operation = new ConfigOperationBatchSet(values);
     std::lock_guard<std::mutex> lock(m_operationQueueMutex);
     m_operationQueue.emplace(operation);
 
@@ -107,9 +108,9 @@ void ShmProducerStateTable::set(const std::vector<KeyOpFieldsValuesTuple>& value
     }
 }
 
-void ShmProducerStateTable::del(const std::vector<std::string>& keys)
+void ZmqProducerStateTable::del(const std::vector<std::string>& keys)
 {
-    auto* operation = new ShmOperationBatchDel(keys);
+    auto* operation = new ConfigOperationBatchDel(keys);
     std::lock_guard<std::mutex> lock(m_operationQueueMutex);
     m_operationQueue.emplace(operation);
 
@@ -119,7 +120,7 @@ void ShmProducerStateTable::del(const std::vector<std::string>& keys)
     }
 }
 
-void ShmProducerStateTable::updateTableThreadFunction()
+void ZmqProducerStateTable::updateTableThreadFunction()
 {
     DBConnector db(m_pipe->getDbName(), 0, true);
     ProducerStateTable table(&db, getTableName());
@@ -128,36 +129,36 @@ void ShmProducerStateTable::updateTableThreadFunction()
     {
         while (!m_operationQueue.empty())
         {
-            const std::shared_ptr<ShmOperationItem>& operation = m_operationQueue.front();
+            const std::shared_ptr<ConfigOperationItem>& operation = m_operationQueue.front();
             
             switch (operation->m_type)
             {
-                case ShmOperationType::SET:
+                case ConfigOperationType::SET:
                 {
-                    auto* set = (const ShmOperationSet*)operation.get();
+                    auto* set = (const ConfigOperationSet*)operation.get();
                     auto& key = kfvKey(set->m_values);
                     auto& values = kfvFieldsValues(set->m_values);
                     table.set(key, values);
                     break;
                 }
                 
-                case ShmOperationType::DEL:
+                case ConfigOperationType::DEL:
                 {
-                    auto* del = (const ShmOperationDel*)operation.get();
+                    auto* del = (const ConfigOperationDel*)operation.get();
                     table.del(del->m_key);
                     break;
                 }
                 
-                case ShmOperationType::BATCH_SET:
+                case ConfigOperationType::BATCH_SET:
                 {
-                    auto* batch = (const ShmOperationBatchSet*)operation.get();
+                    auto* batch = (const ConfigOperationBatchSet*)operation.get();
                     table.set(batch->m_values);
                     break;
                 }
                 
-                case ShmOperationType::BATCH_DEL:
+                case ConfigOperationType::BATCH_DEL:
                 {
-                    auto* batch = (const ShmOperationBatchDel*)operation.get();
+                    auto* batch = (const ConfigOperationBatchDel*)operation.get();
                     table.del(batch->m_keys);
                     break;
                 }
@@ -182,7 +183,7 @@ void ShmProducerStateTable::updateTableThreadFunction()
     }
 }
 
-void ShmProducerStateTable::sendMsg(
+void ZmqProducerStateTable::sendMsg(
         const std::string& key,
         const std::vector<swss::FieldValueTuple>& values,
         const std::string& command)
@@ -195,30 +196,27 @@ void ShmProducerStateTable::sendMsg(
     SWSS_LOG_DEBUG("sending: %s", msg.c_str());
     for (int i = 0; i <=  MQ_MAX_RETRY; ++i)
     {
-        try
+        int rc = zmq_send(m_socket, msg.c_str(), msg.length(), ZMQ_DONTWAIT);
+        if (rc <= 0
+            // EINTR: interrupted by signal, EAGAIN: ZMQ is full to need try again.
+            && (zmq_errno() == EINTR || zmq_errno() == EAGAIN)
+            && i < MQ_MAX_RETRY)
         {
-            // retry when send failed because timeout
-            if (((message_queue*)m_queue)->timed_send(msg.c_str(),
-                            msg.length(),
-                            0,
-                            boost::posix_time::ptime(microsec_clock::universal_time()) + boost::posix_time::milliseconds(MQ_POLL_TIMEOUT)))
-            {
-                return;
-            }
+            continue;
         }
-        catch (const interprocess_exception& e)
+
+        if (rc <= 0)
         {
-            if (i >= MQ_MAX_RETRY)
-            {
-                SWSS_LOG_ERROR("message queue %s send failed: %s",
-                        m_queueName.c_str(),
-                        e.what());
-            }
+            SWSS_LOG_THROW("zmq_send on endpoint %s failed, zmqerrno: %d: %s",
+                    m_endpoint.c_str(),
+                    zmq_errno(),
+                    zmq_strerror(zmq_errno()));
         }
+        break;
     }
 
     // message send failed because timeout
-    SWSS_LOG_ERROR("message queue %s send failed because timeout.", m_queueName.c_str());
+    SWSS_LOG_ERROR("zmq_send %s send failed because timeout.", m_endpoint.c_str());
 }
 
 }

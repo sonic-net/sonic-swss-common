@@ -10,8 +10,8 @@
 #include "common/select.h"
 #include "common/selectableevent.h"
 #include "common/table.h"
-#include "common/shmproducerstatetable.h"
-#include "common/shmconsumerstatetable.h"
+#include "common/zmqproducerstatetable.h"
+#include "common/zmqconsumerstatetable.h"
 
 using namespace std;
 using namespace swss;
@@ -52,10 +52,10 @@ static inline int readNumberAtEOL(const string& str)
     return ret;
 }
 
-static void producerWorker(string tableName)
+static void producerWorker(string tableName, string endpoint)
 {
     DBConnector db(TEST_DB, 0, true);
-    ShmProducerStateTable p(&db, tableName);
+    ZmqProducerStateTable p(&db, tableName, endpoint);
     cout << "Thread started: " << tableName << endl;
 
     for (int i = 0; i < NUMBER_OF_OPS; i++)
@@ -119,12 +119,12 @@ static int delCount = 0;
 static int batchSetCount = 0;
 static int batchDelCount = 0;
     
-static void consumerWorker(string tableName)
+static void consumerWorker(string tableName, string endpoint)
 {
     cout << "Consumer thread started: " << tableName << endl;
     
     DBConnector db(TEST_DB, 0, true);
-    ShmConsumerStateTable c(&db, tableName);
+    ZmqConsumerStateTable c(&db, tableName, endpoint);
     Select cs;
     cs.addSelectable(&c);
 
@@ -182,24 +182,22 @@ static void consumerWorker(string tableName)
     cout << "Consumer thread ended: " << tableName << endl;
 }
 
-TEST(ShmConsumerStateTable, test)
+TEST(ZmqConsumerStateTable, test)
 {
     std::string testTableName = "SHM_PROD_CONS_UT";
+    std::string pushEndpoint = "tcp://localhost:1234";
+    std::string pullEndpoint = "tcp://*:1234";
     thread *producerThreads[NUMBER_OF_THREADS];
 
-    // reset msg queue before test
-    auto queueName = ShmConsumerStateTable::GetQueueName(TEST_DB, testTableName);
-    ShmConsumerStateTable::TryRemoveShmQueue(queueName);
-
     // start consumer first, SHM can only have 1 consumer per table.
-    thread *consumerThread = new thread(consumerWorker, testTableName);
+    thread *consumerThread = new thread(consumerWorker, testTableName, pullEndpoint);
 
     cout << "Starting " << NUMBER_OF_THREADS << " producers" << endl;
     /* Starting the producer before the producer */
     for (int i = 0; i < NUMBER_OF_THREADS; i++)
     {
         running_thread_count++;
-        producerThreads[i] = new thread(producerWorker, testTableName);
+        producerThreads[i] = new thread(producerWorker, testTableName, pushEndpoint);
     }
 
     cout << "Done. Waiting for all job to finish " << NUMBER_OF_OPS << " jobs." << endl;

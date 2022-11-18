@@ -14,17 +14,14 @@
 
 namespace swss {
 
-class ShmConsumerStateTable : public Selectable
+class ZmqConsumerStateTable : public Selectable
 {
 public:
     /* The default value of pop batch size is 128 */
     static constexpr int DEFAULT_POP_BATCH_SIZE = 128;
 
-    ShmConsumerStateTable(DBConnector *db, const std::string &tableName, int popBatchSize = DEFAULT_POP_BATCH_SIZE, int pri = 0);
-    ~ShmConsumerStateTable();
-    
-    static bool TryRemoveShmQueue(const std::string &queueName);
-    static std::string GetQueueName(const std::string &dbName, const std::string &tableName);
+    ZmqConsumerStateTable(DBConnector *db, const std::string &tableName, const std::string& endpoint, int popBatchSize = DEFAULT_POP_BATCH_SIZE, int pri = 0);
+    ~ZmqConsumerStateTable();
 
     /* Get multiple pop elements */
     void pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const std::string &prefix = EMPTY_PREFIX);
@@ -85,8 +82,6 @@ public:
 private:
     void mqPollThread();
 
-    std::string m_queueName;
-
     volatile bool m_runThread;
 
     std::shared_ptr<std::thread> m_mqPollThread;
@@ -100,6 +95,8 @@ private:
     DBConnector *m_db;
     
     std::string m_tableName;
+
+    std::string m_endpoint;
     
     std::string m_tableSeparator;
 };
