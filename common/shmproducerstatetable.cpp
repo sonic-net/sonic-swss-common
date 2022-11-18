@@ -12,11 +12,6 @@
 #include "shmconsumerstatetable.h"
 #include "json.h"
 
-// try include these header so some bazel project will know link to librt
-#include <sys/mman.h>
-#include <sys/stat.h>        /* For mode constants */
-#include <fcntl.h>           /* For O_* constants */
-
 #include <boost/interprocess/ipc/message_queue.hpp>
 
 using namespace std;
