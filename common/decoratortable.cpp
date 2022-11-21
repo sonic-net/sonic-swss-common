@@ -8,25 +8,19 @@ using namespace swss;
 DecoratorTable::DecoratorTable(const DBConnector *db, const string &tableName)
     : Table(db, tableName)
 {
-    m_defaultValueProvider = new DefaultValueProvider();
+    m_defaultValueProvider = std::make_shared<DefaultValueProvider>();
 }
 
 DecoratorTable::DecoratorTable(RedisPipeline *pipeline, const string &tableName, bool buffered)
 :Table(pipeline, tableName, buffered)
 {
-    m_defaultValueProvider = new DefaultValueProvider();
-}
-
-DecoratorTable::~DecoratorTable()
-{
-    delete m_defaultValueProvider;
+    m_defaultValueProvider = std::make_shared<DefaultValueProvider>();
 }
 
 /* Get all the field-value tuple of the table entry with the key */
 bool DecoratorTable::get(const string &key, vector<pair<string, string>> &ovalues)
 {
     bool result = Table::get(key, ovalues);
-    auto connector = const_cast<DBConnector*>(m_pipe->getDBConnector());
     auto table = getTableName();
 
     // Append default values
