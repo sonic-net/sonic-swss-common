@@ -116,3 +116,61 @@ def test_table_read_yang_default_value(prepare_yang_module, reset_database):
 
     # check read API
     check_table_read_api_result(table, key, fieldname, "0")
+
+def test_DecoratorSubscriberStateTable(prepare_yang_module, reset_database):
+    """
+    Test DecoratorSubscriberStateTable can decorate default value.
+    """
+    tablename = "INTERFACE"
+    profile_key = "TEST_INTERFACE"
+    
+    # setup select
+    db = swsscommon.DBConnector("CONFIG_DB", 0, True)
+    db.flushdb()
+    table = swsscommon.DecoratorTable(db, tablename)
+    sel = swsscommon.Select()
+    cst = swsscommon.DecoratorSubscriberStateTable(db, tablename)
+    sel.addSelectable(cst)
+
+    # set profile
+    fvs = swsscommon.FieldValuePairs([('a','b')])
+    table.set(profile_key, fvs, "", "", 100)
+
+    # check select event
+    (state, c) = sel.select()
+    assert state == swsscommon.Select.OBJECT
+
+    entries = swsscommon.transpose_pops(cst.pops())
+    entry_exist = False
+    for entry in entries:
+        (key, op, cfvs) = entry
+        if key == profile_key:
+            entry_exist = True
+            assert op == "SET"
+            assert len(cfvs) == 2
+            assert cfvs[0] == ('a', 'b')
+            assert cfvs[1] == ('nat_zone', '0')
+    assert entry_exist
+
+    # overwrite default value
+    fvs = swsscommon.FieldValuePairs([('a','b'), ('nat_zone','1')])
+    table.set(profile_key, fvs, "", "", 100)
+
+    # check select event
+    (state, c) = sel.select()
+    assert state == swsscommon.Select.OBJECT
+
+    print("start check")
+    entries = swsscommon.transpose_pops(cst.pops())
+    print(entries)
+    entry_exist = False
+    for entry in entries:
+        (key, op, cfvs) = entry
+        if key == profile_key:
+            entry_exist = True
+            assert op == "SET"
+            assert len(cfvs) == 2
+            assert cfvs[0] == ('a', 'b')
+            assert cfvs[1] == ('nat_zone', '1')
+    assert entry_exist
+    
