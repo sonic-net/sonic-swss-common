@@ -39,6 +39,7 @@ libswsscommon_la_SOURCES = \
     defaultvalueprovider.cpp  \
     sonicv2connector.cpp      \
     table.cpp                 \
+    decoratortable.cpp        \
     json.cpp                  \
     producertable.cpp         \
     producerstatetable.cpp    \
@@ -67,6 +68,7 @@ libswsscommon_la_SOURCES = \
     exec.cpp                  \
     saiaclschema.cpp          \
     subscriberstatetable.cpp  \
+    decoratorsubscriberstatetable.cpp \
     timestamp.cpp             \
     warm_restart.cpp          \
     luatable.cpp              \
