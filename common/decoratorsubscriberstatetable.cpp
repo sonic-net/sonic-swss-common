@@ -25,10 +25,10 @@ void DecoratorSubscriberStateTable::appendDefaultValue(std::string &key, std::st
 {
     if (op != SET_COMMAND)
     {
+        // When pops, 'set' operation means read data, only read need decorate.
         return;
     }
 
-    // Not append profile config, because 'SET' command will overwrite profile config.
     auto table = getTableName();
     m_defaultValueProvider->appendDefaultValues(table, key, fvs);
 }
