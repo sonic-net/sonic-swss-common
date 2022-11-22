@@ -334,7 +334,7 @@ def test_table_delete_profile_config(prepare_yang_module, reset_database):
 
 def test_DecoratorSubscriberStateTable(prepare_yang_module, reset_database):
     """
-    Test DecoratorSubscriberStateTable can listen delete event.
+    Test DecoratorSubscriberStateTable can listen delete event and  decorate default value.
     """
     # setup profile config
     profile_conn = swsscommon.ConfigDBConnector()
@@ -345,7 +345,7 @@ def test_DecoratorSubscriberStateTable(prepare_yang_module, reset_database):
     profile_value = "value"
     profile = { profile_field: profile_value }
     profile_conn.set_entry(tablename, profile_key, profile)
-    
+
     # setup select
     db = swsscommon.DBConnector("CONFIG_DB", 0, True)
     db.flushdb()
@@ -407,5 +407,5 @@ def test_DecoratorSubscriberStateTable(prepare_yang_module, reset_database):
             assert cfvs[0] == ('a', 'b')
             assert cfvs[1] == ('nat_zone', '1')
     assert entry_exist
-    
+
     

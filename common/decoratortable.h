@@ -19,7 +19,6 @@ class DecoratorTable : public Table
 public:
     DecoratorTable(const DBConnector *db, const std::string &tableName);
     DecoratorTable(RedisPipeline *pipeline, const std::string &tableName, bool buffered);
-    ~DecoratorTable() override;
 
     /* Get all the field-value tuple of the table entry with the key */
     bool get(const std::string &key, std::vector<std::pair<std::string, std::string>> &ovalues) override;
@@ -51,8 +50,9 @@ public:
 
     /* Unhide override 'set' methods in base class */
     using Table::set;
+
 private:
-    DefaultValueProvider *m_defaultValueProvider;
+    std::shared_ptr<DefaultValueProvider> m_defaultValueProvider;
 };
 
 }

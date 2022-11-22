@@ -16,12 +16,7 @@ DecoratorSubscriberStateTable::DecoratorSubscriberStateTable(DBConnector *db, co
 
     m_subscribe->psubscribe(m_profile_keyspace);
 
-    m_defaultValueProvider = new DefaultValueProvider();
-}
-
-DecoratorSubscriberStateTable::~DecoratorSubscriberStateTable()
-{
-    delete m_defaultValueProvider;
+    m_defaultValueProvider = std::make_shared<DefaultValueProvider>();
 }
 
 /* Get multiple pop elements */
@@ -34,15 +29,14 @@ void DecoratorSubscriberStateTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, co
     }
 }
 
-
 void DecoratorSubscriberStateTable::appendDefaultValue(std::string &key, std::string &op, std::vector<FieldValueTuple> &fvs)
 {
     if (op != SET_COMMAND)
     {
+        // When pops, 'set' operation means read data, only read need decorate.
         return;
     }
 
-    // Not append profile config, because 'SET' command will overwrite profile config.
     auto table = getTableName();
     m_defaultValueProvider->appendDefaultValues(table, key, fvs);
 }

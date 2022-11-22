@@ -18,7 +18,6 @@ class DecoratorSubscriberStateTable : public SubscriberStateTable
 {
 public:
     DecoratorSubscriberStateTable(DBConnector *db, const std::string &tableName, int popBatchSize = swss::TableConsumable::DEFAULT_POP_BATCH_SIZE, int pri = 0);
-    ~DecoratorSubscriberStateTable() override;
 
     /* Get all elements available */
     void pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const std::string &prefix = EMPTY_PREFIX) override;
@@ -28,7 +27,7 @@ private:
 
     std::string m_profile_keyprefix;
 
-    DefaultValueProvider *m_defaultValueProvider;
+    std::shared_ptr<DefaultValueProvider> m_defaultValueProvider;
 
     /* Handle SubscriberStateTable unknown pattern */
     void onPopUnknownPattern(RedisMessage& message, std::deque<KeyOpFieldsValuesTuple> &vkco) override;
