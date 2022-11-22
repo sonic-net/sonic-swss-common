@@ -37,7 +37,7 @@ protected:
     std::string m_db_name;
 };
 
-#ifdef SWIG
+#if defined(SWIG) && defined(SWIGPYTHON)
 %pythoncode %{
     ## Note: diamond inheritance, reusing functions in both classes
     class ConfigDBConnector(SonicV2Connector, ConfigDBConnector_Native):
@@ -307,7 +307,7 @@ private:
     int _get_config(DBConnector& client, RedisTransactioner& pipe, std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>& data, int cursor);
 };
 
-#ifdef SWIG
+#if defined(SWIG) && defined(SWIGPYTHON)
 %pythoncode %{
     class ConfigDBPipeConnector(ConfigDBConnector, ConfigDBPipeConnector_Native):
 
