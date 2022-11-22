@@ -168,6 +168,8 @@ public:
     /* Get all the field-value tuple of the table entry with the key */
     virtual bool get(const std::string &key, std::vector<FieldValueTuple> &values) = 0;
 
+    virtual bool hget(const std::string &key, const std::string &field,  std::string &value) = 0;
+
     /* get all the keys in the table */
     virtual void getKeys(std::vector<std::string> &keys) = 0;
 

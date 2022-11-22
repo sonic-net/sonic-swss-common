@@ -22,6 +22,7 @@
 #include "selectable.h"
 #include "rediscommand.h"
 #include "table.h"
+#include "decoratortable.h"
 #include "countertable.h"
 #include "redispipeline.h"
 #include "redisselect.h"
@@ -32,6 +33,7 @@
 #include "producertable.h"
 #include "consumertable.h"
 #include "subscriberstatetable.h"
+#include "decoratorsubscriberstatetable.h"
 #include "notificationconsumer.h"
 #include "notificationproducer.h"
 #include "warm_restart.h"
@@ -176,6 +178,7 @@ T castSelectableObj(swss::Selectable *temp)
 %apply std::vector<std::pair<std::string, std::string>>& OUTPUT {std::vector<std::pair<std::string, std::string>> &ovalues};
 %apply std::string& OUTPUT {std::string &value};
 %include "table.h"
+%include "decoratortable.h"
 %clear std::vector<std::string> &keys;
 %clear std::vector<std::string> &ops;
 %clear std::vector<std::vector<std::pair<std::string, std::string>>> &fvss;
@@ -207,6 +210,7 @@ T castSelectableObj(swss::Selectable *temp)
 %include "consumertable.h"
 %include "consumerstatetable.h"
 %include "subscriberstatetable.h"
+%include "decoratorsubscriberstatetable.h"
 
 %apply std::string& OUTPUT {std::string &op};
 %apply std::string& OUTPUT {std::string &data};

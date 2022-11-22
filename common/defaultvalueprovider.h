@@ -3,7 +3,7 @@
 #include <map>
 #include <string>
 #include <vector>
-#include "common/table.h"
+#include "table.h"
 
 #include <libyang/libyang.h>
 
