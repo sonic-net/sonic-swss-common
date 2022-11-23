@@ -1,4 +1,4 @@
-export CGO_LDFLAGS := -lswsscommon -lhiredis -L../debian/tmp/usr/lib/x86_64-linux-gnu/
+export CGO_LDFLAGS := -lswsscommon -lhiredis
 export CGO_CXXFLAGS := -I../ -I../common/ -w -Wall -fpermissive
 
 GO ?= /usr/local/go/bin/go
@@ -14,7 +14,7 @@ endif
 .PHONY: all check clean
 
 all:
-	$(SWIG) $(SWIG_FLAG) -I../common/ swsscommon.i
+	$(SWIG) $(SWIG_FLAG) -I/usr/include/swss/ swsscommon.i
 
 check:
 	sudo CGO_LDFLAGS="$(CGO_LDFLAGS)" CGO_CXXFLAGS="$(CGO_CXXFLAGS)" $(GO) test
