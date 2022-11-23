@@ -1,4 +1,4 @@
-export CGO_LDFLAGS := -lswsscommon -lhiredis -L../common/.libs/
+export CGO_LDFLAGS := -lswsscommon -lhiredis -L../debian/tmp/usr/lib/x86_64-linux-gnu/
 export CGO_CXXFLAGS := -I../ -I../common/ -w -Wall -fpermissive
 
 GO ?= /usr/local/go/bin/go
