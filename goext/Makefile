@@ -1,4 +1,4 @@
-export CGO_LDFLAGS := -lswsscommon -lhiredis
+export CGO_LDFLAGS := -lswsscommon -lhiredis -L../common/.libs/
 export CGO_CXXFLAGS := -I../ -I../common/ -w -Wall -fpermissive
 
 GO ?= /usr/local/go/bin/go
@@ -17,7 +17,6 @@ all:
 	$(SWIG) $(SWIG_FLAG) -I../common/ swsscommon.i
 
 check:
-	find / -name libswsscommon.so
 	sudo CGO_LDFLAGS="$(CGO_LDFLAGS)" CGO_CXXFLAGS="$(CGO_CXXFLAGS)" $(GO) test
 
 clean:
