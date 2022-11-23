@@ -131,7 +131,6 @@ jobs:
         sudo mkdir /usr/local/yang-models
 
         sudo dpkg -i libswsscommon_*.deb
-        sudo dpkg -i libswsscommon-dev_*.deb
         sudo dpkg -i python-swsscommon_*.deb
 
         ./tests/tests
