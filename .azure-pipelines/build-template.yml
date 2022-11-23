@@ -138,8 +138,8 @@ jobs:
         pytest --cov=. --cov-report=xml
         mv coverage.xml tests/coverage.xml
         gcovr -r ./ -e ".*/swsscommon_wrap.cpp" --exclude-unreachable-branches --exclude-throw-branches -x --xml-pretty  -o coverage.xml
-        redis-cli FLUSHALL
         make -C goext
+        redis-cli FLUSHALL
         make -C goext check
 
         rm -rf $(Build.ArtifactStagingDirectory)/download

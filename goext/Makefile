@@ -14,8 +14,7 @@ endif
 .PHONY: all check clean
 
 all:
-	-$(LN) -s ../pyext/swsscommon.i swsscommon.i
-	$(SWIG) $(SWIG_FLAG) -I/usr/include/swss/ swsscommon.i
+	$(SWIG) $(SWIG_FLAG) -I../common/ swsscommon.i
 
 check:
 	sudo CGO_LDFLAGS="$(CGO_LDFLAGS)" CGO_CXXFLAGS="$(CGO_CXXFLAGS)" $(GO) test
