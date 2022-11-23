@@ -17,6 +17,7 @@ all:
 	$(SWIG) $(SWIG_FLAG) -I../common/ swsscommon.i
 
 check:
+	find / -name libswsscommon.so
 	sudo CGO_LDFLAGS="$(CGO_LDFLAGS)" CGO_CXXFLAGS="$(CGO_CXXFLAGS)" $(GO) test
 
 clean:
