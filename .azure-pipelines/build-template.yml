@@ -35,7 +35,7 @@ parameters:
 
 - name: debian_version
   type: string
-  default: buster
+  default: bullseye
 
 jobs:
 - job:
@@ -131,7 +131,9 @@ jobs:
         sudo mkdir /usr/local/yang-models
 
         sudo dpkg -i libswsscommon_*.deb
-        sudo dpkg -i python-swsscommon_*.deb
+        if [[ ${{ parameters.debian_version }} != "bullseye" ]]; then
+            sudo dpkg -i python-swsscommon_*.deb
+        fi
 
         ./tests/tests
         redis-cli FLUSHALL
