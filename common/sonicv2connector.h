@@ -62,7 +62,7 @@ private:
     std::string m_netns;
 };
 
-#ifdef SWIG
+#if defined(SWIG) && defined(SWIGPYTHON)
 %pythoncode %{
     class SonicV2Connector(SonicV2Connector_Native):
 

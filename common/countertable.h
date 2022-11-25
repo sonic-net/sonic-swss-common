@@ -68,7 +68,7 @@ public:
         return m_keyMap.at(name);
     }
 
-#ifdef SWIG
+#if defined(SWIG) && defined(SWIGPYTHON)
     %pythoncode %{
         def __getitem__(self, name):
             return self.at(name)
