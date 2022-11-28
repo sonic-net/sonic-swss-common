@@ -58,6 +58,7 @@ libswsscommon_la_SOURCES = \
     netdispatcher.cpp         \
     netlink.cpp               \
     nfnetlink.cpp             \
+    hbclient.cpp              \
     notificationconsumer.cpp  \
     notificationproducer.cpp  \
     linkcache.cpp             \

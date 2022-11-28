@@ -487,6 +487,9 @@ namespace swss {
 
 #define STATE_FLOW_COUNTER_CAPABILITY_TABLE_NAME    "FLOW_COUNTER_CAPABILITY_TABLE"
 
+/* Heart-Beat Client tables */
+#define STATE_HB_CLIENTS_TABLE_NAME "HB_CLIENTS_STATE_TABLE"
+
 /***** MISC *****/
 
 #define IPV4_NAME "IPv4"
