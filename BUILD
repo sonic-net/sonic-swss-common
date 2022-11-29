@@ -10,6 +10,7 @@ cc_library(
         "common/*.hpp",
     ]),
     copts = [
+        "-std=c++14",
         "-I/usr/include/libnl3", # Expected location in the SONiC build container"
     ],
     includes = [
