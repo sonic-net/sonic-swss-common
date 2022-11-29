@@ -41,7 +41,7 @@ public:
     static constexpr const char *DEFAULT_SONIC_DB_CONFIG_FILE = "/var/run/redis/sonic-db/database_config.json";
     static constexpr const char *DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE = "/var/run/redis/sonic-db/database_global.json";
     static void initialize(const std::string &file = DEFAULT_SONIC_DB_CONFIG_FILE);
-#ifdef SWIG
+#if defined(SWIG) && defined(SWIGPYTHON)
     %pythoncode %{
         ## TODO: the python function and C++ one is not on-par
         @staticmethod
@@ -51,7 +51,7 @@ public:
 #endif
 
     static void initializeGlobalConfig(const std::string &file = DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE);
-#ifdef SWIG
+#if defined(SWIG) && defined(SWIGPYTHON)
     %pythoncode %{
         ## TODO: the python function and C++ one is not on-par
         @staticmethod
@@ -70,7 +70,7 @@ public:
     static std::string getDbHostname(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
     static int getDbPort(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
     static std::vector<std::string> getNamespaces();
-#ifdef SWIG
+#if defined(SWIG) && defined(SWIGPYTHON)
     %pythoncode %{
         ## TODO: the python function and C++ one is not on-par
         @staticmethod
@@ -163,7 +163,7 @@ public:
     std::string getDbName() const;
     std::string getNamespace() const;
 
-#ifdef SWIG
+#if defined(SWIG) && defined(SWIGPYTHON)
     %pythoncode %{
         namespace = property(getNamespace)
     %}
@@ -181,7 +181,7 @@ public:
 
     int64_t del(const std::string &key);
 
-#ifdef SWIG
+#if defined(SWIG) && defined(SWIGPYTHON)
     // SWIG interface file (.i) globally rename map C++ `del` to python `delete`,
     // but applications already followed the old behavior of auto renamed `_del`.
     // So we implemented old behavior for backward compatibility
