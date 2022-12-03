@@ -26,9 +26,10 @@ function build_and_install_kmodule()
     SUBLEVEL=$(echo $KERNEL_MAINVERSION | cut -d. -f3)
 
     # Install the required debian packages to build the kernel modules
-    apt-get install -y build-essential linux-headers-${KERNEL_RELEASE} autoconf pkg-config fakeroot
-    apt-get install -y flex bison libssl-dev libelf-dev
-    apt-get install -y libnl-route-3-200 libnl-route-3-dev libnl-cli-3-200 libnl-cli-3-dev libnl-3-dev
+    apt-get install -y \
+        build-essential linux-headers-${KERNEL_RELEASE} autoconf pkg-config fakeroot \
+        flex bison libssl-dev libelf-dev dwarves \
+        libnl-route-3-200 libnl-route-3-dev libnl-cli-3-200 libnl-cli-3-dev libnl-3-dev
     # Install libs required by libswsscommon for build
     apt-get install -y libzmq3-dev libzmq5 libboost-serialization-dev uuid-dev
 
@@ -44,46 +45,33 @@ function build_and_install_kmodule()
 
     # Build the Linux kernel module drivers/net/team and vrf
     cd $(find . -maxdepth 1 -type d | grep -v "^.$")
+    if [ -e debian/debian.env ]; then
+        source debian/debian.env
+        if [ -n "${DEBIAN}" -a -e ${DEBIAN}/reconstruct ]; then
+            bash ${DEBIAN}/reconstruct
+        fi
+    fi
     make  allmodconfig
     mv .config .config.bk
     cp /boot/config-$(uname -r) .config
     grep NET_TEAM .config.bk >> .config
-    echo CONFIG_NET_VRF=m >> .config
-    echo CONFIG_MACSEC=m >> .config
-    echo CONFIG_NET_VENDOR_MICROSOFT=y >> .config
-    echo CONFIG_MICROSOFT_MANA=m >> .config
-    echo CONFIG_SYSTEM_REVOCATION_LIST=n >> .config
     make VERSION=$VERSION PATCHLEVEL=$PATCHLEVEL SUBLEVEL=$SUBLEVEL EXTRAVERSION=-${EXTRAVERSION} LOCALVERSION=-${LOCALVERSION} modules_prepare
-    make M=drivers/net/team
+    cp /usr/src/linux-headers-$(uname -r)/Module.symvers .
+    make -j$(nproc) M=drivers/net/team
     mv drivers/net/Makefile drivers/net/Makefile.bak
     echo 'obj-$(CONFIG_NET_VRF) += vrf.o' > drivers/net/Makefile
     echo 'obj-$(CONFIG_MACSEC) += macsec.o' >> drivers/net/Makefile
-    make M=drivers/net
+    make -j$(nproc) M=drivers/net
 
     # Install the module
-    TEAM_DIR=$(echo /lib/modules/$(uname -r)/kernel/net/team)
-    NET_DIR=$(echo /lib/modules/$(uname -r)/kernel/net)
-    if [ ! -e "$TEAM_DIR/team.ko" ]; then
-        mkdir -p $TEAM_DIR
-        cp drivers/net/team/*.ko $TEAM_DIR/
-        modinfo $TEAM_DIR/team.ko
-        depmod
-        modprobe team
-    fi
-    if [ ! -e "$NET_DIR/vrf.ko" ]; then
-        mkdir -p $NET_DIR
-        cp drivers/net/vrf.ko $NET_DIR/
-        modinfo $NET_DIR/vrf.ko
-        depmod
-        modprobe vrf
-    fi
-    if [ ! -e "$NET_DIR/macsec.ko" ]; then
-        mkdir -p $NET_DIR
-        cp drivers/net/macsec.ko $NET_DIR/
-        modinfo $NET_DIR/macsec.ko
-        depmod
-        modprobe macsec
-    fi
+    SONIC_MODULES_DIR=$(echo /lib/modules/$(uname -r)/updates/sonic)
+    mkdir -p $SONIC_MODULES_DIR
+    cp drivers/net/team/*.ko drivers/net/vrf.ko drivers/net/macsec.ko $SONIC_MODULES_DIR/
+    depmod
+    modinfo team vrf macsec
+    modprobe team
+    modprobe vrf
+    modprobe macsec
 
     cd /tmp
     rm -rf $WORKDIR
