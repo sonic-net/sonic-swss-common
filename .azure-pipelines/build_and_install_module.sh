@@ -37,9 +37,9 @@ function build_and_install_kmodule()
     cp /etc/apt/sources.list /etc/apt/sources.list.bk
     sed -i "s/^# deb-src/deb-src/g" /etc/apt/sources.list
     apt-get update
-    KERNEL_PACKAGE_SOURCE=$(apt-cache show linux-image-unsigned-$(uname -r) | grep ^Source: | cut -d':' -f 2)
-    KERNEL_PACKAGE_VERSION=$(apt-cache show linux-image-unsigned-$(uname -r) | grep ^Version: | cut -d':' -f 2)
-    SOURCE_PACKAGE_VERSION=$(apt-cache show ${KERNEL_PACKAGE_SOURCE} | grep ^Version: | cut -d':' -f 2)
+    KERNEL_PACKAGE_SOURCE=$(apt-cache show linux-image-unsigned-${KERNEL_RELEASE} | grep ^Source: | cut -d':' -f 2)
+    KERNEL_PACKAGE_VERSION=$(apt-cache show linux-image-unsigned-${KERNEL_RELEASE} | grep ^Version: | cut -d':' -f 2)
+    SOURCE_PACKAGE_VERSION=$(apt-cache showsrc ${KERNEL_PACKAGE_SOURCE} | grep ^Version: | cut -d':' -f 2)
     if [ ${KERNEL_PACKAGE_VERSION} != ${SOURCE_PACKAGE_VERSION} ]; then
         echo "WARNING: the running kernel version (${KERNEL_PACKAGE_VERSION}) doesn't match the source package " \
             "version (${SOURCE_PACKAGE_VERSION}) being downloaded. There's no guarantee the module being downloaded " \
@@ -47,7 +47,7 @@ function build_and_install_kmodule()
             "your system so that it's running the matching kernel version." >&2
         echo "Continuing with the build anyways" >&2
     fi
-    apt-get source linux-image-unsigned-$(uname -r) > source.log
+    apt-get source linux-image-unsigned-${KERNEL_RELEASE} > source.log
 
     # Recover the original apt sources list
     cp /etc/apt/sources.list.bk /etc/apt/sources.list
