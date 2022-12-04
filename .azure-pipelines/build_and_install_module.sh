@@ -37,6 +37,16 @@ function build_and_install_kmodule()
     cp /etc/apt/sources.list /etc/apt/sources.list.bk
     sed -i "s/^# deb-src/deb-src/g" /etc/apt/sources.list
     apt-get update
+    KERNEL_PACKAGE_SOURCE=$(apt-cache show linux-image-unsigned-$(uname -r) | grep ^Source: | cut -d':' -f 2)
+    KERNEL_PACKAGE_VERSION=$(apt-cache show linux-image-unsigned-$(uname -r) | grep ^Version: | cut -d':' -f 2)
+    SOURCE_PACKAGE_VERSION=$(apt-cache show ${KERNEL_PACKAGE_SOURCE} | grep ^Version: | cut -d':' -f 2)
+    if [ ${KERNEL_PACKAGE_VERSION} != ${SOURCE_PACKAGE_VERSION} ]; then
+        echo "WARNING: the running kernel version (${KERNEL_PACKAGE_VERSION}) doesn't match the source package " \
+            "version (${SOURCE_PACKAGE_VERSION}) being downloaded. There's no guarantee the module being downloaded " \
+            "can be loaded into the kernel or function correctly. If possible, please update your kernel and reboot " \
+            "your system so that it's running the matching kernel version." >&2
+        echo "Continuing with the build anyways" >&2
+    fi
     apt-get source linux-image-unsigned-$(uname -r) > source.log
 
     # Recover the original apt sources list
@@ -64,7 +74,7 @@ function build_and_install_kmodule()
     make -j$(nproc) M=drivers/net
 
     # Install the module
-    SONIC_MODULES_DIR=$(echo /lib/modules/$(uname -r)/updates/sonic)
+    SONIC_MODULES_DIR=/lib/modules/$(uname -r)/updates/sonic
     mkdir -p $SONIC_MODULES_DIR
     cp drivers/net/team/*.ko drivers/net/vrf.ko drivers/net/macsec.ko $SONIC_MODULES_DIR/
     depmod
