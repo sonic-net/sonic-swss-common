@@ -26,6 +26,8 @@ ZmqConsumerStateTable::ZmqConsumerStateTable(DBConnector *db, const std::string 
     m_tableSeparator = TableBase::gettableSeparator(db->getDbId());
     m_runThread = true;
     m_mqPollThread = std::make_shared<std::thread>(&ZmqConsumerStateTable::mqPollThread, this);
+
+    SWSS_LOG_DEBUG("ZmqConsumerStateTable ctor tableName: %s, endpoint: %s", tableName.c_str(), endpoint.c_str());
 }
 
 ZmqConsumerStateTable::~ZmqConsumerStateTable()
@@ -58,15 +60,17 @@ void ZmqConsumerStateTable::mqPollThread()
     {
         // receive message
         rc = zmq_recv(socket, buffer.data(), MQ_RESPONSE_BUFFER_SIZE, ZMQ_DONTWAIT);
-        if (rc < 0
-            && (zmq_errno() == EINTR || zmq_errno() == EAGAIN))
-        {
-            continue;
-        }
-        
         if (rc < 0)
         {
-            SWSS_LOG_THROW("zmq_recv failed, zmqerrno: %d", zmq_errno());
+            if (zmq_errno() == EINTR || zmq_errno() == EAGAIN)
+            {
+                SWSS_LOG_DEBUG("zmq_recv failed, zmqerrno: %d", zmq_errno());
+                continue;
+            }
+            else
+            {
+                SWSS_LOG_THROW("zmq_recv failed, zmqerrno: %d", zmq_errno());
+            }
         }
 
         if (rc >= MQ_RESPONSE_BUFFER_SIZE)
@@ -77,7 +81,6 @@ void ZmqConsumerStateTable::mqPollThread()
         }
 
         buffer.at(rc) = 0; // make sure that we end string with zero before parse
-
         SWSS_LOG_DEBUG("zmq received %d bytes", rc);
 
         {
