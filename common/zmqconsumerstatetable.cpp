@@ -52,6 +52,8 @@ void ZmqConsumerStateTable::mqPollThread()
                 zmq_errno());
     }
 
+    SWSS_LOG_NOTICE("opening zmq endpoint: %s", m_endpoint.c_str());
+
     while (m_runThread)
     {
         // receive message
@@ -75,6 +77,8 @@ void ZmqConsumerStateTable::mqPollThread()
         }
 
         buffer.at(rc) = 0; // make sure that we end string with zero before parse
+
+        SWSS_LOG_DEBUG("zmq received %d bytes", rc);
 
         {
             std::lock_guard<std::mutex> lock(m_dataQueueMutex);

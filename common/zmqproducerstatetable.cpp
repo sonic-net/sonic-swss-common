@@ -193,30 +193,38 @@ void ZmqProducerStateTable::sendMsg(
     copy.insert(copy.begin(), opdata);
     std::string msg = JSon::buildJson(copy);
 
-    SWSS_LOG_DEBUG("sending: %s", msg.c_str());
+    SWSS_LOG_ERROR("sending: %s", msg.c_str());
     for (int i = 0; i <=  MQ_MAX_RETRY; ++i)
     {
         int rc = zmq_send(m_socket, msg.c_str(), msg.length(), ZMQ_DONTWAIT);
-        if (rc <= 0
-            // EINTR: interrupted by signal, EAGAIN: ZMQ is full to need try again.
-            && (zmq_errno() == EINTR || zmq_errno() == EAGAIN)
-            && i < MQ_MAX_RETRY)
+        if (rc == 0)
         {
-            continue;
+            SWSS_LOG_ERROR("zmq sended %d bytes", (int)msg.length());
+            return;
         }
 
-        if (rc <= 0)
+        if (zmq_errno() == EINTR
+            || zmq_errno() == EAGAIN
+            || zmq_errno() == EFSM)
         {
-            SWSS_LOG_THROW("zmq_send on endpoint %s failed, zmqerrno: %d: %s",
-                    m_endpoint.c_str(),
-                    zmq_errno(),
-                    zmq_strerror(zmq_errno()));
+            // EINTR: interrupted by signal
+            // EAGAIN: ZMQ is full to need try again
+            // EFSM: socket state not ready
+            // for more detail, please check: http://api.zeromq.org/2-1:zmq-send
+            SWSS_LOG_ERROR("zmq send retry, error: %d", zmq_errno());
         }
-        break;
+        else
+        {
+            // for other error, send failed immediately.
+            SWSS_LOG_THROW("zmq send failed, error: %d", rc);
+        }
     }
 
-    // message send failed because timeout
-    SWSS_LOG_ERROR("zmq_send %s send failed because timeout.", m_endpoint.c_str());
+    // failed after retry
+    SWSS_LOG_THROW("zmq_send on endpoint %s failed, zmqerrno: %d: %s",
+            m_endpoint.c_str(),
+            zmq_errno(),
+            zmq_strerror(zmq_errno()));
 }
 
 }
