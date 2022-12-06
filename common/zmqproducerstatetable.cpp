@@ -11,7 +11,6 @@
 #include "zmqproducerstatetable.h"
 #include "zmqconsumerstatetable.h"
 #include "json.h"
-#include <iostream>
 
 #include <zmq.h>
 
@@ -36,21 +35,57 @@ ZmqProducerStateTable::~ZmqProducerStateTable()
     m_runUpdateTableThread = false;
     m_updateTableThread->join();
 
-    int rc = zmq_close(m_socket);
-    if (rc != 0)
+    if (m_socket)
     {
-        SWSS_LOG_ERROR("failed to close zmq socket, zmqerrno: %d",
-                zmq_errno());
+        int rc = zmq_close(m_socket);
+        if (rc != 0)
+        {
+            SWSS_LOG_ERROR("failed to close zmq socket, zmqerrno: %d",
+                    zmq_errno());
+        }
     }
 
-    zmq_ctx_destroy(m_context);
+    if (m_context)
+    {
+        zmq_ctx_destroy(m_context);
+    }
 }
     
 void ZmqProducerStateTable::initialize(const std::string& endpoint)
 {
     m_runUpdateTableThread = true;
+    m_connected = false;
+    m_endpoint = endpoint;
+    m_context = nullptr;
+    m_socket = nullptr;
     m_updateTableThread = std::make_shared<std::thread>(&ZmqProducerStateTable::updateTableThreadFunction, this);
 
+    connect(endpoint);
+}
+    
+void ZmqProducerStateTable::connect(const std::string& endpoint)
+{
+    if (m_connected)
+    {
+        SWSS_LOG_DEBUG("Already connected to endpoint: %d", endpoint.c_str());
+        return;
+    }
+
+    if (m_socket)
+    {
+        int rc = zmq_close(m_socket);
+        if (rc != 0)
+        {
+            SWSS_LOG_ERROR("failed to close zmq socket, zmqerrno: %d",
+                    zmq_errno());
+        }
+    }
+
+    if (m_context)
+    {
+        zmq_ctx_destroy(m_context);
+    }
+    
     // Producer/Consumer state table are n:m mapping, so need use PUSH/PUUL pattern http://api.zeromq.org/master:zmq-socket
     m_context = zmq_ctx_new();
     m_socket = zmq_socket(m_context, ZMQ_PUSH);
@@ -59,16 +94,17 @@ void ZmqProducerStateTable::initialize(const std::string& endpoint)
     int linger = 0;
     zmq_setsockopt(m_socket, ZMQ_LINGER, &linger, sizeof(linger));
 
-    SWSS_LOG_NOTICE("opening zmq main endpoint: %s", endpoint.c_str());
-
-    m_endpoint = endpoint;
+    SWSS_LOG_NOTICE("connect to zmq endpoint: %s", endpoint.c_str());
     int rc = zmq_connect(m_socket, endpoint.c_str());
     if (rc != 0)
     {
-        SWSS_LOG_THROW("failed to open zmq main endpoint %s, zmqerrno: %d",
+        m_connected = false;
+        SWSS_LOG_ERROR("failed to connect to zmq endpoint %s, zmqerrno: %d",
                 endpoint.c_str(),
                 zmq_errno());
     }
+
+    m_connected = true;
 }
 
 void ZmqProducerStateTable::set(
@@ -193,13 +229,18 @@ void ZmqProducerStateTable::sendMsg(
     copy.insert(copy.begin(), opdata);
     std::string msg = JSon::buildJson(copy);
 
-    SWSS_LOG_ERROR("sending: %s", msg.c_str());
+    SWSS_LOG_DEBUG("sending: %s", msg.c_str());
     for (int i = 0; i <=  MQ_MAX_RETRY; ++i)
-    {
-        int rc = zmq_send(m_socket, msg.c_str(), msg.length(), ZMQ_DONTWAIT);
-        if (rc == 0)
+    {    
+        if (!m_connected)
         {
-            SWSS_LOG_ERROR("zmq sended %d bytes", (int)msg.length());
+            connect(m_endpoint);
+        }
+
+        int rc = zmq_send(m_socket, msg.c_str(), msg.length(), ZMQ_DONTWAIT);
+        if (rc >= 0)
+        {
+            SWSS_LOG_DEBUG("zmq sended %d bytes", (int)msg.length());
             return;
         }
 
@@ -211,13 +252,21 @@ void ZmqProducerStateTable::sendMsg(
             // EAGAIN: ZMQ is full to need try again
             // EFSM: socket state not ready
             // for more detail, please check: http://api.zeromq.org/2-1:zmq-send
-            SWSS_LOG_ERROR("zmq send retry, error: %d", zmq_errno());
+            SWSS_LOG_DEBUG("zmq send retry, endpoint: %s, error: %d", m_endpoint.c_str(), zmq_errno());
+        }
+        else (zmq_errno() == ETERM)
+        {
+            // reconnect and send again.
+            m_connected = false;
+            SWSS_LOG_ERROR("zmq connection break, endpoint: %s,error: %d", m_endpoint.c_str(), rc);
         }
         else
         {
             // for other error, send failed immediately.
-            SWSS_LOG_THROW("zmq send failed, error: %d", rc);
+            SWSS_LOG_THROW("zmq send failed, endpoint: %s, error: %d", m_endpoint.c_str(), rc);
         }
+
+        sleep(1);
     }
 
     // failed after retry

@@ -17,7 +17,7 @@ using namespace std;
 using namespace swss;
 
 #define TEST_DB           "APPL_DB" // Need to test against a DB which uses a colon table name separator due to hardcoding in consumer_table_pops.lua
-#define NUMBER_OF_THREADS    (10) // Spawning more than 256 threads causes libc++ to except
+#define NUMBER_OF_THREADS    (1) // Spawning more than 256 threads causes libc++ to except
 #define NUMBER_OF_OPS        (100)
 #define MAX_FIELDS       10 // Testing up to 30 fields objects
 #define PRINT_SKIP           (10) // Print + for Producer and - for Consumer for every 100 ops
@@ -56,7 +56,7 @@ static void producerWorker(string tableName, string endpoint)
 {
     DBConnector db(TEST_DB, 0, true);
     ZmqProducerStateTable p(&db, tableName, endpoint);
-    cout << "Thread started: " << tableName << endl;
+    cout << "Producer thread started: " << tableName << endl;
 
     for (int i = 0; i < NUMBER_OF_OPS; i++)
     {
@@ -108,7 +108,7 @@ static void producerWorker(string tableName, string endpoint)
         p.del(keys);
     }
 
-    cout << "Thread ended: " << tableName << endl;
+    cout << "Producer thread ended: " << tableName << endl;
     
     running_thread_count--;
 }
@@ -184,7 +184,7 @@ static void consumerWorker(string tableName, string endpoint)
 
 TEST(ZmqConsumerStateTable, test)
 {
-    std::string testTableName = "SHM_PROD_CONS_UT";
+    std::string testTableName = "ZMQ_PROD_CONS_UT";
     std::string pushEndpoint = "tcp://localhost:1234";
     std::string pullEndpoint = "tcp://*:1234";
     thread *producerThreads[NUMBER_OF_THREADS];

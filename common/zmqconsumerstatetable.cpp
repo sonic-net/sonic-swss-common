@@ -54,7 +54,7 @@ void ZmqConsumerStateTable::mqPollThread()
                 zmq_errno());
     }
 
-    SWSS_LOG_NOTICE("opening zmq endpoint: %s", m_endpoint.c_str());
+    SWSS_LOG_NOTICE("bind to zmq endpoint: %s", m_endpoint.c_str());
 
     while (m_runThread)
     {
@@ -62,14 +62,15 @@ void ZmqConsumerStateTable::mqPollThread()
         rc = zmq_recv(socket, buffer.data(), MQ_RESPONSE_BUFFER_SIZE, ZMQ_DONTWAIT);
         if (rc < 0)
         {
+            //cout << "zmq_recv: " << rc << " errno:" << zmq_errno() << endl;
             if (zmq_errno() == EINTR || zmq_errno() == EAGAIN)
             {
-                SWSS_LOG_DEBUG("zmq_recv failed, zmqerrno: %d", zmq_errno());
+                SWSS_LOG_DEBUG("zmq_recv failed, endpoint: %s,zmqerrno: %d", m_endpoint.c_str(), zmq_errno());
                 continue;
             }
             else
             {
-                SWSS_LOG_THROW("zmq_recv failed, zmqerrno: %d", zmq_errno());
+                SWSS_LOG_THROW("zmq_recv failed, endpoint: %s,zmqerrno: %d", m_endpoint.c_str(), zmq_errno());
             }
         }
 
