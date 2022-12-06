@@ -270,7 +270,7 @@ void ZmqProducerStateTable::sendMsg(
     }
 
     // failed after retry
-    SWSS_LOG_THROW("zmq_send on endpoint %s failed, zmqerrno: %d: %s",
+    SWSS_LOG_ERROR("zmq_send on endpoint %s failed, zmqerrno: %d: %s",
             m_endpoint.c_str(),
             zmq_errno(),
             zmq_strerror(zmq_errno()));
