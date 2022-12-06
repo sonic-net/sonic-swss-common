@@ -418,21 +418,7 @@ namespace swss {
 #define CFG_FLOW_COUNTER_ROUTE_PATTERN_TABLE_NAME   "FLOW_COUNTER_ROUTE_PATTERN"
 #define CFG_LOGGER_TABLE_NAME                       "LOGGER"
 
-
-
-
-
-
-
-
 #define CFG_TX_MONITORS_ARGS_TABLE_NAME "TX_MONITORS_ARGS"
-
-
-
-
-
-
-
 
 /*****   DATABASE *****/
 
@@ -503,13 +489,7 @@ namespace swss {
 
 #define STATE_FLOW_COUNTER_CAPABILITY_TABLE_NAME    "FLOW_COUNTER_CAPABILITY_TABLE"
 
-
-
-
 #define STATE_TX_TABLE_NAME    "TX_TABLE"
-
-
-
 
 /***** MISC *****/
 
