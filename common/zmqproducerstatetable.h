@@ -116,6 +116,8 @@ public:
 private:
     void initialize(const std::string& endpoint);
 
+    void connect(const std::string& endpoint);
+
     void updateTableThreadFunction();
 
     void sendMsg(const std::string& key,
@@ -135,6 +137,8 @@ private:
     void* m_context;
 
     void* m_socket;
+
+    bool m_connected;
 };
 
 }

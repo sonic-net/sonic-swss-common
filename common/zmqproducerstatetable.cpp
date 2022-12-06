@@ -67,7 +67,7 @@ void ZmqProducerStateTable::connect(const std::string& endpoint)
 {
     if (m_connected)
     {
-        SWSS_LOG_DEBUG("Already connected to endpoint: %d", endpoint.c_str());
+        SWSS_LOG_DEBUG("Already connected to endpoint: %s", endpoint.c_str());
         return;
     }
 
@@ -254,7 +254,7 @@ void ZmqProducerStateTable::sendMsg(
             // for more detail, please check: http://api.zeromq.org/2-1:zmq-send
             SWSS_LOG_DEBUG("zmq send retry, endpoint: %s, error: %d", m_endpoint.c_str(), zmq_errno());
         }
-        else (zmq_errno() == ETERM)
+        else if (zmq_errno() == ETERM)
         {
             // reconnect and send again.
             m_connected = false;
