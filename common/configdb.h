@@ -37,7 +37,7 @@ protected:
     std::string m_db_name;
 };
 
-#ifdef SWIG
+#if defined(SWIG) && defined(SWIGPYTHON)
 %pythoncode %{
     ## Note: diamond inheritance, reusing functions in both classes
     class ConfigDBConnector(SonicV2Connector, ConfigDBConnector_Native):
@@ -240,6 +240,51 @@ protected:
                     entry = self.raw_to_typed(entry)
                     ret.setdefault(table_name, {})[self.deserialize_key(row)] = entry
             return ret
+
+    class YangDefaultDecorator(object):
+        def __init__(self, config_db_connector):
+            self.connector = config_db_connector
+            self.default_value_provider = DefaultValueProvider()
+        # helper methods for append default values to result.
+        def _append_default_value(self, table, key, data):
+            if data is None or len(data) == 0:
+                # empty entry means the entry been deleted
+                return data
+            serialized_key = self.connector.serialize_key(key)
+            defaultValues = self.default_value_provider.getDefaultValues(table, serialized_key)
+            for field in defaultValues:
+                if field not in data:
+                    data[field] = defaultValues[field]
+        # override read APIs
+        def new_get_entry(self, table, key):
+            result = self.connector.get_entry(table, key)
+            self._append_default_value(table, key, result)
+            return result
+        def new_get_table(self, table):
+            result = self.connector.get_table(table)
+            for key in result:
+                self._append_default_value(table, key, result[key])
+            return result
+        def new_get_config(self):
+            result = self.connector.get_config()
+            for table in result:
+                for key in result[table]:
+                    # Can not pass result[table][key] as parameter here, because python will create a copy. re-assign entry to result to bypass this issue.
+                    entry = result[table][key]
+                    self._append_default_value(table, key, entry)
+                    result[table][key] = entry
+            return result
+        def __getattr__(self, name):
+            if name == "get_entry":
+                return self.new_get_entry
+            elif name == "get_table":
+                return self.new_get_table
+            elif name == "get_config":
+                return self.new_get_config
+
+            originalMethod = self.connector.__getattribute__(name)
+            return originalMethod
+
 %}
 #endif
 
@@ -262,7 +307,7 @@ private:
     int _get_config(DBConnector& client, RedisTransactioner& pipe, std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>& data, int cursor);
 };
 
-#ifdef SWIG
+#if defined(SWIG) && defined(SWIGPYTHON)
 %pythoncode %{
     class ConfigDBPipeConnector(ConfigDBConnector, ConfigDBPipeConnector_Native):
 
