@@ -76,8 +76,7 @@ void ZmqProducerStateTable::connect(const std::string& endpoint)
         int rc = zmq_close(m_socket);
         if (rc != 0)
         {
-            SWSS_LOG_ERROR("failed to close zmq socket, zmqerrno: %d",
-                    zmq_errno());
+            SWSS_LOG_ERROR("failed to close zmq socket, zmqerrno: %d", zmq_errno());
         }
     }
 
@@ -163,7 +162,14 @@ void ZmqProducerStateTable::updateTableThreadFunction()
 
     while (m_runUpdateTableThread)
     {
-        while (!m_operationQueue.empty())
+        // std::queue::empty() is not thread safe
+        bool empty = true;
+        {
+            std::lock_guard<std::mutex> lock(m_operationQueueMutex);
+            empty = m_operationQueue.empty();
+        }
+
+        while (!empty)
         {
             const std::shared_ptr<ConfigOperationItem>& operation = m_operationQueue.front();
             
@@ -204,18 +210,16 @@ void ZmqProducerStateTable::updateTableThreadFunction()
                     SWSS_LOG_THROW("Unknown operation %d in m_operationQueue for table %s.", operation->m_type, getTableName().c_str());
                 }
             }
-            
-            
+
             // release operation after process finished
             {
                 std::lock_guard<std::mutex> lock(m_operationQueueMutex);
                 m_operationQueue.pop();
+                empty = m_operationQueue.empty();
             }
         }
-        
+
         table.flush();
-        
-        sleep(1);
     }
 }
 
@@ -266,7 +270,7 @@ void ZmqProducerStateTable::sendMsg(
             SWSS_LOG_THROW("zmq send failed, endpoint: %s, error: %d", m_endpoint.c_str(), rc);
         }
 
-        sleep(1);
+        sleep(i);
     }
 
     // failed after retry

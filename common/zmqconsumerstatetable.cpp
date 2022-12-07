@@ -99,15 +99,16 @@ void ZmqConsumerStateTable::mqPollThread()
 /* Get multiple pop elements */
 void ZmqConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const std::string& /*prefix*/)
 {
-    if (m_dataQueue.empty())
-    {
-        return;
-    }
-    
-    // For new data append to m_dataQueue during pops, will not be include in result.
     size_t count;
     {
+        // size() and empty() are not thread safe
         std::lock_guard<std::mutex> lock(m_dataQueueMutex);
+        if (m_dataQueue.empty())
+        {
+            return;
+        }
+
+        // For new data append to m_dataQueue during pops, will not be include in result.
         count = m_dataQueue.size();
     }
 
