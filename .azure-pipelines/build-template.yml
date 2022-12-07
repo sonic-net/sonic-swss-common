@@ -131,6 +131,7 @@ jobs:
         sudo mkdir /usr/local/yang-models
 
         sudo dpkg -i libswsscommon_*.deb
+        sudo dpkg -i libswsscommon-dev_*.deb
         sudo dpkg -i python-swsscommon_*.deb
 
         ./tests/tests
@@ -138,6 +139,9 @@ jobs:
         pytest --cov=. --cov-report=xml
         mv coverage.xml tests/coverage.xml
         gcovr -r ./ -e ".*/swsscommon_wrap.cpp" --exclude-unreachable-branches --exclude-throw-branches -x --xml-pretty  -o coverage.xml
+        make -C goext
+        redis-cli FLUSHALL
+        make -C goext check
 
         rm -rf $(Build.ArtifactStagingDirectory)/download
       displayName: "Run swss common unit tests"
