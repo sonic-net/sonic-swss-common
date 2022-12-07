@@ -17,7 +17,7 @@ using namespace std;
 using namespace swss;
 
 #define TEST_DB           "APPL_DB" // Need to test against a DB which uses a colon table name separator due to hardcoding in consumer_table_pops.lua
-#define NUMBER_OF_THREADS    (1) // Spawning more than 256 threads causes libc++ to except
+#define NUMBER_OF_THREADS    (10) // Spawning more than 256 threads causes libc++ to except
 #define NUMBER_OF_OPS        (100)
 #define MAX_FIELDS       10 // Testing up to 30 fields objects
 #define PRINT_SKIP           (10) // Print + for Producer and - for Consumer for every 100 ops
@@ -91,8 +91,7 @@ static void producerWorker(string tableName, string endpoint)
                 values.push_back(t);
             }
         }
-        
-        cout << "Send event: " << "batch_set_key_" + to_string(i) << endl;
+
         p.set(vkco);
     }
 
@@ -104,7 +103,6 @@ static void producerWorker(string tableName, string endpoint)
             keys.push_back("batch_del_key_" + to_string(i) + "_" + to_string(j));
         }
 
-        cout << "Send event: " << "batch_del_key_" + to_string(i) << endl;
         p.del(keys);
     }
 
@@ -141,7 +139,7 @@ static void consumerWorker(string tableName, string endpoint)
             wait_loop_count--;
         }
 
-        while ((ret = cs.select(&selectcs)) == Select::OBJECT)
+        if ((ret = cs.select(&selectcs, 10, true)) == Select::OBJECT)
         {
             c.pops(vkco);
             while (!vkco.empty())
@@ -175,8 +173,6 @@ static void consumerWorker(string tableName, string endpoint)
                 vkco.pop_front();
             }
         }
-
-        sleep(1);
     }
 
     cout << "Consumer thread ended: " << tableName << endl;
