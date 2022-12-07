@@ -105,7 +105,12 @@ void ZmqConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const
     }
     
     // For new data append to m_dataQueue during pops, will not be include in result.
-    auto count = m_dataQueue.size();
+    size_t count;
+    {
+        std::lock_guard<std::mutex> lock(m_dataQueueMutex);
+        count = m_dataQueue.size();
+    }
+
     vkco.clear();
     vkco.resize(count);
     for (size_t ie = 0; ie < count; ie++)
