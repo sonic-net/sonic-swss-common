@@ -35,7 +35,7 @@ public:
     /* Read all data from the fd assicaited with Selectable */
     uint64_t readData() override
     {
-        return 0;
+        return m_selectableEvent.readData();
     }
 
     /*
