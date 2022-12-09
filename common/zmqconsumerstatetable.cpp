@@ -102,6 +102,7 @@ void ZmqConsumerStateTable::mqPollThread()
             SWSS_LOG_DEBUG("zmq_recv failed, endpoint: %s,zmqerrno: %d", m_endpoint.c_str(), zmq_errno());
             if (zmq_errno() == EINTR || zmq_errno() == EAGAIN)
             {
+                sleep(0);
                 continue;
             }
             else

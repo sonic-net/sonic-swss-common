@@ -116,6 +116,7 @@ static int setCount = 0;
 static int delCount = 0;
 static int batchSetCount = 0;
 static int batchDelCount = 0;
+static bool runConsumerThread = true;
     
 static void consumerWorker(string tableName, string endpoint)
 {
@@ -130,16 +131,8 @@ static void consumerWorker(string tableName, string endpoint)
     Selectable *selectcs;
     std::deque<KeyOpFieldsValuesTuple> vkco;
     int ret = 0;
-    int wait_loop_count = 10;
-    while (running_thread_count > 0 || wait_loop_count > 0)
+    while (running_thread_count > 0 || runConsumerThread)
     {
-        if (running_thread_count <= 0)
-        {
-            // after all producer thread exit, maybe still some event in queue
-            wait_loop_count--;
-            sleep(1);
-        }
-
         if ((ret = cs.select(&selectcs, 10, true)) == Select::OBJECT)
         {
             c.pops(vkco);
@@ -203,6 +196,9 @@ TEST(ZmqConsumerStateTable, test)
         producerThreads[i]->join();
         delete producerThreads[i];
     }
+    
+    sleep(5);
+    runConsumerThread = false;
     
     consumerThread->join();
     delete consumerThread;
