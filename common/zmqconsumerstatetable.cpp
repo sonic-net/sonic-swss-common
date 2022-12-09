@@ -92,9 +92,25 @@ void ZmqConsumerStateTable::mqPollThread()
                 zmq_errno());
     }
 
+    // zmq_poll will use less CPU
+    zmq_pollitem_t poll_item[1];
+    poll_item[0].fd = 0;
+    poll_item[0].socket = socket;
+    poll_item[0].events = ZMQ_POLLIN;
+    poll_item[0].revents = 0;
+
     SWSS_LOG_NOTICE("bind to zmq endpoint: %s", m_endpoint.c_str());
     while (m_runThread)
     {
+        // receive message
+        rc = zmq_poll(poll_item, 1, 1);
+        if (rc == 0 || !(poll_item[0].revents & ZMQ_POLLIN))
+        {
+            // timeout or other event
+            SWSS_LOG_DEBUG("zmq_poll timeout or invalied event rc: %d, revents: %d", rc, poll_item[0].revents);
+            continue;
+        }
+
         // receive message
         rc = zmq_recv(socket, buffer.data(), MQ_RESPONSE_BUFFER_SIZE, ZMQ_DONTWAIT);
         if (rc < 0)
