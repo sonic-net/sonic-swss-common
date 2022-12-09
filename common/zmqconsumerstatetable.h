@@ -80,6 +80,8 @@ public:
     }
 
 private:
+    void handleReceivedData(const char *json, Table& table);
+
     void mqPollThread();
 
     volatile bool m_runThread;
@@ -90,7 +92,7 @@ private:
 
     std::mutex m_dataQueueMutex;
 
-    std::queue<std::string> m_dataQueue;
+    std::queue<std::shared_ptr<KeyOpFieldsValuesTuple>> m_dataQueue;
 
     DBConnector *m_db;
     

@@ -137,6 +137,7 @@ static void consumerWorker(string tableName, string endpoint)
         {
             // after all producer thread exit, maybe still some event in queue
             wait_loop_count--;
+            sleep(1);
         }
 
         if ((ret = cs.select(&selectcs, 10, true)) == Select::OBJECT)
@@ -211,5 +212,25 @@ TEST(ZmqConsumerStateTable, test)
     EXPECT_EQ(batchSetCount, NUMBER_OF_THREADS * NUMBER_OF_OPS * MAX_KEYS);
     EXPECT_EQ(batchDelCount, NUMBER_OF_THREADS * NUMBER_OF_OPS * MAX_KEYS);
 
+    DBConnector db(TEST_DB, 0, true);
+    Table table(&db, testTableName);
+    std::vector<std::string> keys;
+    table.getKeys(keys);
+    setCount = 0;
+    batchSetCount = 0;
+    for (string& key : keys)
+    {
+        if (key.rfind("batch_set_key_", 0) == 0)
+        {
+            batchSetCount++;
+        }
+        else if (key.rfind("set_key_", 0) == 0)
+        {
+            setCount++;
+        }
+    }
+    EXPECT_EQ(setCount, NUMBER_OF_OPS);
+    EXPECT_EQ(batchSetCount, NUMBER_OF_OPS * MAX_KEYS);
+    
     cout << endl << "Done." << endl;
 }

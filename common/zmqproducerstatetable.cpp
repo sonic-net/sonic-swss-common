@@ -80,7 +80,7 @@ void ZmqProducerStateTable::connect(const std::string& endpoint)
         zmq_ctx_destroy(m_context);
     }
     
-    // Producer/Consumer state table are n:m mapping, so need use PUSH/PUUL pattern http://api.zeromq.org/master:zmq-socket
+    // Producer/Consumer state table are n:1 mapping, so need use PUSH/PULL pattern http://api.zeromq.org/master:zmq-socket
     m_context = zmq_ctx_new();
     m_socket = zmq_socket(m_context, ZMQ_PUSH);
     
@@ -122,7 +122,6 @@ void ZmqProducerStateTable::set(const std::vector<KeyOpFieldsValuesTuple>& value
 {
     for (const auto &value : values)
     {
-        //SWSS_LOG_NOTICE("Table: %s, batch set key: %s", getTableName().c_str(), kfvKey(value).c_str());
         sendMsg(kfvKey(value), kfvFieldsValues(value), SET_COMMAND);
     }
 }
@@ -157,9 +156,6 @@ void ZmqProducerStateTable::sendMsg(
         if (rc >= 0)
         {
             SWSS_LOG_DEBUG("zmq sended %d bytes", (int)msg.length());
-            SWSS_LOG_NOTICE("zmq_send on endpoint %s success, msg: %s",
-                    m_endpoint.c_str(),
-                    msg.c_str());
             return;
         }
 
@@ -177,7 +173,7 @@ void ZmqProducerStateTable::sendMsg(
         {
             // reconnect and send again.
             m_connected = false;
-            SWSS_LOG_ERROR("zmq connection break, endpoint: %s,error: %d", m_endpoint.c_str(), rc);
+            SWSS_LOG_DEBUG("zmq connection break, endpoint: %s,error: %d", m_endpoint.c_str(), rc);
         }
         else
         {

@@ -36,14 +36,52 @@ ZmqConsumerStateTable::~ZmqConsumerStateTable()
     m_mqPollThread->join();
 }
 
+void ZmqConsumerStateTable::handleReceivedData(const char *json, Table& table)
+{
+    auto ptr = std::make_shared<KeyOpFieldsValuesTuple>();
+    KeyOpFieldsValuesTuple &kco = *ptr;
+    auto& values = kfvFieldsValues(kco);
+    swss::JSon::readJson(json, values);
+
+    // set key and OP
+    swss::FieldValueTuple fvt = values.at(0);
+    kfvKey(kco) = fvField(fvt);
+    kfvOp(kco) = fvValue(fvt);
+    values.erase(values.begin());
+    
+    if (kfvOp(kco) == SET_COMMAND)
+    {
+        table.set(kfvKey(kco), values);
+    }
+    else if (kfvOp(kco) == DEL_COMMAND)
+    {
+        table.del(kfvKey(kco));
+    }
+    else
+    {
+        SWSS_LOG_ERROR("zmq endpoint: %s, receive unknown operation: %s", m_endpoint.c_str(), kfvOp(kco).c_str());
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(m_dataQueueMutex);
+        m_dataQueue.push(ptr);
+    }
+
+    m_selectableEvent.notify(); // will release epoll
+}
+
 void ZmqConsumerStateTable::mqPollThread()
 {
     SWSS_LOG_ENTER();
     SWSS_LOG_NOTICE("mqPollThread begin");
     std::vector<uint8_t> buffer;
     buffer.resize(MQ_RESPONSE_BUFFER_SIZE);
+    
+    // Follow same logic in ConsumerStateTable: every received data will write to 'table'.
+    DBConnector db(m_db->getDbName(), 0, true);
+    Table table(&db, getTableName());
 
-    // Producer/Consumer state table are n:m mapping, so need use PUSH/PUUL pattern http://api.zeromq.org/master:zmq-socket
+    // Producer/Consumer state table are n:1 mapping, so need use PUSH/PULL pattern http://api.zeromq.org/master:zmq-socket
     void* context = zmq_ctx_new();;
     void* socket = zmq_socket(context, ZMQ_PULL);
     int rc = zmq_bind(socket, m_endpoint.c_str());
@@ -82,12 +120,8 @@ void ZmqConsumerStateTable::mqPollThread()
         buffer.at(rc) = 0; // make sure that we end string with zero before parse
         SWSS_LOG_DEBUG("zmq received %d bytes", rc);
 
-        {
-            std::lock_guard<std::mutex> lock(m_dataQueueMutex);
-            m_dataQueue.push((char*)buffer.data());
-        }
-
-        m_selectableEvent.notify(); // will release epoll
+        // deserialize and write to redis:
+        handleReceivedData((const char*)buffer.data(), table);
     }
 
     zmq_close(socket);
@@ -113,21 +147,10 @@ void ZmqConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const
     }
 
     vkco.clear();
-    vkco.resize(count);
     for (size_t ie = 0; ie < count; ie++)
     {
-        auto& kco = vkco[ie];
-        auto& values = kfvFieldsValues(kco);
-        values.clear();
-
-        swss::JSon::readJson(m_dataQueue.front(), values);
-        
-        // set key and OP
-        swss::FieldValueTuple fvt = values.at(0);
-        kfvKey(kco) = fvField(fvt);
-        kfvOp(kco) = fvValue(fvt);
-
-        values.erase(values.begin());
+        auto& kco = *(m_dataQueue.front());
+        vkco.push_back(std::move(kco));
 
         {
             std::lock_guard<std::mutex> lock(m_dataQueueMutex);
