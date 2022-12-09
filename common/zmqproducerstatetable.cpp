@@ -32,9 +32,6 @@ ZmqProducerStateTable::ZmqProducerStateTable(RedisPipeline *pipeline, const stri
 
 ZmqProducerStateTable::~ZmqProducerStateTable()
 {
-    m_runUpdateTableThread = false;
-    m_updateTableThread->join();
-
     if (m_socket)
     {
         int rc = zmq_close(m_socket);
@@ -53,12 +50,10 @@ ZmqProducerStateTable::~ZmqProducerStateTable()
     
 void ZmqProducerStateTable::initialize(const std::string& endpoint)
 {
-    m_runUpdateTableThread = true;
     m_connected = false;
     m_endpoint = endpoint;
     m_context = nullptr;
     m_socket = nullptr;
-    m_updateTableThread = std::make_shared<std::thread>(&ZmqProducerStateTable::updateTableThreadFunction, this);
 
     connect(endpoint);
 }
@@ -112,10 +107,6 @@ void ZmqProducerStateTable::set(
                     const string &op /*= SET_COMMAND*/,
                     const string &prefix)
 {
-    auto* operation = new ConfigOperationSet(key, values);
-    std::lock_guard<std::mutex> lock(m_operationQueueMutex);
-    m_operationQueue.emplace(operation);
-    
     sendMsg(key, values, op);
 }
 
@@ -124,102 +115,23 @@ void ZmqProducerStateTable::del(
                     const string &op /*= DEL_COMMAND*/,
                     const string &prefix)
 {
-    auto* operation = new ConfigOperationDel(key);
-    std::lock_guard<std::mutex> lock(m_operationQueueMutex);
-    m_operationQueue.emplace(operation);
-    
     sendMsg(key, vector<FieldValueTuple>(), op);
 }
 
 void ZmqProducerStateTable::set(const std::vector<KeyOpFieldsValuesTuple>& values)
 {
-    auto* operation = new ConfigOperationBatchSet(values);
-    std::lock_guard<std::mutex> lock(m_operationQueueMutex);
-    m_operationQueue.emplace(operation);
-
     for (const auto &value : values)
     {
+        //SWSS_LOG_NOTICE("Table: %s, batch set key: %s", getTableName().c_str(), kfvKey(value).c_str());
         sendMsg(kfvKey(value), kfvFieldsValues(value), SET_COMMAND);
     }
 }
 
 void ZmqProducerStateTable::del(const std::vector<std::string>& keys)
 {
-    auto* operation = new ConfigOperationBatchDel(keys);
-    std::lock_guard<std::mutex> lock(m_operationQueueMutex);
-    m_operationQueue.emplace(operation);
-
     for (const auto &key : keys)
     {
         sendMsg(key, vector<FieldValueTuple>(), DEL_COMMAND);
-    }
-}
-
-void ZmqProducerStateTable::updateTableThreadFunction()
-{
-    DBConnector db(m_pipe->getDbName(), 0, true);
-    ProducerStateTable table(&db, getTableName());
-
-    while (m_runUpdateTableThread)
-    {
-        // std::queue::empty() is not thread safe
-        bool empty = true;
-        {
-            std::lock_guard<std::mutex> lock(m_operationQueueMutex);
-            empty = m_operationQueue.empty();
-        }
-
-        while (!empty)
-        {
-            const std::shared_ptr<ConfigOperationItem>& operation = m_operationQueue.front();
-            
-            switch (operation->m_type)
-            {
-                case ConfigOperationType::SET:
-                {
-                    auto* set = (const ConfigOperationSet*)operation.get();
-                    auto& key = kfvKey(set->m_values);
-                    auto& values = kfvFieldsValues(set->m_values);
-                    table.set(key, values);
-                    break;
-                }
-                
-                case ConfigOperationType::DEL:
-                {
-                    auto* del = (const ConfigOperationDel*)operation.get();
-                    table.del(del->m_key);
-                    break;
-                }
-                
-                case ConfigOperationType::BATCH_SET:
-                {
-                    auto* batch = (const ConfigOperationBatchSet*)operation.get();
-                    table.set(batch->m_values);
-                    break;
-                }
-                
-                case ConfigOperationType::BATCH_DEL:
-                {
-                    auto* batch = (const ConfigOperationBatchDel*)operation.get();
-                    table.del(batch->m_keys);
-                    break;
-                }
-                
-                default:
-                {
-                    SWSS_LOG_THROW("Unknown operation %d in m_operationQueue for table %s.", operation->m_type, getTableName().c_str());
-                }
-            }
-
-            // release operation after process finished
-            {
-                std::lock_guard<std::mutex> lock(m_operationQueueMutex);
-                m_operationQueue.pop();
-                empty = m_operationQueue.empty();
-            }
-        }
-
-        table.flush();
     }
 }
 
@@ -245,6 +157,9 @@ void ZmqProducerStateTable::sendMsg(
         if (rc >= 0)
         {
             SWSS_LOG_DEBUG("zmq sended %d bytes", (int)msg.length());
+            SWSS_LOG_NOTICE("zmq_send on endpoint %s success, msg: %s",
+                    m_endpoint.c_str(),
+                    msg.c_str());
             return;
         }
 
@@ -274,10 +189,11 @@ void ZmqProducerStateTable::sendMsg(
     }
 
     // failed after retry
-    SWSS_LOG_ERROR("zmq_send on endpoint %s failed, zmqerrno: %d: %s",
+    SWSS_LOG_ERROR("zmq_send on endpoint %s failed, zmqerrno: %d: %s, msg: %s",
             m_endpoint.c_str(),
             zmq_errno(),
-            zmq_strerror(zmq_errno()));
+            zmq_strerror(zmq_errno()),
+            msg.c_str());
 }
 
 }
