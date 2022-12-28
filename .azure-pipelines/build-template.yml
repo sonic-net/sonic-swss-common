@@ -75,7 +75,7 @@ jobs:
       runVersion: 'latestFromBranch'
       runBranch: 'refs/heads/$(BUILD_BRANCH)'
       path: $(Build.ArtifactStagingDirectory)/download
-      ${{ if eq('${{ parameters.arch }}', 'amd64') }}:
+      ${{ if eq(parameters.arch, 'amd64') }}:
         artifact: common-lib
       ${{ else }}:
         artifact: common-lib.${{ parameters.arch }}
