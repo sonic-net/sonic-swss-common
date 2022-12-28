@@ -68,8 +68,6 @@ jobs:
         swig
     displayName: "Install dependencies"
   - task: DownloadPipelineArtifact@2
-    # amd64 artifact name does not has arch suffix
-    condition: eq('${{ parameters.arch }}', 'amd64')
     inputs:
       source: specific
       project: build
@@ -77,25 +75,14 @@ jobs:
       runVersion: 'latestFromBranch'
       runBranch: 'refs/heads/$(BUILD_BRANCH)'
       path: $(Build.ArtifactStagingDirectory)/download
-      artifact: common-lib
+      ${{ if eq('${{ parameters.arch }}', 'amd64') }}:
+        artifact: common-lib
+      ${{ else }}:
+        artifact: common-lib.${{ parameters.arch }}
       patterns: |
         target/debs/${{ parameters.debian_version }}/libyang-*.deb
         target/debs/${{ parameters.debian_version }}/libyang_*.deb
-    displayName: "Download libyang from amd64 common lib"
-  - task: DownloadPipelineArtifact@2
-    condition: ne('${{ parameters.arch }}', 'amd64')
-    inputs:
-      source: specific
-      project: build
-      pipeline: Azure.sonic-buildimage.common_libs
-      runVersion: 'latestFromBranch'
-      runBranch: 'refs/heads/$(BUILD_BRANCH)'
-      path: $(Build.ArtifactStagingDirectory)/download
-      artifact: common-lib.${{ parameters.arch }}
-      patterns: |
-        target/debs/${{ parameters.debian_version }}/libyang-*.deb
-        target/debs/${{ parameters.debian_version }}/libyang_*.deb
-    displayName: "Download libyang from common lib"
+    displayName: "Download libyang from ${{ parameters.arch }} common lib"
   - script: |
       set -ex
       sudo dpkg -i $(find ./download -name *.deb)
