@@ -35,12 +35,18 @@ void
 EventPublisher::drop_publisher(event_handle_t handle)
 {
     lst_publishers_t::iterator it;
+    EventPublisher_ptr_t p;
 
     for(it=s_publishers.begin(); it != s_publishers.end(); ++it) {
         if (it->second.get() == handle) {
+            p = it->second;
             s_publishers.erase(it);
             break;
         }
+    }
+
+    if(p != NULL) {
+        p->return_runtime_id();
     }
 }
 
@@ -114,15 +120,19 @@ out:
 
 EventPublisher::~EventPublisher()
 {
-    if (!m_runtime_id.empty()) {
-        /* Retire the runtime ID */
-        send_evt(EVENT_STR_CTRL_DEINIT);
-    }
     m_event_service.close_service();
     if (m_socket != NULL) {
         zmq_close(m_socket);
     }
     zmq_ctx_term(m_zmq_ctx);
+}
+
+EventPublisher::remove_runtime_id()
+{
+    if (!m_runtime_id.empty()) {
+        /* Retire the runtime ID */
+        send_evt(EVENT_STR_CTRL_DEINIT);
+    }
 }
 
 
