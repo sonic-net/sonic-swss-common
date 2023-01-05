@@ -46,7 +46,7 @@ EventPublisher::drop_publisher(event_handle_t handle)
     }
 
     if(p != NULL) {
-        p->return_runtime_id();
+        p->remove_runtime_id();
     }
 }
 
@@ -127,6 +127,7 @@ EventPublisher::~EventPublisher()
     zmq_ctx_term(m_zmq_ctx);
 }
 
+void
 EventPublisher::remove_runtime_id()
 {
     if (!m_runtime_id.empty()) {
@@ -134,7 +135,6 @@ EventPublisher::remove_runtime_id()
         send_evt(EVENT_STR_CTRL_DEINIT);
     }
 }
-
 
 int
 EventPublisher::send_evt(const string str_data)
