@@ -20,6 +20,8 @@ tests_tests_SOURCES = tests/redis_ut.cpp                \
                       tests/warm_restart_ut.cpp         \
                       tests/redis_multi_db_ut.cpp       \
                       tests/logger_ut.cpp               \
+                      common/loglevel.cpp               \
+                      tests/loglevel_ut.cpp             \
                       tests/redis_multi_ns_ut.cpp       \
                       tests/fdb_flush.cpp               \
                       tests/stringutility_ut.cpp        \

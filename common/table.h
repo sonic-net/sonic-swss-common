@@ -146,7 +146,7 @@ public:
     }
 };
 
-#ifdef SWIG
+#if defined(SWIG) && defined(SWIGPYTHON)
 %pythoncode %{
     def transpose_pops(m):
         return [tuple(m[j][i] for j in range(len(m))) for i in range(len(m[0]))]
@@ -167,6 +167,8 @@ public:
 
     /* Get all the field-value tuple of the table entry with the key */
     virtual bool get(const std::string &key, std::vector<FieldValueTuple> &values) = 0;
+
+    virtual bool hget(const std::string &key, const std::string &field,  std::string &value) = 0;
 
     /* get all the keys in the table */
     virtual void getKeys(std::vector<std::string> &keys) = 0;
@@ -205,7 +207,7 @@ public:
     /* Get the configured ttl value for key */
     bool ttl(const std::string &key, int64_t &reply_value);
 
-#ifdef SWIG
+#if defined(SWIG) && defined(SWIGPYTHON)
     // SWIG interface file (.i) globally rename map C++ `del` to python `delete`,
     // but applications already followed the old behavior of auto renamed `_del`.
     // So we implemented old behavior for backward compatibility

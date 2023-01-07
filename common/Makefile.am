@@ -29,6 +29,7 @@ common_libswsscommon_la_SOURCES = \
     common/defaultvalueprovider.cpp  \
     common/sonicv2connector.cpp      \
     common/table.cpp                 \
+    common/decoratortable.cpp        \
     common/json.cpp                  \
     common/producertable.cpp         \
     common/producerstatetable.cpp    \
@@ -57,6 +58,7 @@ common_libswsscommon_la_SOURCES = \
     common/exec.cpp                  \
     common/saiaclschema.cpp          \
     common/subscriberstatetable.cpp  \
+    common/decoratorsubscriberstatetable.cpp \
     common/timestamp.cpp             \
     common/warm_restart.cpp          \
     common/luatable.cpp              \
@@ -69,7 +71,9 @@ common_libswsscommon_la_CXXFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(L
 common_libswsscommon_la_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CPPFLAGS) $(CODE_COVERAGE_CPPFLAGS)
 common_libswsscommon_la_LIBADD = -lpthread $(LIBNL_LIBS) $(CODE_COVERAGE_LIBS) -lzmq -lboost_serialization -luuid -lyang
 
-common_swssloglevel_SOURCES = common/loglevel.cpp
+common_swssloglevel_SOURCES =  \
+	common/loglevel.cpp        \
+	common/loglevel_util.cpp	
 
 common_swssloglevel_CXXFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CODE_COVERAGE_CXXFLAGS)
 common_swssloglevel_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CODE_COVERAGE_CPPFLAGS)

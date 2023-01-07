@@ -1,2 +1,3 @@
 common/*.h usr/include/swss
 common/*.hpp usr/include/swss
+pyext/swsscommon.i usr/share/swss
