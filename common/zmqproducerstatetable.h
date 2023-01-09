@@ -48,6 +48,8 @@ private:
     void* m_socket;
 
     bool m_connected;
+    
+    std::vector<char> m_sendbuffer;
 };
 
 }

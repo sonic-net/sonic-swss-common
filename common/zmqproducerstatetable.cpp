@@ -4,15 +4,14 @@
 #include <utility>
 #include <algorithm>
 #include <chrono>
+#include <zmq.h>
 #include "redisreply.h"
 #include "table.h"
 #include "redisapi.h"
 #include "redispipeline.h"
 #include "zmqproducerstatetable.h"
 #include "zmqconsumerstatetable.h"
-#include "json.h"
-
-#include <zmq.h>
+#include "binaryserializer.h"
 
 using namespace std;
 
@@ -54,6 +53,7 @@ void ZmqProducerStateTable::initialize(const std::string& endpoint)
     m_endpoint = endpoint;
     m_context = nullptr;
     m_socket = nullptr;
+    m_sendbuffer.resize(MQ_RESPONSE_BUFFER_SIZE);
 
     connect(endpoint);
 }
@@ -139,12 +139,10 @@ void ZmqProducerStateTable::sendMsg(
         const std::vector<swss::FieldValueTuple>& values,
         const std::string& command)
 {
-    std::vector<swss::FieldValueTuple> copy = values;
-    swss::FieldValueTuple opdata(key, command);
-    copy.insert(copy.begin(), opdata);
-    std::string msg = JSon::buildJson(copy);
+    BinarySerializer serializer(m_sendbuffer.data(), m_sendbuffer.size());
+    int serializedlen = (int)serializer.serializeBuffer(key, values, command);
 
-    SWSS_LOG_DEBUG("sending: %s", msg.c_str());
+    SWSS_LOG_DEBUG("sending: %d", serializedlen);
     for (int i = 0; i <=  MQ_MAX_RETRY; ++i)
     {    
         if (!m_connected)
@@ -152,10 +150,10 @@ void ZmqProducerStateTable::sendMsg(
             connect(m_endpoint);
         }
 
-        int rc = zmq_send(m_socket, msg.c_str(), msg.length(), ZMQ_DONTWAIT);
+        int rc = zmq_send(m_socket, m_sendbuffer.data(), serializedlen, ZMQ_DONTWAIT);
         if (rc >= 0)
         {
-            SWSS_LOG_DEBUG("zmq sended %d bytes", (int)msg.length());
+            SWSS_LOG_DEBUG("zmq sended %d bytes", serializedlen);
             return;
         }
 
@@ -181,15 +179,16 @@ void ZmqProducerStateTable::sendMsg(
             SWSS_LOG_THROW("zmq send failed, endpoint: %s, error: %d", m_endpoint.c_str(), rc);
         }
 
-        sleep(i);
+        // sleep (retry time) * 10 ms
+        usleep((i+1) * 10 * 1000);
     }
 
     // failed after retry
-    SWSS_LOG_ERROR("zmq_send on endpoint %s failed, zmqerrno: %d: %s, msg: %s",
+    SWSS_LOG_ERROR("zmq_send on endpoint %s failed, zmqerrno: %d: %s, msg length: %d",
             m_endpoint.c_str(),
             zmq_errno(),
             zmq_strerror(zmq_errno()),
-            msg.c_str());
+            serializedlen);
 }
 
 }

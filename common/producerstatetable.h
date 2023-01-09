@@ -12,7 +12,7 @@ class ProducerStateTable : public TableBase, public TableName_KeySet
 public:
     ProducerStateTable(DBConnector *db, const std::string &tableName);
     ProducerStateTable(RedisPipeline *pipeline, const std::string &tableName, bool buffered = false);
-    virtual ~ProducerStateTable();
+    ~ProducerStateTable();
 
     void setBuffered(bool buffered);
     /* Implements set() and del() commands using notification messages */
@@ -50,7 +50,7 @@ public:
     void create_temp_view();
 
     void apply_temp_view();
-protected:
+private:
     bool m_buffered;
     bool m_pipeowned;
     bool m_tempViewActive;

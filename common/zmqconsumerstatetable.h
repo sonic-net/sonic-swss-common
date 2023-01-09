@@ -2,6 +2,7 @@
 
 #include <string>
 #include <deque>
+#include <condition_variable>
 #include "dbconnector.h"
 #include "table.h"
 #include "consumertablebase.h"
@@ -48,13 +49,14 @@ public:
     */
     bool hasData() override
     {
-        return !m_dataQueue.empty();
+        std::lock_guard<std::mutex> lock(m_mqPoolDataQueueMutex);
+        return !m_mqPoolDataQueue.empty();
     }
 
     /* true if Selectable has data in its cache */
     bool hasCachedData() override
     {
-        return !m_dataQueue.empty();
+        return hasData();
     }
 
     /* true if Selectable was initialized with data */
@@ -80,19 +82,31 @@ public:
     }
 
 private:
-    void handleReceivedData(const char *json, Table& table);
+    void handleReceivedData(const char* buffer, const size_t size);
+ 
+    static inline std::shared_ptr<KeyOpFieldsValuesTuple> deserializeReceivedData(const char* buffer, const size_t size);
 
     void mqPollThread();
+
+    void dbUpdateThread();
 
     volatile bool m_runThread;
 
     std::shared_ptr<std::thread> m_mqPollThread;
 
+    std::mutex m_mqPoolDataQueueMutex;
+
+    std::queue<std::shared_ptr<KeyOpFieldsValuesTuple>> m_mqPoolDataQueue;
+
     swss::SelectableEvent m_selectableEvent;
 
-    std::mutex m_dataQueueMutex;
+    std::shared_ptr<std::thread> m_dbUpdateThread;
 
-    std::queue<std::shared_ptr<KeyOpFieldsValuesTuple>> m_dataQueue;
+    std::mutex m_dbUpdateDataQueueMutex;
+
+    std::condition_variable m_dbUpdateDataNotifyCv;
+
+    std::queue<std::shared_ptr<KeyOpFieldsValuesTuple>> m_dbUpdateDataQueue;
 
     DBConnector *m_db;
     
