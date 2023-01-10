@@ -6,6 +6,7 @@
 #include "redisreply.h"
 #include "rediscommand.h"
 #include "dbconnector.h"
+#include "logger.h"
 
 #include "unistd.h"
 #include "sys/syscall.h"
@@ -31,6 +32,10 @@ public:
         {
             // call flush from different thread will trigger race condition issue.
             flush();
+        }
+        else
+        {
+            SWSS_LOG_NOTICE("RedisPipeline dtor is called from another thread, possibly due to exit(), Database: %s", getDbName().c_str());
         }
 
         delete m_db;
