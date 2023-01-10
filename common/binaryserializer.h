@@ -7,35 +7,34 @@ namespace swss {
 
 class BinarySerializer {
 public:
-    BinarySerializer(char* buffer, size_t size)
-        : m_buffer(buffer), m_buffer_size(size)
-    {
-        resetSerializer();
-    }
-
-    size_t serializeBuffer(
+    static size_t serializeBuffer(
+        const char* buffer,
+        const size_t size,
         const std::string& key,
         const std::vector<swss::FieldValueTuple>& values,
         const std::string& command)
     {
-        resetSerializer();
+        auto tmpSerializer = BinarySerializer(buffer, size);
 
-        setKeyAndValue(key.c_str(), key.length(), command.c_str(), command.length());
+        tmpSerializer.setKeyAndValue(key.c_str(), key.length(), command.c_str(), command.length());
         for (auto& kvp : values)
         {
             auto& field = fvField(kvp);
             auto& value = fvValue(kvp);
-            setKeyAndValue(field.c_str(), field.length(), value.c_str(), value.length());
+            tmpSerializer.setKeyAndValue(field.c_str(), field.length(), value.c_str(), value.length());
         }
 
-        return finalize();
+        return tmpSerializer.finalize();
     }
 
-    static void deSerializeBuffer(const char* buffer, const size_t size, std::vector<swss::FieldValueTuple>& values)
+    static void deserializeBuffer(
+        const char* buffer,
+        const size_t size,
+        std::vector<swss::FieldValueTuple>& values)
     {
-        WARNINGS_NO_CAST_ALIGN
+        WARNINGS_NO_CAST_ALIGN;
         auto pkvp_count = (const size_t*)buffer;
-        WARNINGS_RESET
+        WARNINGS_RESET;
 
         size_t kvp_count = *pkvp_count;
         auto tmp_buffer = buffer + sizeof(size_t);
@@ -44,9 +43,9 @@ public:
             kvp_count--;
 
             // read key and value from buffer
-            WARNINGS_NO_CAST_ALIGN
+            WARNINGS_NO_CAST_ALIGN;
             auto pkeylen = (const size_t*)tmp_buffer;
-            WARNINGS_RESET
+            WARNINGS_RESET;
 
             tmp_buffer += sizeof(size_t);
             if ((size_t)(tmp_buffer - buffer + *pkeylen)  > size)
@@ -59,9 +58,9 @@ public:
             auto pkey = tmp_buffer;
             tmp_buffer += *pkeylen;
 
-            WARNINGS_NO_CAST_ALIGN
+            WARNINGS_NO_CAST_ALIGN;
             auto pvallen = (const size_t*)tmp_buffer;
-            WARNINGS_RESET
+            WARNINGS_RESET;
 
             tmp_buffer += sizeof(size_t);
             if ((size_t)(tmp_buffer - buffer + *pvallen)  > size)
@@ -79,14 +78,20 @@ public:
     }
 
 private:
-    char* m_buffer;
+    const char* m_buffer;
     const size_t m_buffer_size;
     char* m_current_position;
     size_t m_kvp_count;
 
+    BinarySerializer(const char* buffer, const size_t size)
+        : m_buffer(buffer), m_buffer_size(size)
+    {
+        resetSerializer();
+    }
+
     void resetSerializer()
     {
-        m_current_position = m_buffer + sizeof(size_t);
+        m_current_position = const_cast<char*>(m_buffer) + sizeof(size_t);
         m_kvp_count = 0;
     }
 
@@ -102,9 +107,9 @@ private:
     size_t finalize()
     {
         // set key value pair count to message
-        WARNINGS_NO_CAST_ALIGN
-        size_t* pkvp_count = (size_t*)m_buffer;
-        WARNINGS_RESET
+        WARNINGS_NO_CAST_ALIGN;
+        size_t* pkvp_count = (size_t*)const_cast<char*>(m_buffer);
+        WARNINGS_RESET;
 
         *pkvp_count = m_kvp_count;
 
@@ -116,15 +121,16 @@ private:
     {
         if ((size_t)(m_current_position - m_buffer + datalen + sizeof(size_t)) > m_buffer_size)
         {
-            SWSS_LOG_THROW("There are not enough buffer for binary serializer to serialize, key count: %zu, data length %zu, buffer size: %zu",
-                                                                                                                                                m_kvp_count,
-                                                                                                                                                datalen,
-                                                                                                                                                m_buffer_size);
+            SWSS_LOG_THROW("There are not enough buffer for binary serializer to serialize,\
+                             key count: %zu, data length %zu, buffer size: %zu",
+                                                m_kvp_count,
+                                                datalen,
+                                                m_buffer_size);
         }
 
-        WARNINGS_NO_CAST_ALIGN
+        WARNINGS_NO_CAST_ALIGN;
         size_t* pdatalen = (size_t*)m_current_position;
-        WARNINGS_RESET
+        WARNINGS_RESET;
 
         *pdatalen = datalen;
         m_current_position += sizeof(size_t);

@@ -46,7 +46,7 @@ std::shared_ptr<KeyOpFieldsValuesTuple> ZmqConsumerStateTable::deserializeReceiv
     auto ptr = std::make_shared<KeyOpFieldsValuesTuple>();
     KeyOpFieldsValuesTuple &kco = *ptr;
     auto& values = kfvFieldsValues(kco);
-    BinarySerializer::deSerializeBuffer(buffer, size, values);
+    BinarySerializer::deserializeBuffer(buffer, size, values);
 
     // set key and OP
     swss::FieldValueTuple fvt = values.at(0);
@@ -137,7 +137,7 @@ void ZmqConsumerStateTable::mqPollThread()
     SWSS_LOG_ENTER();
     SWSS_LOG_NOTICE("mqPollThread begin");
     std::vector<char> buffer;
-    buffer.resize(MQ_RESPONSE_BUFFER_SIZE);
+    buffer.resize(MQ_RESPONSE_MAX_COUNT);
 
     // Producer/Consumer state table are n:1 mapping, so need use PUSH/PULL pattern http://api.zeromq.org/master:zmq-socket
     void* context = zmq_ctx_new();;
@@ -170,24 +170,25 @@ void ZmqConsumerStateTable::mqPollThread()
         }
 
         // receive message
-        rc = zmq_recv(socket, buffer.data(), MQ_RESPONSE_BUFFER_SIZE, ZMQ_DONTWAIT);
+        rc = zmq_recv(socket, buffer.data(), MQ_RESPONSE_MAX_COUNT, ZMQ_DONTWAIT);
         if (rc < 0)
         {
-            SWSS_LOG_DEBUG("zmq_recv failed, endpoint: %s,zmqerrno: %d", m_endpoint.c_str(), zmq_errno());
-            if (zmq_errno() == EINTR || zmq_errno() == EAGAIN)
+            int zmq_err = zmq_errno();
+            SWSS_LOG_DEBUG("zmq_recv failed, endpoint: %s,zmqerrno: %d", m_endpoint.c_str(), zmq_err);
+            if (zmq_err == EINTR || zmq_err == EAGAIN)
             {
                 continue;
             }
             else
             {
-                SWSS_LOG_THROW("zmq_recv failed, endpoint: %s,zmqerrno: %d", m_endpoint.c_str(), zmq_errno());
+                SWSS_LOG_THROW("zmq_recv failed, endpoint: %s,zmqerrno: %d", m_endpoint.c_str(), zmq_err);
             }
         }
 
-        if (rc >= MQ_RESPONSE_BUFFER_SIZE)
+        if (rc >= MQ_RESPONSE_MAX_COUNT)
         {
             SWSS_LOG_THROW("zmq_recv message was truncated (over %d bytes, received %d), increase buffer size, message DROPPED",
-                    MQ_RESPONSE_BUFFER_SIZE,
+                    MQ_RESPONSE_MAX_COUNT,
                     rc);
         }
 

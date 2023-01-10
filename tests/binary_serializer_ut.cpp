@@ -26,7 +26,7 @@ TEST(BinarySerializer, serialize_deserialize)
     auto ptr = std::make_shared<KeyOpFieldsValuesTuple>();
     KeyOpFieldsValuesTuple &kco = *ptr;
     auto& deserialized_values = kfvFieldsValues(kco);
-    BinarySerializer::deSerializeBuffer(buffer, serialized_len, deserialized_values);
+    BinarySerializer::deserializeBuffer(buffer, serialized_len, deserialized_values);
     
     swss::FieldValueTuple fvt = deserialized_values.at(0);
     EXPECT_TRUE(fvField(fvt) == test_entry_key);
@@ -58,5 +58,5 @@ TEST(BinarySerializer, deserialize_overflow)
     auto ptr = std::make_shared<KeyOpFieldsValuesTuple>();
     KeyOpFieldsValuesTuple &kco = *ptr;
     auto& deserialized_values = kfvFieldsValues(kco);
-    EXPECT_THROW(BinarySerializer::deSerializeBuffer(buffer, serialized_len - 10, deserialized_values), runtime_error);
+    EXPECT_THROW(BinarySerializer::deserializeBuffer(buffer, serialized_len - 10, deserialized_values), runtime_error);
 }
