@@ -161,7 +161,7 @@ void ZmqConsumerStateTable::mqPollThread()
     while (m_runThread)
     {
         // receive message
-        rc = zmq_poll(poll_item, 1, 1);
+        rc = zmq_poll(poll_item, 1, 1000);
         if (rc == 0 || !(poll_item[0].revents & ZMQ_POLLIN))
         {
             // timeout or other event
