@@ -15,10 +15,9 @@ TEST(BinarySerializer, serialize_deserialize)
     string test_value= "value";
 
     char buffer[100];
-    BinarySerializer serializer(buffer, sizeof(buffer));
     std::vector<FieldValueTuple> values;
     values.push_back(std::make_pair(test_key, test_value));
-    int serialized_len = (int)serializer.serializeBuffer(test_entry_key, values, test_command);
+    int serialized_len = (int)BinarySerializer::serializeBuffer(buffer, sizeof(buffer), test_entry_key, values, test_command);
     string serialized_str(buffer);
 
     EXPECT_EQ(serialized_len, 72);
@@ -40,19 +39,17 @@ TEST(BinarySerializer, serialize_deserialize)
 TEST(BinarySerializer, serialize_overflow)
 {
     char buffer[50];
-    BinarySerializer serializer(buffer, sizeof(buffer));
     std::vector<FieldValueTuple> values;
     values.push_back(std::make_pair("test_key", "test_value"));
-    EXPECT_THROW(serializer.serializeBuffer("test_entry_key", values, "test_command"), runtime_error);
+    EXPECT_THROW(BinarySerializer::serializeBuffer(buffer, sizeof(buffer), "test_entry_key", values, "test_command"), runtime_error);
 }
 
 TEST(BinarySerializer, deserialize_overflow)
 {
     char buffer[100];
-    BinarySerializer serializer(buffer, sizeof(buffer));
     std::vector<FieldValueTuple> values;
     values.push_back(std::make_pair("test_key", "test_value"));
-    int serialized_len = (int)serializer.serializeBuffer("test_entry_key", values, "test_command");
+    int serialized_len = (int)BinarySerializer::serializeBuffer(buffer, sizeof(buffer), "test_entry_key", values, "test_command");
     string serialized_str(buffer);
 
     auto ptr = std::make_shared<KeyOpFieldsValuesTuple>();
