@@ -6,6 +6,11 @@
 #include "redisreply.h"
 #include "rediscommand.h"
 #include "dbconnector.h"
+#include "logger.h"
+
+#include "unistd.h"
+#include "sys/syscall.h"
+#define gettid() syscall(SYS_gettid)
 
 namespace swss {
 
@@ -19,10 +24,20 @@ public:
         , m_remaining(0)
     {
         m_db = db->newConnector(NEWCONNECTOR_TIMEOUT);
+        initializeOwnerTid();
     }
 
     ~RedisPipeline() {
-        flush();
+        if (m_ownerTid == gettid())
+        {
+            // call flush from different thread will trigger race condition issue.
+            flush();
+        }
+        else
+        {
+            SWSS_LOG_NOTICE("RedisPipeline dtor is called from another thread, possibly due to exit(), Database: %s", getDbName().c_str());
+        }
+
         delete m_db;
     }
 
@@ -125,10 +140,16 @@ public:
         return m_db;
     }
 
+    void initializeOwnerTid()
+    {
+        m_ownerTid = gettid();
+    }
+
 private:
     DBConnector *m_db;
     std::queue<int> m_expectedTypes;
     size_t m_remaining;
+    long int m_ownerTid;
 
     void mayflush()
     {
