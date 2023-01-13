@@ -61,8 +61,8 @@ void ZmqConsumerStateTable::handleReceivedData(const char* buffer, const size_t 
 {
     auto pkco = deserializeReceivedData(buffer, size);
     {
-        std::lock_guard<std::mutex> lock(m_mqPoolDataQueueMutex);
-        m_mqPoolDataQueue.push(pkco);
+        std::lock_guard<std::mutex> lock(m_receivedQueueMutex);
+        m_receivedOperationQueue.push(pkco);
     }
 
     m_selectableEvent.notify(); // will release epoll
@@ -211,10 +211,10 @@ void ZmqConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const
     size_t count;
     {
         // size() is not thread safe
-        std::lock_guard<std::mutex> lock(m_mqPoolDataQueueMutex);
+        std::lock_guard<std::mutex> lock(m_receivedQueueMutex);
 
         // For new data append to m_dataQueue during pops, will not be include in result.
-        count = m_mqPoolDataQueue.size();
+        count = m_receivedOperationQueue.size();
         if (!count)
         {
             return;
@@ -224,12 +224,12 @@ void ZmqConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const
     vkco.clear();
     for (size_t ie = 0; ie < count; ie++)
     {
-        auto& kco = *(m_mqPoolDataQueue.front());
+        auto& kco = *(m_receivedOperationQueue.front());
         vkco.push_back(std::move(kco));
 
         {
-            std::lock_guard<std::mutex> lock(m_mqPoolDataQueueMutex);
-            m_mqPoolDataQueue.pop();
+            std::lock_guard<std::mutex> lock(m_receivedQueueMutex);
+            m_receivedOperationQueue.pop();
         }
     }
 }

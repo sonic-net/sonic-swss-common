@@ -49,8 +49,8 @@ public:
     */
     bool hasData() override
     {
-        std::lock_guard<std::mutex> lock(m_mqPoolDataQueueMutex);
-        return !m_mqPoolDataQueue.empty();
+        std::lock_guard<std::mutex> lock(m_receivedQueueMutex);
+        return !m_receivedOperationQueue.empty();
     }
 
     /* true if Selectable has data in its cache */
@@ -94,9 +94,9 @@ private:
 
     std::shared_ptr<std::thread> m_mqPollThread;
 
-    std::mutex m_mqPoolDataQueueMutex;
+    std::mutex m_receivedQueueMutex;
 
-    std::queue<std::shared_ptr<KeyOpFieldsValuesTuple>> m_mqPoolDataQueue;
+    std::queue<std::shared_ptr<KeyOpFieldsValuesTuple>> m_receivedOperationQueue;
 
     swss::SelectableEvent m_selectableEvent;
 
