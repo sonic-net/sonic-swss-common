@@ -50,7 +50,9 @@
 %include <std_vector.i>
 %include <std_pair.i>
 %include <std_map.i>
+#ifdef SWIGPYTHON
 %include <std_shared_ptr.i>
+#endif
 %include <typemaps.i>
 %include <stdint.i>
 %include <exception.i>
@@ -65,6 +67,7 @@
 %template(GetConfigResult) std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>;
 %template(GetInstanceListResult) std::map<std::string, swss::RedisInstInfo>;
 
+#ifdef SWIGPYTHON
 %exception {
     try
     {
@@ -137,6 +140,7 @@
     temp = SWIG_NewPointerObj(*$1, SWIGTYPE_p_swss__Selectable, 0);
     SWIG_Python_AppendOutput($result, temp);
 }
+#endif
 
 %inline %{
 template <typename T>

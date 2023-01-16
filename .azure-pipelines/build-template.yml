@@ -53,7 +53,7 @@ jobs:
       vmImage: 'ubuntu-20.04'
 
   container:
-    image: sonicdev-microsoft.azurecr.io:443/${{ parameters.sonic_slave }}:latest
+    image: sonicdev-microsoft.azurecr.io:443/${{ parameters.sonic_slave }}
 
   steps:
   - checkout: self
@@ -68,8 +68,6 @@ jobs:
         swig
     displayName: "Install dependencies"
   - task: DownloadPipelineArtifact@2
-    # amd64 artifact name does not has arch suffix
-    condition: eq('${{ parameters.arch }}', 'amd64')
     inputs:
       source: specific
       project: build
@@ -77,25 +75,14 @@ jobs:
       runVersion: 'latestFromBranch'
       runBranch: 'refs/heads/$(BUILD_BRANCH)'
       path: $(Build.ArtifactStagingDirectory)/download
-      artifact: common-lib
+      ${{ if eq(parameters.arch, 'amd64') }}:
+        artifact: common-lib
+      ${{ else }}:
+        artifact: common-lib.${{ parameters.arch }}
       patterns: |
         target/debs/${{ parameters.debian_version }}/libyang-*.deb
         target/debs/${{ parameters.debian_version }}/libyang_*.deb
-    displayName: "Download libyang from amd64 common lib"
-  - task: DownloadPipelineArtifact@2
-    condition: ne('${{ parameters.arch }}', 'amd64')
-    inputs:
-      source: specific
-      project: build
-      pipeline: Azure.sonic-buildimage.common_libs
-      runVersion: 'latestFromBranch'
-      runBranch: 'refs/heads/$(BUILD_BRANCH)'
-      path: $(Build.ArtifactStagingDirectory)/download
-      artifact: common-lib.${{ parameters.arch }}
-      patterns: |
-        target/debs/${{ parameters.debian_version }}/libyang-*.deb
-        target/debs/${{ parameters.debian_version }}/libyang_*.deb
-    displayName: "Download libyang from common lib"
+    displayName: "Download libyang from ${{ parameters.arch }} common lib"
   - script: |
       set -ex
       sudo dpkg -i $(find ./download -name *.deb)
@@ -111,14 +98,14 @@ jobs:
   - ${{ if eq(parameters.run_unit_test, true) }}:
     - script: |
         set -ex
-        git clone https://github.com/Spacetown/gcovr.git
+        git clone https://github.com/gcovr/gcovr.git
         cd gcovr/
-        git checkout origin/recursive_search_file
+        git checkout 5.2
         sudo pip3 install setuptools
         sudo python3 setup.py install
         cd ..
         sudo rm -rf gcovr
-      displayName: "Install gcovr 5.0 with recursive fix"
+      displayName: "Install gcovr 5.2 (for --exclude-throw-branches support)"
     - script: |
         set -ex
         sudo pip install Pympler==0.8
@@ -131,13 +118,17 @@ jobs:
         sudo mkdir /usr/local/yang-models
 
         sudo dpkg -i libswsscommon_*.deb
+        sudo dpkg -i libswsscommon-dev_*.deb
         sudo dpkg -i python-swsscommon_*.deb
 
         ./tests/tests
         redis-cli FLUSHALL
         pytest --cov=. --cov-report=xml
         mv coverage.xml tests/coverage.xml
-        gcovr -r ./ -e ".*/swsscommon_wrap.cpp" --exclude-unreachable-branches --exclude-throw-branches -x --xml-pretty  -o coverage.xml
+        gcovr -r ./ -e ".*/swsscommon_wrap.cpp" --exclude-unreachable-branches --exclude-throw-branches --gcov-ignore-parse-errors -x --xml-pretty  -o coverage.xml
+        make -C goext
+        redis-cli FLUSHALL
+        make -C goext check
 
         rm -rf $(Build.ArtifactStagingDirectory)/download
       displayName: "Run swss common unit tests"

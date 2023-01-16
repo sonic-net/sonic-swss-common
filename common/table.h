@@ -146,7 +146,7 @@ public:
     }
 };
 
-#ifdef SWIG
+#if defined(SWIG) && defined(SWIGPYTHON)
 %pythoncode %{
     def transpose_pops(m):
         return [tuple(m[j][i] for j in range(len(m))) for i in range(len(m[0]))]
@@ -207,7 +207,7 @@ public:
     /* Get the configured ttl value for key */
     bool ttl(const std::string &key, int64_t &reply_value);
 
-#ifdef SWIG
+#if defined(SWIG) && defined(SWIGPYTHON)
     // SWIG interface file (.i) globally rename map C++ `del` to python `delete`,
     // but applications already followed the old behavior of auto renamed `_del`.
     // So we implemented old behavior for backward compatibility
