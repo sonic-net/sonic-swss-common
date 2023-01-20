@@ -33,8 +33,11 @@ bool DecoratorTable::get(const string &key, vector<pair<string, string>> &ovalue
         result = true;
     }
 
-    // Append default values
-    m_defaultValueProvider->appendDefaultValues(table, key, ovalues);
+    // Append default values when key exist
+    if (result)
+    {
+        m_defaultValueProvider->appendDefaultValues(table, key, ovalues);
+    }
 
     return result;
 }
