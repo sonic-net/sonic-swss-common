@@ -17,6 +17,7 @@ namespace swss
 
             void registerGroup(int rtnlGroup);
             void dumpRequest(int rtmGetCommand);
+            void setRxBufSizeIfSupported(int size);
 
             int getFd() override;
             uint64_t readData() override;
