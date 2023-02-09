@@ -50,7 +50,7 @@ AC_PATH_PROGS(SWIG, [swig4.0 swig3.0 swig])
 CFLAGS_COMMON=""
 CFLAGS_COMMON+=" -ansi"
 CFLAGS_COMMON+=" -fPIC"
-CFLAGS_COMMON+=" -std=c++11"
+CFLAGS_COMMON+=" -std=c++14"
 CFLAGS_COMMON+=" -Wall"
 CFLAGS_COMMON+=" -Wcast-align"
 CFLAGS_COMMON+=" -Wcast-qual"
