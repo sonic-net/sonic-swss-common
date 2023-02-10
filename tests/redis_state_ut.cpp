@@ -344,7 +344,6 @@ TEST(ConsumerStateTable, set_del_set)
         KeyOpFieldsValuesTuple kco;
         c.pop(kco);
         EXPECT_EQ(kfvKey(kco), key);
-        /*one DEL should be seen first*/
         EXPECT_EQ(kfvOp(kco), "DEL");
 
         auto fvs = kfvFieldsValues(kco);
