@@ -1,6 +1,4 @@
-SUBDIRS = py3
 if PYTHON2
-SUBDIRS += py2
+include pyext/py2/Makefile.am
 endif
-
-ACLOCAL_AMFLAGS = -I m4
+include pyext/py3/Makefile.am
