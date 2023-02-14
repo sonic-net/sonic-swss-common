@@ -11,7 +11,7 @@ static const std::string STATE_DB_NAME = "STATE_DB";
 static const std::string STATE_DB_SEPARATOR = "|";
 static const std::string RESTART_KEY = "system";
 static const std::string RESTART_ENABLE_FIELD = "enable";
-static const std::string FAST_REBOOT_TABLE_NAME = "FAST_REBOOT";
+static const std::string FAST_REBOOT_TABLE_NAME = "FAST_RESTART_ENABLE_TABLE";
 
 // waitAdvancedBootDone
 bool RestartWaiter::waitAdvancedBootDone(

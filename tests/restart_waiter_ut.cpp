@@ -12,7 +12,7 @@
 using namespace swss;
 using namespace std;
 
-static const string FAST_REBOOT_KEY = "FAST_REBOOT|system";
+static const string FAST_REBOOT_KEY = "FAST_RESTART_ENABLE_TABLE|system";
 
 static void set_reboot_status(string status, int delay = 0)
 {
