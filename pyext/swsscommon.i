@@ -22,6 +22,7 @@
 #include "selectable.h"
 #include "rediscommand.h"
 #include "table.h"
+#include "decoratortable.h"
 #include "countertable.h"
 #include "redispipeline.h"
 #include "redisselect.h"
@@ -33,6 +34,7 @@
 #include "profileprovider.h"
 #include "consumertable.h"
 #include "subscriberstatetable.h"
+#include "decoratorsubscriberstatetable.h"
 #include "notificationconsumer.h"
 #include "notificationproducer.h"
 #include "warm_restart.h"
@@ -40,13 +42,17 @@
 #include "events.h"
 #include "configdb.h"
 #include "status_code_util.h"
+#include "redis_table_waiter.h"
+#include "restart_waiter.h"
 %}
 
 %include <std_string.i>
 %include <std_vector.i>
 %include <std_pair.i>
 %include <std_map.i>
+#ifdef SWIGPYTHON
 %include <std_shared_ptr.i>
+#endif
 %include <typemaps.i>
 %include <stdint.i>
 %include <exception.i>
@@ -61,6 +67,7 @@
 %template(GetConfigResult) std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>;
 %template(GetInstanceListResult) std::map<std::string, swss::RedisInstInfo>;
 
+#ifdef SWIGPYTHON
 %exception {
     try
     {
@@ -133,6 +140,7 @@
     temp = SWIG_NewPointerObj(*$1, SWIGTYPE_p_swss__Selectable, 0);
     SWIG_Python_AppendOutput($result, temp);
 }
+#endif
 
 %inline %{
 template <typename T>
@@ -176,6 +184,7 @@ T castSelectableObj(swss::Selectable *temp)
 %apply std::vector<std::pair<std::string, std::string>>& OUTPUT {std::vector<std::pair<std::string, std::string>> &ovalues};
 %apply std::string& OUTPUT {std::string &value};
 %include "table.h"
+%include "decoratortable.h"
 %clear std::vector<std::string> &keys;
 %clear std::vector<std::string> &ops;
 %clear std::vector<std::vector<std::pair<std::string, std::string>>> &fvss;
@@ -207,6 +216,7 @@ T castSelectableObj(swss::Selectable *temp)
 %include "consumertable.h"
 %include "consumerstatetable.h"
 %include "subscriberstatetable.h"
+%include "decoratorsubscriberstatetable.h"
 
 %apply std::string& OUTPUT {std::string &op};
 %apply std::string& OUTPUT {std::string &data};
@@ -223,3 +233,5 @@ T castSelectableObj(swss::Selectable *temp)
 %include "events.h"
 
 %include "status_code_util.h"
+#include "redis_table_waiter.h"
+%include "restart_waiter.h"
