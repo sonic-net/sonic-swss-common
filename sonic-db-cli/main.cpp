@@ -1,5 +1,6 @@
 #include "sonic-db-cli.h"
 #include "common/dbconnector.h"
+#include <iostream>
 
 using namespace swss;
 using namespace std;
