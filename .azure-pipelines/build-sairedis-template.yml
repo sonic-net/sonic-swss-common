@@ -128,8 +128,12 @@ jobs:
       rm ../*.deb || true
       ./autogen.sh
       DEB_BUILD_OPTIONS=nocheck fakeroot dpkg-buildpackage -b -us -uc -Tbinary-syncd-vs -j$(nproc)
+
       # Add SYS_TIME capability for settimeofday ok in syncd test
-      sudo setcap "cap_sys_time=eip" syncd/.libs/tests
+      if test -f syncd/.libs/tests; then
+          sudo setcap "cap_sys_time=eip" syncd/.libs/tests
+      fi
+
       make check
       mv ../*.deb .
     displayName: "Compile sonic sairedis"
