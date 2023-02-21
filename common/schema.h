@@ -493,6 +493,10 @@ namespace swss {
 
 #define STATE_VNET_MONITOR_TABLE_NAME          "VNET_MONITOR_TABLE"
 
+/***** PROFILE DATABASE *****/
+
+#define PROFILE_DELETE_TABLE                  "PROFILE_DELETE"
+
 /***** MISC *****/
 
 #define IPV4_NAME "IPv4"
