@@ -3,9 +3,9 @@
 #include <map>
 #include <string>
 #include <vector>
-#include "common/table.h"
-#include "common/dbconnector.h"
-#include "common/converter.h"
+#include "table.h"
+#include "dbconnector.h"
+#include "converter.h"
 
 namespace swss {
 
