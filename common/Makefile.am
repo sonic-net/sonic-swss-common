@@ -54,7 +54,6 @@ common_libswsscommon_la_SOURCES = \
     common/linkcache.cpp             \
     common/portmap.cpp               \
     common/pubsub.cpp                \
-    common/profileprovider.cpp       \
     common/tokenize.cpp              \
     common/exec.cpp                  \
     common/saiaclschema.cpp          \

@@ -36,7 +36,6 @@ tests_tests_SOURCES = tests/redis_ut.cpp                \
                       tests/events_common_ut.cpp        \
                       tests/events_service_ut.cpp       \
                       tests/events_ut.cpp               \
-                      tests/profileprovider_ut.cpp            \
                       tests/restart_waiter_ut.cpp       \
                       tests/redis_table_waiter_ut.cpp   \
                       tests/profileprovider_ut.cpp      \
