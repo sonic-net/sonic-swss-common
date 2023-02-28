@@ -16,29 +16,43 @@ using namespace std;
 
 namespace swss {
 
-ZmqConsumerStateTable::ZmqConsumerStateTable(DBConnector *db, const std::string &tableName, const std::string& endpoint, int popBatchSize, int pri)
+ZmqConsumerStateTable::ZmqConsumerStateTable(DBConnector *db, const std::string &tableName, const std::string& endpoint, int popBatchSize, int pri, bool dbPersistence = true)
     : Selectable(pri)
     , m_db(db)
     , m_tableName(tableName)
     , m_endpoint(endpoint)
 {
     m_tableSeparator = TableBase::gettableSeparator(db->getDbId());
-    m_runThread = true;
     m_mqPollThread = std::make_shared<std::thread>(&ZmqConsumerStateTable::mqPollThread, this);
-    m_dbUpdateThread = std::make_shared<std::thread>(&ZmqConsumerStateTable::dbUpdateThread, this);
+
+    if (dbPersistence)
+    {
+        SWSS_LOG_DEBUG("Database persistence enabled, tableName: %s, endpoint: %s", tableName.c_str(), endpoint.c_str());
+        m_runThread = true;
+        m_dbUpdateThread = std::make_shared<std::thread>(&ZmqConsumerStateTable::dbUpdateThread, this);
+    }
+    else
+    {
+        SWSS_LOG_DEBUG("Database persistence disabled, tableName: %s, endpoint: %s", tableName.c_str(), endpoint.c_str());
+        m_dbUpdateThread = nullptr;
+    }
 
     SWSS_LOG_DEBUG("ZmqConsumerStateTable ctor tableName: %s, endpoint: %s", tableName.c_str(), endpoint.c_str());
 }
 
 ZmqConsumerStateTable::~ZmqConsumerStateTable()
 {
-    m_runThread = false;
-
-    // notify db update thread exit
-    m_dbUpdateDataNotifyCv.notify_all();
-
     m_mqPollThread->join();
-    m_dbUpdateThread->join();
+
+    if (m_dbUpdateThread != nullptr)
+    {
+        m_runThread = false;
+
+        // notify db update thread exit
+        m_dbUpdateDataNotifyCv.notify_all();
+
+        m_dbUpdateThread->join();
+    }
 }
 
 std::shared_ptr<KeyOpFieldsValuesTuple> ZmqConsumerStateTable::deserializeReceivedData(const char* buffer, const size_t size)
@@ -67,10 +81,14 @@ void ZmqConsumerStateTable::handleReceivedData(const char* buffer, const size_t 
 
     m_selectableEvent.notify(); // will release epoll
 
-    pkco = deserializeReceivedData(buffer, size);
+    if (m_dbUpdateThread != nullptr)
     {
-        std::lock_guard<std::mutex> lock(m_dbUpdateDataQueueMutex);
-        m_dbUpdateDataQueue.push(pkco);
+        pkco = deserializeReceivedData(buffer, size);
+
+        {
+            std::lock_guard<std::mutex> lock(m_dbUpdateDataQueueMutex);
+            m_dbUpdateDataQueue.push(pkco);
+        }
     }
 
     m_dbUpdateDataNotifyCv.notify_all();
