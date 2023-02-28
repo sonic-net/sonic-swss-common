@@ -67,6 +67,7 @@ common_libswsscommon_la_SOURCES = \
     common/countertable.cpp          \
     common/redisutility.cpp          \
     common/restart_waiter.cpp        \
+    common/profileprovider.cpp       \
     common/redis_table_waiter.cpp
 
 common_libswsscommon_la_CXXFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CFLAGS) $(CODE_COVERAGE_CXXFLAGS)
@@ -75,7 +76,7 @@ common_libswsscommon_la_LIBADD = -lpthread $(LIBNL_LIBS) $(CODE_COVERAGE_LIBS) -
 
 common_swssloglevel_SOURCES =  \
 	common/loglevel.cpp        \
-	common/loglevel_util.cpp	
+	common/loglevel_util.cpp
 
 
 common_swssloglevel_CXXFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CODE_COVERAGE_CXXFLAGS)

@@ -1,5 +1,5 @@
 export CGO_LDFLAGS := -lswsscommon -lhiredis
-export CGO_CXXFLAGS := -I../ -I../common/ -w -Wall -fpermissive
+export CGO_CXXFLAGS := -I/usr/include/swss/ -w -Wall -fpermissive
 
 GO ?= /usr/local/go/bin/go
 SWIG ?= /usr/bin/swig
@@ -17,6 +17,7 @@ all:
 	$(SWIG) $(SWIG_FLAG) -I/usr/include/swss/ swsscommon.i
 
 check:
+	sudo CGO_LDFLAGS="$(CGO_LDFLAGS)" CGO_CXXFLAGS="$(CGO_CXXFLAGS)" $(GO) build
 	sudo CGO_LDFLAGS="$(CGO_LDFLAGS)" CGO_CXXFLAGS="$(CGO_CXXFLAGS)" $(GO) test
 
 clean:
