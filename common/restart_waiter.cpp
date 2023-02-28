@@ -77,7 +77,7 @@ bool RestartWaiter::isAdvancedBootInProgress(DBConnector &stateDb)
 bool RestartWaiter::isAdvancedBootInProgressHelper(DBConnector &stateDb,
                                                    bool checkFastBoot)
 {
-    string table_name = checkFastBoot ? FAST_REBOOT_TABLE_NAME : STATE_WARM_RESTART_ENABLE_TABLE_NAME;
+    std::string table_name = checkFastBoot ? FAST_REBOOT_TABLE_NAME : STATE_WARM_RESTART_ENABLE_TABLE_NAME;
     auto ret = stateDb.hget(table_name + STATE_DB_SEPARATOR + RESTART_KEY, RESTART_ENABLE_FIELD);
     if (ret) {
         std::string value = *ret.get();
