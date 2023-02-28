@@ -31,12 +31,12 @@ class FastBootHelper
 public:
     FastBootHelper(): db("STATE_DB", 0)
     {
-        db.set(FAST_REBOOT_KEY, "enable");
+        db.hset(FAST_REBOOT_KEY, "enable", "true");
     }
 
     ~FastBootHelper()
     {
-        db.set(FAST_REBOOT_KEY, "disable");
+        db.hset(FAST_REBOOT_KEY, "enable", "false");
     }
 private:
     DBConnector db;
