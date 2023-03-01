@@ -71,7 +71,7 @@ bool RestartWaiter::doWait(DBConnector &stateDb,
 
 bool RestartWaiter::isAdvancedBootInProgress(DBConnector &stateDb)
 {
-    return isAdvancedBootInProgress(stateDb);
+    return isAdvancedBootInProgressHelper(stateDb);
 }
 
 bool RestartWaiter::isAdvancedBootInProgressHelper(DBConnector &stateDb,
