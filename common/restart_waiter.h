@@ -22,7 +22,7 @@ public:
                                     bool isTcpConn = false);
     
     static bool isAdvancedBootInProgressHelper(swss::DBConnector &stateDb,
-                                                bool checkFastBoot = false)
+                                                bool checkFastBoot = false);
     static bool isAdvancedBootInProgress(swss::DBConnector &stateDb);
     static bool isFastBootInProgress(swss::DBConnector &stateDb);
     static bool isWarmBootInProgress(swss::DBConnector &stateDb);
