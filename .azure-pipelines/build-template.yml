@@ -48,6 +48,8 @@ jobs:
   - checkout: self
     clean: true
   - script: |
+      set -ex
+      sudo apt-get update
       sudo apt-get install -qq -y \
         libhiredis-dev \
         libnl-3-dev \
