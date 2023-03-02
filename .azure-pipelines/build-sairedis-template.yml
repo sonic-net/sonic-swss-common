@@ -58,6 +58,8 @@ jobs:
       git status
     displayName: Set up sonic-sairedis branch
   - script: |
+      set -ex
+      sudo apt-get update
       sudo apt-get install -qq -y \
         qtbase5-dev \
         libdbus-glib-1-2 \
