@@ -497,6 +497,10 @@ namespace swss {
 #define STATE_ACL_TABLE_TABLE_NAME                  "ACL_TABLE_TABLE"
 #define STATE_ACL_RULE_TABLE_NAME                   "ACL_RULE_TABLE"
 
+/***** PROFILE DATABASE *****/
+
+#define PROFILE_DELETE_TABLE                  "PROFILE_DELETE"
+
 /***** MISC *****/
 
 #define IPV4_NAME "IPv4"
