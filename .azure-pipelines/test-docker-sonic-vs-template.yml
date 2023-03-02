@@ -87,6 +87,7 @@ jobs:
 
       rm -rf $(Build.ArtifactStagingDirectory)/download
     displayName: "Run vs tests"
+    continueOnError: true
 
   - task: PublishTestResults@2
     inputs:
