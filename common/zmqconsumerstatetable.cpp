@@ -16,7 +16,7 @@ using namespace std;
 
 namespace swss {
 
-ZmqConsumerStateTable::ZmqConsumerStateTable(DBConnector *db, const std::string &tableName, const std::string& endpoint, int popBatchSize, int pri, bool dbPersistence = true)
+ZmqConsumerStateTable::ZmqConsumerStateTable(DBConnector *db, const std::string &tableName, const std::string& endpoint, int popBatchSize, int pri, bool dbPersistence)
     : Selectable(pri)
     , m_db(db)
     , m_tableName(tableName)
