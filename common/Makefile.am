@@ -66,6 +66,7 @@ common_libswsscommon_la_SOURCES = \
     common/redisutility.cpp          \
     common/restart_waiter.cpp        \
     common/profileprovider.cpp       \
+    common/zmqconfighelper.cpp       \
     common/redis_table_waiter.cpp
 
 common_libswsscommon_la_CXXFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CFLAGS) $(CODE_COVERAGE_CXXFLAGS)
