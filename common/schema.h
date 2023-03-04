@@ -469,6 +469,10 @@ namespace swss {
 
 #define STATE_VNET_MONITOR_TABLE_NAME          "VNET_MONITOR_TABLE"
 
+// ACL table and ACL rule table
+#define STATE_ACL_TABLE_TABLE_NAME                  "ACL_TABLE_TABLE"
+#define STATE_ACL_RULE_TABLE_NAME                   "ACL_RULE_TABLE"
+
 /***** MISC *****/
 
 #define IPV4_NAME "IPv4"
