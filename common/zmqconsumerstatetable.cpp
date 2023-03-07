@@ -24,11 +24,11 @@ ZmqConsumerStateTable::ZmqConsumerStateTable(DBConnector *db, const std::string 
 {
     m_tableSeparator = TableBase::gettableSeparator(db->getDbId());
     m_mqPollThread = std::make_shared<std::thread>(&ZmqConsumerStateTable::mqPollThread, this);
+    m_runThread = true;
 
     if (dbPersistence)
     {
         SWSS_LOG_DEBUG("Database persistence enabled, tableName: %s, endpoint: %s", tableName.c_str(), endpoint.c_str());
-        m_runThread = true;
         m_dbUpdateThread = std::make_shared<std::thread>(&ZmqConsumerStateTable::dbUpdateThread, this);
     }
     else
@@ -42,11 +42,11 @@ ZmqConsumerStateTable::ZmqConsumerStateTable(DBConnector *db, const std::string 
 
 ZmqConsumerStateTable::~ZmqConsumerStateTable()
 {
+    m_runThread = false;
     m_mqPollThread->join();
 
     if (m_dbUpdateThread != nullptr)
     {
-        m_runThread = false;
 
         // notify db update thread exit
         m_dbUpdateDataNotifyCv.notify_all();
