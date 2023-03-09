@@ -138,6 +138,7 @@ stages:
   - template: .azure-pipelines/build-sairedis-template.yml
     parameters:
       arch: amd64
+      pool: sonicbld
       sonic_slave: sonic-slave-${{ parameters.debian_version }}:$(BUILD_BRANCH)
       swss_common_artifact_name: sonic-swss-common
       artifact_name: sonic-sairedis
