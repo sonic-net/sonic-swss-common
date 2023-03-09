@@ -131,6 +131,8 @@ jobs:
       ./autogen.sh
       DEB_BUILD_OPTIONS=nocheck fakeroot dpkg-buildpackage -b -us -uc -Tbinary-syncd-vs -j$(nproc)
       # Add SYS_TIME capability for settimeofday ok in syncd test
+      which setcap
+      ls -al
       sudo setcap "cap_sys_time=eip" syncd/.libs/tests
       make check
       mv ../*.deb .
