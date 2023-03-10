@@ -49,12 +49,14 @@ jobs:
       vmImage: 'ubuntu-20.04'
 
   container:
-    image: sonicdev-microsoft.azurecr.io:443/${{ parameters.sonic_slave }}:latest
+    image: sonicdev-microsoft.azurecr.io:443/${{ parameters.sonic_slave }}
 
   steps:
   - checkout: self
     clean: true
   - script: |
+      set -ex
+      sudo apt-get update
       sudo apt-get install -qq -y \
         libhiredis-dev \
         libnl-3-dev \
