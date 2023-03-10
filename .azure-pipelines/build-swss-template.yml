@@ -45,7 +45,7 @@ jobs:
       vmImage: 'ubuntu-20.04'
 
   container:
-    image: sonicdev-microsoft.azurecr.io:443/${{ parameters.sonic_slave }}:latest
+    image: sonicdev-microsoft.azurecr.io:443/${{ parameters.sonic_slave }}
 
   steps:
   - checkout: sonic-swss
@@ -58,6 +58,8 @@ jobs:
       git status
     displayName: Set up sonic-swss branch
   - script: |
+      set -ex
+      sudo apt-get update
       sudo apt-get install -y libhiredis0.14 libhiredis-dev
       sudo apt-get install -y libzmq5 libzmq3-dev
       sudo apt-get install -qq -y \
