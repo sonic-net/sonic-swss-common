@@ -69,3 +69,26 @@ TEST(LOGGER, loglevel)
 
     cout << "Done." << endl;
 }
+
+TEST(LOGGER, CustomLogObserver)
+{
+    DBConnector db("LOGLEVEL_DB", 0);
+    clearLoglevelDB();
+
+    string key1 = "table1";
+    Logger::linkToDb(key1, prioNotify, "NOTICE");
+    Logger::restartLogger();
+
+    sleep(1);
+
+    cout << "Checking log level for table1." << endl;
+    checkLoglevel(db, key1, "NOTICE");
+
+    cout << "Setting log level for table1." << endl;
+    setLoglevel(db, key1, "DEBUG");
+
+    sleep(1);
+
+    cout << "Checking log level for table1." << endl;
+    checkLoglevel(db, key1, "DEBUG");
+}
