@@ -164,7 +164,7 @@ void ZmqProducerStateTable::sendMsg(
         }
 
         zmq_err = zmq_errno();
-        // sleep (z ^ retry time) * 10 ms
+        // sleep (2 ^ retry time) * 10 ms
         int retry_delay = (int)pow(2.0, i) * 10;
         if (zmq_err == EINTR
             || zmq_err== EFSM)
