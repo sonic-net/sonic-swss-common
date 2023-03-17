@@ -3,6 +3,7 @@
 #include <limits>
 #include <hiredis/hiredis.h>
 #include <zmq.h>
+#include <pthread.h>
 #include "dbconnector.h"
 #include "table.h"
 #include "selectable.h"
@@ -98,6 +99,14 @@ void ZmqConsumerStateTable::dbUpdateThread()
 {
     SWSS_LOG_ENTER();
     SWSS_LOG_NOTICE("dbUpdateThread begin");
+
+    // Different schedule policy has different min priority 
+    pthread_attr_t attr;
+    int policy;
+    pthread_attr_getschedpolicy(&attr, &policy);
+    int min_priority = sched_get_priority_min(policy);
+    // Use min priority will block poll thread 
+    pthread_setschedprio(pthread_self(), min_priority + 1);
 
     // Follow same logic in ConsumerStateTable: every received data will write to 'table'.
     DBConnector db(m_db->getDbName(), 0, true);
