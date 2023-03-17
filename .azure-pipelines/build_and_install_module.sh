@@ -26,10 +26,10 @@ function build_and_install_kmodule()
     SUBLEVEL=$(echo $KERNEL_MAINVERSION | cut -d. -f3)
 
     # Install the required debian packages to build the kernel modules
-    apt-get install -y \
-        build-essential linux-headers-${KERNEL_RELEASE} autoconf pkg-config fakeroot \
-        flex bison libssl-dev libelf-dev dwarves \
-        libnl-route-3-200 libnl-route-3-dev libnl-cli-3-200 libnl-cli-3-dev libnl-3-dev
+    apt-get update
+    apt-get install -y build-essential linux-headers-${KERNEL_RELEASE} autoconf pkg-config fakeroot
+    apt-get install -y flex bison libssl-dev libelf-dev dwarves
+    apt-get install -y libnl-route-3-200 libnl-route-3-dev libnl-cli-3-200 libnl-cli-3-dev libnl-3-dev
     # Install libs required by libswsscommon for build
     apt-get install -y libzmq3-dev libzmq5 libboost-serialization-dev uuid-dev
 
