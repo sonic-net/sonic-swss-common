@@ -67,22 +67,19 @@ jobs:
       sudo apt-get update
       sudo apt-get install -qq -y \
         qtbase5-dev \
-        libdbus-glib-1-2 \
         libdbus-glib-1-dev \
         libpcsclite-dev \
         docbook-to-man \
         docbook-utils \
         aspell-en \
-        libhiredis0.14 \
         libhiredis-dev \
         libnl-3-dev \
         libnl-genl-3-dev \
         libnl-route-3-dev \
         libnl-nf-3-dev \
         libnl-cli-3-dev \
-        swig3.0 \
-        libpython2.7-dev \
-        libzmq5 libzmq3-dev
+        swig4.0 \
+        libzmq3-dev
 
       sudo apt-get install -y redis-server
       sudo sed -ri 's/^# unixsocket/unixsocket/' /etc/redis/redis.conf
@@ -129,7 +126,7 @@ jobs:
       set -ex
       rm ../*.deb || true
       ./autogen.sh
-      DEB_BUILD_OPTIONS=nocheck fakeroot dpkg-buildpackage -b -us -uc -Tbinary-syncd-vs -j$(nproc)
+      DEB_BUILD_OPTIONS=nocheck DEB_BUILD_PROFILES=nopython2 fakeroot dpkg-buildpackage -b -us -uc -Tbinary-syncd-vs -j$(nproc)
       # Add SYS_TIME capability for settimeofday ok in syncd test
       sudo setcap "cap_sys_time=eip" syncd/.libs/syncd_tests
       make check
