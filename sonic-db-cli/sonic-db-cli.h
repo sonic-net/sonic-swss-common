@@ -54,4 +54,10 @@ int sonic_db_cli(
     std::function<void()> initializeGlobalConfig,
     std::function<void()> initializeConfig);
 
+int cli_exception_wrapper(
+    int argc,
+    char** argv,
+    std::function<void()> initializeGlobalConfig,
+    std::function<void()> initializeConfig);
+
 std::string getCommandName(std::vector<std::string>& command);
