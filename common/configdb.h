@@ -198,8 +198,12 @@ protected:
         def mod_config(self, data):
             raw_config = {}
             for table_name, table_data in data.items():
+                if table_data == {}:
+                    # When table data is {}, no action.
+                    continue
                 raw_config[table_name] = {}
                 if table_data == None:
+                    # When table data is 'None', delete the table.
                     continue
                 for key, data in table_data.items():
                     raw_key = self.serialize_key(key)

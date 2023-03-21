@@ -474,6 +474,12 @@ def test_ConfigDBPipeConnector():
     allconfig = config_db.get_config()
     assert len(allconfig["PORT_TABLE"]) == 1000
 
+    # Verify modify config with {} will no action
+    config_db.mod_config({'PORT_TABLE':{}})
+    allconfig = config_db.get_config()
+    assert len(allconfig["PORT_TABLE"]) == 1000
+
+    # Verify modify config with None will delete table
     allconfig["PORT_TABLE"] = None
     config_db.mod_config(allconfig)
     allconfig = config_db.get_config()
@@ -712,3 +718,35 @@ def test_ConfigDBWaitInit():
     config_db.set_entry("TEST_PORT", "Ethernet111", {"alias": "etp1x"})
     allconfig = config_db.get_config()
     assert allconfig["TEST_PORT"]["Ethernet111"]["alias"] == "etp1x"
+
+
+def test_ConfigDBConnector():
+    config_db = ConfigDBConnector()
+    config_db.connect(wait_for_init=False)
+    config_db.get_redis_client(config_db.CONFIG_DB).flushdb()
+
+    #
+    # mod_config
+    #
+
+    # Verify table delete
+    allconfig = config_db.get_config()
+    for i in range(1, 1001, 1):
+        # Make sure we have enough entries to trigger REDIS_SCAN_BATCH_SIZE
+        allconfig.setdefault("PORT_TABLE", {}).setdefault("Ethernet{}".format(i), {})
+        allconfig["PORT_TABLE"]["Ethernet{}".format(i)]["alias"] = "etp{}x".format(i)
+
+    config_db.mod_config(allconfig)
+    allconfig = config_db.get_config()
+    assert len(allconfig["PORT_TABLE"]) == 1000
+
+    # Verify modify config with {} will no action
+    config_db.mod_config({'PORT_TABLE':{}})
+    allconfig = config_db.get_config()
+    assert len(allconfig["PORT_TABLE"]) == 1000
+
+    # Verify modify config with None will delete table
+    allconfig["PORT_TABLE"] = None
+    config_db.mod_config(allconfig)
+    allconfig = config_db.get_config()
+    assert len(allconfig) == 0
