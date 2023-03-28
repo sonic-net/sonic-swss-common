@@ -35,7 +35,7 @@ parameters:
 
 - name: debian_version
   type: string
-  default: buster
+  default: bullseye
 
 jobs:
 - job:
@@ -94,7 +94,7 @@ jobs:
       set -ex
       rm ../*.deb || true
       ./autogen.sh
-      fakeroot debian/rules DEB_CONFIGURE_EXTRA_FLAGS='--enable-code-coverage' $( if [[ ${{ parameters.debian_version }} == "bullseye" ]]; then echo "DEB_BUILD_PROFILES=nopython2"; fi ) CFLAGS="" CXXFLAGS="--coverage -fprofile-abs-path" LDFLAGS="--coverage -fprofile-abs-path" binary
+      fakeroot debian/rules DEB_CONFIGURE_EXTRA_FLAGS='--enable-code-coverage' DEB_BUILD_PROFILES=nopython2 CFLAGS="" CXXFLAGS="--coverage -fprofile-abs-path" LDFLAGS="--coverage -fprofile-abs-path" binary
       mv ../*.deb .
     displayName: "Compile sonic swss common with coverage enabled"
   - ${{ if eq(parameters.run_unit_test, true) }}:
@@ -121,11 +121,11 @@ jobs:
 
         sudo dpkg -i libswsscommon_*.deb
         sudo dpkg -i libswsscommon-dev_*.deb
-        sudo dpkg -i python-swsscommon_*.deb
+        sudo dpkg -i python3-swsscommon_*.deb
 
         ./tests/tests
         redis-cli FLUSHALL
-        pytest --cov=. --cov-report=xml
+        pytest-3 --cov=. --cov-report=xml
         mv coverage.xml tests/coverage.xml
         gcovr -r ./ -e ".*/swsscommon_wrap.cpp" --exclude-unreachable-branches --exclude-throw-branches --gcov-ignore-parse-errors -x --xml-pretty  -o coverage.xml
         make -C goext
@@ -142,9 +142,9 @@ jobs:
         set -ex
         # Install .NET CORE
         curl -sSL https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
-        sudo apt-add-repository https://packages.microsoft.com/debian/10/prod
+        sudo apt-add-repository https://packages.microsoft.com/debian/11/prod
         sudo apt-get update
-        sudo apt-get install -y dotnet-sdk-5.0
+        sudo apt-get install -y dotnet-sdk-6.0
       displayName: "Install .NET CORE"
     - task: PublishCodeCoverageResults@1
       inputs:
