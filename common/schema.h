@@ -488,6 +488,10 @@ namespace swss {
 
 #define STATE_FLOW_COUNTER_CAPABILITY_TABLE_NAME    "FLOW_COUNTER_CAPABILITY_TABLE"
 
+// ACL table and ACL rule table
+#define STATE_ACL_TABLE_TABLE_NAME                  "ACL_TABLE_TABLE"
+#define STATE_ACL_RULE_TABLE_NAME                   "ACL_RULE_TABLE"
+
 /***** MISC *****/
 
 #define IPV4_NAME "IPv4"
