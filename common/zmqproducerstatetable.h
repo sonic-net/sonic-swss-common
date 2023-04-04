@@ -32,10 +32,12 @@ public:
     virtual void set(const std::vector<KeyOpFieldsValuesTuple>& values);
 
     virtual void del(const std::vector<std::string>& keys);
+
+    bool isConnected();
+
+    void connect();
 private:
     void initialize(const std::string& endpoint);
-
-    void connect(const std::string& endpoint);
 
     void sendMsg(const std::string& key,
                  const std::vector<swss::FieldValueTuple>& values,

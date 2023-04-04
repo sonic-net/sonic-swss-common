@@ -56,14 +56,19 @@ void ZmqProducerStateTable::initialize(const std::string& endpoint)
     m_socket = nullptr;
     m_sendbuffer.resize(MQ_RESPONSE_MAX_COUNT);
 
-    connect(endpoint);
+    connect();
 }
     
-void ZmqProducerStateTable::connect(const std::string& endpoint)
+bool ZmqProducerStateTable::isConnected()
+{
+    return m_connected;
+}
+    
+void ZmqProducerStateTable::connect()
 {
     if (m_connected)
     {
-        SWSS_LOG_DEBUG("Already connected to endpoint: %s", endpoint.c_str());
+        SWSS_LOG_DEBUG("Already connected to endpoint: %s", m_endpoint.c_str());
         return;
     }
 
@@ -89,13 +94,13 @@ void ZmqProducerStateTable::connect(const std::string& endpoint)
     int linger = 0;
     zmq_setsockopt(m_socket, ZMQ_LINGER, &linger, sizeof(linger));
 
-    SWSS_LOG_NOTICE("connect to zmq endpoint: %s", endpoint.c_str());
-    int rc = zmq_connect(m_socket, endpoint.c_str());
+    SWSS_LOG_NOTICE("connect to zmq endpoint: %s", m_endpoint.c_str());
+    int rc = zmq_connect(m_socket, m_endpoint.c_str());
     if (rc != 0)
     {
         m_connected = false;
-        SWSS_LOG_ERROR("failed to connect to zmq endpoint %s, zmqerrno: %d",
-                endpoint.c_str(),
+        SWSS_LOG_THROW("failed to connect to zmq endpoint %s, zmqerrno: %d",
+                m_endpoint.c_str(),
                 zmq_errno());
     }
 
@@ -150,12 +155,7 @@ void ZmqProducerStateTable::sendMsg(
     SWSS_LOG_DEBUG("sending: %d", serializedlen);
     int zmq_err = 0;
     for (int i = 0; i <=  MQ_MAX_RETRY; ++i)
-    {    
-        if (!m_connected)
-        {
-            connect(m_endpoint);
-        }
-
+    {
         int rc = zmq_send(m_socket, m_sendbuffer.data(), serializedlen, ZMQ_DONTWAIT);
         if (rc >= 0)
         {
@@ -164,8 +164,8 @@ void ZmqProducerStateTable::sendMsg(
         }
 
         zmq_err = zmq_errno();
-        // sleep (2 ^ retry time) * 10 ms
-        int retry_delay = (int)pow(2.0, i) * 10;
+        // sleep (2 * retry time) * 10 ms
+        int retry_delay = 2 * i * 10;
         if (zmq_err == EINTR
             || zmq_err== EFSM)
         {
@@ -187,7 +187,7 @@ void ZmqProducerStateTable::sendMsg(
         {
             // reconnect and send again.
             m_connected = false;
-            SWSS_LOG_DEBUG("zmq connection break, endpoint: %s,error: %d", m_endpoint.c_str(), rc);
+            SWSS_LOG_THROW("zmq connection break, endpoint: %s,error: %d", m_endpoint.c_str(), rc);
         }
         else
         {
