@@ -10,6 +10,8 @@
 #include "common/select.h"
 #include "common/selectableevent.h"
 #include "common/table.h"
+#include "common/zmqserver.h"
+#include "common/zmqclient.h"
 #include "common/zmqproducerstatetable.h"
 #include "common/zmqconsumerstatetable.h"
 
@@ -55,7 +57,8 @@ static inline int readNumberAtEOL(const string& str)
 static void producerWorker(string tableName, string endpoint)
 {
     DBConnector db(TEST_DB, 0, true);
-    ZmqProducerStateTable p(&db, tableName, endpoint);
+    ZmqClient client(endpoint);
+    ZmqProducerStateTable p(&db, tableName, client);
     cout << "Producer thread started: " << tableName << endl;
 
     for (int i = 0; i < NUMBER_OF_OPS; i++)
@@ -123,7 +126,8 @@ static void consumerWorker(string tableName, string endpoint)
     cout << "Consumer thread started: " << tableName << endl;
     
     DBConnector db(TEST_DB, 0, true);
-    ZmqConsumerStateTable c(&db, tableName, endpoint);
+    ZmqServer server(endpoint);
+    ZmqConsumerStateTable c(&db, tableName, server);
     Select cs;
     cs.addSelectable(&c);
 

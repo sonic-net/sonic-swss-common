@@ -8,15 +8,15 @@
 #include "table.h"
 #include "redispipeline.h"
 #include "producerstatetable.h"
+#include "zmqclient.h"
 
 namespace swss {
 
 class ZmqProducerStateTable : public ProducerStateTable
 {
 public:
-    ZmqProducerStateTable(DBConnector *db, const std::string &tableName, const std::string& endpoint);
-    ZmqProducerStateTable(RedisPipeline *pipeline, const std::string &tableName, const std::string& endpoint, bool buffered = false);
-    ~ZmqProducerStateTable();
+    ZmqProducerStateTable(DBConnector *db, const std::string &tableName, ZmqClient& zmqClient);
+    ZmqProducerStateTable(RedisPipeline *pipeline, const std::string &tableName, ZmqClient& zmqClient, bool buffered = false);
 
     /* Implements set() and del() commands using notification messages */
     virtual void set(const std::string &key,
@@ -33,25 +33,15 @@ public:
 
     virtual void del(const std::vector<std::string>& keys);
 
-    bool isConnected();
-
-    void connect();
 private:
-    void initialize(const std::string& endpoint);
+    void initialize();
 
-    void sendMsg(const std::string& key,
-                 const std::vector<swss::FieldValueTuple>& values,
-                 const std::string& command);
-
-    std::string m_endpoint;
-
-    void* m_context;
-
-    void* m_socket;
-
-    bool m_connected;
+    ZmqClient& m_zmqClient;
     
     std::vector<char> m_sendbuffer;
+
+    const std::string m_dbName;
+    const std::string m_tableNameStr;
 };
 
 }

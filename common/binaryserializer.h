@@ -12,16 +12,25 @@ public:
         const size_t size,
         const std::string& key,
         const std::vector<swss::FieldValueTuple>& values,
-        const std::string& command)
+        const std::string& command,
+        const std::string& dbName,
+        const std::string& tableName)
     {
         auto tmpSerializer = BinarySerializer(buffer, size);
 
-        tmpSerializer.setKeyAndValue(key.c_str(), key.length(), command.c_str(), command.length());
+        tmpSerializer.setKeyAndValue(
+                                    dbName.c_str(), dbName.length(),
+                                    tableName.c_str(), tableName.length());
+        tmpSerializer.setKeyAndValue(
+                                    key.c_str(), key.length(),
+                                    command.c_str(), command.length());
         for (auto& kvp : values)
         {
             auto& field = fvField(kvp);
             auto& value = fvValue(kvp);
-            tmpSerializer.setKeyAndValue(field.c_str(), field.length(), value.c_str(), value.length());
+            tmpSerializer.setKeyAndValue(
+                                        field.c_str(), field.length(),
+                                        value.c_str(), value.length());
         }
 
         return tmpSerializer.finalize();
@@ -95,7 +104,8 @@ private:
         m_kvp_count = 0;
     }
 
-    void setKeyAndValue(const char* key, size_t klen, const char* value, size_t vlen)
+    void setKeyAndValue(const char* key, size_t klen,
+                        const char* value, size_t vlen)
     {
         // to improve deserialize performance, copy null-terminated string. 
         setData(key, klen + 1);

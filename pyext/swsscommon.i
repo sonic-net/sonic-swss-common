@@ -44,6 +44,8 @@
 #include "status_code_util.h"
 #include "redis_table_waiter.h"
 #include "restart_waiter.h"
+#include "zmqserver.h"
+#include "zmqclient.h"
 #include "zmqconsumerstatetable.h"
 #include "zmqproducerstatetable.h"
 %}
@@ -174,6 +176,8 @@ T castSelectableObj(swss::Selectable *temp)
 %include "redisselect.h"
 %include "redistran.h"
 %include "configdb.h"
+%include "zmqserver.h"
+%include "zmqclient.h"
 %include "zmqconsumerstatetable.h"
 %include "zmqproducerstatetable.h"
 

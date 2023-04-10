@@ -17,64 +17,69 @@ using namespace std;
 
 namespace swss {
 
-ZmqConsumerStateTable::ZmqConsumerStateTable(DBConnector *db, const std::string &tableName, const std::string& endpoint, int popBatchSize, int pri, bool dbPersistence)
+ZmqConsumerStateTable::ZmqConsumerStateTable(DBConnector *db, const std::string &tableName, ZmqServer& zmqServer, int popBatchSize, int pri, bool dbPersistence)
     : Selectable(pri)
     , m_db(db)
     , m_tableName(tableName)
-    , m_endpoint(endpoint)
+    , m_zmqServer(zmqServer)
 {
     m_tableSeparator = TableBase::gettableSeparator(db->getDbId());
-    m_mqPollThread = std::make_shared<std::thread>(&ZmqConsumerStateTable::mqPollThread, this);
-    m_runThread = true;
 
     if (dbPersistence)
     {
-        SWSS_LOG_DEBUG("Database persistence enabled, tableName: %s, endpoint: %s", tableName.c_str(), endpoint.c_str());
+        SWSS_LOG_DEBUG("Database persistence enabled, tableName: %s", tableName.c_str());
+        m_runThread = true;
         m_dbUpdateThread = std::make_shared<std::thread>(&ZmqConsumerStateTable::dbUpdateThread, this);
     }
     else
     {
-        SWSS_LOG_DEBUG("Database persistence disabled, tableName: %s, endpoint: %s", tableName.c_str(), endpoint.c_str());
+        SWSS_LOG_DEBUG("Database persistence disabled, tableName: %s", tableName.c_str());
         m_dbUpdateThread = nullptr;
     }
 
-    SWSS_LOG_DEBUG("ZmqConsumerStateTable ctor tableName: %s, endpoint: %s", tableName.c_str(), endpoint.c_str());
+    m_zmqServer.registerMessageHandler(m_db->getDbName(), m_tableName, this);
+
+    SWSS_LOG_DEBUG("ZmqConsumerStateTable ctor tableName: %s", tableName.c_str());
 }
 
 ZmqConsumerStateTable::~ZmqConsumerStateTable()
 {
-    m_runThread = false;
-    m_mqPollThread->join();
-
     if (m_dbUpdateThread != nullptr)
     {
+        m_runThread = false;
 
         // notify db update thread exit
         m_dbUpdateDataNotifyCv.notify_all();
-
         m_dbUpdateThread->join();
     }
 }
 
-std::shared_ptr<KeyOpFieldsValuesTuple> ZmqConsumerStateTable::deserializeReceivedData(const char* buffer, const size_t size)
+std::shared_ptr<KeyOpFieldsValuesTuple> ZmqConsumerStateTable::cloneKeyOpFieldsValuesTuple(std::shared_ptr<KeyOpFieldsValuesTuple> pkco)
 {
-    auto ptr = std::make_shared<KeyOpFieldsValuesTuple>();
-    KeyOpFieldsValuesTuple &kco = *ptr;
-    auto& values = kfvFieldsValues(kco);
-    BinarySerializer::deserializeBuffer(buffer, size, values);
+    auto clone = std::make_shared<KeyOpFieldsValuesTuple>();
 
-    // set key and OP
-    swss::FieldValueTuple fvt = values.at(0);
-    kfvKey(kco) = fvField(fvt);
-    kfvOp(kco) = fvValue(fvt);
-    values.erase(values.begin());
+    kfvKey(*clone) = kfvKey(*pkco);
+    kfvOp(*clone) = kfvOp(*pkco);
 
-    return ptr;
+    auto& cloneValues = kfvFieldsValues(*clone);
+    auto& values = kfvFieldsValues(*pkco);
+    for (auto& i : values)
+    {
+        cloneValues.emplace_back(fvField(i), fvValue(i));
+    }
+
+    return clone;
 }
 
-void ZmqConsumerStateTable::handleReceivedData(const char* buffer, const size_t size)
+void ZmqConsumerStateTable::handleReceivedData(std::shared_ptr<KeyOpFieldsValuesTuple> pkco)
 {
-    auto pkco = deserializeReceivedData(buffer, size);
+    std::shared_ptr<KeyOpFieldsValuesTuple> clone = nullptr;
+    if (m_dbUpdateThread != nullptr)
+    {
+        // clone before put to received queue, because received data may change by consumer.
+        clone = cloneKeyOpFieldsValuesTuple(pkco);
+    }
+
     {
         std::lock_guard<std::mutex> lock(m_receivedQueueMutex);
         m_receivedOperationQueue.push(pkco);
@@ -84,15 +89,13 @@ void ZmqConsumerStateTable::handleReceivedData(const char* buffer, const size_t 
 
     if (m_dbUpdateThread != nullptr)
     {
-        pkco = deserializeReceivedData(buffer, size);
-
         {
             std::lock_guard<std::mutex> lock(m_dbUpdateDataQueueMutex);
-            m_dbUpdateDataQueue.push(pkco);
+            m_dbUpdateDataQueue.push(clone);
         }
-    }
 
-    m_dbUpdateDataNotifyCv.notify_all();
+        m_dbUpdateDataNotifyCv.notify_all();
+    }
 }
 
 void ZmqConsumerStateTable::dbUpdateThread()
@@ -111,7 +114,6 @@ void ZmqConsumerStateTable::dbUpdateThread()
     // Follow same logic in ConsumerStateTable: every received data will write to 'table'.
     DBConnector db(m_db->getDbName(), 0, true);
     Table table(&db, getTableName());
-
     std::mutex cvMutex;
     std::unique_lock<std::mutex> cvLock(cvMutex);
 
@@ -148,7 +150,7 @@ void ZmqConsumerStateTable::dbUpdateThread()
             }
             else
             {
-                SWSS_LOG_ERROR("zmq endpoint: %s, receive unknown operation: %s", m_endpoint.c_str(), kfvOp(kco).c_str());
+                SWSS_LOG_ERROR("zmq consumer table: %s, receive unknown operation: %s", m_tableName.c_str(), kfvOp(kco).c_str());
             }
 
             {
@@ -157,79 +159,6 @@ void ZmqConsumerStateTable::dbUpdateThread()
             }
         }
     }
-}
-
-void ZmqConsumerStateTable::mqPollThread()
-{
-    SWSS_LOG_ENTER();
-    SWSS_LOG_NOTICE("mqPollThread begin");
-    std::vector<char> buffer;
-    buffer.resize(MQ_RESPONSE_MAX_COUNT);
-
-    // Producer/Consumer state table are n:1 mapping, so need use PUSH/PULL pattern http://api.zeromq.org/master:zmq-socket
-    void* context = zmq_ctx_new();;
-    void* socket = zmq_socket(context, ZMQ_PULL);
-    int rc = zmq_bind(socket, m_endpoint.c_str());
-    if (rc != 0)
-    {
-        SWSS_LOG_THROW("zmq_bind failed on endpoint: %s, zmqerrno: %d",
-                m_endpoint.c_str(),
-                zmq_errno());
-    }
-
-    // zmq_poll will use less CPU
-    zmq_pollitem_t poll_item[1];
-    poll_item[0].fd = 0;
-    poll_item[0].socket = socket;
-    poll_item[0].events = ZMQ_POLLIN;
-    poll_item[0].revents = 0;
-
-    SWSS_LOG_NOTICE("bind to zmq endpoint: %s", m_endpoint.c_str());
-    while (m_runThread)
-    {
-        // receive message
-        rc = zmq_poll(poll_item, 1, 1000);
-        if (rc == 0 || !(poll_item[0].revents & ZMQ_POLLIN))
-        {
-            // timeout or other event
-            SWSS_LOG_DEBUG("zmq_poll timeout or invalied event rc: %d, revents: %d", rc, poll_item[0].revents);
-            continue;
-        }
-
-        // receive message
-        rc = zmq_recv(socket, buffer.data(), MQ_RESPONSE_MAX_COUNT, ZMQ_DONTWAIT);
-        if (rc < 0)
-        {
-            int zmq_err = zmq_errno();
-            SWSS_LOG_DEBUG("zmq_recv failed, endpoint: %s,zmqerrno: %d", m_endpoint.c_str(), zmq_err);
-            if (zmq_err == EINTR || zmq_err == EAGAIN)
-            {
-                continue;
-            }
-            else
-            {
-                SWSS_LOG_THROW("zmq_recv failed, endpoint: %s,zmqerrno: %d", m_endpoint.c_str(), zmq_err);
-            }
-        }
-
-        if (rc >= MQ_RESPONSE_MAX_COUNT)
-        {
-            SWSS_LOG_THROW("zmq_recv message was truncated (over %d bytes, received %d), increase buffer size, message DROPPED",
-                    MQ_RESPONSE_MAX_COUNT,
-                    rc);
-        }
-
-        buffer.at(rc) = 0; // make sure that we end string with zero before parse
-        SWSS_LOG_DEBUG("zmq received %d bytes", rc);
-
-        // deserialize and write to redis:
-        handleReceivedData(buffer.data(), rc);
-    }
-
-    zmq_close(socket);
-    zmq_ctx_destroy(context);
-
-    SWSS_LOG_NOTICE("mqPollThread end");
 }
 
 /* Get multiple pop elements */
