@@ -32,8 +32,11 @@ void ZmqServer::registerMessageHandler(
                                     ZmqMessageHandler* handler)
 {
     auto dbResult = m_HandlerMap.insert(pair<string, map<string, ZmqMessageHandler*>>(dbName, map<string, ZmqMessageHandler*>()));
-    auto dbMapping = dbResult.first->second;
-    auto tableResult = dbMapping.insert(pair<string, ZmqMessageHandler*>(tableName, handler));
+    if (dbResult.second) {
+        SWSS_LOG_DEBUG("ZmqServer add handler mapping for db: %s", dbName.c_str());
+    }
+
+    auto tableResult = m_HandlerMap[dbName].insert(pair<string, ZmqMessageHandler*>(tableName, handler));
     if (tableResult.second) {
         SWSS_LOG_DEBUG("ZmqServer register handler for db: %s, table: %s", dbName.c_str(), tableName.c_str());
     }
