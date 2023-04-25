@@ -31,23 +31,17 @@ void ZmqServer::registerMessageHandler(
                                     const std::string tableName,
                                     ZmqMessageHandler* handler)
 {
-    auto result = m_HandlerMap.insert(dbName);
-    if (result.second) {
-        std::map<std::string, ZmqMessageHandler*> tableMapping;
-        result.first = tableMapping;
-    }
-
-    auto result = result.first.find(tableName);
-    if (result.second) {
-        result.first = handler;
-
+    auto dbResult = m_HandlerMap.insert(pair<string, map<string, ZmqMessageHandler*>>(dbName, map<string, ZmqMessageHandler*>()));
+    auto dbMapping = dbResult.first->second;
+    auto tableResult = dbMapping.insert(pair<string, ZmqMessageHandler*>(tableName, handler));
+    if (tableResult.second) {
         SWSS_LOG_DEBUG("ZmqServer register handler for db: %s, table: %s", dbName.c_str(), tableName.c_str());
     }
 }
 
 ZmqMessageHandler* ZmqServer::findMessageHandler(
-                                                          const std::string dbName,
-                                                          const std::string tableName)
+                                                const std::string dbName,
+                                                const std::string tableName)
 {
     auto dbMappingIter = m_HandlerMap.find(dbName);
     if (dbMappingIter == m_HandlerMap.end()) {
