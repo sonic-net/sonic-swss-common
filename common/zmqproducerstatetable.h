@@ -15,8 +15,8 @@ namespace swss {
 class ZmqProducerStateTable : public ProducerStateTable
 {
 public:
-    ZmqProducerStateTable(DBConnector *db, const std::string &tableName, ZmqClient& zmqClient);
-    ZmqProducerStateTable(RedisPipeline *pipeline, const std::string &tableName, ZmqClient& zmqClient, bool buffered = false);
+    ZmqProducerStateTable(DBConnector *db, const std::string &tableName, ZmqClient &zmqClient);
+    ZmqProducerStateTable(RedisPipeline *pipeline, const std::string &tableName, ZmqClient &zmqClient, bool buffered = false);
 
     /* Implements set() and del() commands using notification messages */
     virtual void set(const std::string &key,
@@ -29,9 +29,9 @@ public:
                      const std::string &prefix = EMPTY_PREFIX);
 
     // Batched version of set() and del().
-    virtual void set(const std::vector<KeyOpFieldsValuesTuple>& values);
+    virtual void set(const std::vector<KeyOpFieldsValuesTuple> &values);
 
-    virtual void del(const std::vector<std::string>& keys);
+    virtual void del(const std::vector<std::string> &keys);
 
 private:
     void initialize();

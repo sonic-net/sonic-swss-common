@@ -18,7 +18,7 @@ using namespace std;
 
 namespace swss {
 
-ZmqProducerStateTable::ZmqProducerStateTable(DBConnector *db, const string &tableName, ZmqClient& zmqClient)
+ZmqProducerStateTable::ZmqProducerStateTable(DBConnector *db, const string &tableName, ZmqClient &zmqClient)
     : ProducerStateTable(db, tableName),
     m_zmqClient(zmqClient),
     m_dbName(db->getDbName()),
@@ -27,7 +27,7 @@ ZmqProducerStateTable::ZmqProducerStateTable(DBConnector *db, const string &tabl
     initialize();
 }
 
-ZmqProducerStateTable::ZmqProducerStateTable(RedisPipeline *pipeline, const string &tableName, ZmqClient& zmqClient, bool buffered)
+ZmqProducerStateTable::ZmqProducerStateTable(RedisPipeline *pipeline, const string &tableName, ZmqClient &zmqClient, bool buffered)
     : ProducerStateTable(pipeline, tableName, buffered),
     m_zmqClient(zmqClient),
     m_dbName(pipeline->getDbName()),
@@ -70,7 +70,7 @@ void ZmqProducerStateTable::del(
                         m_sendbuffer);
 }
 
-void ZmqProducerStateTable::set(const std::vector<KeyOpFieldsValuesTuple>& values)
+void ZmqProducerStateTable::set(const std::vector<KeyOpFieldsValuesTuple> &values)
 {
     for (const auto &value : values)
     {
@@ -81,7 +81,7 @@ void ZmqProducerStateTable::set(const std::vector<KeyOpFieldsValuesTuple>& value
     }
 }
 
-void ZmqProducerStateTable::del(const std::vector<std::string>& keys)
+void ZmqProducerStateTable::del(const std::vector<std::string> &keys)
 {
     for (const auto &key : keys)
     {

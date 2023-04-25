@@ -153,7 +153,6 @@ void ZmqClient::sendMsg(
         }
         else if (zmq_err == ETERM)
         {
-            // reconnect and send again.
             m_connected = false;
             SWSS_LOG_THROW("zmq connection break, endpoint: %s,error: %d", m_endpoint.c_str(), rc);
         }
