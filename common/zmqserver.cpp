@@ -36,7 +36,7 @@ void ZmqServer::registerMessageHandler(
         SWSS_LOG_DEBUG("ZmqServer add handler mapping for db: %s", dbName.c_str());
     }
 
-    auto tableResult = m_HandlerMap[dbName].insert(pair<string, ZmqMessageHandler*>(tableName, handler));
+    auto tableResult = dbResult.first->second.insert(pair<string, ZmqMessageHandler*>(tableName, handler));
     if (tableResult.second) {
         SWSS_LOG_DEBUG("ZmqServer register handler for db: %s, table: %s", dbName.c_str(), tableName.c_str());
     }
@@ -109,21 +109,21 @@ void ZmqServer::mqPollThread()
     }
 
     // zmq_poll will use less CPU
-    zmq_pollitem_t poll_item[1];
-    poll_item[0].fd = 0;
-    poll_item[0].socket = socket;
-    poll_item[0].events = ZMQ_POLLIN;
-    poll_item[0].revents = 0;
+    zmq_pollitem_t poll_item;
+    poll_item.fd = 0;
+    poll_item.socket = socket;
+    poll_item.events = ZMQ_POLLIN;
+    poll_item.revents = 0;
 
     SWSS_LOG_NOTICE("bind to zmq endpoint: %s", m_endpoint.c_str());
     while (m_runThread)
     {
         // receive message
-        rc = zmq_poll(poll_item, 1, 1000);
-        if (rc == 0 || !(poll_item[0].revents & ZMQ_POLLIN))
+        rc = zmq_poll(&poll_item, 1, 1000);
+        if (rc == 0 || !(poll_item.revents & ZMQ_POLLIN))
         {
             // timeout or other event
-            SWSS_LOG_DEBUG("zmq_poll timeout or invalied event rc: %d, revents: %d", rc, poll_item[0].revents);
+            SWSS_LOG_DEBUG("zmq_poll timeout or invalied event rc: %d, revents: %d", rc, poll_item.revents);
             continue;
         }
 

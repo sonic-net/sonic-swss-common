@@ -84,8 +84,6 @@ public:
 
 private:
     void handleReceivedData(std::shared_ptr<KeyOpFieldsValuesTuple> pkco);
- 
-    static inline std::shared_ptr<KeyOpFieldsValuesTuple> cloneKeyOpFieldsValuesTuple(std::shared_ptr<KeyOpFieldsValuesTuple> pkco);
 
     void dbUpdateThread();
 

@@ -54,30 +54,13 @@ ZmqConsumerStateTable::~ZmqConsumerStateTable()
     }
 }
 
-std::shared_ptr<KeyOpFieldsValuesTuple> ZmqConsumerStateTable::cloneKeyOpFieldsValuesTuple(std::shared_ptr<KeyOpFieldsValuesTuple> pkco)
-{
-    auto clone = std::make_shared<KeyOpFieldsValuesTuple>();
-
-    kfvKey(*clone) = kfvKey(*pkco);
-    kfvOp(*clone) = kfvOp(*pkco);
-
-    auto& cloneValues = kfvFieldsValues(*clone);
-    auto& values = kfvFieldsValues(*pkco);
-    for (auto& i : values)
-    {
-        cloneValues.emplace_back(fvField(i), fvValue(i));
-    }
-
-    return clone;
-}
-
 void ZmqConsumerStateTable::handleReceivedData(std::shared_ptr<KeyOpFieldsValuesTuple> pkco)
 {
     std::shared_ptr<KeyOpFieldsValuesTuple> clone = nullptr;
     if (m_dbUpdateThread != nullptr)
     {
         // clone before put to received queue, because received data may change by consumer.
-        clone = cloneKeyOpFieldsValuesTuple(pkco);
+        clone = std::make_shared<KeyOpFieldsValuesTuple>(*pkco);
     }
 
     {
