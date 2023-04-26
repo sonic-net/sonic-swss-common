@@ -125,6 +125,9 @@ void ZmqConsumerStateTable::dbUpdateThread()
             if (kfvOp(kco) == SET_COMMAND)
             {
                 auto& values = kfvFieldsValues(kco);
+
+                // Delete entry before Table::set(), because Table::set() does not remove the no longer existed fields from entry.
+                table.del(kfvKey(kco));
                 table.set(kfvKey(kco), values);
             }
             else if (kfvOp(kco) == DEL_COMMAND)
