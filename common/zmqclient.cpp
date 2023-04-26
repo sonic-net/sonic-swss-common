@@ -5,6 +5,8 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <exception>
+#include <system_error>
 #include <zmq.h>
 #include "zmqclient.h"
 #include "binaryserializer.h"
@@ -154,23 +156,25 @@ void ZmqClient::sendMsg(
         else if (zmq_err == ETERM)
         {
             m_connected = false;
-            SWSS_LOG_THROW("zmq connection break, endpoint: %s,error: %d", m_endpoint.c_str(), rc);
+            auto message =  "zmq connection break, endpoint: " + m_endpoint + ",error: " + to_string(rc);
+            SWSS_LOG_ERROR("%s", message.c_str());
+            throw system_error(make_error_code(errc::connection_reset), message);
         }
         else
         {
             // for other error, send failed immediately.
-            SWSS_LOG_THROW("zmq send failed, endpoint: %s, error: %d", m_endpoint.c_str(), rc);
+            auto message =  "zmq send failed, endpoint: " + m_endpoint + ",error: " + to_string(rc);
+            SWSS_LOG_ERROR("%s", message.c_str());
+            throw system_error(make_error_code(errc::io_error), message);
         }
 
         usleep(retry_delay * 1000);
     }
 
     // failed after retry
-    SWSS_LOG_ERROR("zmq_send on endpoint %s failed, zmqerrno: %d: %s, msg length: %d",
-            m_endpoint.c_str(),
-            zmq_err,
-            zmq_strerror(zmq_err),
-            serializedlen);
+    auto message =  "zmq send failed, endpoint: " + m_endpoint + ", zmqerrno: " + to_string(zmq_err) + ":" + zmq_strerror(zmq_err) + ", msg length:" + to_string(serializedlen);
+    SWSS_LOG_ERROR("%s", message.c_str());
+    throw system_error(make_error_code(errc::io_error), message);
 }
 
 }

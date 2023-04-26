@@ -25,8 +25,6 @@ using namespace swss;
 #define PRINT_SKIP           (10) // Print + for Producer and - for Consumer for every 100 ops
 #define MAX_KEYS             (10)       // Testing up to 30 keys objects
 
-static int running_thread_count = 0;
-
 static inline string field(int i)
 {
     return string("field ") + to_string(i);
@@ -110,8 +108,6 @@ static void producerWorker(string tableName, string endpoint)
     }
 
     cout << "Producer thread ended: " << tableName << endl;
-    
-    running_thread_count--;
 }
 
 // variable used by consumer worker
@@ -119,7 +115,6 @@ static int setCount = 0;
 static int delCount = 0;
 static int batchSetCount = 0;
 static int batchDelCount = 0;
-static bool runConsumerThread = true;
     
 static void consumerWorker(string tableName, string endpoint)
 {
@@ -135,7 +130,11 @@ static void consumerWorker(string tableName, string endpoint)
     Selectable *selectcs;
     std::deque<KeyOpFieldsValuesTuple> vkco;
     int ret = 0;
-    while (running_thread_count > 0 || runConsumerThread)
+
+    while (setCount < NUMBER_OF_THREADS * NUMBER_OF_OPS
+            || delCount < NUMBER_OF_THREADS * NUMBER_OF_OPS
+            || batchSetCount < NUMBER_OF_THREADS * NUMBER_OF_OPS * MAX_KEYS
+            || batchDelCount < NUMBER_OF_THREADS * NUMBER_OF_OPS * MAX_KEYS)
     {
         if ((ret = cs.select(&selectcs, 10, true)) == Select::OBJECT)
         {
@@ -190,7 +189,6 @@ TEST(ZmqConsumerStateTable, test)
     /* Starting the producer before the producer */
     for (int i = 0; i < NUMBER_OF_THREADS; i++)
     {
-        running_thread_count++;
         producerThreads[i] = new thread(producerWorker, testTableName, pushEndpoint);
     }
 
@@ -200,10 +198,7 @@ TEST(ZmqConsumerStateTable, test)
         producerThreads[i]->join();
         delete producerThreads[i];
     }
-    
-    usleep(10 * 1000 * 1000);
-    runConsumerThread = false;
-    
+
     consumerThread->join();
     delete consumerThread;
 
