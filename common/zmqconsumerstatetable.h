@@ -16,7 +16,7 @@
 
 namespace swss {
 
-class ZmqConsumerStateTable : public Selectable, TableBase, ZmqMessageHandler
+class ZmqConsumerStateTable : public Selectable, public TableBase, public ZmqMessageHandler
 {
 public:
     /* The default value of pop batch size is 128 */
