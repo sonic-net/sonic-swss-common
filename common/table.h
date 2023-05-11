@@ -40,7 +40,7 @@ public:
     TableBase(int dbId, const std::string &tableName)
         : m_tableName(tableName)
     {
-        m_tableSeparator = gettableSeparator(dbId);
+        m_tableSeparator = getTableSeparator(dbId);
     }
 
     TableBase(const std::string &tableName, const std::string &tableSeparator)
@@ -51,7 +51,7 @@ public:
             throw std::invalid_argument("Invalid table name separator");
     }
 
-    static std::string gettableSeparator(int dbId)
+    static std::string getTableSeparator(int dbId)
     {
         /* Look up table separator for the provided DB */
         auto it = tableNameSeparatorMap.find(dbId);

@@ -156,14 +156,14 @@ void ZmqClient::sendMsg(
         else if (zmq_err == ETERM)
         {
             m_connected = false;
-            auto message =  "zmq connection break, endpoint: " + m_endpoint + ",error: " + to_string(rc);
+            auto message =  "zmq connection break, endpoint: " + m_endpoint + ", error: " + to_string(rc);
             SWSS_LOG_ERROR("%s", message.c_str());
             throw system_error(make_error_code(errc::connection_reset), message);
         }
         else
         {
             // for other error, send failed immediately.
-            auto message =  "zmq send failed, endpoint: " + m_endpoint + ",error: " + to_string(rc);
+            auto message =  "zmq send failed, endpoint: " + m_endpoint + ", error: " + to_string(rc);
             SWSS_LOG_ERROR("%s", message.c_str());
             throw system_error(make_error_code(errc::io_error), message);
         }

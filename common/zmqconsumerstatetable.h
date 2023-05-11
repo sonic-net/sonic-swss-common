@@ -16,7 +16,7 @@
 
 namespace swss {
 
-class ZmqConsumerStateTable : public Selectable, ZmqMessageHandler
+class ZmqConsumerStateTable : public Selectable, TableBase, ZmqMessageHandler
 {
 public:
     /* The default value of pop batch size is 128 */
@@ -71,16 +71,6 @@ public:
     {
         return m_db;
     }
-    
-    std::string getTableName() const
-    {
-        return m_tableName;
-    }
-
-    std::string getTableNameSeparator() const
-    {
-        return m_tableSeparator;
-    }
 
 private:
     void handleReceivedData(std::shared_ptr<KeyOpFieldsValuesTuple> pkco);
@@ -104,10 +94,6 @@ private:
     std::queue<std::shared_ptr<KeyOpFieldsValuesTuple>> m_dbUpdateDataQueue;
 
     DBConnector *m_db;
-    
-    std::string m_tableName;
-    
-    std::string m_tableSeparator;
 
     ZmqServer& m_zmqServer;
 };

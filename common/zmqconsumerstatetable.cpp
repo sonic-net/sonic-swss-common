@@ -19,12 +19,10 @@ namespace swss {
 
 ZmqConsumerStateTable::ZmqConsumerStateTable(DBConnector *db, const std::string &tableName, ZmqServer &zmqServer, int popBatchSize, int pri, bool dbPersistence)
     : Selectable(pri)
+    , TableBase(tableName, TableBase::getTableSeparator(db->getDbId()))
     , m_db(db)
-    , m_tableName(tableName)
     , m_zmqServer(zmqServer)
 {
-    m_tableSeparator = TableBase::gettableSeparator(db->getDbId());
-
     if (dbPersistence)
     {
         SWSS_LOG_DEBUG("Database persistence enabled, tableName: %s", tableName.c_str());
@@ -37,7 +35,7 @@ ZmqConsumerStateTable::ZmqConsumerStateTable(DBConnector *db, const std::string 
         m_dbUpdateThread = nullptr;
     }
 
-    m_zmqServer.registerMessageHandler(m_db->getDbName(), m_tableName, this);
+    m_zmqServer.registerMessageHandler(m_db->getDbName(), tableName, this);
 
     SWSS_LOG_DEBUG("ZmqConsumerStateTable ctor tableName: %s", tableName.c_str());
 }
@@ -136,7 +134,7 @@ void ZmqConsumerStateTable::dbUpdateThread()
             }
             else
             {
-                SWSS_LOG_ERROR("zmq consumer table: %s, receive unknown operation: %s", m_tableName.c_str(), kfvOp(kco).c_str());
+                SWSS_LOG_ERROR("zmq consumer table: %s, receive unknown operation: %s", getTableName().c_str(), kfvOp(kco).c_str());
             }
 
             {
