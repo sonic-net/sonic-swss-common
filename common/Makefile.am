@@ -33,6 +33,7 @@ common_libswsscommon_la_SOURCES = \
     common/json.cpp                  \
     common/producertable.cpp         \
     common/producerstatetable.cpp    \
+    common/zmqproducerstatetable.cpp \
     common/rediscommand.cpp          \
     common/redistran.cpp             \
     common/redisselect.cpp           \
@@ -42,6 +43,7 @@ common_libswsscommon_la_SOURCES = \
     common/consumertable.cpp         \
     common/consumertablebase.cpp     \
     common/consumerstatetable.cpp    \
+    common/zmqconsumerstatetable.cpp \
     common/ipaddress.cpp             \
     common/ipprefix.cpp              \
     common/ipaddresses.cpp           \
@@ -66,6 +68,8 @@ common_libswsscommon_la_SOURCES = \
     common/redisutility.cpp          \
     common/restart_waiter.cpp        \
     common/profileprovider.cpp       \
+    common/zmqclient.cpp             \
+    common/zmqserver.cpp             \
     common/redis_table_waiter.cpp
 
 common_libswsscommon_la_CXXFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CFLAGS) $(CODE_COVERAGE_CXXFLAGS)
@@ -75,6 +79,7 @@ common_libswsscommon_la_LIBADD = -lpthread $(LIBNL_LIBS) $(CODE_COVERAGE_LIBS) -
 common_swssloglevel_SOURCES =  \
 	common/loglevel.cpp        \
 	common/loglevel_util.cpp
+
 
 common_swssloglevel_CXXFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CODE_COVERAGE_CXXFLAGS)
 common_swssloglevel_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CODE_COVERAGE_CPPFLAGS)

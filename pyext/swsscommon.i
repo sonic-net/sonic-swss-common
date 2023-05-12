@@ -44,6 +44,10 @@
 #include "status_code_util.h"
 #include "redis_table_waiter.h"
 #include "restart_waiter.h"
+#include "zmqserver.h"
+#include "zmqclient.h"
+#include "zmqconsumerstatetable.h"
+#include "zmqproducerstatetable.h"
 %}
 
 %include <std_string.i>
@@ -172,6 +176,10 @@ T castSelectableObj(swss::Selectable *temp)
 %include "redisselect.h"
 %include "redistran.h"
 %include "configdb.h"
+%include "zmqserver.h"
+%include "zmqclient.h"
+%include "zmqconsumerstatetable.h"
+%include "zmqproducerstatetable.h"
 
 %extend swss::DBConnector {
     %template(hgetall) hgetall<std::map<std::string, std::string>>;

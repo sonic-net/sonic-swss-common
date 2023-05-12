@@ -40,18 +40,7 @@ public:
     TableBase(int dbId, const std::string &tableName)
         : m_tableName(tableName)
     {
-        /* Look up table separator for the provided DB */
-        auto it = tableNameSeparatorMap.find(dbId);
-
-        if (it != tableNameSeparatorMap.end())
-        {
-            m_tableSeparator = it->second;
-        }
-        else
-        {
-            SWSS_LOG_NOTICE("Unrecognized database ID. Using default table name separator ('%s')", TABLE_NAME_SEPARATOR_VBAR.c_str());
-            m_tableSeparator = TABLE_NAME_SEPARATOR_VBAR;
-        }
+        m_tableSeparator = getTableSeparator(dbId);
     }
 
     TableBase(const std::string &tableName, const std::string &tableSeparator)
@@ -60,6 +49,22 @@ public:
         static const std::string legalSeparators = ":|";
         if (legalSeparators.find(tableSeparator) == std::string::npos)
             throw std::invalid_argument("Invalid table name separator");
+    }
+
+    static std::string getTableSeparator(int dbId)
+    {
+        /* Look up table separator for the provided DB */
+        auto it = tableNameSeparatorMap.find(dbId);
+
+        if (it != tableNameSeparatorMap.end())
+        {
+            return it->second;
+        }
+        else
+        {
+            SWSS_LOG_NOTICE("Unrecognized database ID. Using default table name separator ('%s')", TABLE_NAME_SEPARATOR_VBAR.c_str());
+            return TABLE_NAME_SEPARATOR_VBAR;
+        }
     }
 
     std::string getTableName() const { return m_tableName; }
