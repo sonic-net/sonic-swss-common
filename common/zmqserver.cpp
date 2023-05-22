@@ -100,6 +100,11 @@ void ZmqServer::mqPollThread()
     // Producer/Consumer state table are n:1 mapping, so need use PUSH/PULL pattern http://api.zeromq.org/master:zmq-socket
     void* context = zmq_ctx_new();;
     void* socket = zmq_socket(context, ZMQ_PULL);
+
+    // Increase recv buffer for use all bandwidth:  http://api.zeromq.org/4-2:zmq-setsockopt
+    int high_watermark = MQ_WATERMARK;
+    zmq_setsockopt(socket, ZMQ_RCVHWM, &high_watermark, sizeof(high_watermark));
+
     int rc = zmq_bind(socket, m_endpoint.c_str());
     if (rc != 0)
     {

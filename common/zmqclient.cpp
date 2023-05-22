@@ -85,6 +85,10 @@ void ZmqClient::connect()
     int linger = 0;
     zmq_setsockopt(m_socket, ZMQ_LINGER, &linger, sizeof(linger));
 
+    // Increase send buffer for use all bandwidth: http://api.zeromq.org/4-2:zmq-setsockopt
+    int high_watermark = MQ_WATERMARK;
+    zmq_setsockopt(m_socket, ZMQ_SNDHWM, &high_watermark, sizeof(high_watermark));
+
     SWSS_LOG_NOTICE("connect to zmq endpoint: %s", m_endpoint.c_str());
     int rc = zmq_connect(m_socket, m_endpoint.c_str());
     if (rc != 0)
@@ -124,7 +128,9 @@ void ZmqClient::sendMsg(
         {
             // ZMQ socket is not thread safe: http://api.zeromq.org/2-1:zmq
             std::lock_guard<std::mutex> lock(m_socketMutex);
-            rc = zmq_send(m_socket, sendbuffer.data(), serializedlen, ZMQ_DONTWAIT);
+
+            // Use none block mode to use all bandwidth: http://api.zeromq.org/2-1%3Azmq-send
+            rc = zmq_send(m_socket, sendbuffer.data(), serializedlen, ZMQ_NOBLOCK);
         }
 
         if (rc >= 0)
