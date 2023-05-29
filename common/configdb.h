@@ -105,8 +105,11 @@ protected:
                     try:
                         (table, row) = key.split(self.TABLE_NAME_SEPARATOR, 1)
                         if table in self.handlers:
-                            client = self.get_redis_client(self.db_name)
-                            data = self.raw_to_typed(client.hgetall(key))
+                            if item['data'] == 'del':
+                                data = None
+                            else:
+                                client = self.get_redis_client(self.db_name)
+                                data = self.raw_to_typed(client.hgetall(key))
                             if table in init_data and row in init_data[table]:
                                 cache_hit = init_data[table][row] == data
                                 del init_data[table][row]
