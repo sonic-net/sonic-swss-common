@@ -20,7 +20,7 @@ using namespace swss;
 
 #define TEST_DB           "APPL_DB" // Need to test against a DB which uses a colon table name separator due to hardcoding in consumer_table_pops.lua
 #define NUMBER_OF_THREADS    (5) // Spawning more than 256 threads causes libc++ to except
-#define NUMBER_OF_OPS        (10)
+#define NUMBER_OF_OPS        (100)
 #define MAX_FIELDS       10 // Testing up to 30 fields objects
 #define PRINT_SKIP           (10) // Print + for Producer and - for Consumer for every 100 ops
 #define MAX_KEYS             (10)       // Testing up to 30 keys objects
@@ -51,6 +51,8 @@ static inline int readNumberAtEOL(const string& str)
     EXPECT_TRUE((bool)is);
     return ret;
 }
+
+static bool allDataReceived = false;
 
 static void producerWorker(string tableName, string endpoint)
 {
@@ -105,6 +107,11 @@ static void producerWorker(string tableName, string endpoint)
         }
 
         p.del(keys);
+    }
+
+    while (!allDataReceived)
+    {
+        sleep(1);
     }
 
     cout << "Producer thread ended: " << tableName << endl;
@@ -172,6 +179,7 @@ static void consumerWorker(string tableName, string endpoint)
         }
     }
 
+    allDataReceived = true;
     cout << "Consumer thread ended: " << tableName << endl;
 }
 
