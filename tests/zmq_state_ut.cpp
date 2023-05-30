@@ -52,6 +52,8 @@ static inline int readNumberAtEOL(const string& str)
     return ret;
 }
 
+static bool allDataReceived = false;
+
 static void producerWorker(string tableName, string endpoint)
 {
     DBConnector db(TEST_DB, 0, true);
@@ -105,6 +107,11 @@ static void producerWorker(string tableName, string endpoint)
         }
 
         p.del(keys);
+    }
+
+    while (!allDataReceived)
+    {
+        sleep(1);
     }
 
     cout << "Producer thread ended: " << tableName << endl;
@@ -172,6 +179,7 @@ static void consumerWorker(string tableName, string endpoint)
         }
     }
 
+    allDataReceived = true;
     cout << "Consumer thread ended: " << tableName << endl;
 }
 
