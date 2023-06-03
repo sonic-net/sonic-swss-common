@@ -126,8 +126,8 @@ jobs:
         ./tests/tests
         redis-cli FLUSHALL
         pytest-3 --cov=. --cov-report=xml
-        mv coverage.xml tests/coverage.xml
-        gcovr -r ./ -e ".*/swsscommon_wrap.cpp" --exclude-unreachable-branches --exclude-throw-branches --gcov-ignore-parse-errors -x --xml-pretty  -o coverage.xml
+        [ -f coverage.xml ] && mv coverage.xml tests/coverage.xml
+        gcovr -r ./ -e ".*/swsscommon_wrap.cpp" -e=tests --exclude-unreachable-branches --exclude-throw-branches --gcov-ignore-parse-errors -x --xml-pretty  -o coverage.xml
         make -C goext
         redis-cli FLUSHALL
         make -C goext check
