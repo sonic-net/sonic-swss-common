@@ -53,6 +53,7 @@ m4/ltversion.m4
 m4/lt~obsolete.m4
 Makefile.in
 stamp-h1
+.dirstamp
 **/.deps/
 **/.libs/
 **/Makefile
@@ -61,6 +62,7 @@ stamp-h1
 ###############
 common/swssloglevel
 tests/tests
+sonic-db-cli/sonic-db-cli
 
 # Bazel Build System #
 /bazel-*
