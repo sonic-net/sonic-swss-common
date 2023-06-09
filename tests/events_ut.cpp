@@ -590,7 +590,8 @@ void do_test_subscribe(bool wrap)
         hsub = events_init_subscriber_wrap(true, 100);
     }
     else {
-        hsub = events_init_subscriber(true, 100);
+        std::vector<std::string> sources = {""};
+        hsub = events_init_subscriber(true, 100, &sources);
     }
     EXPECT_TRUE(NULL != hsub);
     EXPECT_EQ(last_svc_code, EVENT_CACHE_STOP);
