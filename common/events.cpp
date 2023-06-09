@@ -400,14 +400,14 @@ EventSubscriber::prune_track()
     map<time_t, vector<runtime_id_t> > lst;
 
     /* Sort entries by last touched time */
-    for(const auto &e: m_track) {
+    for(const auto e: m_track) {
         lst[e.second.epoch_secs].push_back(e.first);
     }
 
     /* By default it walks from lowest value / earliest timestamp */
     map<time_t, vector<runtime_id_t> >::const_iterator itc = lst.begin();
     for(; (itc != lst.end()) && (m_track.size() > MAX_PUBLISHERS_COUNT); ++itc) {
-        for (const auto &r: itc->second) {
+        for (const auto r: itc->second) {
             m_track.erase(r);
         }
     }
