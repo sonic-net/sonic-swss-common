@@ -69,5 +69,5 @@ sonic-db-cli/sonic-db-cli
 /bazel-*
 
 # Unit test generated files #
-###############
+#############################
 ut_dump_file.txt
