@@ -344,6 +344,7 @@ internal_event_t create_ev(const test_data_t &data)
 
     event_data[EVENT_RUNTIME_ID] = data.rid;
     event_data[EVENT_SEQUENCE] = data.seq;
+    event_data[EVENT_EPOCH] = "1";
 
     return event_data;
 }
