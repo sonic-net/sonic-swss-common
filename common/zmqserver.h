@@ -11,6 +11,9 @@
 #define MQ_POLL_TIMEOUT (1000)
 #define MQ_WATERMARK 10000
 
+/***** ZMQ ADDRESS *****/
+#define DASH_ORCH_ZMQ_ADDRESS                 "tcp://*:1234"
+
 namespace swss {
 
 class ZmqMessageHandler

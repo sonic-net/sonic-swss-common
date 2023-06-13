@@ -508,10 +508,6 @@ namespace swss {
 
 #define PROFILE_DELETE_TABLE                  "PROFILE_DELETE"
 
-/***** ZMQ ADDRESS *****/
-
-#define DASH_ORCH_ZMQ_ADDRESS                 "tcp://*:1234"
-
 /***** MISC *****/
 
 #define IPV4_NAME "IPv4"
