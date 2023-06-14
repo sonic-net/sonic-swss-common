@@ -49,6 +49,7 @@ jobs:
     clean: true
   - script: |
       set -ex
+      sed '/^#* *deb.*debian.org/ s/^#* *//' /etc/apt/sources.list -i
       sudo apt-get update
       sudo apt-get install -qq -y \
         libhiredis-dev \
