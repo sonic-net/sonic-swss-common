@@ -49,11 +49,27 @@ void RedisCommand::formatArgv(int argc, const char **argv, const size_t *argvlen
     }
 }
 
-/* Format HMSET key multiple field value command */
-void RedisCommand::formatHMSET(const std::string &key,
+void RedisCommand::format(const vector<string> &commands)
+{
+    vector<const char*> args;
+    for (auto& command : commands)
+    {
+        args.push_back(command.c_str());
+    }
+    formatArgv(static_cast<int>(args.size()), args.data(), NULL);
+}
+
+/* Format HSET key multiple field value command */
+void RedisCommand::formatHSET(const std::string &key,
                                const std::vector<FieldValueTuple> &values)
 {
-    formatHMSET(key, values.begin(), values.end());
+    formatHSET(key, values.begin(), values.end());
+}
+
+void RedisCommand::formatHSET(const std::string &key,
+                              const std::map<std::string, std::string> &values)
+{
+    formatHSET(key, values.begin(), values.end());
 }
 
 /* Format HSET key field value command */
@@ -98,6 +114,12 @@ void RedisCommand::formatEXPIRE(const std::string& key, const int64_t& ttl)
 void RedisCommand::formatTTL(const std::string& key)
 {
     return format("TTL %s", key.c_str());
+}
+
+/* Format DEL key command */
+void RedisCommand::formatDEL(const std::string& key)
+{
+    return format("DEL %s", key.c_str());
 }
 
 const char *RedisCommand::c_str() const

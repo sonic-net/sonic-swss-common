@@ -24,6 +24,9 @@ namespace swss {
 
 #define SWSS_LOG_THROW(MSG, ...)       swss::Logger::getInstance().wthrow(swss::Logger::SWSS_ERROR,  ":- %s: " MSG, __FUNCTION__, ##__VA_ARGS__)
 
+static constexpr const char * const DAEMON_LOGLEVEL = "LOGLEVEL";
+static constexpr const char * const DAEMON_LOGOUTPUT = "LOGOUTPUT";
+
 void err_exit(const char *fn, int ln, int e, const char *fmt, ...)
 #ifdef __GNUC__
         __attribute__ ((format (printf, 4, 5)))
@@ -46,6 +49,7 @@ void err_exit(const char *fn, int ln, int e, const char *fmt, ...)
 class Logger
 {
 public:
+
     enum Priority
     {
         SWSS_EMERG,
@@ -87,6 +91,7 @@ public:
     static void linkToDb(const std::string& dbName, const PriorityChangeNotify& notify, const std::string& defPrio);
     // Must be called after all linkToDb to start select from DB
     static void linkToDbNative(const std::string& dbName, const char * defPrio="NOTICE");
+    static void restartLogger();
     void write(Priority prio, const char *fmt, ...)
 #ifdef __GNUC__
         __attribute__ ((format (printf, 3, 4)))
@@ -102,6 +107,7 @@ public:
 
     static std::string priorityToString(Priority prio);
     static std::string outputToString(Output output);
+    static void swssOutputNotify(const std::string& component, const std::string& outputStr);
 
     class ScopeLogger
     {
@@ -141,7 +147,6 @@ private:
     Logger& operator=(const Logger&);
 
     static void swssPrioNotify(const std::string& component, const std::string& prioStr);
-    static void swssOutputNotify(const std::string& component, const std::string& outputStr);
 
     void settingThread();
     void terminateSettingThread();

@@ -33,12 +33,16 @@ parameters:
   type: boolean
   default: false
 
+- name: debian_version
+  type: string
+  default: bullseye
+
 jobs:
 - job:
   displayName: ${{ parameters.arch }}
   timeoutInMinutes: ${{ parameters.timeout }}
   variables:
-    DIFF_COVER_CHECK_THRESHOLD: 50
+    DIFF_COVER_CHECK_THRESHOLD: 80
     ${{ if eq(parameters.run_unit_test, true) }}:
       DIFF_COVER_ENABLE: 'true'
 
@@ -49,38 +53,61 @@ jobs:
       vmImage: 'ubuntu-20.04'
 
   container:
-    image: sonicdev-microsoft.azurecr.io:443/${{ parameters.sonic_slave }}:latest
+    image: sonicdev-microsoft.azurecr.io:443/${{ parameters.sonic_slave }}
 
   steps:
   - checkout: self
     clean: true
   - script: |
+      set -ex
+      sudo apt-get update
       sudo apt-get install -qq -y \
         libhiredis-dev \
         libnl-3-dev \
         libnl-genl-3-dev \
         libnl-route-3-dev \
         libnl-nf-3-dev \
-        swig3.0
+        swig
     displayName: "Install dependencies"
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      source: specific
+      project: build
+      pipeline: Azure.sonic-buildimage.common_libs
+      runVersion: 'latestFromBranch'
+      runBranch: 'refs/heads/$(BUILD_BRANCH)'
+      path: $(Build.ArtifactStagingDirectory)/download
+      ${{ if eq(parameters.arch, 'amd64') }}:
+        artifact: common-lib
+      ${{ else }}:
+        artifact: common-lib.${{ parameters.arch }}
+      patterns: |
+        target/debs/${{ parameters.debian_version }}/libyang-*.deb
+        target/debs/${{ parameters.debian_version }}/libyang_*.deb
+    displayName: "Download libyang from ${{ parameters.arch }} common lib"
+  - script: |
+      set -ex
+      sudo dpkg -i $(find ./download -name *.deb)
+    workingDirectory: $(Build.ArtifactStagingDirectory)
+    displayName: "Install libyang from common lib"
   - script: |
       set -ex
       rm ../*.deb || true
       ./autogen.sh
-      fakeroot debian/rules DEB_CONFIGURE_EXTRA_FLAGS='--enable-code-coverage' CFLAGS="" CXXFLAGS="--coverage -fprofile-abs-path" LDFLAGS="--coverage -fprofile-abs-path" binary
+      fakeroot debian/rules DEB_CONFIGURE_EXTRA_FLAGS='--enable-code-coverage' DEB_BUILD_PROFILES=nopython2 CFLAGS="" CXXFLAGS="--coverage -fprofile-abs-path" LDFLAGS="--coverage -fprofile-abs-path" binary
       mv ../*.deb .
     displayName: "Compile sonic swss common with coverage enabled"
   - ${{ if eq(parameters.run_unit_test, true) }}:
     - script: |
         set -ex
-        git clone https://github.com/Spacetown/gcovr.git
+        git clone https://github.com/gcovr/gcovr.git
         cd gcovr/
-        git checkout origin/recursive_search_file
+        git checkout 5.2
         sudo pip3 install setuptools
         sudo python3 setup.py install
         cd ..
         sudo rm -rf gcovr
-      displayName: "Install gcovr 5.0 with recursive fix"
+      displayName: "Install gcovr 5.2 (for --exclude-throw-branches support)"
     - script: |
         set -ex
         sudo pip install Pympler==0.8
@@ -90,15 +117,22 @@ jobs:
         sudo sed -ri 's/^unixsocketperm .../unixsocketperm 777/' /etc/redis/redis.conf
         sudo sed -ri 's/redis-server.sock/redis.sock/' /etc/redis/redis.conf
         sudo service redis-server restart
+        sudo mkdir /usr/local/yang-models
 
         sudo dpkg -i libswsscommon_*.deb
-        sudo dpkg -i python-swsscommon_*.deb
+        sudo dpkg -i libswsscommon-dev_*.deb
+        sudo dpkg -i python3-swsscommon_*.deb
 
         ./tests/tests
         redis-cli FLUSHALL
-        pytest --cov=. --cov-report=xml
-        mv coverage.xml tests/coverage.xml
-        gcovr -r ./ -e ".*/swsscommon_wrap.cpp" --exclude-unreachable-branches --exclude-throw-branches -x --xml-pretty  -o coverage.xml
+        pytest-3 --cov=. --cov-report=xml
+        [ -f coverage.xml ] && mv coverage.xml tests/coverage.xml
+        gcovr -r ./ -e ".*/swsscommon_wrap.cpp" -e=tests --exclude-unreachable-branches --exclude-throw-branches --gcov-ignore-parse-errors -x --xml-pretty  -o coverage.xml
+        make -C goext
+        redis-cli FLUSHALL
+        make -C goext check
+
+        rm -rf $(Build.ArtifactStagingDirectory)/download
       displayName: "Run swss common unit tests"
   - publish: $(System.DefaultWorkingDirectory)/
     artifact: ${{ parameters.artifact_name }}
@@ -108,9 +142,9 @@ jobs:
         set -ex
         # Install .NET CORE
         curl -sSL https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
-        sudo apt-add-repository https://packages.microsoft.com/debian/10/prod
+        sudo apt-add-repository https://packages.microsoft.com/debian/11/prod
         sudo apt-get update
-        sudo apt-get install -y dotnet-sdk-5.0
+        sudo apt-get install -y dotnet-sdk-6.0
       displayName: "Install .NET CORE"
     - task: PublishCodeCoverageResults@1
       inputs:

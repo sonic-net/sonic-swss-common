@@ -37,7 +37,7 @@ protected:
     std::string m_db_name;
 };
 
-#ifdef SWIG
+#if defined(SWIG) && defined(SWIGPYTHON)
 %pythoncode %{
     ## Note: diamond inheritance, reusing functions in both classes
     class ConfigDBConnector(SonicV2Connector, ConfigDBConnector_Native):
@@ -76,7 +76,7 @@ protected:
             ## Start listen Redis keyspace event. Pass a callback function to `init` to handle initial table data.
             self.pubsub = self.get_redis_client(self.db_name).pubsub()
             self.pubsub.psubscribe("__keyspace@{}__:*".format(self.get_dbid(self.db_name)))
-        
+
             # Build a cache of data for all subscribed tables that will recieve the initial table data so we dont send duplicate event notifications
             init_data = {tbl: self.get_table(tbl) for tbl in self.handlers if init_data_handler or self.fire_init_data[tbl]}
 
@@ -88,14 +88,18 @@ protected:
                     return False
                 return True
 
-            init_callback_data = {tbl: data for tbl, data in init_data.items() if load_data(tbl, data)}	
+            init_callback_data = {tbl: data for tbl, data in init_data.items() if load_data(tbl, data)}
 
             # Pass all initial data that we DID NOT send as updates to handlers through the init callback if provided by caller
             if init_data_handler:
                 init_data_handler(init_callback_data)
 
             while True:
-                item = self.pubsub.listen_message()
+                item = self.pubsub.listen_message(interrupt_on_signal=True)
+                if 'type' not in item:
+                    # When timeout or interrupted, item will not contains 'type'
+                    continue
+
                 if item['type'] == 'pmessage':
                     key = item['channel'].split(':', 1)[1]
                     try:
@@ -194,8 +198,12 @@ protected:
         def mod_config(self, data):
             raw_config = {}
             for table_name, table_data in data.items():
+                if table_data == {}:
+                    # When table data is {}, no action.
+                    continue
                 raw_config[table_name] = {}
                 if table_data == None:
+                    # When table data is 'None', delete the table.
                     continue
                 for key, data in table_data.items():
                     raw_key = self.serialize_key(key)
@@ -236,6 +244,51 @@ protected:
                     entry = self.raw_to_typed(entry)
                     ret.setdefault(table_name, {})[self.deserialize_key(row)] = entry
             return ret
+
+    class YangDefaultDecorator(object):
+        def __init__(self, config_db_connector):
+            self.connector = config_db_connector
+            self.default_value_provider = DefaultValueProvider()
+        # helper methods for append default values to result.
+        def _append_default_value(self, table, key, data):
+            if data is None or len(data) == 0:
+                # empty entry means the entry been deleted
+                return data
+            serialized_key = self.connector.serialize_key(key)
+            defaultValues = self.default_value_provider.getDefaultValues(table, serialized_key)
+            for field in defaultValues:
+                if field not in data:
+                    data[field] = defaultValues[field]
+        # override read APIs
+        def new_get_entry(self, table, key):
+            result = self.connector.get_entry(table, key)
+            self._append_default_value(table, key, result)
+            return result
+        def new_get_table(self, table):
+            result = self.connector.get_table(table)
+            for key in result:
+                self._append_default_value(table, key, result[key])
+            return result
+        def new_get_config(self):
+            result = self.connector.get_config()
+            for table in result:
+                for key in result[table]:
+                    # Can not pass result[table][key] as parameter here, because python will create a copy. re-assign entry to result to bypass this issue.
+                    entry = result[table][key]
+                    self._append_default_value(table, key, entry)
+                    result[table][key] = entry
+            return result
+        def __getattr__(self, name):
+            if name == "get_entry":
+                return self.new_get_entry
+            elif name == "get_table":
+                return self.new_get_table
+            elif name == "get_config":
+                return self.new_get_config
+
+            originalMethod = self.connector.__getattribute__(name)
+            return originalMethod
+
 %}
 #endif
 
@@ -258,7 +311,7 @@ private:
     int _get_config(DBConnector& client, RedisTransactioner& pipe, std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>& data, int cursor);
 };
 
-#ifdef SWIG
+#if defined(SWIG) && defined(SWIGPYTHON)
 %pythoncode %{
     class ConfigDBPipeConnector(ConfigDBConnector, ConfigDBPipeConnector_Native):
 

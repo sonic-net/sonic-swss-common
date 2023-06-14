@@ -4,18 +4,19 @@ exports_files(["LICENSE"])
 
 cc_library(
     name = "common",
-    srcs = glob(["common/*.cpp"], exclude=["common/loglevel.cpp"]),
+    srcs = glob(["common/*.cpp"], exclude=["common/loglevel.cpp", "common/loglevel_util.cpp"]),
     hdrs = glob([
         "common/*.h",
         "common/*.hpp",
     ]),
     copts = [
+        "-std=c++14",
         "-I/usr/include/libnl3", # Expected location in the SONiC build container"
     ],
     includes = [
         "common",
     ],
-    linkopts = ["-lpthread -lhiredis -lnl-genl-3 -lnl-nf-3 -lnl-route-3 -lnl-3"],
+    linkopts = ["-lpthread -lhiredis -lnl-genl-3 -lnl-nf-3 -lnl-route-3 -lnl-3 -lzmq -lboost_serialization -luuid -lyang"],
     visibility = ["//visibility:public"],
 )
 

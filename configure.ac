@@ -3,7 +3,7 @@ AC_CONFIG_SRCDIR([])
 AC_CONFIG_AUX_DIR(config)
 AM_CONFIG_HEADER(config.h)
 AC_CONFIG_MACRO_DIR([m4])
-AM_INIT_AUTOMAKE([foreign])
+AM_INIT_AUTOMAKE([foreign subdir-objects])
 AC_LANG_C
 AC_LANG([C++])
 AC_PROG_CC
@@ -50,7 +50,7 @@ AC_PATH_PROGS(SWIG, [swig4.0 swig3.0 swig])
 CFLAGS_COMMON=""
 CFLAGS_COMMON+=" -ansi"
 CFLAGS_COMMON+=" -fPIC"
-CFLAGS_COMMON+=" -std=c++11"
+CFLAGS_COMMON+=" -std=c++14"
 CFLAGS_COMMON+=" -Wall"
 CFLAGS_COMMON+=" -Wcast-align"
 CFLAGS_COMMON+=" -Wcast-qual"
@@ -94,11 +94,6 @@ AC_SUBST(CFLAGS_COMMON)
 
 AC_CONFIG_FILES([
     Makefile
-    common/Makefile
-    pyext/Makefile
-    pyext/py2/Makefile
-    pyext/py3/Makefile
-    tests/Makefile
 ])
 
 AC_OUTPUT

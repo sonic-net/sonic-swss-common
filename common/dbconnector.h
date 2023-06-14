@@ -1,10 +1,11 @@
-#ifndef __DBCONNECTOR__
+    #ifndef __DBCONNECTOR__
 #define __DBCONNECTOR__
 
 #include <string>
 #include <vector>
 #include <unordered_map>
 #include <utility>
+#include <map>
 #include <memory>
 #include <mutex>
 
@@ -40,7 +41,7 @@ public:
     static constexpr const char *DEFAULT_SONIC_DB_CONFIG_FILE = "/var/run/redis/sonic-db/database_config.json";
     static constexpr const char *DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE = "/var/run/redis/sonic-db/database_global.json";
     static void initialize(const std::string &file = DEFAULT_SONIC_DB_CONFIG_FILE);
-#ifdef SWIG
+#if defined(SWIG) && defined(SWIGPYTHON)
     %pythoncode %{
         ## TODO: the python function and C++ one is not on-par
         @staticmethod
@@ -50,7 +51,7 @@ public:
 #endif
 
     static void initializeGlobalConfig(const std::string &file = DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE);
-#ifdef SWIG
+#if defined(SWIG) && defined(SWIGPYTHON)
     %pythoncode %{
         ## TODO: the python function and C++ one is not on-par
         @staticmethod
@@ -69,7 +70,7 @@ public:
     static std::string getDbHostname(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
     static int getDbPort(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
     static std::vector<std::string> getNamespaces();
-#ifdef SWIG
+#if defined(SWIG) && defined(SWIGPYTHON)
     %pythoncode %{
         ## TODO: the python function and C++ one is not on-par
         @staticmethod
@@ -81,11 +82,12 @@ public:
     static std::vector<std::string> getDbList(const std::string &netns = EMPTY_NAMESPACE);
     static bool isInit() { return m_init; };
     static bool isGlobalInit() { return m_global_init; };
+    static std::map<std::string, RedisInstInfo> getInstanceList(const std::string &netns = EMPTY_NAMESPACE);
 
 private:
     static std::recursive_mutex m_db_info_mutex;
     // { namespace { instName, { unix_socket_path, hostname, port } } }
-    static std::unordered_map<std::string, std::unordered_map<std::string, RedisInstInfo>> m_inst_info;
+    static std::unordered_map<std::string, std::map<std::string, RedisInstInfo>> m_inst_info;
     // { namespace, { dbName, {instName, dbId, separator} } }
     static std::unordered_map<std::string, std::unordered_map<std::string, SonicDBInfo>> m_db_info;
     // { namespace, { dbId, separator } }
@@ -93,7 +95,7 @@ private:
     static bool m_init;
     static bool m_global_init;
     static void parseDatabaseConfig(const std::string &file,
-                                    std::unordered_map<std::string, RedisInstInfo> &inst_entry,
+                                    std::map<std::string, RedisInstInfo> &inst_entry,
                                     std::unordered_map<std::string, SonicDBInfo> &db_entry,
                                     std::unordered_map<int, std::string> &separator_entry);
     static SonicDBInfo& getDbInfo(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
@@ -161,7 +163,7 @@ public:
     std::string getDbName() const;
     std::string getNamespace() const;
 
-#ifdef SWIG
+#if defined(SWIG) && defined(SWIGPYTHON)
     %pythoncode %{
         namespace = property(getNamespace)
     %}
@@ -172,11 +174,14 @@ public:
     /* Create new context to DB */
     DBConnector *newConnector(unsigned int timeout) const;
 
+#ifndef SWIG
+    __attribute__((deprecated))
+#endif
     PubSub *pubsub();
 
     int64_t del(const std::string &key);
 
-#ifdef SWIG
+#if defined(SWIG) && defined(SWIGPYTHON)
     // SWIG interface file (.i) globally rename map C++ `del` to python `delete`,
     // but applications already followed the old behavior of auto renamed `_del`.
     // So we implemented old behavior for backward compatibility
@@ -243,14 +248,13 @@ public:
 
     bool flushdb();
 
+    std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> getall();
 private:
     void setNamespace(const std::string &netns);
 
     int m_dbId;
     std::string m_dbName;
     std::string m_namespace;
-
-    std::string m_shaRedisMulti;
 };
 
 template <typename ReturnType>
@@ -282,9 +286,9 @@ void DBConnector::hgetall(const std::string &key, OutputIterator result)
 template<typename InputIterator>
 void DBConnector::hmset(const std::string &key, InputIterator start, InputIterator stop)
 {
-    RedisCommand shmset;
-    shmset.formatHMSET(key, start, stop);
-    RedisReply r(this, shmset, REDIS_REPLY_STATUS);
+    RedisCommand shset;
+    shset.formatHSET(key, start, stop);
+    RedisReply r(this, shset, REDIS_REPLY_INTEGER);
 }
 
 }

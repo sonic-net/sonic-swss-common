@@ -15,12 +15,15 @@
 #include "schema.h"
 #include "dbconnector.h"
 #include "dbinterface.h"
+#include "defaultvalueprovider.h"
 #include "sonicv2connector.h"
 #include "pubsub.h"
 #include "select.h"
 #include "selectable.h"
 #include "rediscommand.h"
 #include "table.h"
+#include "decoratortable.h"
+#include "countertable.h"
 #include "redispipeline.h"
 #include "redisselect.h"
 #include "redistran.h"
@@ -28,33 +31,47 @@
 #include "consumertablebase.h"
 #include "consumerstatetable.h"
 #include "producertable.h"
+#include "profileprovider.h"
 #include "consumertable.h"
 #include "subscriberstatetable.h"
+#include "decoratorsubscriberstatetable.h"
 #include "notificationconsumer.h"
 #include "notificationproducer.h"
 #include "warm_restart.h"
 #include "logger.h"
+#include "events.h"
 #include "configdb.h"
 #include "status_code_util.h"
+#include "redis_table_waiter.h"
+#include "restart_waiter.h"
+#include "zmqserver.h"
+#include "zmqclient.h"
+#include "zmqconsumerstatetable.h"
+#include "zmqproducerstatetable.h"
 %}
 
 %include <std_string.i>
 %include <std_vector.i>
 %include <std_pair.i>
 %include <std_map.i>
+#ifdef SWIGPYTHON
 %include <std_shared_ptr.i>
+#endif
 %include <typemaps.i>
 %include <stdint.i>
 %include <exception.i>
 
 %template(FieldValuePair) std::pair<std::string, std::string>;
 %template(FieldValuePairs) std::vector<std::pair<std::string, std::string>>;
+%template(FieldValuePairsList) std::vector<std::vector<std::pair<std::string, std::string>>>;
 %template(FieldValueMap) std::map<std::string, std::string>;
 %template(VectorString) std::vector<std::string>;
 %template(ScanResult) std::pair<int64_t, std::vector<std::string>>;
 %template(GetTableResult) std::map<std::string, std::map<std::string, std::string>>;
 %template(GetConfigResult) std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>;
+%template(GetInstanceListResult) std::map<std::string, swss::RedisInstInfo>;
 
+#ifdef SWIGPYTHON
 %exception {
     try
     {
@@ -80,15 +97,6 @@
         SWIG_exception(SWIG_UnknownError, "unknown exception");
     }
 }
-
-%template(FieldValuePair) std::pair<std::string, std::string>;
-%template(FieldValuePairs) std::vector<std::pair<std::string, std::string>>;
-%template(FieldValuePairsList) std::vector<std::vector<std::pair<std::string, std::string>>>;
-%template(FieldValueMap) std::map<std::string, std::string>;
-%template(VectorString) std::vector<std::string>;
-%template(ScanResult) std::pair<int64_t, std::vector<std::string>>;
-%template(GetTableResult) std::map<std::string, std::map<std::string, std::string>>;
-%template(GetConfigResult) std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>;
 
 %typemap(out) std::shared_ptr<std::string> %{
     {
@@ -136,6 +144,7 @@
     temp = SWIG_NewPointerObj(*$1, SWIGTYPE_p_swss__Selectable, 0);
     SWIG_Python_AppendOutput($result, temp);
 }
+#endif
 
 %inline %{
 template <typename T>
@@ -148,10 +157,18 @@ T castSelectableObj(swss::Selectable *temp)
 %template(CastSelectableToRedisSelectObj) castSelectableObj<swss::RedisSelect *>;
 %template(CastSelectableToSubscriberTableObj) castSelectableObj<swss::SubscriberStateTable *>;
 
+// Handle object ownership issue with %newobject:
+//        https://www.swig.org/Doc4.0/SWIGDocumentation.html#Customization_ownership
+// %newobject must declared before %include header files
+%newobject swss::DBConnector::pubsub;
+%newobject swss::DBConnector::newConnector;
+
 %include "schema.h"
 %include "dbconnector.h"
+%include "defaultvalueprovider.h"
 %include "sonicv2connector.h"
 %include "pubsub.h"
+%include "profileprovider.h"
 %include "selectable.h"
 %include "select.h"
 %include "rediscommand.h"
@@ -159,6 +176,10 @@ T castSelectableObj(swss::Selectable *temp)
 %include "redisselect.h"
 %include "redistran.h"
 %include "configdb.h"
+%include "zmqserver.h"
+%include "zmqclient.h"
+%include "zmqconsumerstatetable.h"
+%include "zmqproducerstatetable.h"
 
 %extend swss::DBConnector {
     %template(hgetall) hgetall<std::map<std::string, std::string>>;
@@ -171,11 +192,23 @@ T castSelectableObj(swss::Selectable *temp)
 %apply std::vector<std::pair<std::string, std::string>>& OUTPUT {std::vector<std::pair<std::string, std::string>> &ovalues};
 %apply std::string& OUTPUT {std::string &value};
 %include "table.h"
+%include "decoratortable.h"
 %clear std::vector<std::string> &keys;
 %clear std::vector<std::string> &ops;
 %clear std::vector<std::vector<std::pair<std::string, std::string>>> &fvss;
 %clear std::vector<std::pair<std::string, std::string>> &values;
 %clear std::string &value;
+
+%feature("director") Counter;
+%apply std::vector<std::pair<std::string, std::string>>& OUTPUT {std::vector<std::pair<std::string, std::string>> &values};
+%apply std::string& OUTPUT {std::string &value};
+%include "luatable.h"
+%include "countertable.h"
+%template(CounterKeyPair) std::pair<int, std::string>;
+%template(KeyStringCache) swss::KeyCache<std::string>;
+%template(KeyPairCache) swss::KeyCache<swss::Counter::KeyPair>;
+%clear std::string &value;
+%clear std::vector<std::pair<std::string, std::string>> &values;
 
 %include "producertable.h"
 %include "producerstatetable.h"
@@ -191,6 +224,7 @@ T castSelectableObj(swss::Selectable *temp)
 %include "consumertable.h"
 %include "consumerstatetable.h"
 %include "subscriberstatetable.h"
+%include "decoratorsubscriberstatetable.h"
 
 %apply std::string& OUTPUT {std::string &op};
 %apply std::string& OUTPUT {std::string &data};
@@ -204,4 +238,8 @@ T castSelectableObj(swss::Selectable *temp)
 %include "warm_restart.h"
 %include "dbinterface.h"
 %include "logger.h"
+%include "events.h"
+
 %include "status_code_util.h"
+#include "redis_table_waiter.h"
+%include "restart_waiter.h"
