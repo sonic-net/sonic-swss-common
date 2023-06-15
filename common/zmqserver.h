@@ -12,7 +12,7 @@
 #define MQ_WATERMARK 10000
 
 /***** ZMQ PORT *****/
-#define DASH_ORCH_ZMQ_PORT                 1234
+static const DASH_ORCH_ZMQ_PORT                8020
 
 namespace swss {
 
