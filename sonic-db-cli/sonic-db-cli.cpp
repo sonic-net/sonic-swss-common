@@ -284,14 +284,11 @@ int sonic_db_cli(
         if (!netns.empty())
         {
             initializeGlobalConfig();
+
+            // Use the unix domain connectivity if namespace not empty.
+            isTcpConn = false;
         }
-        else
-        {
-            // Use the tcp connectivity if namespace is local and unixsocket cmd_option is present.
-            isTcpConn = true;
-            netns = "";
-        }
-        
+
         if (options.m_cmd.size() != 0)
         {
             auto commands = options.m_cmd;
