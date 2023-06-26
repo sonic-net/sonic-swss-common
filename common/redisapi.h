@@ -98,7 +98,7 @@ static inline std::set<std::string> runRedisScript(RedisContext &ctx, const std:
             [](const std::string &s) { return s.length(); } );
 
     RedisCommand command;
-    command.formatArgv(static_cast<int>(c_args.size()), c_args.data(), NULL);
+    command.formatArgv(static_cast<int>(c_args.size()), c_args.data(), lengths.data());
 
     std::set<std::string> ret;
     try
