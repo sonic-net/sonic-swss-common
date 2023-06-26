@@ -58,7 +58,7 @@ bool LuaTable::get(const vector<string> &luaKeys, vector<FieldValueTuple> &value
     vector<const char *> args1;
     transform(args.begin(), args.end(), back_inserter(args1), [](const string &s) { return s.c_str(); } );
     vector<size_t> lengths;
-    transform(lengths.begin(), lengths.end(), back_inserter(lengths), [](const string &s) { return s.length(); } );
+    transform(args.begin(), args.end(), back_inserter(lengths), [](const string &s) { return s.length(); } );
 
     // Invoke redis command
     RedisCommand command;
@@ -115,7 +115,7 @@ bool LuaTable::hget(const vector<string> &luaKeys, const string &field, string &
     vector<const char *> args1;
     transform(args.begin(), args.end(), back_inserter(args1), [](const string &s) { return s.c_str(); } );
     vector<size_t> lengths;
-    transform(lengths.begin(), lengths.end(), back_inserter(lengths), [](const string &s) { return s.length(); } );
+    transform(args.begin(), args.end(), back_inserter(lengths), [](const string &s) { return s.length(); } );
 
     // Invoke redis command
     RedisCommand command;

@@ -138,7 +138,7 @@ void ProducerStateTable::set(const string &key, const vector<FieldValueTuple> &v
     vector<const char *> args1;
     transform(args.begin(), args.end(), back_inserter(args1), [](const string &s) { return s.c_str(); } );
     vector<size_t> lengths;
-    transform(lengths.begin(), lengths.end(), back_inserter(lengths), [](const string &s) { return s.length(); } );
+    transform(args.begin(), args.end(), back_inserter(lengths), [](const string &s) { return s.length(); } );
 
     // Invoke redis command
     RedisCommand command;
@@ -177,7 +177,7 @@ void ProducerStateTable::del(const string &key, const string &op /*= DEL_COMMAND
     vector<const char *> args1;
     transform(args.begin(), args.end(), back_inserter(args1), [](const string &s) { return s.c_str(); } );
     vector<size_t> lengths;
-    transform(lengths.begin(), lengths.end(), back_inserter(lengths), [](const string &s) { return s.length(); } );
+    transform(args.begin(), args.end(), back_inserter(lengths), [](const string &s) { return s.length(); } );
 
     // Invoke redis command
     RedisCommand command;
@@ -232,7 +232,7 @@ void ProducerStateTable::set(const std::vector<KeyOpFieldsValuesTuple>& values)
     vector<const char *> args1;
     transform(args.begin(), args.end(), back_inserter(args1), [](const string &s) { return s.c_str(); } );
     vector<size_t> lengths;
-    transform(lengths.begin(), lengths.end(), back_inserter(lengths), [](const string &s) { return s.length(); } );
+    transform(args.begin(), args.end(), back_inserter(lengths), [](const string &s) { return s.length(); } );
 
     // Invoke redis command
     RedisCommand command;
@@ -275,7 +275,7 @@ void ProducerStateTable::del(const std::vector<std::string>& keys)
     vector<const char *> args1;
     transform(args.begin(), args.end(), back_inserter(args1), [](const string &s) { return s.c_str(); } );
     vector<size_t> lengths;
-    transform(lengths.begin(), lengths.end(), back_inserter(lengths), [](const string &s) { return s.length(); } );
+    transform(args.begin(), args.end(), back_inserter(lengths), [](const string &s) { return s.length(); } );
 
     // Invoke redis command
     RedisCommand command;
@@ -319,7 +319,7 @@ void ProducerStateTable::clear()
     vector<const char *> args1;
     transform(args.begin(), args.end(), back_inserter(args1), [](const string &s) { return s.c_str(); } );
     vector<size_t> lengths;
-    transform(lengths.begin(), lengths.end(), back_inserter(lengths), [](const string &s) { return s.length(); } );
+    transform(args.begin(), args.end(), back_inserter(lengths), [](const string &s) { return s.length(); } );
 
     // Invoke redis command
     RedisCommand cmd;
@@ -480,7 +480,7 @@ void ProducerStateTable::apply_temp_view()
     vector<const char *> args1;
     transform(args.begin(), args.end(), back_inserter(args1), [](const string &s) { return s.c_str(); } );
     vector<size_t> lengths;
-    transform(lengths.begin(), lengths.end(), back_inserter(lengths), [](const string &s) { return s.length(); } );
+    transform(args.begin(), args.end(), back_inserter(lengths), [](const string &s) { return s.length(); } );
 
     // Invoke redis command
     RedisCommand command;
