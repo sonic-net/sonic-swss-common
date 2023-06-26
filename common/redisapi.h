@@ -90,12 +90,12 @@ static inline std::set<std::string> runRedisScript(RedisContext &ctx, const std:
             args.end(),
             std::back_inserter(c_args),
             [](const std::string& s) { return s.c_str(); } );
-    vector<size_t> lengths;
+    std::vector<size_t> lengths;
     transform(
             args.begin(),
             args.end(),
             std::back_inserter(lengths),
-            [](const string &s) { return s.length(); } );
+            [](const std::string &s) { return s.length(); } );
 
     RedisCommand command;
     command.formatArgv(static_cast<int>(c_args.size()), c_args.data(), NULL);
