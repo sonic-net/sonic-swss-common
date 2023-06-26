@@ -57,10 +57,12 @@ bool LuaTable::get(const vector<string> &luaKeys, vector<FieldValueTuple> &value
     // Transform data structure
     vector<const char *> args1;
     transform(args.begin(), args.end(), back_inserter(args1), [](const string &s) { return s.c_str(); } );
+    vector<size_t> lengths;
+    transform(lengths.begin(), lengths.end(), back_inserter(lengths), [](const string &s) { return s.length(); } );
 
     // Invoke redis command
     RedisCommand command;
-    command.formatArgv((int)args1.size(), &args1[0], NULL);
+    command.formatArgv((int)args1.size(), &args1[0], lengths.data());
     RedisReply r(m_db.get(), command, REDIS_REPLY_ARRAY);
     redisReply *reply = r.getContext();
 
@@ -112,10 +114,12 @@ bool LuaTable::hget(const vector<string> &luaKeys, const string &field, string &
     // Transform data structure
     vector<const char *> args1;
     transform(args.begin(), args.end(), back_inserter(args1), [](const string &s) { return s.c_str(); } );
+    vector<size_t> lengths;
+    transform(lengths.begin(), lengths.end(), back_inserter(lengths), [](const string &s) { return s.length(); } );
 
     // Invoke redis command
     RedisCommand command;
-    command.formatArgv((int)args1.size(), &args1[0], NULL);
+    command.formatArgv((int)args1.size(), &args1[0], lengths.data());
     RedisReply r(m_db.get(), command);
     redisReply *reply = r.getContext();
 

@@ -52,11 +52,13 @@ void RedisCommand::formatArgv(int argc, const char **argv, const size_t *argvlen
 void RedisCommand::format(const vector<string> &commands)
 {
     vector<const char*> args;
+    vector<size_t> lens;
     for (auto& command : commands)
     {
         args.push_back(command.c_str());
+        lens.push_back(command.size());
     }
-    formatArgv(static_cast<int>(args.size()), args.data(), NULL);
+    formatArgv(static_cast<int>(args.size()), args.data(), lens.data());
 }
 
 /* Format HSET key multiple field value command */
@@ -97,11 +99,13 @@ void RedisCommand::formatHDEL(const std::string& key, const std::vector<std::str
     if (fields.empty()) throw std::invalid_argument("empty values");
 
     std::vector<const char *> args = {"HDEL", key.c_str()};
+    std::vector<size_t> lens = {4, key.size()};
     for (const std::string &f : fields)
     {
         args.push_back(f.c_str());
+        lens.push_back(f.size());
     }
-    formatArgv(static_cast<int>(args.size()), args.data(), NULL);
+    formatArgv(static_cast<int>(args.size()), args.data(), lens.data());
 }
 
 /* Format EXPIRE key field command */
