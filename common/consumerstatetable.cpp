@@ -68,7 +68,7 @@ void ConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const st
 
         auto& ctx = ctx0->element[ie];
         assert(ctx->element[0]->type == REDIS_REPLY_STRING);
-        std::string key = ctx->element[0]->str;
+        std::string key(ctx->element[0]->str, ctx->element[0]->len);
         kfvKey(kco) = key;
 
         assert(ctx->element[1]->type == REDIS_REPLY_ARRAY);
@@ -76,8 +76,8 @@ void ConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const st
         for (size_t i = 0; i < ctx1->elements / 2; i++)
         {
             FieldValueTuple e;
-            fvField(e) = ctx1->element[i * 2]->str;
-            fvValue(e) = ctx1->element[i * 2 + 1]->str;
+            fvField(e).assign(ctx1->element[i * 2]->str, ctx1->element[i * 2]->len);
+            fvValue(e).assign(ctx1->element[i * 2 + 1]->str, ctx1->element[i * 2 + 1]->len);
             values.push_back(e);
         }
 
