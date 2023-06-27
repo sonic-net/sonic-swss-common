@@ -7,7 +7,8 @@ using namespace std;
 namespace swss {
 
 RedisCommand::RedisCommand()
- : temp(NULL)
+ : temp(NULL),
+   len(0)
 {
 }
 
@@ -26,7 +27,7 @@ void RedisCommand::format(const char *fmt, ...)
 
     va_list ap;
     va_start(ap, fmt);
-    int len = redisvFormatCommand(&temp, fmt, ap);
+    len = redisvFormatCommand(&temp, fmt, ap);
     va_end(ap);
     if (len == -1) {
         throw std::bad_alloc();
@@ -43,7 +44,7 @@ void RedisCommand::formatArgv(int argc, const char **argv, const size_t *argvlen
         temp = nullptr;
     }
 
-    int len = redisFormatCommandArgv(&temp, argc, argv, argvlen);
+    len = redisFormatCommandArgv(&temp, argc, argv, argvlen);
     if (len == -1) {
         throw std::bad_alloc();
     }
@@ -133,7 +134,9 @@ const char *RedisCommand::c_str() const
 
 size_t RedisCommand::length() const
 {
-    return strlen(temp);
+    if (len <= 0)
+        return 0;
+    return static_cast<size_t>(len);
 }
 
 }

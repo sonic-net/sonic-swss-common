@@ -70,6 +70,7 @@ public:
 
 private:
     char *temp;
+    int len;
 };
 
 template<typename InputIterator>
