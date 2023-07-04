@@ -105,11 +105,8 @@ protected:
                     try:
                         (table, row) = key.split(self.TABLE_NAME_SEPARATOR, 1)
                         if table in self.handlers:
-                            if item['data'] == 'del':
-                                data = None
-                            else:
-                                client = self.get_redis_client(self.db_name)
-                                data = self.raw_to_typed(client.hgetall(key))
+                            client = self.get_redis_client(self.db_name)
+                            data = self.raw_to_typed(client.hgetall(key))
                             if table in init_data and row in init_data[table]:
                                 cache_hit = init_data[table][row] == data
                                 del init_data[table][row]
@@ -123,7 +120,7 @@ protected:
         ## Dynamic typed functions used in python
         @staticmethod
         def raw_to_typed(raw_data):
-            if raw_data is None:
+            if not raw_data or not raw_data.keys():
                 return None
             typed_data = {}
             for raw_key in raw_data:
