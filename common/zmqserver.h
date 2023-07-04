@@ -11,6 +11,9 @@
 #define MQ_POLL_TIMEOUT (1000)
 #define MQ_WATERMARK 10000
 
+/***** ZMQ PORT *****/
+static const int ORCH_ZMQ_PORT = 8020;
+
 namespace swss {
 
 class ZmqMessageHandler

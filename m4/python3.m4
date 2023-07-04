@@ -84,7 +84,7 @@ AC_DEFUN([AM_PATH_PYTHON3],
   dnl library.
 
   AC_CACHE_CHECK([for $am_display_PYTHON3 version], [am_cv_python3_version],
-    [am_cv_python3_version=`$PYTHON3 -c "import sys; sys.stdout.write(sys.version[[:3]])"`])
+    [am_cv_python3_version=`$PYTHON3 -c "import sys; print ('%u.%u' % sys.version_info[[:2]])"`])
   AC_SUBST([PYTHON3_VERSION], [$am_cv_python3_version])
 
   dnl Use the values of $prefix and $exec_prefix for the corresponding
