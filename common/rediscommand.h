@@ -7,6 +7,8 @@
 #include <stdexcept>
 #include <map>
 
+#include "redisstring.h"
+
 namespace swss {
 
 typedef std::pair<std::string, std::string> FieldValueTuple;
@@ -69,8 +71,7 @@ public:
     size_t length() const;
 
 private:
-    char *temp;
-    int len;
+    RedisString m_str;
 };
 
 template<typename InputIterator>
@@ -81,15 +82,15 @@ void RedisCommand::formatHSET(const std::string &key,
 
     const char* cmd = "HSET";
 
-    std::vector<const char*> args = { cmd, key.c_str() };
+    std::vector<std::string> args = { cmd, key.c_str() };
 
     for (auto i = start; i != stop; i++)
     {
-        args.push_back(fvField(*i).c_str());
-        args.push_back(fvValue(*i).c_str());
+        args.push_back(fvField(*i));
+        args.push_back(fvValue(*i));
     }
 
-    formatArgv((int)args.size(), args.data(), NULL);
+    format(args);
 }
 
 }

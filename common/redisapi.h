@@ -83,22 +83,8 @@ static inline std::set<std::string> runRedisScript(RedisContext &ctx, const std:
     args.insert(args.end(), argv.begin(), argv.end());
     args.push_back("''");
 
-    // Convert to vector of char *
-    std::vector<const char *> c_args;
-    transform(
-            args.begin(),
-            args.end(),
-            std::back_inserter(c_args),
-            [](const std::string& s) { return s.c_str(); } );
-    std::vector<size_t> lengths;
-    transform(
-            args.begin(),
-            args.end(),
-            std::back_inserter(lengths),
-            [](const std::string &s) { return s.length(); } );
-
     RedisCommand command;
-    command.formatArgv(static_cast<int>(c_args.size()), c_args.data(), lengths.data());
+    command.format(args);
 
     std::set<std::string> ret;
     try
