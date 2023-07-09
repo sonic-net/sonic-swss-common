@@ -35,7 +35,6 @@ common_libswsscommon_la_SOURCES = \
     common/producerstatetable.cpp    \
     common/zmqproducerstatetable.cpp \
     common/rediscommand.cpp          \
-    common/redisstring.cpp           \
     common/redistran.cpp             \
     common/redisselect.cpp           \
     common/select.cpp                \

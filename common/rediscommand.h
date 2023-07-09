@@ -7,8 +7,6 @@
 #include <stdexcept>
 #include <map>
 
-#include "redisstring.h"
-
 namespace swss {
 
 typedef std::pair<std::string, std::string> FieldValueTuple;
@@ -71,7 +69,8 @@ public:
     size_t length() const;
 
 private:
-    RedisString m_str;
+    char *temp;
+    int len;
 };
 
 template<typename InputIterator>

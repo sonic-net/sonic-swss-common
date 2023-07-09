@@ -7,36 +7,47 @@ using namespace std;
 namespace swss {
 
 RedisCommand::RedisCommand()
+ : temp(NULL),
+   len(0)
 {
 }
 
 RedisCommand::~RedisCommand()
 {
+    redisFreeCommand(temp);
 }
 
 void RedisCommand::format(const char *fmt, ...)
 {
-    char *temp = nullptr;
+    if (temp != nullptr)
+    {
+        redisFreeCommand(temp);
+        temp = nullptr;
+    }
+
     va_list ap;
     va_start(ap, fmt);
-    int len = redisvFormatCommand(&temp, fmt, ap);
+    len = redisvFormatCommand(&temp, fmt, ap);
     va_end(ap);
     if (len == -1) {
         throw std::bad_alloc();
     } else if (len == -2) {
         throw std::invalid_argument("fmt");
     }
-    m_str.reset(temp, len);
 }
 
 void RedisCommand::formatArgv(int argc, const char **argv, const size_t *argvlen)
 {
-    char *temp = nullptr;
-    int len = redisFormatCommandArgv(&temp, argc, argv, argvlen);
+    if (temp != nullptr)
+    {
+        redisFreeCommand(temp);
+        temp = nullptr;
+    }
+
+    len = redisFormatCommandArgv(&temp, argc, argv, argvlen);
     if (len == -1) {
         throw std::bad_alloc();
     }
-    m_str.reset(temp, len);
 }
 
 void RedisCommand::format(const vector<string> &commands)
@@ -113,12 +124,14 @@ void RedisCommand::formatDEL(const std::string& key)
 
 const char *RedisCommand::c_str() const
 {
-    return m_str.getStr();
+    return temp;
 }
 
 size_t RedisCommand::length() const
 {
-    return static_cast<size_t>(m_str.getLen());
+    if (len <= 0)
+        return 0;
+    return static_cast<size_t>(len);
 }
 
 }
