@@ -120,7 +120,7 @@ protected:
         ## Dynamic typed functions used in python
         @staticmethod
         def raw_to_typed(raw_data):
-            if raw_data is None:
+            if not raw_data or not raw_data.keys():
                 return None
             typed_data = {}
             for raw_key in raw_data:
