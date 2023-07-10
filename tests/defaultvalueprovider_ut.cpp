@@ -4,8 +4,8 @@
 using namespace std;
 using namespace swss;
 
-string profile_table = "INTERFACE";
-string profile_key = "TEST_INTERFACE";
+static string profile_table = "INTERFACE";
+static string profile_key = "TEST_INTERFACE";
 
 class MockDefaultValueProvider : public DefaultValueProvider
 {

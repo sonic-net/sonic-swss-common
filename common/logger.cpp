@@ -166,6 +166,11 @@ void Logger::linkToDbNative(const std::string& dbName, const char * defPrio)
     getInstance().restartSettingThread();
 }
 
+void Logger::restartLogger()
+{
+    getInstance().restartSettingThread();
+}
+
 Logger& Logger::getInstance()
 {
     static Logger m_logger;

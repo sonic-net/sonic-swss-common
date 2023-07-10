@@ -1,4 +1,9 @@
+#ifdef SWIGGO
+// Enable directors feature for go language to generate inheritance information
+%module(directors="1") swsscommon
+#else
 %module swsscommon
+#endif
 
 %rename(delete) del;
 
@@ -31,6 +36,7 @@
 #include "consumertablebase.h"
 #include "consumerstatetable.h"
 #include "producertable.h"
+#include "profileprovider.h"
 #include "consumertable.h"
 #include "subscriberstatetable.h"
 #include "decoratorsubscriberstatetable.h"
@@ -43,12 +49,17 @@
 #include "status_code_util.h"
 #include "redis_table_waiter.h"
 #include "restart_waiter.h"
+#include "zmqserver.h"
+#include "zmqclient.h"
+#include "zmqconsumerstatetable.h"
+#include "zmqproducerstatetable.h"
 %}
 
 %include <std_string.i>
 %include <std_vector.i>
 %include <std_pair.i>
 %include <std_map.i>
+%include <std_deque.i>
 #ifdef SWIGPYTHON
 %include <std_shared_ptr.i>
 #endif
@@ -65,6 +76,7 @@
 %template(GetTableResult) std::map<std::string, std::map<std::string, std::string>>;
 %template(GetConfigResult) std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>;
 %template(GetInstanceListResult) std::map<std::string, swss::RedisInstInfo>;
+%template(KeyOpFieldsValuesQueue) std::deque<std::tuple<std::string, std::string, std::vector<std::pair<std::string, std::string>>>>;
 
 #ifdef SWIGPYTHON
 %exception {
@@ -141,6 +153,28 @@
 }
 #endif
 
+#ifdef SWIGGO
+// Mapping c++ exception to go language panic
+%exception {
+	try {
+		$function
+	} catch(const std::system_error& e) {
+        if (e.code() == std::make_error_code(std::errc::connection_reset))
+        {
+		    SWIG_exception(SWIG_SystemError, "connection_reset");
+        }
+        else
+        {
+		    SWIG_exception(SWIG_SystemError, e.what());
+        }
+	} catch(std::exception &e) {
+		SWIG_exception(SWIG_RuntimeError,e.what());
+	} catch(...) {
+		SWIG_exception(SWIG_RuntimeError,"Unknown exception");
+	}
+}
+#endif
+
 %inline %{
 template <typename T>
 T castSelectableObj(swss::Selectable *temp)
@@ -163,6 +197,7 @@ T castSelectableObj(swss::Selectable *temp)
 %include "defaultvalueprovider.h"
 %include "sonicv2connector.h"
 %include "pubsub.h"
+%include "profileprovider.h"
 %include "selectable.h"
 %include "select.h"
 %include "rediscommand.h"
@@ -170,6 +205,9 @@ T castSelectableObj(swss::Selectable *temp)
 %include "redisselect.h"
 %include "redistran.h"
 %include "configdb.h"
+%include "zmqserver.h"
+%include "zmqclient.h"
+%include "zmqconsumerstatetable.h"
 
 %extend swss::DBConnector {
     %template(hgetall) hgetall<std::map<std::string, std::string>>;
@@ -201,7 +239,15 @@ T castSelectableObj(swss::Selectable *temp)
 %clear std::vector<std::pair<std::string, std::string>> &values;
 
 %include "producertable.h"
+
+#ifdef SWIGGO
+// Generate inheritance information for ProducerStateTable and ZmqProducerStateTable
+%feature("director") swss::ProducerStateTable;
+%feature("director") swss::ZmqProducerStateTable;
+#endif
+
 %include "producerstatetable.h"
+%include "zmqproducerstatetable.h"
 
 %apply std::string& OUTPUT {std::string &key};
 %apply std::string& OUTPUT {std::string &op};
