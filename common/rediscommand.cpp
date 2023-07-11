@@ -1,6 +1,7 @@
 #include <vector>
 #include <hiredis/hiredis.h>
 #include "rediscommand.h"
+#include "stringutility.h"
 
 using namespace std;
 
@@ -120,6 +121,16 @@ void RedisCommand::formatTTL(const std::string& key)
 void RedisCommand::formatDEL(const std::string& key)
 {
     return format("DEL %s", key.c_str());
+}
+
+int RedisCommand::appendTo(redisContext *ctx) const
+{
+    return redisAppendFormattedCommand(ctx, c_str(), length());
+}
+
+std::string RedisCommand::printable_string() const
+{
+    return binary_to_printable(temp, len);
 }
 
 const char *RedisCommand::c_str() const

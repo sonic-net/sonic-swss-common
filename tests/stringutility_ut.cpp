@@ -94,3 +94,15 @@ TEST(STRINGUTILITY, binary_to_hex)
 
     EXPECT_EQ(swss::binary_to_hex(nullptr, 0), "");
 }
+
+TEST(STRINGUTILITY, binary_to_printable)
+{
+    std::array<std::uint8_t, 5> a{0x1, 0x2, 0x03, 0xff, 0x4};
+    EXPECT_EQ(swss::binary_to_printable(a.data(), a.size()), "\\x01\\x02\\x03\\xFF\\x04");
+
+    std::array<std::uint8_t, 5> b{0x0, 'a', '\n', '\'', '\\'};
+    EXPECT_EQ(swss::binary_to_printable(b.data(), b.size()), "\\x00a\\n'\\");
+
+    EXPECT_EQ(swss::binary_to_printable(nullptr, 0), "");
+}
+

@@ -6,6 +6,7 @@
 #include <string>
 #include <stdexcept>
 #include <map>
+#include <hiredis/hiredis.h>
 
 namespace swss {
 
@@ -16,6 +17,7 @@ typedef std::tuple<std::string, std::string, std::vector<FieldValueTuple> > KeyO
 #define kfvKey    std::get<0>
 #define kfvOp     std::get<1>
 #define kfvFieldsValues std::get<2>
+
 
 class RedisCommand {
 public:
@@ -64,11 +66,15 @@ public:
     /* Format DEL key command */
     void formatDEL(const std::string& key);
 
+    int appendTo(redisContext *ctx) const;
+
+    std::string printable_string() const;
+
+private:
     const char *c_str() const;
 
     size_t length() const;
 
-private:
     char *temp;
     int len;
 };
