@@ -181,6 +181,7 @@ static inline std::string binary_to_printable(const void *buffer, size_t length)
             if (c == '\\')
             {
                 printable.push_back('\\');
+                printable.push_back('\\');
             }
             else
             {
