@@ -70,11 +70,12 @@ public:
 
     std::string toPrintableString() const;
 
-private:
+protected:
     const char *c_str() const;
 
     size_t length() const;
 
+private:
     char *temp;
     int len;
 };
