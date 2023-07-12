@@ -89,9 +89,9 @@ RedisReply::RedisReply(RedisContext *ctx, const RedisCommand& command)
     rc = redisGetReply(ctx->getContext(), (void**)&m_reply);
     if (rc != REDIS_OK)
     {
-        throw RedisError("Failed to redisGetReply with " + command.printable_string(), ctx->getContext());
+        throw RedisError("Failed to redisGetReply with " + command.toPrintableString(), ctx->getContext());
     }
-    guard([&]{checkReply();}, command.printable_string().c_str());
+    guard([&]{checkReply();}, command.toPrintableString().c_str());
 }
 
 RedisReply::RedisReply(RedisContext *ctx, const string& command)
@@ -115,7 +115,7 @@ RedisReply::RedisReply(RedisContext *ctx, const string& command)
 RedisReply::RedisReply(RedisContext *ctx, const RedisCommand& command, int expectedType)
     : RedisReply(ctx, command)
 {
-    guard([&]{checkReplyType(expectedType);}, command.printable_string().c_str());
+    guard([&]{checkReplyType(expectedType);}, command.toPrintableString().c_str());
 }
 
 RedisReply::RedisReply(RedisContext *ctx, const string& command, int expectedType)

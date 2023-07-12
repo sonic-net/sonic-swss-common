@@ -128,7 +128,7 @@ int RedisCommand::appendTo(redisContext *ctx) const
     return redisAppendFormattedCommand(ctx, c_str(), length());
 }
 
-std::string RedisCommand::printable_string() const
+std::string RedisCommand::toPrintableString() const
 {
     return binary_to_printable(temp, len);
 }

@@ -68,7 +68,7 @@ public:
 
     int appendTo(redisContext *ctx) const;
 
-    std::string printable_string() const;
+    std::string toPrintableString() const;
 
 private:
     const char *c_str() const;
