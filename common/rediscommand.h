@@ -6,6 +6,7 @@
 #include <string>
 #include <stdexcept>
 #include <map>
+#include <hiredis/hiredis.h>
 
 namespace swss {
 
@@ -16,6 +17,7 @@ typedef std::tuple<std::string, std::string, std::vector<FieldValueTuple> > KeyO
 #define kfvKey    std::get<0>
 #define kfvOp     std::get<1>
 #define kfvFieldsValues std::get<2>
+
 
 class RedisCommand {
 public:
@@ -64,12 +66,18 @@ public:
     /* Format DEL key command */
     void formatDEL(const std::string& key);
 
+    int appendTo(redisContext *ctx) const;
+
+    std::string toPrintableString() const;
+
+protected:
     const char *c_str() const;
 
     size_t length() const;
 
 private:
     char *temp;
+    int len;
 };
 
 template<typename InputIterator>
@@ -80,15 +88,15 @@ void RedisCommand::formatHSET(const std::string &key,
 
     const char* cmd = "HSET";
 
-    std::vector<const char*> args = { cmd, key.c_str() };
+    std::vector<std::string> args = { cmd, key.c_str() };
 
     for (auto i = start; i != stop; i++)
     {
-        args.push_back(fvField(*i).c_str());
-        args.push_back(fvValue(*i).c_str());
+        args.push_back(fvField(*i));
+        args.push_back(fvValue(*i));
     }
 
-    formatArgv((int)args.size(), args.data(), NULL);
+    format(args);
 }
 
 }
