@@ -51,7 +51,7 @@ string handleSingleOperation(
         auto db_id =  SonicDBConfig::getDbId(db_name, netns);
         if (!isTcpConn && db_name != "redis_chassis.server")
         {
-            auto db_socket = SonicDBConfig::getDbSock(db_name);
+            auto db_socket = SonicDBConfig::getDbSock(db_name, netns);
             message += db_name + ": Connection refused";
             client = make_shared<DBConnector>(db_id, db_socket, 0);
         }
@@ -147,7 +147,7 @@ int executeCommands(
         }
         else
         {
-            auto db_socket = SonicDBConfig::getDbSock(db_name);
+            auto db_socket = SonicDBConfig::getDbSock(db_name, netns);
             client = make_shared<DBConnector>(db_id, db_socket, 0);
         }
     }
