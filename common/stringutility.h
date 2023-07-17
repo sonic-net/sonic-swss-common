@@ -166,4 +166,62 @@ static inline std::string binary_to_hex(const void *buffer, size_t length)
     return s;
 }
 
+static inline std::string binary_to_printable(const void *buffer, size_t length)
+{
+    std::string printable;
+    printable.reserve(length * 4);
+
+    auto buf = static_cast<const std::uint8_t *>(buffer);
+
+    for (size_t i = 0; i < length; i++)
+    {
+        std::uint8_t c = buf[i];
+        if (std::isprint(c))
+        {
+            if (c == '\\')
+            {
+                printable.push_back('\\');
+                printable.push_back('\\');
+            }
+            else
+            {
+                printable.push_back(c);
+            }
+        }
+        else if (std::isspace(c))
+        {
+            printable.push_back('\\');
+            if (c == '\n')
+            {
+                printable.push_back('n');
+            }
+            else if (c == '\r')
+            {
+                printable.push_back('r');
+            }
+            else if (c == '\t')
+            {
+                printable.push_back('t');
+            }
+            else if (c == '\v')
+            {
+                printable.push_back('v');
+            }
+            else if (c == '\f')
+            {
+                printable.push_back('f');
+            }
+        }
+        else
+        {
+            printable.push_back('\\');
+            printable.push_back('x');
+            printable.push_back("0123456789ABCDEF"[c >> 4]);
+            printable.push_back("0123456789ABCDEF"[c & 0xf]);
+        }
+    }
+
+    return printable;
+}
+
 }

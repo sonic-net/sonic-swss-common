@@ -151,6 +151,62 @@
     temp = SWIG_NewPointerObj(*$1, SWIGTYPE_p_swss__Selectable, 0);
     SWIG_Python_AppendOutput($result, temp);
 }
+
+%typemap(in, fragment="SWIG_AsPtr_std_string")
+    const std::vector<std::pair< std::string,std::string >,std::allocator< std::pair< std::string,std::string > > > &
+        (std::vector< std::pair< std::string,std::string >,std::allocator< std::pair< std::string,std::string > > > temp,
+        int res) {
+    res = SWIG_OK;
+    for (int i = 0; i < PySequence_Length($input); ++i) {
+        temp.push_back(std::pair< std::string,std::string >());
+        PyObject *item = PySequence_GetItem($input, i);
+        if (!PyTuple_Check(item) || PyTuple_Size(item) != 2) {
+            SWIG_fail;
+        }
+        PyObject *key = PyTuple_GetItem(item, 0);
+        PyObject *value = PyTuple_GetItem(item, 1);
+        std::string *ptr = (std::string *)0;
+        if (PyBytes_Check(key)) {
+            temp.back().first.assign(PyBytes_AsString(key), PyBytes_Size(key));
+        } else if (SWIG_AsPtr_std_string(key, &ptr)) {
+            temp.back().first = *ptr;
+        } else {
+            SWIG_fail;
+        }
+        if (PyBytes_Check(value)) {
+            temp.back().second.assign(PyBytes_AsString(value), PyBytes_Size(value));
+        } else if (SWIG_AsPtr_std_string(value, &ptr)) {
+            temp.back().second = *ptr;
+        } else {
+            SWIG_fail;
+        }
+    }
+    $1 = &temp;
+}
+
+%typemap(typecheck) const std::vector< std::pair< std::string,std::string >,std::allocator< std::pair< std::string,std::string > > > &{
+    $1 = 1;
+    for (int i = 0; i < PySequence_Length($input); ++i) {
+        PyObject *item = PySequence_GetItem($input, i);
+        if (!PyTuple_Check(item) || PyTuple_Size(item) != 2) {
+            $1 = 0;
+            break;
+        }
+        PyObject *key = PyTuple_GetItem(item, 0);
+        PyObject *value = PyTuple_GetItem(item, 1);
+        if (!PyBytes_Check(key)
+            && !PyUnicode_Check(key)
+            && !PyString_Check(key)
+            && !PyBytes_Check(value)
+            && !PyUnicode_Check(value)
+            && !PyString_Check(value)) {
+            $1 = 0;
+            break;
+        }
+    }
+}
+
+
 #endif
 
 #ifdef SWIGGO
