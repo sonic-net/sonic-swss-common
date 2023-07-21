@@ -78,7 +78,7 @@ inline void guard(FUNC func, const char* command)
 
 RedisReply::RedisReply(RedisContext *ctx, const RedisCommand& command)
 {
-    int rc = redisAppendFormattedCommand(ctx->getContext(), command.c_str(), command.length());
+    int rc = command.appendTo(ctx->getContext());
     if (rc != REDIS_OK)
     {
         // The only reason of error is REDIS_ERR_OOM (Out of memory)
@@ -89,9 +89,9 @@ RedisReply::RedisReply(RedisContext *ctx, const RedisCommand& command)
     rc = redisGetReply(ctx->getContext(), (void**)&m_reply);
     if (rc != REDIS_OK)
     {
-        throw RedisError("Failed to redisGetReply with " + string(command.c_str()), ctx->getContext());
+        throw RedisError("Failed to redisGetReply with " + command.toPrintableString(), ctx->getContext());
     }
-    guard([&]{checkReply();}, command.c_str());
+    guard([&]{checkReply();}, command.toPrintableString().c_str());
 }
 
 RedisReply::RedisReply(RedisContext *ctx, const string& command)
@@ -109,19 +109,19 @@ RedisReply::RedisReply(RedisContext *ctx, const string& command)
     {
         throw RedisError("Failed to redisGetReply with " + command, ctx->getContext());
     }
-    guard([&]{checkReply();}, command.c_str());
+    guard([&]{checkReply();}, binary_to_printable(command.c_str(), command.length()).c_str());
 }
 
 RedisReply::RedisReply(RedisContext *ctx, const RedisCommand& command, int expectedType)
     : RedisReply(ctx, command)
 {
-    guard([&]{checkReplyType(expectedType);}, command.c_str());
+    guard([&]{checkReplyType(expectedType);}, command.toPrintableString().c_str());
 }
 
 RedisReply::RedisReply(RedisContext *ctx, const string& command, int expectedType)
     : RedisReply(ctx, command)
 {
-    guard([&]{checkReplyType(expectedType);}, command.c_str());
+    guard([&]{checkReplyType(expectedType);}, binary_to_printable(command.c_str(), command.length()).c_str());
 }
 
 RedisReply::RedisReply(redisReply *reply) :
