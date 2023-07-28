@@ -130,7 +130,7 @@ int RedisCommand::appendTo(redisContext *ctx) const
 
 std::string RedisCommand::toPrintableString() const
 {
-    return binary_to_printable(temp, len);
+    return binary_to_printable(temp, length());
 }
 
 const char *RedisCommand::c_str() const
