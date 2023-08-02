@@ -24,8 +24,8 @@ void RedisCommand::format(const char *fmt, ...)
     {
         redisFreeCommand(temp);
         temp = nullptr;
-        len = 0;
     }
+    len = 0;
 
     va_list ap;
     va_start(ap, fmt);
@@ -45,8 +45,8 @@ void RedisCommand::formatArgv(int argc, const char **argv, const size_t *argvlen
     {
         redisFreeCommand(temp);
         temp = nullptr;
-        len = 0;
     }
+    len = 0;
 
     int ret = redisFormatCommandArgv(&temp, argc, argv, argvlen);
     if (ret == -1) {
