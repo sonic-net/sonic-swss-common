@@ -5,6 +5,7 @@ LDADD_GTEST = -L/usr/src/gtest -lgtest -lgtest_main -lgmock -lgmock_main
 
 tests_tests_SOURCES = tests/redis_ut.cpp                \
                       tests/redis_piped_ut.cpp          \
+                      tests/redis_command_ut.cpp        \
                       tests/redis_state_ut.cpp          \
                       tests/redis_piped_state_ut.cpp    \
                       tests/tokenize_ut.cpp             \
@@ -44,5 +45,5 @@ tests_tests_SOURCES = tests/redis_ut.cpp                \
                       tests/main.cpp
 
 tests_tests_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_GTEST) $(LIBNL_CFLAGS)
-tests_tests_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_GTEST) $(LIBNL_CFLAGS)
+tests_tests_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_GTEST) $(LIBNL_CFLAGS) -fno-access-control
 tests_tests_LDADD = $(LDADD_GTEST) -lpthread common/libswsscommon.la $(LIBNL_LIBS) $(CODE_COVERAGE_LIBS) sonic-db-cli/libsonicdbcli.la -lzmq -luuid -lboost_serialization

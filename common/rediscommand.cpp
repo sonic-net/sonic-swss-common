@@ -25,16 +25,18 @@ void RedisCommand::format(const char *fmt, ...)
         redisFreeCommand(temp);
         temp = nullptr;
     }
+    len = 0;
 
     va_list ap;
     va_start(ap, fmt);
-    len = redisvFormatCommand(&temp, fmt, ap);
+    int ret = redisvFormatCommand(&temp, fmt, ap);
     va_end(ap);
-    if (len == -1) {
+    if (ret == -1) {
         throw std::bad_alloc();
-    } else if (len == -2) {
+    } else if (ret == -2) {
         throw std::invalid_argument("fmt");
     }
+    len = ret;
 }
 
 void RedisCommand::formatArgv(int argc, const char **argv, const size_t *argvlen)
@@ -44,11 +46,13 @@ void RedisCommand::formatArgv(int argc, const char **argv, const size_t *argvlen
         redisFreeCommand(temp);
         temp = nullptr;
     }
+    len = 0;
 
-    len = redisFormatCommandArgv(&temp, argc, argv, argvlen);
-    if (len == -1) {
+    int ret = redisFormatCommandArgv(&temp, argc, argv, argvlen);
+    if (ret == -1) {
         throw std::bad_alloc();
     }
+    len = ret;
 }
 
 void RedisCommand::format(const vector<string> &commands)
@@ -135,6 +139,8 @@ std::string RedisCommand::toPrintableString() const
 
 const char *RedisCommand::c_str() const
 {
+    if (len == 0)
+        return nullptr;
     return temp;
 }
 
