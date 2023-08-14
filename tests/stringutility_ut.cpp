@@ -8,7 +8,7 @@
 
 TEST(STRINGUTILITY, cast_int)
 {
-    int i;
+    int i = 0;
 
     EXPECT_NO_THROW(swss::lexical_convert("123", i));
     EXPECT_EQ(i, 123);
@@ -39,7 +39,7 @@ TEST(STRINGUTILITY, cast_alpha_bool)
 
 TEST(STRINGUTILITY, cast_mix)
 {
-    int i;
+    int i = 0;
     swss::AlphaBoolean b;
     std::string s;
 

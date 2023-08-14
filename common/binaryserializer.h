@@ -3,6 +3,8 @@
 
 #include "common/armhelper.h"
 
+using namespace std;
+
 namespace swss {
 
 class BinarySerializer {
@@ -64,7 +66,7 @@ public:
                                                                                             size);
             }
 
-            auto pkey = tmp_buffer;
+            auto pkey = string(tmp_buffer, *pkeylen);
             tmp_buffer += *pkeylen;
 
             WARNINGS_NO_CAST_ALIGN;
@@ -79,7 +81,7 @@ public:
                                                                                             size);
             }
             
-            auto pval = tmp_buffer;
+            auto pval = string(tmp_buffer, *pvallen);
             tmp_buffer += *pvallen;
 
             values.push_back(std::make_pair(pkey, pval));
@@ -107,9 +109,8 @@ private:
     void setKeyAndValue(const char* key, size_t klen,
                         const char* value, size_t vlen)
     {
-        // to improve deserialize performance, copy null-terminated string. 
-        setData(key, klen + 1);
-        setData(value, vlen + 1);
+        setData(key, klen);
+        setData(value, vlen);
 
         m_kvp_count++;
     }
