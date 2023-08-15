@@ -270,7 +270,7 @@ struct serialization
 
             _ss_ex << e.what() << "str[0:64]:(" << s.substr(0, 64) << ") data type: "
                 << get_typename(data);
-            SWSS_LOG_ERROR("deserialize Failed: %s", _ss_ex.str().c_str());
+            SWSS_LOG_NOTICE("deserialize Failed: %s", _ss_ex.str().c_str());
             return ERR_MESSAGE_INVALID;
         }   
     }
