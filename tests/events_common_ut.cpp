@@ -81,10 +81,10 @@ TEST(events_common, send_recv)
     void *sock_p1 = zmq_socket (zmq_ctx, ZMQ_PAIR);
     EXPECT_EQ(0, zmq_bind (sock_p1, path));
 
-    string source("Hello"), source1;
+    string source("Hello"), source1, source2("#"), source3;
 
     map<string, string> m = {{"foo", "bar"}, {"hello", "world"}, {"good", "day"}};
-    map<string, string> m1;
+    map<string, string> m1, m2;
 
     EXPECT_EQ(0, zmq_message_send(sock_p0, source, m));
 
@@ -92,6 +92,12 @@ TEST(events_common, send_recv)
 
     EXPECT_EQ(source, source1);
     EXPECT_EQ(m, m1);
+
+    EXPECT_EQ(0, zmq_message_send(sock_p0, source2, m2));
+    EXPECT_EQ(0, zmq_message_read(sock_p1, 0, source3, m2));
+
+    EXPECT_EQ(source2, source3);
+
     zmq_close(sock_p0);
     zmq_close(sock_p1);
     zmq_ctx_term(zmq_ctx);
