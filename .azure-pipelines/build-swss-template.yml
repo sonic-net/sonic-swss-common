@@ -62,6 +62,7 @@ jobs:
       sudo apt-get update
       sudo apt-get install -y libhiredis0.14 libhiredis-dev
       sudo apt-get install -y libzmq5 libzmq3-dev
+      sudo apt-get install -y libprotobuf-lite32
       sudo apt-get install -qq -y \
           libhiredis-dev \
           swig4.0
@@ -90,6 +91,7 @@ jobs:
         libsaimetadata_*.deb
         libsaimetadata-dev_*.deb
         syncd-vs_*.deb
+        libdashapi_*.deb
     displayName: "Download pre-stage built ${{ parameters.sairedis_artifact_name }}"
   - task: DownloadPipelineArtifact@2
     inputs:
@@ -107,7 +109,6 @@ jobs:
         target/debs/${{ parameters.debian_version }}/libnl-nf*.deb
         target/debs/${{ parameters.debian_version }}/libyang-*.deb
         target/debs/${{ parameters.debian_version }}/libyang_*.deb
-        target/debs/${{ parameters.debian_version }}/libdashapi_*.deb
     displayName: "Download common libs"
 
   - script: |
