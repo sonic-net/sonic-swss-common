@@ -3,7 +3,7 @@
         "redis":{
             "hostname" : "127.0.0.1",
             "port": 6379,
-            "unix_socket_path": "/var/run/redis0/redis.sock"
+            "unix_socket_path": "/var/run/redis/redis.sock"
         }
     },
     "DATABASES" : {
