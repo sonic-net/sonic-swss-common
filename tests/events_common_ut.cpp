@@ -89,7 +89,7 @@ TEST(events_common, send_recv)
     EXPECT_EQ(0, zmq_message_send(sock_p0, source, m));
 
     EXPECT_EQ(0, zmq_message_read(sock_p1, 0, source1, m1));
- 
+
     EXPECT_EQ(source, source1);
     EXPECT_EQ(m, m1);
     
