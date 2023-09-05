@@ -258,9 +258,6 @@ struct serialization
     int
     deserialize(const string& s, Map& data)
     {
-        if (s.size() < 2) { // zmq identifying message of length 1
-            return 0;
-        }
         try {
             istringstream ss(s);
             boost::archive::text_iarchive iarch(ss);
@@ -312,7 +309,8 @@ struct serialization
         more = 0;
         zmq_msg_init(&msg);
         int rc = zmq_msg_recv(&msg, sock, flag);
-        if (rc != -1) {
+	int msg_size = static_cast<int>(zmq_msg_size(&msg));
+        if (rc != -1 && msg_size > 1) {
             size_t more_size = sizeof (more);
 
             zmq_getsockopt (sock, ZMQ_RCVMORE, &more, &more_size);
