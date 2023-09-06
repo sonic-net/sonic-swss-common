@@ -5,7 +5,7 @@
 #include <deque>
 #include <regex>
 #include <chrono>
-#include "common/json.hpp"
+#include <nlohmann/json.hpp>
 #include "gtest/gtest.h"
 #include "common/events_common.h"
 #include "common/events.h"

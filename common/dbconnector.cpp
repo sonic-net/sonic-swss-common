@@ -5,7 +5,7 @@
 #include <errno.h>
 #include <system_error>
 #include <fstream>
-#include "json.hpp"
+#include <nlohmann/json.hpp>
 #include "logger.h"
 
 #include "common/dbconnector.h"

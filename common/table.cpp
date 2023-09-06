@@ -6,7 +6,7 @@
 #include "common/redisreply.h"
 #include "common/rediscommand.h"
 #include "common/redisapi.h"
-#include "common/json.hpp"
+#include <nlohmann/json.hpp>
 
 using namespace std;
 using namespace swss;
