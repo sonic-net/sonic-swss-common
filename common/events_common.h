@@ -309,7 +309,7 @@ struct serialization
         more = 0;
         zmq_msg_init(&msg);
         int rc = zmq_msg_recv(&msg, sock, flag);
-	int msg_size = static_cast<int>(zmq_msg_size(&msg));
+        size_t msg_size = zmq_msg_size(&msg);
         if (rc != -1 && msg_size > 1) {
             size_t more_size = sizeof (more);
 
