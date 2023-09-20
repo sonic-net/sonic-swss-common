@@ -258,9 +258,7 @@ struct serialization
     int
     deserialize(const string& s, Map& data)
     {
-        if (s.size() < 2) { // zmq identifying message of length 1
-            return 0;
-        }
+
         try {
             istringstream ss(s);
             boost::archive::text_iarchive iarch(ss);
