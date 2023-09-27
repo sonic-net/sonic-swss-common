@@ -58,7 +58,7 @@ static void producerWorker(string tableName, string endpoint, bool dbPersistence
 {
     DBConnector db(TEST_DB, 0, true);
     ZmqClient client(endpoint);
-    ZmqProducerStateTable p(&db, tableName, client, false);
+    ZmqProducerStateTable p(&db, tableName, client, dbPersistence);
     cout << "Producer thread started: " << tableName << endl;
 
     for (int i = 0; i < NUMBER_OF_OPS; i++)
@@ -129,7 +129,7 @@ static void consumerWorker(string tableName, string endpoint, bool dbPersistence
     
     DBConnector db(TEST_DB, 0, true);
     ZmqServer server(endpoint);
-    ZmqConsumerStateTable c(&db, tableName, server);
+    ZmqConsumerStateTable c(&db, tableName, server, dbPersistence);
     Select cs;
     cs.addSelectable(&c);
 
