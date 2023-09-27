@@ -67,16 +67,11 @@ void AsyncDBUpdater::dbUpdateThread()
 
         size_t count;
         {
-            // size() is not thread safe
-            std::lock_guard<std::mutex> lock(m_dbUpdateDataQueueMutex);
- 
-            // For new data append to m_dataQueue during pops, will not be include in result.
-            count = m_dbUpdateDataQueue.size();
+            count = queueSize();
             if (!count)
             {
                 continue;
             }
-
         }
 
         for (size_t ie = 0; ie < count; ie++)
@@ -106,6 +101,14 @@ void AsyncDBUpdater::dbUpdateThread()
             }
         }
     }
+}
+
+size_t AsyncDBUpdater::queueSize()
+{
+    // size() is not thread safe
+    std::lock_guard<std::mutex> lock(m_dbUpdateDataQueueMutex);
+
+    return m_dbUpdateDataQueue.size();
 }
 
 }

@@ -34,6 +34,7 @@ public:
 
     virtual void del(const std::vector<std::string> &keys);
 
+    size_t dbUpdaterQueueSize();
 private:
     void initialize(DBConnector *db, const std::string &tableName, bool dbPersistence);
 

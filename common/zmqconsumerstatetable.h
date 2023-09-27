@@ -72,6 +72,8 @@ public:
         return m_db;
     }
 
+    size_t dbUpdaterQueueSize();
+
 private:
     void handleReceivedData(std::shared_ptr<KeyOpFieldsValuesTuple> pkco);
 

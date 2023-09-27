@@ -21,6 +21,7 @@ public:
 
     void update(std::shared_ptr<KeyOpFieldsValuesTuple> pkco);
 
+    size_t queueSize();
 private:
     void dbUpdateThread();
 

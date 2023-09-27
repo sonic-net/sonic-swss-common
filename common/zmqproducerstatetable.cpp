@@ -155,4 +155,14 @@ void ZmqProducerStateTable::del(const std::vector<std::string> &keys)
     }
 }
 
+size_t ZmqProducerStateTable::dbUpdaterQueueSize()
+{
+    if (m_asyncDBUpdater == nullptr)
+    {
+        return 0;
+    }
+
+    return m_asyncDBUpdater->queueSize();
+}
+
 }

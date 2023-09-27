@@ -109,7 +109,8 @@ static void producerWorker(string tableName, string endpoint, bool dbPersistence
         p.del(keys);
     }
 
-    while (!allDataReceived)
+    // wait all data been received by consumer and all persist data write to redis 
+    while (!allDataReceived && (p.dbUpdaterQueueSize() > 0))
     {
         sleep(1);
     }
@@ -129,7 +130,7 @@ static void consumerWorker(string tableName, string endpoint, bool dbPersistence
     
     DBConnector db(TEST_DB, 0, true);
     ZmqServer server(endpoint);
-    ZmqConsumerStateTable c(&db, tableName, server, dbPersistence);
+    ZmqConsumerStateTable c(&db, tableName, server, 128, 0, dbPersistence);
     Select cs;
     cs.addSelectable(&c);
 
@@ -177,6 +178,12 @@ static void consumerWorker(string tableName, string endpoint, bool dbPersistence
                 vkco.pop_front();
             }
         }
+    }
+
+    // wait all persist data write to redis 
+    while (c.dbUpdaterQueueSize() > 0)
+    {
+        sleep(1);
     }
 
     allDataReceived = true;

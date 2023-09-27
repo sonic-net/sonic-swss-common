@@ -90,4 +90,14 @@ void ZmqConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const
     }
 }
 
+size_t ZmqConsumerStateTable::dbUpdaterQueueSize()
+{
+    if (m_asyncDBUpdater == nullptr)
+    {
+        return 0;
+    }
+
+    return m_asyncDBUpdater->queueSize();
+}
+
 }
