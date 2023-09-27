@@ -54,11 +54,11 @@ static inline int readNumberAtEOL(const string& str)
 
 static bool allDataReceived = false;
 
-static void producerWorker(string tableName, string endpoint)
+static void producerWorker(string tableName, string endpoint, bool dbPersistence)
 {
     DBConnector db(TEST_DB, 0, true);
     ZmqClient client(endpoint);
-    ZmqProducerStateTable p(&db, tableName, client);
+    ZmqProducerStateTable p(&db, tableName, client, false);
     cout << "Producer thread started: " << tableName << endl;
 
     for (int i = 0; i < NUMBER_OF_OPS; i++)
@@ -123,7 +123,7 @@ static int delCount = 0;
 static int batchSetCount = 0;
 static int batchDelCount = 0;
     
-static void consumerWorker(string tableName, string endpoint)
+static void consumerWorker(string tableName, string endpoint, bool dbPersistence)
 {
     cout << "Consumer thread started: " << tableName << endl;
     
@@ -183,21 +183,28 @@ static void consumerWorker(string tableName, string endpoint)
     cout << "Consumer thread ended: " << tableName << endl;
 }
 
-TEST(ZmqConsumerStateTable, test)
+
+static void testMethod(bool producerPersistence)
 {
     std::string testTableName = "ZMQ_PROD_CONS_UT";
     std::string pushEndpoint = "tcp://localhost:1234";
     std::string pullEndpoint = "tcp://*:1234";
     thread *producerThreads[NUMBER_OF_THREADS];
 
+    // reset receive data counter
+    setCount = 0;
+    delCount = 0;
+    batchSetCount = 0;
+    batchDelCount = 0;
+
     // start consumer first, SHM can only have 1 consumer per table.
-    thread *consumerThread = new thread(consumerWorker, testTableName, pullEndpoint);
+    thread *consumerThread = new thread(consumerWorker, testTableName, pullEndpoint, !producerPersistence);
 
     cout << "Starting " << NUMBER_OF_THREADS << " producers" << endl;
     /* Starting the producer before the producer */
     for (int i = 0; i < NUMBER_OF_THREADS; i++)
     {
-        producerThreads[i] = new thread(producerWorker, testTableName, pushEndpoint);
+        producerThreads[i] = new thread(producerWorker, testTableName, pushEndpoint, producerPersistence);
     }
 
     cout << "Done. Waiting for all job to finish " << NUMBER_OF_OPS << " jobs." << endl;
@@ -215,6 +222,7 @@ TEST(ZmqConsumerStateTable, test)
     EXPECT_EQ(batchSetCount, NUMBER_OF_THREADS * NUMBER_OF_OPS * MAX_KEYS);
     EXPECT_EQ(batchDelCount, NUMBER_OF_THREADS * NUMBER_OF_OPS * MAX_KEYS);
 
+    // check presist data in redis
     DBConnector db(TEST_DB, 0, true);
     Table table(&db, testTableName);
     std::vector<std::string> keys;
@@ -236,4 +244,17 @@ TEST(ZmqConsumerStateTable, test)
     EXPECT_EQ(batchSetCount, NUMBER_OF_OPS * MAX_KEYS);
     
     cout << endl << "Done." << endl;
+}
+
+TEST(ZmqConsumerStateTable, test)
+{
+    // test with persist by consumer
+    testMethod(false);
+}
+
+
+TEST(ZmqProducerStateTable, test)
+{
+    // test with persist by producer
+    testMethod(true);
 }
