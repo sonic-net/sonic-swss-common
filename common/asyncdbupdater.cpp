@@ -63,15 +63,13 @@ void AsyncDBUpdater::dbUpdateThread()
 
     while (m_runThread)
     {
-        m_dbUpdateDataNotifyCv.wait(cvLock);
-
         size_t count;
+        count = queueSize();
+        if (count == 0)
         {
-            count = queueSize();
-            if (!count)
-            {
-                continue;
-            }
+            // when queue is empty, wait notification, when data come, continue to check queue size again
+            m_dbUpdateDataNotifyCv.wait(cvLock);
+            continue;
         }
 
         for (size_t ie = 0; ie < count; ie++)
@@ -101,6 +99,8 @@ void AsyncDBUpdater::dbUpdateThread()
             }
         }
     }
+
+    SWSS_LOG_DEBUG("AsyncDBUpdater dbUpdateThread end: %s", m_tableName.c_str());
 }
 
 size_t AsyncDBUpdater::queueSize()

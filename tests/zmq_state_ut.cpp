@@ -109,10 +109,19 @@ static void producerWorker(string tableName, string endpoint, bool dbPersistence
         p.del(keys);
     }
 
-    // wait all data been received by consumer and all persist data write to redis 
-    while (!allDataReceived && (p.dbUpdaterQueueSize() > 0))
+    // wait all data been received by consumer
+    while (!allDataReceived)
     {
         sleep(1);
+    }
+
+    if (dbPersistence)
+    {
+        // wait all persist data write to redis
+        while (p.dbUpdaterQueueSize() > 0)
+        {
+            sleep(1);
+        }
     }
 
     cout << "Producer thread ended: " << tableName << endl;
@@ -180,13 +189,17 @@ static void consumerWorker(string tableName, string endpoint, bool dbPersistence
         }
     }
 
-    // wait all persist data write to redis 
-    while (c.dbUpdaterQueueSize() > 0)
+    allDataReceived = true;
+
+    if (dbPersistence)
     {
-        sleep(1);
+        // wait all persist data write to redis
+        while (c.dbUpdaterQueueSize() > 0)
+        {
+            sleep(1);
+        }
     }
 
-    allDataReceived = true;
     cout << "Consumer thread ended: " << tableName << endl;
 }
 
@@ -203,6 +216,7 @@ static void testMethod(bool producerPersistence)
     delCount = 0;
     batchSetCount = 0;
     batchDelCount = 0;
+    allDataReceived = false;
 
     // start consumer first, SHM can only have 1 consumer per table.
     thread *consumerThread = new thread(consumerWorker, testTableName, pullEndpoint, !producerPersistence);
