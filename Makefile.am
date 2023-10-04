@@ -2,7 +2,7 @@ lib_LTLIBRARIES =
 bin_PROGRAMS =
 
 if DEBUG
-DBGFLAGS = -ggdb -DDEBUG
+DBGFLAGS = -ggdb -DDEBUG -gdwarf-5
 else
 DBGFLAGS = -g -DNDEBUG
 endif
