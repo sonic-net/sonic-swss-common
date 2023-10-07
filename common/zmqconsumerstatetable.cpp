@@ -94,7 +94,8 @@ size_t ZmqConsumerStateTable::dbUpdaterQueueSize()
 {
     if (m_asyncDBUpdater == nullptr)
     {
-        return 0;
+        throw system_error(make_error_code(errc::operation_not_supported),
+                           "Database persistence is not enabled");
     }
 
     return m_asyncDBUpdater->queueSize();
