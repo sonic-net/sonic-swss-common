@@ -60,7 +60,7 @@ stages:
     steps:
     - script: |
         sudo apt-get update
-        sudo apt-get install -y make libtool m4 autoconf dh-exec debhelper cmake pkg-config \
+        sudo apt-get install -y make libtool m4 autoconf dh-exec debhelper cmake pkg-config nlohmann-json3-dev \
                          libhiredis-dev libnl-3-dev libnl-genl-3-dev libnl-route-3-dev libnl-nf-3-dev swig3.0 \
                          libpython2.7-dev libboost-dev libboost-serialization-dev uuid-dev libzmq5 libzmq3-dev
         sudo apt-get install -y sudo
