@@ -209,7 +209,7 @@ void SonicDBConfig::validateNamespace(const string &netns)
     }
 }
 
-SonicDBInfo& SonicDBConfig::getDbInfo(const std::string &dbName, const std::string &netns)
+const std::unordered_map<std::string, SonicDBInfo>& SonicDBConfig::getDbEntryMap(const std::string &netns)
 {
     std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
 
@@ -232,7 +232,16 @@ SonicDBInfo& SonicDBConfig::getDbInfo(const std::string &dbName, const std::stri
         SWSS_LOG_ERROR("%s", msg.c_str());
         throw out_of_range(msg);
     }
-    auto& infos = foundNetns->second;
+    return foundNetns->second;
+}
+
+const SonicDBInfo& SonicDBConfig::getDbInfo(const std::string &dbName, const std::string &netns)
+{
+    std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
+
+    SWSS_LOG_ENTER();
+
+    auto const& infos = getDbEntryMap(netns);
     auto foundDb = infos.find(dbName);
     if (foundDb == infos.end())
     {
@@ -285,6 +294,24 @@ string SonicDBConfig::getDbInst(const string &dbName, const string &netns)
 int SonicDBConfig::getDbId(const string &dbName, const string &netns)
 {
     return getDbInfo(dbName, netns).dbId;
+}
+
+string SonicDBConfig::getDbName(int dbId, const string &netns)
+{
+    std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
+
+    SWSS_LOG_ENTER();
+        
+    string db_name;
+    auto const& infos = getDbEntryMap(netns);
+    for ( auto it = infos.begin(); it != infos.end(); ++it ) {
+        auto& db_info = it->second;
+        if (db_info.dbId == dbId) {
+            db_name = it->first;
+            break;
+        }
+    }
+    return db_name;
 }
 
 string SonicDBConfig::getSeparator(const string &dbName, const string &netns)
@@ -527,6 +554,7 @@ void DBConnector::select(DBConnector *db)
 DBConnector::DBConnector(const DBConnector &other)
     : RedisContext(other)
     , m_dbId(other.m_dbId)
+    , m_dbName(other.m_dbName)
     , m_namespace(other.m_namespace)
 {
     select(this);
@@ -535,6 +563,7 @@ DBConnector::DBConnector(const DBConnector &other)
 DBConnector::DBConnector(int dbId, const RedisContext& ctx)
     : RedisContext(ctx)
     , m_dbId(dbId)
+    , m_dbName(SonicDBConfig::getDbName(dbId))
     , m_namespace(EMPTY_NAMESPACE)
 {
     select(this);
@@ -543,6 +572,7 @@ DBConnector::DBConnector(int dbId, const RedisContext& ctx)
 DBConnector::DBConnector(int dbId, const string& hostname, int port,
                          unsigned int timeout)
     : m_dbId(dbId)
+    , m_dbName(SonicDBConfig::getDbName(dbId))
     , m_namespace(EMPTY_NAMESPACE)
 {
     struct timeval tv = {0, (suseconds_t)timeout * 1000};
@@ -554,6 +584,7 @@ DBConnector::DBConnector(int dbId, const string& hostname, int port,
 
 DBConnector::DBConnector(int dbId, const string& unixPath, unsigned int timeout)
     : m_dbId(dbId)
+    , m_dbName(SonicDBConfig::getDbName(dbId))
     , m_namespace(EMPTY_NAMESPACE)
 {
     struct timeval tv = {0, (suseconds_t)timeout * 1000};

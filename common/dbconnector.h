@@ -63,6 +63,7 @@ public:
     static void validateNamespace(const std::string &netns);
     static std::string getDbInst(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
     static int getDbId(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
+    static std::string getDbName(int dbId, const std::string &netns = EMPTY_NAMESPACE);
     static std::string getSeparator(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
     static std::string getSeparator(int dbId, const std::string &netns = EMPTY_NAMESPACE);
     static std::string getSeparator(const DBConnector* db);
@@ -98,7 +99,8 @@ private:
                                     std::map<std::string, RedisInstInfo> &inst_entry,
                                     std::unordered_map<std::string, SonicDBInfo> &db_entry,
                                     std::unordered_map<int, std::string> &separator_entry);
-    static SonicDBInfo& getDbInfo(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
+    static const std::unordered_map<std::string, SonicDBInfo>& getDbEntryMap(const std::string &netns = EMPTY_NAMESPACE);
+    static const SonicDBInfo& getDbInfo(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
     static RedisInstInfo& getRedisInfo(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
 };
 
