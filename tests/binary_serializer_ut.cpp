@@ -10,43 +10,43 @@ using namespace swss;
 TEST(BinarySerializer, serialize_deserialize)
 {
     string test_entry_key = "test_key";
-    string test_command = "test_command";
+    string test_command = "SET";
     string test_db = "test_db";
     string test_table = "test_table";
     string test_key = "key";
     string test_value= "value";
+    string test_entry_key2 = "test_key_2";
+    string test_command2 = "DEL";
 
     char buffer[200];
     std::vector<FieldValueTuple> values;
     values.push_back(std::make_pair(test_key, test_value));
+    std::vector<KeyOpFieldsValuesTuple> kcos = std::vector<KeyOpFieldsValuesTuple>{
+        KeyOpFieldsValuesTuple{test_entry_key, test_command, values},
+        KeyOpFieldsValuesTuple{test_entry_key2, test_command2, std::vector<FieldValueTuple>{}}};
     int serialized_len = (int)BinarySerializer::serializeBuffer(
                                                                 buffer,
                                                                 sizeof(buffer),
-                                                                test_entry_key,
-                                                                values,
-                                                                test_command,
                                                                 test_db,
-                                                                test_table);
+                                                                test_table,
+                                                                kcos);
     string serialized_str(buffer);
 
-    EXPECT_EQ(serialized_len, 101);
+    EXPECT_EQ(serialized_len, 117);
 
-    auto ptr = std::make_shared<KeyOpFieldsValuesTuple>();
-    KeyOpFieldsValuesTuple &kco = *ptr;
-    auto& deserialized_values = kfvFieldsValues(kco);
-    BinarySerializer::deserializeBuffer(buffer, serialized_len, deserialized_values);
-    
-    swss::FieldValueTuple fvt = deserialized_values.at(0);
-    EXPECT_TRUE(fvField(fvt) == test_db);
-    EXPECT_TRUE(fvValue(fvt) == test_table);
+    std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> kcos_ptrs;
+    std::vector<KeyOpFieldsValuesTuple> deserialized_kcos;
+    string db_name;
+    string db_table;
+    BinarySerializer::deserializeBuffer(buffer, serialized_len, db_name, db_table, kcos_ptrs);
+    for (auto kco_ptr : kcos_ptrs)
+    {
+        deserialized_kcos.push_back(*kco_ptr);
+    }
 
-    fvt = deserialized_values.at(1);
-    EXPECT_TRUE(fvField(fvt) == test_entry_key);
-    EXPECT_TRUE(fvValue(fvt) == test_command);
-
-    fvt = deserialized_values.at(2);
-    EXPECT_TRUE(fvField(fvt) == test_key);
-    EXPECT_TRUE(fvValue(fvt) == test_value);
+    EXPECT_EQ(db_name, test_db);
+    EXPECT_EQ(db_table, test_table);
+    EXPECT_EQ(deserialized_kcos, kcos);
 }
 
 TEST(BinarySerializer, serialize_overflow)
@@ -54,14 +54,14 @@ TEST(BinarySerializer, serialize_overflow)
     char buffer[50];
     std::vector<FieldValueTuple> values;
     values.push_back(std::make_pair("test_key", "test_value"));
+    std::vector<KeyOpFieldsValuesTuple> kcos = std::vector<KeyOpFieldsValuesTuple>{
+        KeyOpFieldsValuesTuple{"test_entry_key", "SET", values}};
     EXPECT_THROW(BinarySerializer::serializeBuffer(
                                                 buffer,
                                                 sizeof(buffer),
-                                                "test_entry_key",
-                                                values,
-                                                "test_command",
                                                 "test_db",
-                                                "test_table"), runtime_error);
+                                                "test_table",
+                                                kcos), runtime_error);
 }
 
 TEST(BinarySerializer, deserialize_overflow)
@@ -69,26 +69,26 @@ TEST(BinarySerializer, deserialize_overflow)
     char buffer[200];
     std::vector<FieldValueTuple> values;
     values.push_back(std::make_pair("test_key", "test_value"));
+    std::vector<KeyOpFieldsValuesTuple> kcos = std::vector<KeyOpFieldsValuesTuple>{
+        KeyOpFieldsValuesTuple{"test_entry_key", "SET", values}};
     int serialized_len = (int)BinarySerializer::serializeBuffer(
                                                                 buffer,
                                                                 sizeof(buffer),
-                                                                "test_entry_key",
-                                                                values,
-                                                                "test_command",
                                                                 "test_db",
-                                                                "test_table");
+                                                                "test_table",
+                                                                kcos);
     string serialized_str(buffer);
 
-    auto ptr = std::make_shared<KeyOpFieldsValuesTuple>();
-    KeyOpFieldsValuesTuple &kco = *ptr;
-    auto& deserialized_values = kfvFieldsValues(kco);
-    EXPECT_THROW(BinarySerializer::deserializeBuffer(buffer, serialized_len - 10, deserialized_values), runtime_error);
+    std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> kcos_ptrs;
+    string db_name;
+    string db_table;
+    EXPECT_THROW(BinarySerializer::deserializeBuffer(buffer, serialized_len - 10, db_name, db_table, kcos_ptrs), runtime_error);
 }
 
 TEST(BinarySerializer, protocol_buffer)
 {
     string test_entry_key = "test_key";
-    string test_command = "test_command";
+    string test_command = "SET";
     string test_db = "test_db";
     string test_table = "test_table";
     string test_key = "key";
@@ -99,33 +99,29 @@ TEST(BinarySerializer, protocol_buffer)
     char buffer[200];
     std::vector<FieldValueTuple> values;
     values.push_back(std::make_pair(test_key, proto_buf_val));
+    std::vector<KeyOpFieldsValuesTuple> kcos = std::vector<KeyOpFieldsValuesTuple>{
+        KeyOpFieldsValuesTuple{test_entry_key, test_command, values}};
     int serialized_len = (int)BinarySerializer::serializeBuffer(
                                                                 buffer,
                                                                 sizeof(buffer),
-                                                                test_entry_key,
-                                                                values,
-                                                                test_command,
                                                                 test_db,
-                                                                test_table);
+                                                                test_table,
+                                                                kcos);
     string serialized_str(buffer);
 
-    EXPECT_EQ(serialized_len, 106);
+    EXPECT_EQ(serialized_len, 95);
 
-    auto ptr = std::make_shared<KeyOpFieldsValuesTuple>();
-    KeyOpFieldsValuesTuple &kco = *ptr;
-    auto& deserialized_values = kfvFieldsValues(kco);
-    BinarySerializer::deserializeBuffer(buffer, serialized_len, deserialized_values);
-    
-    swss::FieldValueTuple fvt = deserialized_values.at(0);
-    EXPECT_TRUE(fvField(fvt) == test_db);
-    EXPECT_TRUE(fvValue(fvt) == test_table);
+    std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> kcos_ptrs;
+    std::vector<KeyOpFieldsValuesTuple> deserialized_kcos;
+    string db_name;
+    string db_table;
+    BinarySerializer::deserializeBuffer(buffer, serialized_len, db_name, db_table, kcos_ptrs);
+    for (auto kco_ptr : kcos_ptrs)
+    {
+        deserialized_kcos.push_back(*kco_ptr);
+    }
 
-    fvt = deserialized_values.at(1);
-    EXPECT_TRUE(fvField(fvt) == test_entry_key);
-    EXPECT_TRUE(fvValue(fvt) == test_command);
-
-    fvt = deserialized_values.at(2);
-    EXPECT_TRUE(fvField(fvt) == test_key);
-    EXPECT_TRUE(fvValue(fvt) == proto_buf_val);
-    EXPECT_TRUE(fvValue(fvt).length() == sizeof(binary_proto_buf));
+    EXPECT_EQ(db_name, test_db);
+    EXPECT_EQ(db_table, test_table);
+    EXPECT_EQ(deserialized_kcos, kcos);
 }

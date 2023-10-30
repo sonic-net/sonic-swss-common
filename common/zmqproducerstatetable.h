@@ -34,6 +34,9 @@ public:
 
     virtual void del(const std::vector<std::string> &keys);
 
+    // Batched send that can include both SET and DEL requests.
+    virtual void send(const std::vector<KeyOpFieldsValuesTuple> &kcos);
+
     size_t dbUpdaterQueueSize();
 private:
     void initialize(DBConnector *db, const std::string &tableName, bool dbPersistence);

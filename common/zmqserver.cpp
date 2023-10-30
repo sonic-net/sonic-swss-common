@@ -14,6 +14,7 @@ namespace swss {
 ZmqServer::ZmqServer(const std::string& endpoint)
     : m_endpoint(endpoint)
 {
+    m_buffer.resize(MQ_RESPONSE_MAX_COUNT);
     m_mqPollThread = std::make_shared<std::thread>(&ZmqServer::mqPollThread, this);
     m_runThread = true;
 
@@ -63,16 +64,10 @@ ZmqMessageHandler* ZmqServer::findMessageHandler(
 
 void ZmqServer::handleReceivedData(const char* buffer, const size_t size)
 {
-    auto pkco = std::make_shared<KeyOpFieldsValuesTuple>();
-    KeyOpFieldsValuesTuple &kco = *pkco;
-    auto& values = kfvFieldsValues(kco);
-    BinarySerializer::deserializeBuffer(buffer, size, values);
-
-    // get table name
-    swss::FieldValueTuple fvt = values.at(0);
-    string dbName = fvField(fvt);
-    string tableName = fvValue(fvt);
-    values.erase(values.begin());
+    std::string dbName;
+    std::string tableName;
+    std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> kcos;
+    BinarySerializer::deserializeBuffer(buffer, size, dbName, tableName, kcos);
 
     // find handler
     auto handler = findMessageHandler(dbName, tableName);
@@ -81,21 +76,13 @@ void ZmqServer::handleReceivedData(const char* buffer, const size_t size)
         return;
     }
 
-    // get key and OP
-    fvt = values.at(0);
-    kfvKey(kco) = fvField(fvt);
-    kfvOp(kco) = fvValue(fvt);
-    values.erase(values.begin());
-
-    handler->handleReceivedData(pkco);
+    handler->handleReceivedData(kcos);
 }
 
 void ZmqServer::mqPollThread()
 {
     SWSS_LOG_ENTER();
     SWSS_LOG_NOTICE("mqPollThread begin");
-    std::vector<char> buffer;
-    buffer.resize(MQ_RESPONSE_MAX_COUNT);
 
     // Producer/Consumer state table are n:1 mapping, so need use PUSH/PULL pattern http://api.zeromq.org/master:zmq-socket
     void* context = zmq_ctx_new();;
@@ -133,7 +120,7 @@ void ZmqServer::mqPollThread()
         }
 
         // receive message
-        rc = zmq_recv(socket, buffer.data(), MQ_RESPONSE_MAX_COUNT, ZMQ_DONTWAIT);
+        rc = zmq_recv(socket, m_buffer.data(), MQ_RESPONSE_MAX_COUNT, ZMQ_DONTWAIT);
         if (rc < 0)
         {
             int zmq_err = zmq_errno();
@@ -155,11 +142,11 @@ void ZmqServer::mqPollThread()
                     rc);
         }
 
-        buffer.at(rc) = 0; // make sure that we end string with zero before parse
+        m_buffer.at(rc) = 0; // make sure that we end string with zero before parse
         SWSS_LOG_DEBUG("zmq received %d bytes", rc);
 
         // deserialize and write to redis:
-        handleReceivedData(buffer.data(), rc);
+        handleReceivedData(m_buffer.data(), rc);
     }
 
     zmq_close(socket);

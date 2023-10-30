@@ -3,9 +3,10 @@
 #include <string>
 #include <deque>
 #include <condition_variable>
+#include <vector>
 #include "table.h"
 
-#define MQ_RESPONSE_MAX_COUNT (4*1024*1024)
+#define MQ_RESPONSE_MAX_COUNT (16*1024*1024)
 #define MQ_SIZE 100
 #define MQ_MAX_RETRY 10
 #define MQ_POLL_TIMEOUT (1000)
@@ -20,7 +21,7 @@ class ZmqMessageHandler
 {
 public:
     virtual ~ZmqMessageHandler() {};
-    virtual void handleReceivedData(std::shared_ptr<KeyOpFieldsValuesTuple> pkco) = 0;
+    virtual void handleReceivedData(const std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos) = 0;
 };
 
 class ZmqServer
@@ -43,6 +44,8 @@ private:
     void mqPollThread();
     
     ZmqMessageHandler* findMessageHandler(const std::string dbName, const std::string tableName);
+
+    std::vector<char> m_buffer;
 
     volatile bool m_runThread;
 

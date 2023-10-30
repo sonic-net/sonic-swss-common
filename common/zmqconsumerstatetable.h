@@ -70,7 +70,7 @@ public:
     size_t dbUpdaterQueueSize();
 
 private:
-    void handleReceivedData(std::shared_ptr<KeyOpFieldsValuesTuple> pkco);
+    void handleReceivedData(const std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> &kcos);
 
     std::mutex m_receivedQueueMutex;
 
