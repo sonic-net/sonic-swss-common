@@ -39,26 +39,28 @@ ZmqConsumerStateTable::ZmqConsumerStateTable(DBConnector *db, const std::string 
     SWSS_LOG_DEBUG("ZmqConsumerStateTable ctor tableName: %s", tableName.c_str());
 }
 
-void ZmqConsumerStateTable::handleReceivedData(std::shared_ptr<KeyOpFieldsValuesTuple> pkco)
+void ZmqConsumerStateTable::handleReceivedData(const std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> &kcos)
 {
-    std::shared_ptr<KeyOpFieldsValuesTuple> clone = nullptr;
-    if (m_asyncDBUpdater != nullptr)
+    for (auto kco : kcos)
     {
-        // clone before put to received queue, because received data may change by consumer.
-        clone = std::make_shared<KeyOpFieldsValuesTuple>(*pkco);
-    }
+        std::shared_ptr<KeyOpFieldsValuesTuple> clone = nullptr;
+        if (m_asyncDBUpdater != nullptr)
+        {
+            // clone before put to received queue, because received data may change by consumer.
+            clone = std::make_shared<KeyOpFieldsValuesTuple>(*kco);
+        }
 
-    {
-        std::lock_guard<std::mutex> lock(m_receivedQueueMutex);
-        m_receivedOperationQueue.push(pkco);
-    }
+        {
+            std::lock_guard<std::mutex> lock(m_receivedQueueMutex);
+            m_receivedOperationQueue.push(kco);
+        }
 
+        if (m_asyncDBUpdater != nullptr)
+        {
+            m_asyncDBUpdater->update(clone);
+        }
+    }
     m_selectableEvent.notify(); // will release epoll
-
-    if (m_asyncDBUpdater != nullptr)
-    {
-        m_asyncDBUpdater->update(clone);
-    }
 }
 
 /* Get multiple pop elements */
