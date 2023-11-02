@@ -3,6 +3,8 @@
 
 #include "common/armhelper.h"
 
+#include <string>
+
 using namespace std;
 
 namespace swss {
@@ -12,27 +14,35 @@ public:
     static size_t serializeBuffer(
         const char* buffer,
         const size_t size,
-        const std::string& key,
-        const std::vector<swss::FieldValueTuple>& values,
-        const std::string& command,
         const std::string& dbName,
-        const std::string& tableName)
+        const std::string& tableName,
+        const std::vector<KeyOpFieldsValuesTuple>& kcos)
     {
         auto tmpSerializer = BinarySerializer(buffer, size);
 
+        // Set the first pair as DB name and table name.
         tmpSerializer.setKeyAndValue(
                                     dbName.c_str(), dbName.length(),
                                     tableName.c_str(), tableName.length());
-        tmpSerializer.setKeyAndValue(
-                                    key.c_str(), key.length(),
-                                    command.c_str(), command.length());
-        for (auto& kvp : values)
+        for (auto& kco : kcos)
         {
-            auto& field = fvField(kvp);
-            auto& value = fvValue(kvp);
+            auto& key = kfvKey(kco);
+            auto& fvs = kfvFieldsValues(kco);
+            std::string fvs_len = std::to_string(fvs.size());
+            // For each request, the first pair is the key and the number of attributes,
+            // followed by the attribute pairs.
+            // The operation is not set, when there is no attribute, it is a DEL request.
             tmpSerializer.setKeyAndValue(
-                                        field.c_str(), field.length(),
-                                        value.c_str(), value.length());
+                                        key.c_str(), key.length(),
+                                        fvs_len.c_str(), fvs_len.length());
+            for (auto& fv : fvs)
+            {
+                auto& field = fvField(fv);
+                auto& value = fvValue(fv);
+                tmpSerializer.setKeyAndValue(
+                                            field.c_str(), field.length(),
+                                            value.c_str(), value.length());
+            }
         }
 
         return tmpSerializer.finalize();
@@ -85,6 +95,56 @@ public:
             tmp_buffer += *pvallen;
 
             values.push_back(std::make_pair(pkey, pval));
+        }
+    }
+
+    static void deserializeBuffer(
+        const char* buffer,
+        const size_t size,
+        std::string& dbName,
+        std::string& tableName,
+        std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos)
+    {
+        std::vector<FieldValueTuple> values;
+        deserializeBuffer(buffer, size, values);
+        int fvs_size = -1;
+        KeyOpFieldsValuesTuple kco;
+        auto& key = kfvKey(kco);
+        auto& op = kfvOp(kco);
+        auto& fvs = kfvFieldsValues(kco);
+        for (auto& fv : values)
+        {
+            auto& field = fvField(fv);
+            auto& value = fvValue(fv);
+            // The first pair is the DB name and the table name.
+            if (fvs_size < 0)
+            {
+                dbName = field;
+                tableName = value;
+                fvs_size = 0;
+                continue;
+            }
+            // This is the beginning of a request.
+            // The first pair is the key and the number of attributes.
+            // If the attribute count is zero, it is a DEL request.
+            if (fvs_size == 0)
+            {
+                key = field;
+                fvs_size = std::stoi(value);
+                op = (fvs_size == 0) ? DEL_COMMAND : SET_COMMAND;
+                fvs.clear();
+            }
+            // This is an attribut pair.
+            else
+            {
+                fvs.push_back(fv);
+                --fvs_size;
+            }
+            // We got the last attribut pair. This is the end of a request.
+            if (fvs_size == 0)
+            {
+                kcos.push_back(std::make_shared<KeyOpFieldsValuesTuple>(kco));
+            }
         }
     }
 

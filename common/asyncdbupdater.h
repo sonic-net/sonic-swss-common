@@ -6,7 +6,6 @@
 #include "dbconnector.h"
 #include "table.h"
 
-#define MQ_RESPONSE_MAX_COUNT (4*1024*1024)
 #define MQ_SIZE 100
 #define MQ_MAX_RETRY 10
 #define MQ_POLL_TIMEOUT (1000)

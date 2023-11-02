@@ -58,12 +58,13 @@ void ZmqProducerStateTable::set(
                     const string &op /*= SET_COMMAND*/,
                     const string &prefix)
 {
+    std::vector<KeyOpFieldsValuesTuple> kcos = std::vector<KeyOpFieldsValuesTuple>{
+        KeyOpFieldsValuesTuple{key, op, values}
+    };
     m_zmqClient.sendMsg(
-                        key,
-                        values,
-                        op,
                         m_dbName,
                         m_tableNameStr,
+                        kcos,
                         m_sendbuffer);
 
     if (m_asyncDBUpdater != nullptr)
@@ -86,12 +87,13 @@ void ZmqProducerStateTable::del(
                     const string &op /*= DEL_COMMAND*/,
                     const string &prefix)
 {
+    std::vector<KeyOpFieldsValuesTuple> kcos = std::vector<KeyOpFieldsValuesTuple>{
+        KeyOpFieldsValuesTuple{key, op, std::vector<FieldValueTuple>{}}
+    };
     m_zmqClient.sendMsg(
-                        key,
-                        vector<FieldValueTuple>(),
-                        op,
                         m_dbName,
                         m_tableNameStr,
+                        kcos,
                         m_sendbuffer);
 
     if (m_asyncDBUpdater != nullptr)
@@ -107,16 +109,11 @@ void ZmqProducerStateTable::del(
 
 void ZmqProducerStateTable::set(const std::vector<KeyOpFieldsValuesTuple> &values)
 {
-    for (const auto &value : values)
-    {
-        m_zmqClient.sendMsg(
-                            kfvKey(value),
-                            kfvFieldsValues(value),
-                            SET_COMMAND,
-                            m_dbName,
-                            m_tableNameStr,
-                            m_sendbuffer);
-    }
+    m_zmqClient.sendMsg(
+                        m_dbName,
+                        m_tableNameStr,
+                        values,
+                        m_sendbuffer);
     
     if (m_asyncDBUpdater != nullptr)
     {
@@ -131,16 +128,16 @@ void ZmqProducerStateTable::set(const std::vector<KeyOpFieldsValuesTuple> &value
 
 void ZmqProducerStateTable::del(const std::vector<std::string> &keys)
 {
+    std::vector<KeyOpFieldsValuesTuple> kcos;
     for (const auto &key : keys)
     {
-        m_zmqClient.sendMsg(
-                            key,
-                            vector<FieldValueTuple>(),
-                            DEL_COMMAND,
-                            m_dbName,
-                            m_tableNameStr,
-                            m_sendbuffer);
+        kcos.push_back(KeyOpFieldsValuesTuple{key, DEL_COMMAND, std::vector<FieldValueTuple>{}});
     }
+    m_zmqClient.sendMsg(
+                        m_dbName,
+                        m_tableNameStr,
+                        kcos,
+                        m_sendbuffer);
     
     if (m_asyncDBUpdater != nullptr)
     {
@@ -150,6 +147,25 @@ void ZmqProducerStateTable::del(const std::vector<std::string> &keys)
             std::shared_ptr<KeyOpFieldsValuesTuple> clone = std::make_shared<KeyOpFieldsValuesTuple>();
             kfvKey(*clone) = key;
             kfvOp(*clone) = DEL_COMMAND;
+            m_asyncDBUpdater->update(clone);
+        }
+    }
+}
+
+void ZmqProducerStateTable::send(const std::vector<KeyOpFieldsValuesTuple> &kcos)
+{
+    m_zmqClient.sendMsg(
+                        m_dbName,
+                        m_tableNameStr,
+                        kcos,
+                        m_sendbuffer);
+    
+    if (m_asyncDBUpdater != nullptr)
+    {
+        for (const auto &value : kcos)
+        {
+            // async write need keep data till write to DB
+            std::shared_ptr<KeyOpFieldsValuesTuple> clone = std::make_shared<KeyOpFieldsValuesTuple>(value);
             m_asyncDBUpdater->update(clone);
         }
     }
