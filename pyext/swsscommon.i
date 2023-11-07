@@ -107,7 +107,7 @@
 
 %typemap(out) std::shared_ptr<std::string> %{
     {
-        auto& p = static_cast<std::shared_ptr<std::string>&>($1);
+        const std::shared_ptr<std::string>& p = $1;
         if(p)
         {
             $result = PyUnicode_FromStringAndSize(p->c_str(), p->size());
