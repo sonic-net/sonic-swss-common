@@ -16,6 +16,7 @@
 #include "common/table.h"
 #include "common/dbinterface.h"
 #include "common/sonicv2connector.h"
+#include "common/redisutility.h"
 
 using namespace std;
 using namespace swss;
@@ -843,6 +844,34 @@ TEST(Table, ttl_test)
     EXPECT_EQ(b_ttl, initial_b_ttl);
 
     cout << "Done." << endl;
+}
+
+TEST(Table, binary_data_get)
+{
+    DBConnector db("TEST_DB", 0, true);
+    Table table(&db, "binary_data");
+
+    const char* bindata1 = "\x11\x00\x22\x33\x44";
+    const char* bindata2 = "\x11\x22\x33\x00\x44";
+    auto v1 = std::string(bindata1, sizeof(bindata1));
+    auto v2 = std::string(bindata2, sizeof(bindata2));
+    vector<FieldValueTuple> values_set = {
+        {"f1", v1},
+        {"f2", v2},
+    };
+
+    table.set("k1", values_set);
+
+    vector<FieldValueTuple> values_get;
+    EXPECT_TRUE(table.get("k1", values_get));
+
+    auto f1 = swss::fvsGetValue(values_get, "f1");
+    auto f2 = swss::fvsGetValue(values_get, "f2");
+    EXPECT_TRUE(f1);
+    EXPECT_TRUE(f2);
+
+    EXPECT_EQ(*f1, v1);
+    EXPECT_EQ(*f2, v2);
 }
 
 TEST(ProducerConsumer, Prefix)
