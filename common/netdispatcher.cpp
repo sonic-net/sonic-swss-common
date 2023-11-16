@@ -63,5 +63,9 @@ void NetDispatcher::onNetlinkMessage(struct nl_msg *msg)
     if (callback == nullptr)
         return;
 
-    nl_msg_parse(msg, NetDispatcher::nlCallback, (callback));
+    /*CID 38551	CHECKED_RETURN, PeterWang, 2023/6/14*/
+    if(nl_msg_parse(msg, NetDispatcher::nlCallback, (callback))<0)
+    {
+        throw "Unknown message type(RTM_NEWLINK)";
+    }
 }

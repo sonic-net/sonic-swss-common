@@ -231,34 +231,50 @@ void Logger::settingThread()
             SWSS_LOG_DEBUG("%s select timeout", __PRETTY_FUNCTION__);
             continue;
         }
-
-        KeyOpFieldsValuesTuple koValues;
-        dynamic_cast<ConsumerStateTable *>(selectable)->pop(koValues);
-        std::string key = kfvKey(koValues), op = kfvOp(koValues);
-
-        if (op != SET_COMMAND || !m_settingChangeObservers.contains(key))
+        /*CID 37420	FORWARD_NULL, PeterWang, 2023/6/14*/
+        if (selectable==nullptr)
         {
             continue;
         }
-
-        const auto& values = kfvFieldsValues(koValues);
-
-        for (auto& i : values)
+        else
         {
-            auto& field = fvField(i);
-            auto& value = fvValue(i);
+            KeyOpFieldsValuesTuple koValues;
+            /*CID 37420	FORWARD_NULL, PeterWang, 2023/7/7*/
+            ConsumerStateTable* consumerTable = dynamic_cast<ConsumerStateTable*>(selectable);
+            if (consumerTable == nullptr)
+            {
+                continue;
+            }
+            else
+            {
+                consumerTable->pop(koValues);
+                std::string key = kfvKey(koValues), op = kfvOp(koValues);
 
-            if ((field == DAEMON_LOGLEVEL) && (value != m_currentPrios.get(key)))
-            {
-                m_currentPrios.set(key, value);
-                m_settingChangeObservers.get(key).first(key, value);
-            }
-            else if ((field == DAEMON_LOGOUTPUT) && (value != m_currentOutputs.get(key)))
-            {
-                m_currentOutputs.set(key, value);
-                m_settingChangeObservers.get(key).second(key, value);
-            }
-        }
+                if (op != SET_COMMAND || !m_settingChangeObservers.contains(key))
+                {
+                    continue;
+                }
+
+                const auto& values = kfvFieldsValues(koValues);
+
+                for (auto& i : values)
+                {
+                    auto& field = fvField(i);
+                    auto& value = fvValue(i);
+
+                    if ((field == DAEMON_LOGLEVEL) && (value != m_currentPrios.get(key)))
+                    {
+                        m_currentPrios.set(key, value);
+                        m_settingChangeObservers.get(key).first(key, value);
+                    }
+                    else if ((field == DAEMON_LOGOUTPUT) && (value != m_currentOutputs.get(key)))
+                    {
+                        m_currentOutputs.set(key, value);
+                        m_settingChangeObservers.get(key).second(key, value);
+                    }
+                }  
+            } 
+        } 
     }
 }
 
