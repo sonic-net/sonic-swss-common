@@ -168,8 +168,7 @@ int executeCommands(
         based on our usage in SONiC, None and list type output from python API needs to be modified
         with these changes, it is enough for us to mimic redis-cli in SONiC so far since no application uses tty mode redis-cli output
         */
-        auto commandName = getCommandName(commands);
-        cout << RedisReply::to_string(reply.getContext(), commandName) << endl;
+        cout << RedisReply::to_string(reply.getContext(), commands) << endl;
     }
     catch (const std::system_error& e)
     {
@@ -370,14 +369,4 @@ int cli_exception_wrapper(
         // when python version crash, exit code is 1.
         return 1;
     }
-}
-
-string getCommandName(vector<string>& commands)
-{
-    if (commands.size() == 0)
-    {
-        return string();
-    }
-
-    return boost::to_upper_copy<string>(commands[0]);
 }

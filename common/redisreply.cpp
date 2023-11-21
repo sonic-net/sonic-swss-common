@@ -6,6 +6,7 @@
 #include <sstream>
 #include <system_error>
 #include <functional>
+#include <memory>
 #include <boost/algorithm/string.hpp>
 
 #include "common/logger.h"
@@ -13,6 +14,8 @@
 #include "common/dbconnector.h"
 #include "common/rediscommand.h"
 #include "common/stringutility.h"
+
+#include <dash_api/utils.h>
 
 using namespace std;
 using namespace boost;
@@ -276,7 +279,7 @@ string RedisReply::to_string()
     return RedisReply::to_string(this->getContext());
 }
 
-string RedisReply::to_string(redisReply *reply, string command)
+string RedisReply::to_string(redisReply *reply, const string &command)
 {
     /*
         Response format need keep as same as redis-py, redis-py using a command to result type mapping to convert result:
@@ -308,7 +311,31 @@ string RedisReply::to_string(redisReply *reply, string command)
     }
 }
 
-string RedisReply::formatReply(string command, long long integer)
+string RedisReply::to_string(redisReply *reply,const vector<string> &commands)
+{
+    if (commands.empty())
+    {
+        return to_string(reply);
+    }
+
+    auto command = boost::to_upper_copy<string>(commands[0]);
+
+    if (commands.size() > 1)
+    {
+        if (reply->type == REDIS_REPLY_ARRAY
+            && command == "HGETALL"
+            && reply->elements > 1
+            && to_string(reply->element[0]) == PROTOBUF_TYPE_TAG
+            && reply->element[1]->type != REDIS_REPLY_STRING)
+        {
+            return formatPbReply(reply->element, reply->elements, commands[1]);
+        }
+    }
+
+    return to_string(reply, command);
+}
+
+string RedisReply::formatReply(const string &command, long long integer)
 {
     if (g_intToBoolCommands.find(command) != g_intToBoolCommands.end())
     {
@@ -332,7 +359,7 @@ string RedisReply::formatReply(string command, long long integer)
     return std::to_string(integer);
 }
 
-string RedisReply::formatReply(string command, const char* str, size_t len)
+string RedisReply::formatReply(const string &command, const char* str, size_t len)
 {
     string result = string(str, len);
     if (g_strToBoolCommands.find(command) != g_strToBoolCommands.end()
@@ -357,7 +384,7 @@ string RedisReply::formatReply(string command, const char* str, size_t len)
     return result;
 }
 
-string RedisReply::formatReply(string command, struct redisReply **element, size_t elements)
+string RedisReply::formatReply(const string &command, struct redisReply **element, size_t elements)
 {
     if (command == "HGETALL")
     {
@@ -475,7 +502,31 @@ string RedisReply::formatTupleReply(struct redisReply **element, size_t elements
     return swss::join(", ", '(', ')', elementvector.begin(), elementvector.end());
 }
 
-string RedisReply::formatStringWithQuot(string str)
+string RedisReply::formatPbReply(struct redisReply **element, size_t elements, const string &key)
+{
+    if (
+        elements != 2 
+        || to_string(element[0]) != PROTOBUF_TYPE_TAG 
+        || element[1]->type != REDIS_REPLY_STRING)
+    {
+        throw system_error(make_error_code(errc::io_error),
+                           "Invalid result");
+    }
+
+    std::string pb_buffer(element[1]->str, element[1]->len);
+
+    // Extract table name
+    std::string table_name(
+        key.begin(),
+        find_if(
+            key.begin(),
+            key.end(), 
+            [](char c){ return c == ':' || c == '|';}));
+
+    return dash::PbBinaryToJsonString(table_name, pb_buffer);
+}
+
+string RedisReply::formatStringWithQuot(const string &str)
 {
     if (str.find('\'') != std::string::npos)
     {
