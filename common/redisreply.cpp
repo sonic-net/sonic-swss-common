@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include <set>
 #include <string.h>
 #include <stdint.h>
@@ -15,7 +17,9 @@
 #include "common/rediscommand.h"
 #include "common/stringutility.h"
 
+#ifdef DASH_API_INSTALLED
 #include <dash_api/utils.h>
+#endif
 
 using namespace std;
 using namespace boost;
@@ -320,6 +324,7 @@ string RedisReply::to_string(redisReply *reply,const vector<string> &commands)
 
     auto command = boost::to_upper_copy<string>(commands[0]);
 
+#ifdef DASH_API_INSTALLED
     if (commands.size() > 1)
     {
         if (reply->type == REDIS_REPLY_ARRAY
@@ -331,6 +336,7 @@ string RedisReply::to_string(redisReply *reply,const vector<string> &commands)
             return formatPbReply(reply->element, reply->elements, commands[1]);
         }
     }
+#endif
 
     return to_string(reply, command);
 }
