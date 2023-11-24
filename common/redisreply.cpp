@@ -507,6 +507,9 @@ string RedisReply::formatTupleReply(struct redisReply **element, size_t elements
     return swss::join(", ", '(', ')', elementvector.begin(), elementvector.end());
 }
 
+#ifndef DASH_API_INSTALLED
+[[noreturn]]
+#endif
 string RedisReply::formatPbReply(struct redisReply **element, size_t elements, const string &key)
 {
 #ifdef DASH_API_INSTALLED
@@ -530,9 +533,9 @@ string RedisReply::formatPbReply(struct redisReply **element, size_t elements, c
             [](char c){ return c == ':' || c == '|';}));
 
     return dash::PbBinaryToJsonString(table_name, pb_buffer);
-#endif
+#else
     throw runtime_error("Dash API is not installed");
-    return "";
+#endif
 }
 
 string RedisReply::formatStringWithQuot(const string &str)
