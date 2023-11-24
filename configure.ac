@@ -20,11 +20,6 @@ PKG_CHECK_MODULES([LIBNL], [libnl-3.0 libnl-genl-3.0 libnl-route-3.0 libnl-nf-3.
         CFLAGS="$CFLAGS $LIBNL_CFLAGS"
         LIBS="$LIBS $LIBNL_LIBS"
 
-AC_CHECK_LIB([dashapi], [PbBinaryToJsonString], [
-	AC_DEFINE(DASH_API_INSTALLED, 1, [Define if DASH API is installed])
-	LIBS="$LIBS -ldashapi"
-],)
-
 LDFLAGS="-Wl,--no-undefined $LDFLAGS"
 AC_SUBST([LDFLAGS])
 
@@ -97,6 +92,15 @@ CFLAGS_COMMON+=" -Wno-long-long"
 CFLAGS_COMMON+=" -fstack-protector-strong"
 
 AC_SUBST(CFLAGS_COMMON)
+
+AC_CHECK_LIB([dashapi], [PbBinaryToJsonString], [
+    AC_DEFINE(DASH_API_INSTALLED, 1, [Define if DASH API is installed])
+    LIBS="$LIBS -ldashapi"
+],
+[
+    CFLAGS_COMMON+=" -Wno-suggest-attribute=noreturn"
+])
+
 
 AC_CONFIG_FILES([
     Makefile

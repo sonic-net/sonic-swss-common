@@ -507,9 +507,6 @@ string RedisReply::formatTupleReply(struct redisReply **element, size_t elements
     return swss::join(", ", '(', ')', elementvector.begin(), elementvector.end());
 }
 
-#ifndef DASH_API_INSTALLED
-[[noreturn]]
-#endif
 string RedisReply::formatPbReply(struct redisReply **element, size_t elements, const string &key)
 {
 #ifdef DASH_API_INSTALLED
