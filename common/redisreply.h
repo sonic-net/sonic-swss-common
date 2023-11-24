@@ -4,7 +4,7 @@
 #include <hiredis/hiredis.h>
 #include <string>
 #include <stdexcept>
-#include <config.h>
+
 #include "rediscommand.h"
 
 namespace swss {
@@ -111,9 +111,7 @@ private:
     static std::string formatArrayReply(struct redisReply **element, size_t elements);
     static std::string formatListReply(struct redisReply **element, size_t elements);
     static std::string formatTupleReply(struct redisReply **element, size_t elements);
-#ifdef DASH_API_INSTALLED
     static std::string formatPbReply(struct redisReply **element, size_t elements, const std::string &key);
-#endif
     static std::string formatStringWithQuot(const std::string &str);
 
     redisReply *m_reply;

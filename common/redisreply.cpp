@@ -9,6 +9,7 @@
 #include <memory>
 #include <boost/algorithm/string.hpp>
 
+#include <config.h>
 #include "common/logger.h"
 #include "common/redisreply.h"
 #include "common/dbconnector.h"
@@ -506,9 +507,9 @@ string RedisReply::formatTupleReply(struct redisReply **element, size_t elements
     return swss::join(", ", '(', ')', elementvector.begin(), elementvector.end());
 }
 
-#ifdef DASH_API_INSTALLED
 string RedisReply::formatPbReply(struct redisReply **element, size_t elements, const string &key)
 {
+#ifdef DASH_API_INSTALLED
     if (
         elements != 2 
         || to_string(element[0]) != PROTOBUF_TYPE_TAG 
@@ -529,8 +530,9 @@ string RedisReply::formatPbReply(struct redisReply **element, size_t elements, c
             [](char c){ return c == ':' || c == '|';}));
 
     return dash::PbBinaryToJsonString(table_name, pb_buffer);
-}
 #endif
+    throw runtime_error("Dash API is not installed");
+}
 
 string RedisReply::formatStringWithQuot(const string &str)
 {
