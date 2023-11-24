@@ -532,6 +532,7 @@ string RedisReply::formatPbReply(struct redisReply **element, size_t elements, c
     return dash::PbBinaryToJsonString(table_name, pb_buffer);
 #endif
     throw runtime_error("Dash API is not installed");
+    return "";
 }
 
 string RedisReply::formatStringWithQuot(const string &str)
