@@ -4,7 +4,7 @@
 #include <hiredis/hiredis.h>
 #include <string>
 #include <stdexcept>
-#include "config.h"
+#include <config.h>
 #include "rediscommand.h"
 
 namespace swss {
