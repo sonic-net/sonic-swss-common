@@ -1,5 +1,3 @@
-#include "config.h"
-
 #include <set>
 #include <string.h>
 #include <stdint.h>
@@ -508,6 +506,7 @@ string RedisReply::formatTupleReply(struct redisReply **element, size_t elements
     return swss::join(", ", '(', ')', elementvector.begin(), elementvector.end());
 }
 
+#ifdef DASH_API_INSTALLED
 string RedisReply::formatPbReply(struct redisReply **element, size_t elements, const string &key)
 {
     if (
@@ -531,6 +530,7 @@ string RedisReply::formatPbReply(struct redisReply **element, size_t elements, c
 
     return dash::PbBinaryToJsonString(table_name, pb_buffer);
 }
+#endif
 
 string RedisReply::formatStringWithQuot(const string &str)
 {
