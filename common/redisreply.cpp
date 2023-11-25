@@ -328,9 +328,9 @@ string RedisReply::to_string(redisReply *reply,const vector<string> &commands)
     {
         if (reply->type == REDIS_REPLY_ARRAY
             && command == "HGETALL"
-            && reply->elements > 1
+            && reply->elements == 2
             && to_string(reply->element[0]) == PROTOBUF_TYPE_TAG
-            && reply->element[1]->type != REDIS_REPLY_STRING)
+            && reply->element[1]->type == REDIS_REPLY_STRING)
         {
             return formatPbReply(reply->element, reply->elements, commands[1]);
         }
