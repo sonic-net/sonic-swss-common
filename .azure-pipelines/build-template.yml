@@ -84,12 +84,29 @@ jobs:
       patterns: |
         target/debs/${{ parameters.debian_version }}/libyang-*.deb
         target/debs/${{ parameters.debian_version }}/libyang_*.deb
-    displayName: "Download libyang from ${{ parameters.arch }} common lib"
+        target/debs/${{ parameters.debian_version }}/libprotobuf*.deb
+        target/debs/${{ parameters.debian_version }}/libprotoc*.deb
+    displayName: "Download ${{ parameters.arch }} common lib"
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      source: specific
+      project: build
+      pipeline: sonic-net.sonic-dash-api
+      ${{ if eq(parameters.arch, 'amd64') }}:
+        artifact: sonic-dash-api
+      ${{ else }}:
+        artifact: sonic-dash-api.${{ parameters.arch }}
+      runVersion: 'latestFromBranch'
+      runBranch: 'refs/heads/$(BUILD_BRANCH)'
+      path: $(Build.ArtifactStagingDirectory)/download
+      patterns: |
+        libdashapi*.deb
+    displayName: "Download dash api"
   - script: |
       set -ex
       sudo dpkg -i $(find ./download -name *.deb)
     workingDirectory: $(Build.ArtifactStagingDirectory)
-    displayName: "Install libyang from common lib"
+    displayName: "Install common libs and dashapi from common lib"
   - script: |
       set -ex
       rm ../*.deb || true
