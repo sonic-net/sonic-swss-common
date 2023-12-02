@@ -5,6 +5,8 @@
 #include <string>
 #include <ctime>
 #include <getopt.h>
+#include <stdlib.h>
+
 #include "common/dbconnector.h"
 #include "sonic-db-cli/sonic-db-cli.h"
 
@@ -539,4 +541,34 @@ TEST(sonic_db_cli, test_cli_not_throw_exception)
                         initializeConfig);
 
     EXPECT_EQ(1, exit_code);
+}
+
+TEST(sonic_db_cli, test_cli_hgetall_pb)
+{
+    char *args[6];
+    args[0] = "sonic-db-cli";
+    args[1] = "TEST_DB";
+
+    // clear database
+    args[2] = "FLUSHDB";
+    auto output = runCli(3, args);
+    EXPECT_EQ("True\n", output);
+
+    // restore binary pb message to TEST_DB
+    EXPECT_EQ(system("cat ./tests/cli_test_data/pb_appliance.bin "
+                     "| redis-cli -n 15 -x restore 'DASH_APPLIANCE_TABLE:123' 0"),
+              0);
+
+    string target_json = 
+    "{\n"
+    " \"sip\": {\n"
+    "  \"ipv4\": 16777482\n"
+    " },\n"
+    " \"vm_vni\": 4321\n"
+    "}\n\n";
+
+    args[2] = "hgetall";
+    args[3] = R"(DASH_APPLIANCE_TABLE:123)";
+    output = runCli(4, args);
+    EXPECT_EQ(target_json, output);
 }
