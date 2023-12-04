@@ -82,7 +82,7 @@ bool Table::get(const string &key, vector<FieldValueTuple> &values)
     for (unsigned int i = 0; i < reply->elements; i += 2)
     {
         values.emplace_back(stripSpecialSym(reply->element[i]->str),
-                                    reply->element[i + 1]->str);
+                                    string(reply->element[i + 1]->str, reply->element[i + 1]->len));
     }
 
     return true;
