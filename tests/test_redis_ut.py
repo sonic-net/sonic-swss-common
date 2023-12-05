@@ -802,3 +802,17 @@ def test_ConfigDBConnector():
     config_db.mod_config(allconfig)
     allconfig = config_db.get_config()
     assert len(allconfig) == 0
+
+
+def test_ConfigDBConnector_with_statement():
+    # test ConfigDBConnector support 'with' statement
+    with swsscommon.ConfigDBConnector() as config_db:
+        assert config_db.db_name == ""
+        assert config_db.TABLE_NAME_SEPARATOR == "|"
+        config_db.connect(wait_for_init=False)
+        assert config_db.db_name == "CONFIG_DB"
+        assert config_db.TABLE_NAME_SEPARATOR == "|"
+        config_db.get_redis_client(config_db.CONFIG_DB).flushdb()
+        config_db.set_entry("TEST_PORT", "Ethernet111", {"alias": "etp1x"})
+        allconfig = config_db.get_config()
+        assert allconfig["TEST_PORT"]["Ethernet111"]["alias"] == "etp1x"
