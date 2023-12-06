@@ -805,6 +805,9 @@ def test_ConfigDBConnector():
 
 
 def test_ConfigDBConnector_with_statement():
+    gc.collect()
+    last_connector_count = sum(isinstance(x, swsscommon.ConfigDBConnector) for x in gc.get_objects())
+
     # test ConfigDBConnector support 'with' statement
     with swsscommon.ConfigDBConnector() as config_db:
         assert config_db.db_name == ""
@@ -816,3 +819,9 @@ def test_ConfigDBConnector_with_statement():
         config_db.set_entry("TEST_PORT", "Ethernet111", {"alias": "etp1x"})
         allconfig = config_db.get_config()
         assert allconfig["TEST_PORT"]["Ethernet111"]["alias"] == "etp1x"
+
+
+    # check ConfigDBConnector will release after 'with' statement
+    gc.collect()
+    current_connector_count = sum(isinstance(x, swsscommon.ConfigDBConnector) for x in gc.get_objects())
+    assert current_connector_count == last_connector_count
