@@ -7,6 +7,7 @@ from pympler.tracker import SummaryTracker
 from swsscommon import swsscommon
 from swsscommon.swsscommon import ConfigDBPipeConnector, DBInterface, SonicV2Connector, SonicDBConfig, ConfigDBConnector, SonicDBConfig, transpose_pops
 import json
+import gc
 
 def test_ProducerTable():
     db = swsscommon.DBConnector("APPL_DB", 0, True)
