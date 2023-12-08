@@ -125,6 +125,7 @@ jobs:
       path: $(Build.ArtifactStagingDirectory)/download
       patterns: |
         libdashapi*.deb
+    displayName: "Download sonic-dash-api"
 
   - script: |
       set -ex
