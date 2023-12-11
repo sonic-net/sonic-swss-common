@@ -160,7 +160,7 @@ void TableBasicTest(string tableName, bool useDbId = false)
     int dbId = db1.getDbId();
 
     // Use dbId to construct a DBConnector
-    DBConnector db_dup(dbId, "localhost", 6379, 0);
+    DBConnector db_dup(dbId, "localhost", 980, 0);
     cout << "db_dup separator: " << SonicDBConfig::getSeparator(&db_dup) << endl;
 
     if (useDbId)
@@ -322,7 +322,7 @@ TEST(DBConnector, RedisClientName)
 TEST(DBConnector, DBInterface)
 {
     DBInterface dbintf;
-    dbintf.set_redis_kwargs("", "127.0.0.1", 6379);
+    dbintf.set_redis_kwargs("", "127.0.0.1", 980);
     dbintf.connect(15, "TEST_DB");
 
     SonicV2Connector_Native db;
