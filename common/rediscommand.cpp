@@ -48,8 +48,8 @@ void RedisCommand::formatArgv(int argc, const char **argv, const size_t *argvlen
     }
     len = 0;
 
-    int ret = redisFormatCommandArgv(&temp, argc, argv, argvlen);
-    if (ret == -1) {
+    long long ret = redisFormatCommandArgv(&temp, argc, argv, argvlen);
+    if (len == -1) {
         throw std::bad_alloc();
     }
     len = ret;
