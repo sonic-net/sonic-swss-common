@@ -107,7 +107,7 @@ private:
 
     std::string m_unix_socket_path;
     std::string m_host = "127.0.0.1";
-    int m_port = 980;
+    int m_port = 6379;
 };
 
 }

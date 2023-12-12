@@ -207,7 +207,7 @@ def thread_coming_data():
 
 def test_DBInterface():
     dbintf = DBInterface()
-    dbintf.set_redis_kwargs("", "127.0.0.1", 980)
+    dbintf.set_redis_kwargs("", "127.0.0.1", 6379)
     dbintf.connect(15, "TEST_DB")
 
     db = SonicV2Connector(use_unix_socket_path=True, namespace='')
