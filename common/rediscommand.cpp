@@ -148,6 +148,7 @@ size_t RedisCommand::length() const
 {
     if (len <= 0)
         return 0;
+    // TODO review this casting
     return static_cast<size_t>(len);
 }
 
