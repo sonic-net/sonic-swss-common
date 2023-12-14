@@ -185,6 +185,18 @@ void SonicDBConfig::initialize(const string &file)
     m_init = true;
 }
 
+// This API is used to uninitialize the SonicDBConfig class.
+// And then user can call initialize with different config file.
+void SonicDBConfig::uninitialize()
+{
+    std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
+    m_init = false;
+    m_global_init = false;
+    m_inst_info.clear();
+    m_db_info.clear();
+    m_db_separator.clear();
+}
+
 void SonicDBConfig::validateNamespace(const string &netns)
 {
     std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);

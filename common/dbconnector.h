@@ -59,6 +59,7 @@ public:
             SonicDBConfig.initializeGlobalConfig(global_db_file_path)
     %}
 #endif
+    static void uninitialize();
 
     static void validateNamespace(const std::string &netns);
     static std::string getDbInst(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
