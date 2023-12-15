@@ -185,9 +185,9 @@ void SonicDBConfig::initialize(const string &file)
     m_init = true;
 }
 
-// This API is used to uninitialize the SonicDBConfig class.
+// This API is used to reset the SonicDBConfig class.
 // And then user can call initialize with different config file.
-void SonicDBConfig::uninitialize()
+void SonicDBConfig::reset()
 {
     std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
     m_init = false;

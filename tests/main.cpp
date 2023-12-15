@@ -70,9 +70,9 @@ public:
             EXPECT_TRUE(strstr(e.what(), "Namespace invalid is not a valid namespace name in config file"));
         }
 
-        // uninitialize SonicDBConfig, init should be false
-        SonicDBConfig::uninitialize();
-        cout<<"UNINIT: isInit = "<<SonicDBConfig::isInit()<<endl;
+        // reset SonicDBConfig, init should be false
+        SonicDBConfig::reset();
+        cout<<"RESET: isInit = "<<SonicDBConfig::isInit()<<endl;
         EXPECT_FALSE(SonicDBConfig::isInit());
         EXPECT_FALSE(SonicDBConfig::isGlobalInit());
 
