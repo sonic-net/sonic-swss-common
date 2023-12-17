@@ -62,6 +62,7 @@ public:
     static void reset();
 
     static void validateNamespace(const std::string &netns);
+    static std::unordered_map<std::string, std::unordered_map<std::string, SonicDBInfo>> getInstanceList(const std::string &netns = EMPTY_NAMESPACE);
     static std::string getDbInst(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
     static int getDbId(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
     static std::string getSeparator(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
