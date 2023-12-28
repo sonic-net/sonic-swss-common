@@ -67,7 +67,7 @@ public:
         }
         catch (exception &e)
         {
-            EXPECT_TRUE(strstr(e.what(), "Namespace invalid is not a valid namespace name in config file"));
+            EXPECT_TRUE(strstr(e.what(), "Key invalid is not a valid key name in config file"));
         }
 
         // reset SonicDBConfig, init should be false

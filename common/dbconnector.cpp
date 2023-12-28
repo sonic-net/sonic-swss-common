@@ -6,6 +6,7 @@
 #include <system_error>
 #include <fstream>
 #include <nlohmann/json.hpp>
+#include <set>
 #include "logger.h"
 
 #include "common/dbconnector.h"
@@ -16,6 +17,8 @@
 using json = nlohmann::json;
 using namespace std;
 using namespace swss;
+
+const SonicDBKey swss::EMPTY_SONIC_DB_KEY;
 
 void SonicDBConfig::parseDatabaseConfig(const string &file,
                     std::map<std::string, RedisInstInfo> &inst_entry,
@@ -32,7 +35,11 @@ void SonicDBConfig::parseDatabaseConfig(const string &file,
             for (auto it = j["INSTANCES"].begin(); it!= j["INSTANCES"].end(); it++)
             {
                string instName = it.key();
-               string socket = it.value().at("unix_socket_path");
+               string socket;
+               if (it.value().find("unix_socket_path") != it.value().end())
+               {
+                    socket = it.value().at("unix_socket_path");
+               }
                string hostname = it.value().at("hostname");
                int port = it.value().at("port");
                inst_entry[instName] = {socket, hostname, port};
@@ -70,10 +77,7 @@ void SonicDBConfig::parseDatabaseConfig(const string &file,
 
 void SonicDBConfig::initializeGlobalConfig(const string &file)
 {
-    std::string local_file, dir_name, ns_name;
-    std::unordered_map<std::string, SonicDBInfo> db_entry;
-    std::map<std::string, RedisInstInfo> inst_entry;
-    std::unordered_map<int, std::string> separator_entry;
+    std::string dir_name;
     std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
 
     SWSS_LOG_ENTER();
@@ -87,8 +91,6 @@ void SonicDBConfig::initializeGlobalConfig(const string &file)
     ifstream i(file);
     if (i.good())
     {
-        local_file = dir_name = std::string();
-
         // Get the directory name from the file path given as input.
         std::string::size_type pos = file.rfind("/");
         if( pos != std::string::npos)
@@ -103,40 +105,39 @@ void SonicDBConfig::initializeGlobalConfig(const string &file)
 
             for (auto& element : j["INCLUDES"])
             {
-                local_file.append(dir_name);
+                std::unordered_map<std::string, SonicDBInfo> db_entry;
+                std::map<std::string, RedisInstInfo> inst_entry;
+                std::unordered_map<int, std::string> separator_entry;
+                std::string local_file = dir_name;
                 local_file.append(element["include"]);
-
-                if(element["namespace"].empty())
+                SonicDBKey key;
+                if(!element["namespace"].empty())
                 {
-                    // If database_config.json is already initlized via SonicDBConfig::initialize
-                    // skip initializing it here again.
-                    if(m_init)
-                    {
-                        local_file.clear();
-                        continue;
-                    }
-                    ns_name = EMPTY_NAMESPACE;
+                    key.netns = element["namespace"];
                 }
-                else
+
+                if (!element["database_name"].empty())
                 {
-                    ns_name = element["namespace"];
+                    key.containerName = element["database_name"];
+                }
+
+                // If database_config.json is already initlized via SonicDBConfig::initialize
+                // skip initializing it here again.
+                if (key.isEmpty() && m_init)
+                {
+                    continue;
                 }
 
                 parseDatabaseConfig(local_file, inst_entry, db_entry, separator_entry);
-                m_inst_info[ns_name] = inst_entry;
-                m_db_info[ns_name] = db_entry;
-                m_db_separator[ns_name] = separator_entry;
+                m_inst_info[key] = inst_entry;
+                m_db_info[key] = db_entry;
+                m_db_separator[key] = separator_entry;
 
-                if(element["namespace"].empty())
+                if(key.isEmpty())
                 {
                     // Make regular init also done
                     m_init = true;
                 }
-
-                inst_entry.clear();
-                db_entry.clear();
-                separator_entry.clear();
-                local_file.clear();
             }
         }
 
@@ -176,10 +177,11 @@ void SonicDBConfig::initialize(const string &file)
         throw runtime_error("SonicDBConfig already initialized");
     }
 
+    SonicDBKey empty_key;
     parseDatabaseConfig(file, inst_entry, db_entry, separator_entry);
-    m_inst_info[EMPTY_NAMESPACE] = inst_entry;
-    m_db_info[EMPTY_NAMESPACE] = db_entry;
-    m_db_separator[EMPTY_NAMESPACE] = separator_entry;
+    m_inst_info[empty_key] = inst_entry;
+    m_db_info[empty_key] = db_entry;
+    m_db_separator[empty_key] = separator_entry;
 
     // Set it as the config file is already parsed and init done.
     m_init = true;
@@ -213,15 +215,18 @@ void SonicDBConfig::validateNamespace(const string &netns)
         }
 
         // Check if the namespace is valid, check if this is a key in either of this map
-        unordered_map<string, map<string, RedisInstInfo>>::const_iterator entry = m_inst_info.find(netns);
-        if (entry == m_inst_info.end())
+        for (const auto &entry: m_inst_info)
         {
-            SWSS_LOG_THROW("Namespace %s is not a valid namespace name in config file", netns.c_str());
+            if (entry.first.netns == netns)
+            {
+                return;
+            }
         }
+        SWSS_LOG_THROW("Namespace %s is not a valid namespace name in config file", netns.c_str());
     }
 }
 
-SonicDBInfo& SonicDBConfig::getDbInfo(const std::string &dbName, const std::string &netns)
+SonicDBInfo& SonicDBConfig::getDbInfo(const std::string &dbName, const SonicDBKey &key)
 {
     std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
 
@@ -230,32 +235,32 @@ SonicDBInfo& SonicDBConfig::getDbInfo(const std::string &dbName, const std::stri
     if (!m_init)
         initialize(DEFAULT_SONIC_DB_CONFIG_FILE);
 
-    if (!netns.empty())
+    if (!key.isEmpty())
     {
         if (!m_global_init)
         {
             SWSS_LOG_THROW("Initialize global DB config using API SonicDBConfig::initializeGlobalConfig");
         }
     }
-    auto foundNetns = m_db_info.find(netns);
-    if (foundNetns == m_db_info.end())
+    auto foundEntry = m_db_info.find(key);
+    if (foundEntry == m_db_info.end())
     {
-        string msg = "Namespace " + netns + " is not a valid namespace name in config file";
+        string msg = "Key " + key.toString() + " is not a valid key name in config file";
         SWSS_LOG_ERROR("%s", msg.c_str());
         throw out_of_range(msg);
     }
-    auto& infos = foundNetns->second;
+    auto& infos = foundEntry->second;
     auto foundDb = infos.find(dbName);
     if (foundDb == infos.end())
     {
-        string msg = "Failed to find " + dbName + " database in " + netns + " namespace";
+        string msg = "Failed to find " + dbName + " database in " + key.toString() + " key";
         SWSS_LOG_ERROR("%s", msg.c_str());
         throw out_of_range(msg);
     }
     return foundDb->second;
 }
 
-RedisInstInfo& SonicDBConfig::getRedisInfo(const std::string &dbName, const std::string &netns)
+RedisInstInfo& SonicDBConfig::getRedisInfo(const std::string &dbName, const SonicDBKey &key)
 {
     std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
 
@@ -264,25 +269,25 @@ RedisInstInfo& SonicDBConfig::getRedisInfo(const std::string &dbName, const std:
     if (!m_init)
         initialize(DEFAULT_SONIC_DB_CONFIG_FILE);
 
-    if (!netns.empty())
+    if (!key.isEmpty())
     {
         if (!m_global_init)
         {
             SWSS_LOG_THROW("Initialize global DB config using API SonicDBConfig::initializeGlobalConfig");
         }
     }
-    auto foundNetns = m_inst_info.find(netns);
-    if (foundNetns == m_inst_info.end())
+    auto foundEntry = m_inst_info.find(key);
+    if (foundEntry == m_inst_info.end())
     {
-        string msg = "Namespace " + netns + " is not a valid namespace name in Redis instances in config file";
+        string msg = "Key " + key.toString() + " is not a valid key name in Redis instances in config file";
         SWSS_LOG_ERROR("%s", msg.c_str());
         throw out_of_range(msg);
     }
-    auto& redisInfos = foundNetns->second;
-    auto foundRedis = redisInfos.find(getDbInst(dbName, netns));
+    auto& redisInfos = foundEntry->second;
+    auto foundRedis = redisInfos.find(getDbInst(dbName, key));
     if (foundRedis == redisInfos.end())
     {
-        string msg = "Failed to find the Redis instance for " + dbName + " database in " + netns + " namespace";
+        string msg = "Failed to find the Redis instance for " + dbName + " database in " + key.toString() + " key";
         SWSS_LOG_ERROR("%s", msg.c_str());
         throw out_of_range(msg);
     }
@@ -291,45 +296,73 @@ RedisInstInfo& SonicDBConfig::getRedisInfo(const std::string &dbName, const std:
 
 string SonicDBConfig::getDbInst(const string &dbName, const string &netns)
 {
-    return getDbInfo(dbName, netns).instName;
+    SonicDBKey key;
+    key.netns = netns;
+    return getDbInst(dbName, key);
+}
+
+string SonicDBConfig::getDbInst(const std::string &dbName, const SonicDBKey &key)
+{
+    return getDbInfo(dbName, key).instName;
 }
 
 int SonicDBConfig::getDbId(const string &dbName, const string &netns)
 {
-    return getDbInfo(dbName, netns).dbId;
+    SonicDBKey key;
+    key.netns = netns;
+    return getDbId(dbName, key);
+}
+
+int SonicDBConfig::getDbId(const std::string &dbName, const SonicDBKey &key)
+{
+    return getDbInfo(dbName, key).dbId;
 }
 
 string SonicDBConfig::getSeparator(const string &dbName, const string &netns)
 {
-    return getDbInfo(dbName, netns).separator;
+    SonicDBKey key;
+    key.netns = netns;
+    return getSeparator(dbName, key);
+}
+
+string SonicDBConfig::getSeparator(const std::string &dbName, const SonicDBKey &key)
+{
+    return getDbInfo(dbName, key).separator;
 }
 
 string SonicDBConfig::getSeparator(int dbId, const string &netns)
+{
+    SonicDBKey key;
+    key.netns = netns;
+    return getSeparator(dbId, key);
+}
+
+std::string SonicDBConfig::getSeparator(int dbId, const SonicDBKey &key)
 {
     std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
 
     if (!m_init)
         initialize(DEFAULT_SONIC_DB_CONFIG_FILE);
 
-    if (!netns.empty())
+    if (!key.isEmpty())
     {
         if (!m_global_init)
         {
             SWSS_LOG_THROW("Initialize global DB config using API SonicDBConfig::initializeGlobalConfig");
         }
     }
-    auto foundNetns = m_db_separator.find(netns);
-    if (foundNetns == m_db_separator.end())
+    auto foundEntry = m_db_separator.find(key);
+    if (foundEntry == m_db_separator.end())
     {
-        string msg = "Namespace " + netns + " is not a valid namespace name in config file";
+        string msg = "Key " + key.toString() + " is not a valid key name in config file";
         SWSS_LOG_ERROR("%s", msg.c_str());
         throw out_of_range(msg);
     }
-    auto seps = foundNetns->second;
+    auto seps = foundEntry->second;
     auto foundDb = seps.find(dbId);
     if (foundDb == seps.end())
     {
-        string msg = "Failed to find " + to_string(dbId) + " database in " + netns + " namespace";
+        string msg = "Failed to find " + to_string(dbId) + " database in " + key.toString() + " key";
         SWSS_LOG_ERROR("%s", msg.c_str());
         throw out_of_range(msg);
     }
@@ -344,35 +377,56 @@ string SonicDBConfig::getSeparator(const DBConnector* db)
     }
 
     string dbName = db->getDbName();
-    string netns = db->getNamespace();
+    auto key = db->getDBKey();
     if (dbName.empty())
     {
-        return getSeparator(db->getDbId(), netns);
+        return getSeparator(db->getDbId(), key);
     }
     else
     {
-        return getSeparator(dbName, netns);
+        return getSeparator(dbName, key);
     }
 }
 
 string SonicDBConfig::getDbSock(const string &dbName, const string &netns)
 {
-    return getRedisInfo(dbName, netns).unixSocketPath;
+    SonicDBKey key;
+    key.netns = netns;
+    return getDbSock(dbName, key);
+}
+
+string SonicDBConfig::SonicDBConfig::getDbSock(const string &dbName, const SonicDBKey &key)
+{
+    return getRedisInfo(dbName, key).unixSocketPath;
 }
 
 string SonicDBConfig::getDbHostname(const string &dbName, const string &netns)
 {
-    return getRedisInfo(dbName, netns).hostname;
+    SonicDBKey key;
+    key.netns = netns;
+    return getDbHostname(dbName, key);
+}
+
+string SonicDBConfig::getDbHostname(const string &dbName, const SonicDBKey &key)
+{
+    return getRedisInfo(dbName, key).hostname;
 }
 
 int SonicDBConfig::getDbPort(const string &dbName, const string &netns)
 {
-    return getRedisInfo(dbName, netns).port;
+    SonicDBKey key;
+    key.netns = netns;
+    return getDbPort(dbName, key);
+}
+
+int SonicDBConfig::getDbPort(const string &dbName, const SonicDBKey &key)
+{
+    return getRedisInfo(dbName, key).port;
 }
 
 vector<string> SonicDBConfig::getNamespaces()
 {
-    vector<string> list;
+    set<string> list;
     std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
 
     if (!m_init)
@@ -380,23 +434,30 @@ vector<string> SonicDBConfig::getNamespaces()
 
     // This API returns back all namespaces including '' representing global ns.
     for (auto it = m_inst_info.cbegin(); it != m_inst_info.cend(); ++it) {
-        list.push_back(it->first);
+        list.insert(it->first.netns);
     }
 
-    return list;
+    return vector<string>(list.begin(), list.end());
 }
 
 std::vector<std::string> SonicDBConfig::getDbList(const std::string &netns)
+{
+    SonicDBKey key;
+    key.netns = netns;
+    return getDbList(key);
+}
+
+std::vector<std::string> SonicDBConfig::getDbList(const SonicDBKey &key)
 {
     std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
     if (!m_init)
     {
         initialize();
     }
-    validateNamespace(netns);
+    validateNamespace(key.netns);
 
     std::vector<std::string> dbNames;
-    for (auto& imap: m_db_info.at(netns))
+    for (auto& imap: m_db_info.at(key))
     {
         dbNames.push_back(imap.first);
     }
@@ -405,14 +466,21 @@ std::vector<std::string> SonicDBConfig::getDbList(const std::string &netns)
 
 map<string, RedisInstInfo> SonicDBConfig::getInstanceList(const std::string &netns)
 {
+    SonicDBKey key;
+    key.netns = netns;
+    return getInstanceList(key);
+}
+
+map<string, RedisInstInfo> SonicDBConfig::getInstanceList(const SonicDBKey &key)
+{
     if (!m_init)
     {
         initialize();
     }
-    validateNamespace(netns);
+    validateNamespace(key.netns);
 
     map<string, RedisInstInfo> result;
-    auto iterator = m_inst_info.find(netns);
+    auto iterator = m_inst_info.find(key);
     if (iterator != m_inst_info.end()) {
         return iterator->second;
     }
@@ -423,9 +491,9 @@ map<string, RedisInstInfo> SonicDBConfig::getInstanceList(const std::string &net
 constexpr const char *SonicDBConfig::DEFAULT_SONIC_DB_CONFIG_FILE;
 constexpr const char *SonicDBConfig::DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE;
 std::recursive_mutex SonicDBConfig::m_db_info_mutex;
-unordered_map<string, map<string, RedisInstInfo>> SonicDBConfig::m_inst_info;
-unordered_map<string, unordered_map<string, SonicDBInfo>> SonicDBConfig::m_db_info;
-unordered_map<string, unordered_map<int, string>> SonicDBConfig::m_db_separator;
+unordered_map<SonicDBKey, std::map<std::string, RedisInstInfo>, SonicDBKeyHash> SonicDBConfig::m_inst_info;
+unordered_map<SonicDBKey, std::unordered_map<std::string, SonicDBInfo>, SonicDBKeyHash> SonicDBConfig::m_db_info;
+unordered_map<SonicDBKey, std::unordered_map<int, std::string>, SonicDBKeyHash> SonicDBConfig::m_db_separator;
 bool SonicDBConfig::m_init = false;
 bool SonicDBConfig::m_global_init = false;
 
@@ -539,7 +607,6 @@ void DBConnector::select(DBConnector *db)
 DBConnector::DBConnector(const DBConnector &other)
     : RedisContext(other)
     , m_dbId(other.m_dbId)
-    , m_namespace(other.m_namespace)
 {
     select(this);
 }
@@ -547,7 +614,6 @@ DBConnector::DBConnector(const DBConnector &other)
 DBConnector::DBConnector(int dbId, const RedisContext& ctx)
     : RedisContext(ctx)
     , m_dbId(dbId)
-    , m_namespace(EMPTY_NAMESPACE)
 {
     select(this);
 }
@@ -555,7 +621,6 @@ DBConnector::DBConnector(int dbId, const RedisContext& ctx)
 DBConnector::DBConnector(int dbId, const string& hostname, int port,
                          unsigned int timeout)
     : m_dbId(dbId)
-    , m_namespace(EMPTY_NAMESPACE)
 {
     struct timeval tv = {0, (suseconds_t)timeout * 1000};
     struct timeval *ptv = timeout ? &tv : NULL;
@@ -566,7 +631,6 @@ DBConnector::DBConnector(int dbId, const string& hostname, int port,
 
 DBConnector::DBConnector(int dbId, const string& unixPath, unsigned int timeout)
     : m_dbId(dbId)
-    , m_namespace(EMPTY_NAMESPACE)
 {
     struct timeval tv = {0, (suseconds_t)timeout * 1000};
     struct timeval *ptv = timeout ? &tv : NULL;
@@ -576,26 +640,31 @@ DBConnector::DBConnector(int dbId, const string& unixPath, unsigned int timeout)
 }
 
 DBConnector::DBConnector(const string& dbName, unsigned int timeout, bool isTcpConn, const string& netns)
-    : m_dbId(SonicDBConfig::getDbId(dbName, netns))
+    : DBConnector(dbName, timeout, isTcpConn, SonicDBKey(netns))
+{
+}
+
+DBConnector::DBConnector(const string& dbName, unsigned int timeout, bool isTcpConn, const SonicDBKey &key)
+    : m_dbId(SonicDBConfig::getDbId(dbName, key))
     , m_dbName(dbName)
-    , m_namespace(netns)
+    , m_key(key)
 {
     struct timeval tv = {0, (suseconds_t)timeout * 1000};
     struct timeval *ptv = timeout ? &tv : NULL;
     if (isTcpConn)
     {
-        initContext(SonicDBConfig::getDbHostname(dbName, netns).c_str(), SonicDBConfig::getDbPort(dbName, netns), ptv);
+        initContext(SonicDBConfig::getDbHostname(dbName, m_key).c_str(), SonicDBConfig::getDbPort(dbName, m_key), ptv);
     }
     else
     {
-        initContext(SonicDBConfig::getDbSock(dbName, netns).c_str(), ptv);
+        initContext(SonicDBConfig::getDbSock(dbName, m_key).c_str(), ptv);
     }
 
     select(this);
 }
 
 DBConnector::DBConnector(const string& dbName, unsigned int timeout, bool isTcpConn)
-    : DBConnector(dbName, timeout, isTcpConn, EMPTY_NAMESPACE)
+    : DBConnector(dbName, timeout, isTcpConn, EMPTY_SONIC_DB_KEY)
 {
     // Empty constructor
 }
@@ -612,12 +681,22 @@ string DBConnector::getDbName() const
 
 void DBConnector::setNamespace(const string& netns)
 {
-    m_namespace = netns;
+    m_key.netns = netns;
 }
 
 string DBConnector::getNamespace() const
 {
-    return m_namespace;
+    return m_key.netns;
+}
+
+void DBConnector::setDBKey(const SonicDBKey &key)
+{
+    m_key = key;
+}
+
+SonicDBKey DBConnector::getDBKey() const
+{
+    return m_key;
 }
 
 DBConnector *DBConnector::newConnector(unsigned int timeout) const
@@ -635,7 +714,7 @@ DBConnector *DBConnector::newConnector(unsigned int timeout) const
                                timeout);
 
     ret->m_dbName = m_dbName;
-    ret->setNamespace(getNamespace());
+    ret->setDBKey(getDBKey());
 
     return ret;
 }

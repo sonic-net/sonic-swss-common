@@ -8,6 +8,8 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <boost/functional/hash.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include <hiredis/hiredis.h>
 #include "rediscommand.h"
@@ -34,6 +36,52 @@ public:
     int dbId;
     std::string separator;
 };
+
+struct SonicDBKey
+{
+    std::string containerName;
+    std::string netns;
+
+    SonicDBKey() = default;
+    SonicDBKey(const std::string &ns) : netns(ns) {}
+
+    bool operator==(const SonicDBKey& other) const
+    {
+        return containerName == other.containerName && netns == other.netns;
+    }
+
+    bool isEmpty() const
+    {
+        return containerName.empty() && netns.empty();
+    }
+
+    std::string toString() const
+    {
+        std::vector<std::string> buffer;
+        if (!containerName.empty())
+        {
+            buffer.push_back(containerName);
+        }
+        if (!netns.empty())
+        {
+            buffer.push_back(netns);
+        }
+        return boost::algorithm::join(buffer, ":");
+    }
+};
+
+struct SonicDBKeyHash
+{
+    std::size_t operator()(const SonicDBKey& k) const
+    {
+        std::size_t seed = 0;
+        boost::hash_combine(seed, k.containerName);
+        boost::hash_combine(seed, k.netns);
+        return seed;
+    }
+};
+
+extern const SonicDBKey EMPTY_SONIC_DB_KEY;
 
 class SonicDBConfig
 {
@@ -62,14 +110,21 @@ public:
     static void reset();
 
     static void validateNamespace(const std::string &netns);
-    static std::string getDbInst(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
-    static int getDbId(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
-    static std::string getSeparator(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
-    static std::string getSeparator(int dbId, const std::string &netns = EMPTY_NAMESPACE);
+    static std::string getDbInst(const std::string &dbName, const std::string &netns);
+    static std::string getDbInst(const std::string &dbName, const SonicDBKey &key = EMPTY_SONIC_DB_KEY);
+    static int getDbId(const std::string &dbName, const std::string &netns);
+    static int getDbId(const std::string &dbName, const SonicDBKey &key = EMPTY_SONIC_DB_KEY);
+    static std::string getSeparator(const std::string &dbName, const std::string &netns);
+    static std::string getSeparator(const std::string &dbName, const SonicDBKey &key = EMPTY_SONIC_DB_KEY);
+    static std::string getSeparator(int dbId, const std::string &netns);
+    static std::string getSeparator(int dbId, const SonicDBKey &key = EMPTY_SONIC_DB_KEY);
     static std::string getSeparator(const DBConnector* db);
-    static std::string getDbSock(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
-    static std::string getDbHostname(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
-    static int getDbPort(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
+    static std::string getDbSock(const std::string &dbName, const std::string &netns);
+    static std::string getDbSock(const std::string &dbName, const SonicDBKey &key = EMPTY_SONIC_DB_KEY);
+    static std::string getDbHostname(const std::string &dbName, const std::string &netns);
+    static std::string getDbHostname(const std::string &dbName, const SonicDBKey &key = EMPTY_SONIC_DB_KEY);
+    static int getDbPort(const std::string &dbName, const std::string &netns);
+    static int getDbPort(const std::string &dbName, const SonicDBKey &key = EMPTY_SONIC_DB_KEY);
     static std::vector<std::string> getNamespaces();
 #if defined(SWIG) && defined(SWIGPYTHON)
     %pythoncode %{
@@ -80,27 +135,29 @@ public:
     %}
 #endif
 
-    static std::vector<std::string> getDbList(const std::string &netns = EMPTY_NAMESPACE);
+    static std::vector<std::string> getDbList(const std::string &netns);
+    static std::vector<std::string> getDbList(const SonicDBKey &key = EMPTY_SONIC_DB_KEY);
     static bool isInit() { return m_init; };
     static bool isGlobalInit() { return m_global_init; };
-    static std::map<std::string, RedisInstInfo> getInstanceList(const std::string &netns = EMPTY_NAMESPACE);
+    static std::map<std::string, RedisInstInfo> getInstanceList(const std::string &netns);
+    static std::map<std::string, RedisInstInfo> getInstanceList(const SonicDBKey &key = EMPTY_SONIC_DB_KEY);
 
 private:
     static std::recursive_mutex m_db_info_mutex;
-    // { namespace { instName, { unix_socket_path, hostname, port } } }
-    static std::unordered_map<std::string, std::map<std::string, RedisInstInfo>> m_inst_info;
-    // { namespace, { dbName, {instName, dbId, separator} } }
-    static std::unordered_map<std::string, std::unordered_map<std::string, SonicDBInfo>> m_db_info;
-    // { namespace, { dbId, separator } }
-    static std::unordered_map<std::string, std::unordered_map<int, std::string>> m_db_separator;
+    // { {containerName, namespace}, { instName, { unix_socket_path, hostname, port } } }
+    static std::unordered_map<SonicDBKey, std::map<std::string, RedisInstInfo>, SonicDBKeyHash> m_inst_info;
+    // { {containerName, namespace}, { dbName, {instName, dbId, separator} } }
+    static std::unordered_map<SonicDBKey, std::unordered_map<std::string, SonicDBInfo>, SonicDBKeyHash> m_db_info;
+    // { {containerName, namespace}, { dbId, separator } }
+    static std::unordered_map<SonicDBKey, std::unordered_map<int, std::string>, SonicDBKeyHash> m_db_separator;
     static bool m_init;
     static bool m_global_init;
     static void parseDatabaseConfig(const std::string &file,
                                     std::map<std::string, RedisInstInfo> &inst_entry,
                                     std::unordered_map<std::string, SonicDBInfo> &db_entry,
                                     std::unordered_map<int, std::string> &separator_entry);
-    static SonicDBInfo& getDbInfo(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
-    static RedisInstInfo& getRedisInfo(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE);
+    static RedisInstInfo& getRedisInfo(const std::string &dbName, const SonicDBKey &key);
+    static SonicDBInfo& getDbInfo(const std::string &dbName, const SonicDBKey &key);
 };
 
 class RedisContext
@@ -158,6 +215,7 @@ public:
     DBConnector(int dbId, const std::string &unixPath, unsigned int timeout);
     DBConnector(const std::string &dbName, unsigned int timeout, bool isTcpConn = false);
     DBConnector(const std::string &dbName, unsigned int timeout, bool isTcpConn, const std::string &netns);
+    DBConnector(const std::string &dbName, unsigned int timeout, bool isTcpConn, const SonicDBKey &key);
     DBConnector& operator=(const DBConnector&) = delete;
 
     int getDbId() const;
@@ -169,6 +227,7 @@ public:
         namespace = property(getNamespace)
     %}
 #endif
+    SonicDBKey getDBKey() const;
 
     static void select(DBConnector *db);
 
@@ -252,10 +311,11 @@ public:
     std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> getall();
 private:
     void setNamespace(const std::string &netns);
+    void setDBKey(const SonicDBKey &key);
 
     int m_dbId;
     std::string m_dbName;
-    std::string m_namespace;
+    SonicDBKey m_key;
 };
 
 template <typename ReturnType>
