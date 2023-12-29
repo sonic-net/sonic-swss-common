@@ -24,6 +24,7 @@ tests_tests_SOURCES = tests/redis_ut.cpp                \
                       common/loglevel.cpp               \
                       tests/loglevel_ut.cpp             \
                       tests/redis_multi_ns_ut.cpp       \
+                      tests/redis_smartswitch_ut.cpp    \
                       tests/fdb_flush.cpp               \
                       tests/stringutility_ut.cpp        \
                       tests/redisutility_ut.cpp         \

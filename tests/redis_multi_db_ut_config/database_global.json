@@ -18,6 +18,14 @@
         {
             "namespace" : "asic3",
             "include" : "../redis_multi_db_ut_config/database_config3.json"
+        },
+        {
+            "database_name" : "dpu0",
+            "include" : "../redis_multi_db_ut_config/database_config4.json"
+        },
+        {
+            "database_name" : "dpu1",
+            "include" : "../redis_multi_db_ut_config/database_config5.json"
         }
     ],
     "VERSION" : "1.0"
