@@ -9,6 +9,14 @@ from swsscommon.swsscommon import ConfigDBPipeConnector, DBInterface, SonicV2Con
 import json
 import gc
 
+import sys
+if sys.version_info.major == 3:
+    from unittest import mock
+else:
+    # Expect the 'mock' package for python 2
+    # https://pypi.python.org/pypi/mock
+    import mock
+
 def test_ProducerTable():
     db = swsscommon.DBConnector("APPL_DB", 0, True)
     ps = swsscommon.ProducerTable(db, "abc")
@@ -805,12 +813,10 @@ def test_ConfigDBConnector():
     assert len(allconfig) == 0
 
 
-def test_ConfigDBConnector_with_statement():
-    gc.collect()
-    last_connector_count = sum(isinstance(x, swsscommon.ConfigDBConnector) for x in gc.get_objects())
-
+@mock.patch("swsscommon.swsscommon.ConfigDBConnector.close_all")
+def test_ConfigDBConnector_with_statement(self):
     # test ConfigDBConnector support 'with' statement
-    with swsscommon.ConfigDBConnector() as config_db:
+    with ConfigDBConnector() as config_db:
         assert config_db.db_name == ""
         assert config_db.TABLE_NAME_SEPARATOR == "|"
         config_db.connect(wait_for_init=False)
@@ -821,8 +827,5 @@ def test_ConfigDBConnector_with_statement():
         allconfig = config_db.get_config()
         assert allconfig["TEST_PORT"]["Ethernet111"]["alias"] == "etp1x"
 
-
-    # check ConfigDBConnector will release after 'with' statement
-    gc.collect()
-    current_connector_count = sum(isinstance(x, swsscommon.ConfigDBConnector) for x in gc.get_objects())
-    assert current_connector_count == last_connector_count
+    # check close_all() method called by with statement
+    ConfigDBConnector.close_all.assert_called_once_with()

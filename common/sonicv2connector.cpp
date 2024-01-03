@@ -34,6 +34,11 @@ void SonicV2Connector_Native::close(const std::string& db_name)
     m_dbintf.close(db_name);
 }
 
+void SonicV2Connector_Native::close_all()
+{
+    m_dbintf.close_all();
+}
+
 std::vector<std::string> SonicV2Connector_Native::get_db_list()
 {
     return SonicDBConfig::getDbList(m_netns);
