@@ -326,6 +326,7 @@ TEST(DBConnector, DBInterface)
     db.set("TEST_DB", "key0", "field1", "value2");
     auto fvs = db.get_all("TEST_DB", "key0");
     auto rc = fvs.find("field1");
+    db.close_all();
     EXPECT_NE(rc, fvs.end());
     EXPECT_EQ(rc->second, "value2");
 }
