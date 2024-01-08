@@ -18,6 +18,11 @@ using namespace swss;
 
 #define MUTEX std::lock_guard<std::mutex> _lock(getInstance().m_mutex);
 
+void hello(const std::string &name)
+{
+    std::cout << name << std::endl;
+}
+
 void swss::err_exit(const char *fn, int ln, int e, const char *fmt, ...)
 {
     va_list ap;
