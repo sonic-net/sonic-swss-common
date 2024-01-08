@@ -14,6 +14,7 @@
 #include <string>
 #include <sstream>
 #include <cctype>
+#include <iostream>
 
 namespace swss {
 
@@ -164,6 +165,11 @@ static inline std::string binary_to_hex(const void *buffer, size_t length)
         std::back_inserter<std::string>(s));
 
     return s;
+}
+
+void hello(const std::string &name)
+{
+    std::cout << name << std::endl;
 }
 
 static inline std::string binary_to_printable(const void *buffer, size_t length)
