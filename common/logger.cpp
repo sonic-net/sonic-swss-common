@@ -13,6 +13,7 @@
 #include "dbconnector.h"
 #include "subscriberstatetable.h"
 #include "producerstatetable.h"
+#include <iostream>
 
 using namespace swss;
 
