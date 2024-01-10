@@ -32,7 +32,7 @@ void DBInterface::close(const std::string& dbName)
     m_redisClient.erase(dbName);
 }
 
-void DBInterface::close_all()
+void DBInterface::close()
 {
     m_redisClient.clear();
 }

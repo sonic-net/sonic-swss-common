@@ -20,7 +20,7 @@ public:
 
     void close(const std::string& db_name);
 
-    void close_all();
+    void close();
 
     std::vector<std::string> get_db_list();
 
