@@ -813,7 +813,7 @@ def test_ConfigDBConnector():
     assert len(allconfig) == 0
 
 
-@mock.patch("swsscommon.swsscommon.ConfigDBConnector.close_all")
+@mock.patch("swsscommon.swsscommon.ConfigDBConnector.close")
 def test_ConfigDBConnector_with_statement(self):
     # test ConfigDBConnector support 'with' statement
     with ConfigDBConnector() as config_db:
