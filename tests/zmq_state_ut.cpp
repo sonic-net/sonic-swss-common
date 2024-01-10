@@ -54,11 +54,11 @@ static inline int readNumberAtEOL(const string& str)
 
 static bool allDataReceived = false;
 
-static void producerWorker(string tableName, string endpoint)
+static void producerWorker(string tableName, string endpoint, bool dbPersistence)
 {
     DBConnector db(TEST_DB, 0, true);
     ZmqClient client(endpoint);
-    ZmqProducerStateTable p(&db, tableName, client);
+    ZmqProducerStateTable p(&db, tableName, client, dbPersistence);
     cout << "Producer thread started: " << tableName << endl;
 
     for (int i = 0; i < NUMBER_OF_OPS; i++)
@@ -109,9 +109,87 @@ static void producerWorker(string tableName, string endpoint)
         p.del(keys);
     }
 
+    // wait all data been received by consumer
     while (!allDataReceived)
     {
         sleep(1);
+    }
+
+    if (dbPersistence)
+    {
+        // wait all persist data write to redis
+        while (p.dbUpdaterQueueSize() > 0)
+        {
+            sleep(1);
+        }
+    }
+
+    cout << "Producer thread ended: " << tableName << endl;
+}
+
+// Reusing the same keys as the producerWorker so that the same consumer thread
+// can be used.
+static void producerBatchWorker(string tableName, string endpoint, bool dbPersistence)
+{
+    DBConnector db(TEST_DB, 0, true);
+    ZmqClient client(endpoint);
+    ZmqProducerStateTable p(&db, tableName, client, dbPersistence);
+    cout << "Producer thread started: " << tableName << endl;
+    std::vector<KeyOpFieldsValuesTuple> kcos;
+
+    for (int i = 0; i < NUMBER_OF_OPS; i++)
+    {
+        vector<FieldValueTuple> fields;
+        for (int j = 0; j < MAX_FIELDS; j++)
+        {
+            FieldValueTuple t(field(j), value(j));
+            fields.push_back(t);
+        }
+        kcos.push_back(KeyOpFieldsValuesTuple("set_key_" + to_string(i), SET_COMMAND, fields));
+    }
+
+    for (int i = 0; i < NUMBER_OF_OPS; i++)
+    {
+        kcos.push_back(KeyOpFieldsValuesTuple("del_key_" + to_string(i), DEL_COMMAND, vector<FieldValueTuple>{}));
+    }
+
+    for (int i = 0; i < NUMBER_OF_OPS; i++)
+    {
+        for (int j = 0; j < MAX_KEYS; j++)
+        {
+            vector<FieldValueTuple> fields;
+            for (int k = 0; k < MAX_FIELDS; k++)
+            {
+                FieldValueTuple t(field(k), value(k));
+                fields.push_back(t);
+            }
+            kcos.push_back(KeyOpFieldsValuesTuple("batch_set_key_" + to_string(i) + "_" + to_string(j), SET_COMMAND, fields));
+        }
+    }
+
+    for (int i = 0; i < NUMBER_OF_OPS; i++)
+    {
+        for (int j = 0; j < MAX_KEYS; j++)
+        {
+            kcos.push_back(KeyOpFieldsValuesTuple("batch_del_key_" + to_string(i) + "_" + to_string(j), DEL_COMMAND, vector<FieldValueTuple>{}));
+        }
+    }
+
+    p.send(kcos);
+
+    // wait all data been received by consumer
+    while (!allDataReceived)
+    {
+        sleep(1);
+    }
+
+    if (dbPersistence)
+    {
+        // wait all persist data write to redis
+        while (p.dbUpdaterQueueSize() > 0)
+        {
+            sleep(1);
+        }
     }
 
     cout << "Producer thread ended: " << tableName << endl;
@@ -123,13 +201,13 @@ static int delCount = 0;
 static int batchSetCount = 0;
 static int batchDelCount = 0;
     
-static void consumerWorker(string tableName, string endpoint)
+static void consumerWorker(string tableName, string endpoint, bool dbPersistence)
 {
     cout << "Consumer thread started: " << tableName << endl;
     
     DBConnector db(TEST_DB, 0, true);
     ZmqServer server(endpoint);
-    ZmqConsumerStateTable c(&db, tableName, server);
+    ZmqConsumerStateTable c(&db, tableName, server, 128, 0, dbPersistence);
     Select cs;
     cs.addSelectable(&c);
 
@@ -180,24 +258,41 @@ static void consumerWorker(string tableName, string endpoint)
     }
 
     allDataReceived = true;
+
+    if (dbPersistence)
+    {
+        // wait all persist data write to redis
+        while (c.dbUpdaterQueueSize() > 0)
+        {
+            sleep(1);
+        }
+    }
+
     cout << "Consumer thread ended: " << tableName << endl;
 }
 
-TEST(ZmqConsumerStateTable, test)
+static void testMethod(bool producerPersistence)
 {
     std::string testTableName = "ZMQ_PROD_CONS_UT";
     std::string pushEndpoint = "tcp://localhost:1234";
     std::string pullEndpoint = "tcp://*:1234";
     thread *producerThreads[NUMBER_OF_THREADS];
 
+    // reset receive data counter
+    setCount = 0;
+    delCount = 0;
+    batchSetCount = 0;
+    batchDelCount = 0;
+    allDataReceived = false;
+
     // start consumer first, SHM can only have 1 consumer per table.
-    thread *consumerThread = new thread(consumerWorker, testTableName, pullEndpoint);
+    thread *consumerThread = new thread(consumerWorker, testTableName, pullEndpoint, !producerPersistence);
 
     cout << "Starting " << NUMBER_OF_THREADS << " producers" << endl;
     /* Starting the producer before the producer */
     for (int i = 0; i < NUMBER_OF_THREADS; i++)
     {
-        producerThreads[i] = new thread(producerWorker, testTableName, pushEndpoint);
+        producerThreads[i] = new thread(producerWorker, testTableName, pushEndpoint, producerPersistence);
     }
 
     cout << "Done. Waiting for all job to finish " << NUMBER_OF_OPS << " jobs." << endl;
@@ -215,6 +310,70 @@ TEST(ZmqConsumerStateTable, test)
     EXPECT_EQ(batchSetCount, NUMBER_OF_THREADS * NUMBER_OF_OPS * MAX_KEYS);
     EXPECT_EQ(batchDelCount, NUMBER_OF_THREADS * NUMBER_OF_OPS * MAX_KEYS);
 
+    // check presist data in redis
+    DBConnector db(TEST_DB, 0, true);
+    Table table(&db, testTableName);
+    std::vector<std::string> keys;
+    table.getKeys(keys);
+    setCount = 0;
+    batchSetCount = 0;
+    for (string& key : keys)
+    {
+        if (key.rfind("batch_set_key_", 0) == 0)
+        {
+            batchSetCount++;
+        }
+        else if (key.rfind("set_key_", 0) == 0)
+        {
+            setCount++;
+        }
+    }
+    EXPECT_EQ(setCount, NUMBER_OF_OPS);
+    EXPECT_EQ(batchSetCount, NUMBER_OF_OPS * MAX_KEYS);
+
+    cout << endl << "Done." << endl;
+}
+
+static void testBatchMethod(bool producerPersistence)
+{
+    std::string testTableName = "ZMQ_PROD_CONS_UT";
+    std::string pushEndpoint = "tcp://localhost:1234";
+    std::string pullEndpoint = "tcp://*:1234";
+    thread *producerThreads[NUMBER_OF_THREADS];
+
+    // reset receive data counter
+    setCount = 0;
+    delCount = 0;
+    batchSetCount = 0;
+    batchDelCount = 0;
+    allDataReceived = false;
+
+    // start consumer first, SHM can only have 1 consumer per table.
+    thread *consumerThread = new thread(consumerWorker, testTableName, pullEndpoint, !producerPersistence);
+
+    cout << "Starting " << NUMBER_OF_THREADS << " producers" << endl;
+    /* Starting the producer before the producer */
+    for (int i = 0; i < NUMBER_OF_THREADS; i++)
+    {
+        producerThreads[i] = new thread(producerBatchWorker, testTableName, pushEndpoint, producerPersistence);
+    }
+
+    cout << "Done. Waiting for all job to finish " << NUMBER_OF_OPS << " jobs." << endl;
+    for (int i = 0; i < NUMBER_OF_THREADS; i++)
+    {
+        producerThreads[i]->join();
+        delete producerThreads[i];
+    }
+
+    consumerThread->join();
+    delete consumerThread;
+
+    EXPECT_EQ(setCount, NUMBER_OF_THREADS * NUMBER_OF_OPS);
+    EXPECT_EQ(delCount, NUMBER_OF_THREADS * NUMBER_OF_OPS);
+    EXPECT_EQ(batchSetCount, NUMBER_OF_THREADS * NUMBER_OF_OPS * MAX_KEYS);
+    EXPECT_EQ(batchDelCount, NUMBER_OF_THREADS * NUMBER_OF_OPS * MAX_KEYS);
+
+    // check presist data in redis
     DBConnector db(TEST_DB, 0, true);
     Table table(&db, testTableName);
     std::vector<std::string> keys;
@@ -236,4 +395,46 @@ TEST(ZmqConsumerStateTable, test)
     EXPECT_EQ(batchSetCount, NUMBER_OF_OPS * MAX_KEYS);
     
     cout << endl << "Done." << endl;
+}
+
+TEST(ZmqConsumerStateTable, test)
+{
+    // test with persist by consumer
+    testMethod(false);
+}
+
+TEST(ZmqProducerStateTable, test)
+{
+    // test with persist by producer
+    testMethod(true);
+}
+
+TEST(ZmqConsumerStateTableBatch, test)
+{
+    // test with persist by consumer
+    testBatchMethod(false);
+}
+
+TEST(ZmqProducerStateTableBatch, test)
+{
+    // test with persist by producer
+    testBatchMethod(true);
+}
+
+TEST(ZmqConsumerStateTableBatchBufferOverflow, test)
+{
+    std::string testTableName = "ZMQ_PROD_CONS_UT";
+    std::string pushEndpoint = "tcp://localhost:1234";
+
+    DBConnector db(TEST_DB, 0, true);
+    ZmqClient client(pushEndpoint);
+    ZmqProducerStateTable p(&db, testTableName, client, true);
+
+    // Send a large message and expect exception thrown.
+    std::vector<KeyOpFieldsValuesTuple> kcos;
+    for (int i = 0; i <= MQ_RESPONSE_MAX_COUNT; i++)
+    {
+        kcos.push_back(KeyOpFieldsValuesTuple("key", DEL_COMMAND, vector<FieldValueTuple>{}));
+    }
+    EXPECT_ANY_THROW(p.send(kcos));
 }

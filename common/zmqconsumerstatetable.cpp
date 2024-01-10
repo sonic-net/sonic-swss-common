@@ -26,13 +26,12 @@ ZmqConsumerStateTable::ZmqConsumerStateTable(DBConnector *db, const std::string 
     if (dbPersistence)
     {
         SWSS_LOG_DEBUG("Database persistence enabled, tableName: %s", tableName.c_str());
-        m_runThread = true;
-        m_dbUpdateThread = std::make_shared<std::thread>(&ZmqConsumerStateTable::dbUpdateThread, this);
+        m_asyncDBUpdater = std::make_unique<AsyncDBUpdater>(db, tableName);
     }
     else
     {
         SWSS_LOG_DEBUG("Database persistence disabled, tableName: %s", tableName.c_str());
-        m_dbUpdateThread = nullptr;
+        m_asyncDBUpdater = nullptr;
     }
 
     m_zmqServer.registerMessageHandler(m_db->getDbName(), tableName, this);
@@ -40,109 +39,28 @@ ZmqConsumerStateTable::ZmqConsumerStateTable(DBConnector *db, const std::string 
     SWSS_LOG_DEBUG("ZmqConsumerStateTable ctor tableName: %s", tableName.c_str());
 }
 
-ZmqConsumerStateTable::~ZmqConsumerStateTable()
+void ZmqConsumerStateTable::handleReceivedData(const std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> &kcos)
 {
-    if (m_dbUpdateThread != nullptr)
+    for (auto kco : kcos)
     {
-        m_runThread = false;
+        std::shared_ptr<KeyOpFieldsValuesTuple> clone = nullptr;
+        if (m_asyncDBUpdater != nullptr)
+        {
+            // clone before put to received queue, because received data may change by consumer.
+            clone = std::make_shared<KeyOpFieldsValuesTuple>(*kco);
+        }
 
-        // notify db update thread exit
-        m_dbUpdateDataNotifyCv.notify_all();
-        m_dbUpdateThread->join();
+        {
+            std::lock_guard<std::mutex> lock(m_receivedQueueMutex);
+            m_receivedOperationQueue.push(kco);
+        }
+
+        if (m_asyncDBUpdater != nullptr)
+        {
+            m_asyncDBUpdater->update(clone);
+        }
     }
-}
-
-void ZmqConsumerStateTable::handleReceivedData(std::shared_ptr<KeyOpFieldsValuesTuple> pkco)
-{
-    std::shared_ptr<KeyOpFieldsValuesTuple> clone = nullptr;
-    if (m_dbUpdateThread != nullptr)
-    {
-        // clone before put to received queue, because received data may change by consumer.
-        clone = std::make_shared<KeyOpFieldsValuesTuple>(*pkco);
-    }
-
-    {
-        std::lock_guard<std::mutex> lock(m_receivedQueueMutex);
-        m_receivedOperationQueue.push(pkco);
-    }
-
     m_selectableEvent.notify(); // will release epoll
-
-    if (m_dbUpdateThread != nullptr)
-    {
-        {
-            std::lock_guard<std::mutex> lock(m_dbUpdateDataQueueMutex);
-            m_dbUpdateDataQueue.push(clone);
-        }
-
-        m_dbUpdateDataNotifyCv.notify_all();
-    }
-}
-
-void ZmqConsumerStateTable::dbUpdateThread()
-{
-    SWSS_LOG_ENTER();
-    SWSS_LOG_NOTICE("dbUpdateThread begin");
-
-    // Different schedule policy has different min priority 
-    pthread_attr_t attr;
-    int policy;
-    pthread_attr_getschedpolicy(&attr, &policy);
-    int min_priority = sched_get_priority_min(policy);
-    // Use min priority will block poll thread 
-    pthread_setschedprio(pthread_self(), min_priority + 1);
-
-    // Follow same logic in ConsumerStateTable: every received data will write to 'table'.
-    DBConnector db(m_db->getDbName(), 0, true);
-    Table table(&db, getTableName());
-    std::mutex cvMutex;
-    std::unique_lock<std::mutex> cvLock(cvMutex);
-
-    while (m_runThread)
-    {
-        m_dbUpdateDataNotifyCv.wait(cvLock);
-
-        size_t count;
-        {
-            // size() is not thread safe
-            std::lock_guard<std::mutex> lock(m_dbUpdateDataQueueMutex);
- 
-            // For new data append to m_dataQueue during pops, will not be include in result.
-            count = m_dbUpdateDataQueue.size();
-            if (!count)
-            {
-                continue;
-            }
-
-        }
-
-        for (size_t ie = 0; ie < count; ie++)
-        {
-            auto& kco = *(m_dbUpdateDataQueue.front());
-
-            if (kfvOp(kco) == SET_COMMAND)
-            {
-                auto& values = kfvFieldsValues(kco);
-
-                // Delete entry before Table::set(), because Table::set() does not remove the no longer existed fields from entry.
-                table.del(kfvKey(kco));
-                table.set(kfvKey(kco), values);
-            }
-            else if (kfvOp(kco) == DEL_COMMAND)
-            {
-                table.del(kfvKey(kco));
-            }
-            else
-            {
-                SWSS_LOG_ERROR("zmq consumer table: %s, receive unknown operation: %s", getTableName().c_str(), kfvOp(kco).c_str());
-            }
-
-            {
-                std::lock_guard<std::mutex> lock(m_dbUpdateDataQueueMutex);
-                m_dbUpdateDataQueue.pop();
-            }
-        }
-    }
 }
 
 /* Get multiple pop elements */
@@ -172,6 +90,17 @@ void ZmqConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const
             m_receivedOperationQueue.pop();
         }
     }
+}
+
+size_t ZmqConsumerStateTable::dbUpdaterQueueSize()
+{
+    if (m_asyncDBUpdater == nullptr)
+    {
+        throw system_error(make_error_code(errc::operation_not_supported),
+                           "Database persistence is not enabled");
+    }
+
+    return m_asyncDBUpdater->queueSize();
 }
 
 }

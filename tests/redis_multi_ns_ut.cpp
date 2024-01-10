@@ -3,7 +3,7 @@
 #include <map>
 #include "gtest/gtest.h"
 #include "common/dbconnector.h"
-#include "common/json.hpp"
+#include <nlohmann/json.hpp>
 #include "common/table.h"
 
 using namespace std;

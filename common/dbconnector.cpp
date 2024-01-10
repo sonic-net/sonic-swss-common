@@ -5,7 +5,7 @@
 #include <errno.h>
 #include <system_error>
 #include <fstream>
-#include "json.hpp"
+#include <nlohmann/json.hpp>
 #include "logger.h"
 
 #include "common/dbconnector.h"
@@ -183,6 +183,18 @@ void SonicDBConfig::initialize(const string &file)
 
     // Set it as the config file is already parsed and init done.
     m_init = true;
+}
+
+// This API is used to reset the SonicDBConfig class.
+// And then user can call initialize with different config file.
+void SonicDBConfig::reset()
+{
+    std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
+    m_init = false;
+    m_global_init = false;
+    m_inst_info.clear();
+    m_db_info.clear();
+    m_db_separator.clear();
 }
 
 void SonicDBConfig::validateNamespace(const string &netns)

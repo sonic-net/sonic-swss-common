@@ -5,9 +5,10 @@
 #include <queue>
 #include <thread> 
 #include <mutex> 
-#include "table.h"
-#include "redispipeline.h"
+#include "asyncdbupdater.h"
 #include "producerstatetable.h"
+#include "redispipeline.h"
+#include "table.h"
 #include "zmqclient.h"
 
 namespace swss {
@@ -15,8 +16,8 @@ namespace swss {
 class ZmqProducerStateTable : public ProducerStateTable
 {
 public:
-    ZmqProducerStateTable(DBConnector *db, const std::string &tableName, ZmqClient &zmqClient);
-    ZmqProducerStateTable(RedisPipeline *pipeline, const std::string &tableName, ZmqClient &zmqClient, bool buffered = false);
+    ZmqProducerStateTable(DBConnector *db, const std::string &tableName, ZmqClient &zmqClient, bool dbPersistence = true);
+    ZmqProducerStateTable(RedisPipeline *pipeline, const std::string &tableName, ZmqClient &zmqClient, bool buffered = false, bool dbPersistence = true);
 
     /* Implements set() and del() commands using notification messages */
     virtual void set(const std::string &key,
@@ -33,8 +34,12 @@ public:
 
     virtual void del(const std::vector<std::string> &keys);
 
+    // Batched send that can include both SET and DEL requests.
+    virtual void send(const std::vector<KeyOpFieldsValuesTuple> &kcos);
+
+    size_t dbUpdaterQueueSize();
 private:
-    void initialize();
+    void initialize(DBConnector *db, const std::string &tableName, bool dbPersistence);
 
     ZmqClient& m_zmqClient;
     
@@ -42,6 +47,8 @@ private:
 
     const std::string m_dbName;
     const std::string m_tableNameStr;
+
+    std::unique_ptr<AsyncDBUpdater> m_asyncDBUpdater;
 };
 
 }

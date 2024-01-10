@@ -19,11 +19,9 @@ public:
 
     void connect();
 
-    void sendMsg(const std::string& key,
-                 const std::vector<swss::FieldValueTuple>& values,
-                 const std::string& command,
-                 const std::string& dbName,
+    void sendMsg(const std::string& dbName,
                  const std::string& tableName,
+                 const std::vector<KeyOpFieldsValuesTuple>& kcos,
                  std::vector<char>& sendbuffer);
 private:
     void initialize(const std::string& endpoint);

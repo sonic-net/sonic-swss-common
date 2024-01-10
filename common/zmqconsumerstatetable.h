@@ -3,16 +3,12 @@
 #include <string>
 #include <deque>
 #include <condition_variable>
-#include "dbconnector.h"
-#include "table.h"
+#include "asyncdbupdater.h"
 #include "consumertablebase.h"
+#include "dbconnector.h"
 #include "selectableevent.h"
+#include "table.h"
 #include "zmqserver.h"
-
-#define MQ_RESPONSE_MAX_COUNT (4*1024*1024)
-#define MQ_SIZE 100
-#define MQ_MAX_RETRY 10
-#define MQ_POLL_TIMEOUT (1000)
 
 namespace swss {
 
@@ -22,8 +18,7 @@ public:
     /* The default value of pop batch size is 128 */
     static constexpr int DEFAULT_POP_BATCH_SIZE = 128;
 
-    ZmqConsumerStateTable(DBConnector *db, const std::string &tableName, ZmqServer &zmqServer, int popBatchSize = DEFAULT_POP_BATCH_SIZE, int pri = 0, bool dbPersistence = true);
-    ~ZmqConsumerStateTable();
+    ZmqConsumerStateTable(DBConnector *db, const std::string &tableName, ZmqServer &zmqServer, int popBatchSize = DEFAULT_POP_BATCH_SIZE, int pri = 0, bool dbPersistence = false);
 
     /* Get multiple pop elements */
     void pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const std::string &prefix = EMPTY_PREFIX);
@@ -72,12 +67,10 @@ public:
         return m_db;
     }
 
+    size_t dbUpdaterQueueSize();
+
 private:
-    void handleReceivedData(std::shared_ptr<KeyOpFieldsValuesTuple> pkco);
-
-    void dbUpdateThread();
-
-    volatile bool m_runThread;
+    void handleReceivedData(const std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> &kcos);
 
     std::mutex m_receivedQueueMutex;
 
@@ -85,17 +78,11 @@ private:
 
     swss::SelectableEvent m_selectableEvent;
 
-    std::shared_ptr<std::thread> m_dbUpdateThread;
-
-    std::mutex m_dbUpdateDataQueueMutex;
-
-    std::condition_variable m_dbUpdateDataNotifyCv;
-
-    std::queue<std::shared_ptr<KeyOpFieldsValuesTuple>> m_dbUpdateDataQueue;
-
     DBConnector *m_db;
 
     ZmqServer& m_zmqServer;
+
+    std::unique_ptr<AsyncDBUpdater> m_asyncDBUpdater;
 };
 
 }
