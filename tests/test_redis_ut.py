@@ -827,5 +827,5 @@ def test_ConfigDBConnector_with_statement(self):
         allconfig = config_db.get_config()
         assert allconfig["TEST_PORT"]["Ethernet111"]["alias"] == "etp1x"
 
-    # check close_all() method called by with statement
-    ConfigDBConnector.close_all.assert_called_once_with()
+    # check close() method called by with statement
+    ConfigDBConnector.close.assert_called_once_with()
