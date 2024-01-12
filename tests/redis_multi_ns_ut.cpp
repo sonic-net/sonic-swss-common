@@ -69,9 +69,9 @@ TEST(DBConnector, multi_ns_test)
             }
             namespaces.insert(key.netns);
 
-            if (!element["database_name"].empty())
+            if (!element["container_name"].empty())
             {
-                key.containerName = element["database_name"];
+                key.containerName = element["container_name"];
             }
 
             // parse config file

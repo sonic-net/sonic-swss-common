@@ -116,9 +116,9 @@ void SonicDBConfig::initializeGlobalConfig(const string &file)
                     key.netns = element["namespace"];
                 }
 
-                if (!element["database_name"].empty())
+                if (!element["container_name"].empty())
                 {
-                    key.containerName = element["database_name"];
+                    key.containerName = element["container_name"];
                 }
 
                 // If database_config.json is already initlized via SonicDBConfig::initialize

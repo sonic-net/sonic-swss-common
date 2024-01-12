@@ -67,7 +67,8 @@ public:
         }
         catch (exception &e)
         {
-            EXPECT_TRUE(strstr(e.what(), "Key invalid is not a valid key name in config file"));
+            // EXPECT_TRUE(strstr(e.what(), "Key :invalid invalid is not a valid key name in config file"));
+            EXPECT_STREQ(e.what(), "Key :invalid is not a valid key name in config file");
         }
 
         // reset SonicDBConfig, init should be false
