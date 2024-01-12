@@ -58,14 +58,8 @@ struct SonicDBKey
     std::string toString() const
     {
         std::vector<std::string> buffer;
-        if (!containerName.empty())
-        {
-            buffer.push_back(containerName);
-        }
-        if (!netns.empty())
-        {
-            buffer.push_back(netns);
-        }
+        buffer.push_back(containerName);
+        buffer.push_back(netns);
         return boost::algorithm::join(buffer, ":");
     }
 };
