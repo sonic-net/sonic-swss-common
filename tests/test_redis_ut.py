@@ -817,7 +817,7 @@ def test_SmartSwitchDBConnector():
     tbl.set("dputest2", fvs)
     keys = tbl.getKeys()
     assert len(keys) == 2
-    assert keys[0] == "dputest1"
-    assert keys[1] == "dputest2"
+    assert "dputest1" in keys
+    assert "dputest2" in keys
     assert tbl.get("dputest1")[1][0] == ("dashfield1", "dashvalue1")
     assert tbl.get("dputest2")[1][1] == ("dashfield2", "dashvalue2")
