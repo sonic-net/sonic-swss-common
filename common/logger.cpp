@@ -49,6 +49,8 @@ void Logger::terminateSettingThread()
         m_settingThread->join();
 
         m_settingThread = nullptr;
+
+        m_stopEvent = nullptr;
     }
 }
 
@@ -56,7 +58,7 @@ void Logger::restartSettingThread()
 {
     terminateSettingThread();
 
-    m_stopEvent.reset(new SelectableEvent(0));
+    m_stopEvent = std::make_unique<SelectableEvent>(0);
 
     m_settingThread.reset(new std::thread(&Logger::settingThread, this));
 }
