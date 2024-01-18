@@ -36,9 +36,10 @@ void SonicDBConfig::parseDatabaseConfig(const string &file,
             {
                string instName = it.key();
                string socket;
-               if (it.value().find("unix_socket_path") != it.value().end())
+               auto path = it.value().find("unix_socket_path");
+               if (path != it.value().end())
                {
-                    socket = it.value().at("unix_socket_path");
+                    socket = *path;
                }
                string hostname = it.value().at("hostname");
                int port = it.value().at("port");
@@ -179,9 +180,9 @@ void SonicDBConfig::initialize(const string &file)
 
     SonicDBKey empty_key;
     parseDatabaseConfig(file, inst_entry, db_entry, separator_entry);
-    m_inst_info[empty_key] = inst_entry;
-    m_db_info[empty_key] = db_entry;
-    m_db_separator[empty_key] = separator_entry;
+    m_inst_info.emplace(empty_key, std::move(inst_entry));
+    m_db_info.emplace(empty_key, std::move(db_entry));
+    m_db_separator.emplace(empty_key, std::move(separator_entry));
 
     // Set it as the config file is already parsed and init done.
     m_init = true;

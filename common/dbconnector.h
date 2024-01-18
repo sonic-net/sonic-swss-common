@@ -39,6 +39,14 @@ public:
 
 struct SonicDBKey
 {
+    /* Container name is used to identify the container that the DB instance is running in.
+     * Namespace is used to identify the network namespace that the DB instance is running in.
+     * In our design, we allow multiple containers to share a same namespace.
+     * So, this combination of container name and namespace is used to uniquely identify a DB instance.
+     * If the namespace is empty, it means the DB instance is running in the default(host) namespace.
+     * If the container name is empty, it for adapting the old design that only one DB instance is 
+     * running in a namespace.
+     */
     std::string containerName;
     std::string netns;
 
