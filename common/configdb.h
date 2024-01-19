@@ -59,6 +59,13 @@ protected:
             self.handlers = {}
             self.fire_init_data = {}
 
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_value, exc_tb):
+            self.close()
+            pass
+
         @property
         def KEY_SEPARATOR(self):
             return self.getKeySeparator()
