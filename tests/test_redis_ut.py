@@ -7,6 +7,15 @@ from pympler.tracker import SummaryTracker
 from swsscommon import swsscommon
 from swsscommon.swsscommon import ConfigDBPipeConnector, DBInterface, SonicV2Connector, SonicDBConfig, ConfigDBConnector, SonicDBConfig, transpose_pops
 import json
+import gc
+
+import sys
+if sys.version_info.major == 3:
+    from unittest import mock
+else:
+    # Expect the 'mock' package for python 2
+    # https://pypi.python.org/pypi/mock
+    import mock
 
 def test_ProducerTable():
     db = swsscommon.DBConnector("APPL_DB", 0, True)
@@ -802,3 +811,21 @@ def test_ConfigDBConnector():
     config_db.mod_config(allconfig)
     allconfig = config_db.get_config()
     assert len(allconfig) == 0
+
+
+@mock.patch("swsscommon.swsscommon.ConfigDBConnector.close")
+def test_ConfigDBConnector_with_statement(self):
+    # test ConfigDBConnector support 'with' statement
+    with ConfigDBConnector() as config_db:
+        assert config_db.db_name == ""
+        assert config_db.TABLE_NAME_SEPARATOR == "|"
+        config_db.connect(wait_for_init=False)
+        assert config_db.db_name == "CONFIG_DB"
+        assert config_db.TABLE_NAME_SEPARATOR == "|"
+        config_db.get_redis_client(config_db.CONFIG_DB).flushdb()
+        config_db.set_entry("TEST_PORT", "Ethernet111", {"alias": "etp1x"})
+        allconfig = config_db.get_config()
+        assert allconfig["TEST_PORT"]["Ethernet111"]["alias"] == "etp1x"
+
+    # check close() method called by with statement
+    ConfigDBConnector.close.assert_called_once_with()
