@@ -18,7 +18,6 @@ using json = nlohmann::json;
 using namespace std;
 using namespace swss;
 
-const SonicDBKey swss::EMPTY_SONIC_DB_KEY;
 
 void SonicDBConfig::parseDatabaseConfig(const string &file,
                     std::map<std::string, RedisInstInfo> &inst_entry,
@@ -295,10 +294,11 @@ RedisInstInfo& SonicDBConfig::getRedisInfo(const std::string &dbName, const Soni
     return foundRedis->second;
 }
 
-string SonicDBConfig::getDbInst(const string &dbName, const string &netns)
+string SonicDBConfig::getDbInst(const string &dbName, const string &netns, const std::string &containerName)
 {
     SonicDBKey key;
     key.netns = netns;
+    key.containerName = containerName;
     return getDbInst(dbName, key);
 }
 
@@ -307,10 +307,11 @@ string SonicDBConfig::getDbInst(const std::string &dbName, const SonicDBKey &key
     return getDbInfo(dbName, key).instName;
 }
 
-int SonicDBConfig::getDbId(const string &dbName, const string &netns)
+int SonicDBConfig::getDbId(const string &dbName, const string &netns, const std::string &containerName)
 {
     SonicDBKey key;
     key.netns = netns;
+    key.containerName = containerName;
     return getDbId(dbName, key);
 }
 
@@ -319,10 +320,11 @@ int SonicDBConfig::getDbId(const std::string &dbName, const SonicDBKey &key)
     return getDbInfo(dbName, key).dbId;
 }
 
-string SonicDBConfig::getSeparator(const string &dbName, const string &netns)
+string SonicDBConfig::getSeparator(const string &dbName, const string &netns, const std::string &containerName)
 {
     SonicDBKey key;
     key.netns = netns;
+    key.containerName = containerName;
     return getSeparator(dbName, key);
 }
 
@@ -331,10 +333,11 @@ string SonicDBConfig::getSeparator(const std::string &dbName, const SonicDBKey &
     return getDbInfo(dbName, key).separator;
 }
 
-string SonicDBConfig::getSeparator(int dbId, const string &netns)
+string SonicDBConfig::getSeparator(int dbId, const string &netns, const std::string &containerName)
 {
     SonicDBKey key;
     key.netns = netns;
+    key.containerName = containerName;
     return getSeparator(dbId, key);
 }
 
@@ -389,10 +392,11 @@ string SonicDBConfig::getSeparator(const DBConnector* db)
     }
 }
 
-string SonicDBConfig::getDbSock(const string &dbName, const string &netns)
+string SonicDBConfig::getDbSock(const string &dbName, const string &netns, const std::string &containerName)
 {
     SonicDBKey key;
     key.netns = netns;
+    key.containerName = containerName;
     return getDbSock(dbName, key);
 }
 
@@ -401,10 +405,11 @@ string SonicDBConfig::SonicDBConfig::getDbSock(const string &dbName, const Sonic
     return getRedisInfo(dbName, key).unixSocketPath;
 }
 
-string SonicDBConfig::getDbHostname(const string &dbName, const string &netns)
+string SonicDBConfig::getDbHostname(const string &dbName, const string &netns, const std::string &containerName)
 {
     SonicDBKey key;
     key.netns = netns;
+    key.containerName = containerName;
     return getDbHostname(dbName, key);
 }
 
@@ -413,10 +418,11 @@ string SonicDBConfig::getDbHostname(const string &dbName, const SonicDBKey &key)
     return getRedisInfo(dbName, key).hostname;
 }
 
-int SonicDBConfig::getDbPort(const string &dbName, const string &netns)
+int SonicDBConfig::getDbPort(const string &dbName, const string &netns, const std::string &containerName)
 {
     SonicDBKey key;
     key.netns = netns;
+    key.containerName = containerName;
     return getDbPort(dbName, key);
 }
 
@@ -441,10 +447,11 @@ vector<string> SonicDBConfig::getNamespaces()
     return vector<string>(list.begin(), list.end());
 }
 
-std::vector<std::string> SonicDBConfig::getDbList(const std::string &netns)
+std::vector<std::string> SonicDBConfig::getDbList(const std::string &netns, const std::string &containerName)
 {
     SonicDBKey key;
     key.netns = netns;
+    key.containerName = containerName;
     return getDbList(key);
 }
 
@@ -465,10 +472,11 @@ std::vector<std::string> SonicDBConfig::getDbList(const SonicDBKey &key)
     return dbNames;
 }
 
-map<string, RedisInstInfo> SonicDBConfig::getInstanceList(const std::string &netns)
+map<string, RedisInstInfo> SonicDBConfig::getInstanceList(const std::string &netns, const std::string &containerName)
 {
     SonicDBKey key;
     key.netns = netns;
+    key.containerName = containerName;
     return getInstanceList(key);
 }
 
@@ -665,7 +673,7 @@ DBConnector::DBConnector(const string& dbName, unsigned int timeout, bool isTcpC
 }
 
 DBConnector::DBConnector(const string& dbName, unsigned int timeout, bool isTcpConn)
-    : DBConnector(dbName, timeout, isTcpConn, EMPTY_SONIC_DB_KEY)
+    : DBConnector(dbName, timeout, isTcpConn, SonicDBKey())
 {
     // Empty constructor
 }
