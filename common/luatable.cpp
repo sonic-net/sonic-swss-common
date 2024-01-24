@@ -5,7 +5,7 @@
 #include "common/redisreply.h"
 #include "common/rediscommand.h"
 #include "common/redisapi.h"
-#include "common/json.hpp"
+#include <nlohmann/json.hpp>
 #include "common/schema.h"
 #include "common/luatable.h"
 
@@ -54,13 +54,9 @@ bool LuaTable::get(const vector<string> &luaKeys, vector<FieldValueTuple> &value
         args.emplace_back(v);
     }
 
-    // Transform data structure
-    vector<const char *> args1;
-    transform(args.begin(), args.end(), back_inserter(args1), [](const string &s) { return s.c_str(); } );
-
     // Invoke redis command
     RedisCommand command;
-    command.formatArgv((int)args1.size(), &args1[0], NULL);
+    command.format(args);
     RedisReply r(m_db.get(), command, REDIS_REPLY_ARRAY);
     redisReply *reply = r.getContext();
 
@@ -109,13 +105,9 @@ bool LuaTable::hget(const vector<string> &luaKeys, const string &field, string &
         args.emplace_back(v);
     }
 
-    // Transform data structure
-    vector<const char *> args1;
-    transform(args.begin(), args.end(), back_inserter(args1), [](const string &s) { return s.c_str(); } );
-
     // Invoke redis command
     RedisCommand command;
-    command.formatArgv((int)args1.size(), &args1[0], NULL);
+    command.format(args);
     RedisReply r(m_db.get(), command);
     redisReply *reply = r.getContext();
 

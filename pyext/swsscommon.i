@@ -1,4 +1,9 @@
+#ifdef SWIGGO
+// Enable directors feature for go language to generate inheritance information
+%module(directors="1") swsscommon
+#else
 %module swsscommon
+#endif
 
 %rename(delete) del;
 
@@ -25,6 +30,7 @@
 #include "decoratortable.h"
 #include "countertable.h"
 #include "redispipeline.h"
+#include "redisreply.h"
 #include "redisselect.h"
 #include "redistran.h"
 #include "producerstatetable.h"
@@ -54,6 +60,7 @@
 %include <std_vector.i>
 %include <std_pair.i>
 %include <std_map.i>
+%include <std_deque.i>
 #ifdef SWIGPYTHON
 %include <std_shared_ptr.i>
 #endif
@@ -70,6 +77,7 @@
 %template(GetTableResult) std::map<std::string, std::map<std::string, std::string>>;
 %template(GetConfigResult) std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>;
 %template(GetInstanceListResult) std::map<std::string, swss::RedisInstInfo>;
+%template(KeyOpFieldsValuesQueue) std::deque<std::tuple<std::string, std::string, std::vector<std::pair<std::string, std::string>>>>;
 
 #ifdef SWIGPYTHON
 %exception {
@@ -100,7 +108,7 @@
 
 %typemap(out) std::shared_ptr<std::string> %{
     {
-        auto& p = static_cast<std::shared_ptr<std::string>&>($1);
+        const std::shared_ptr<std::string>& p = $1;
         if(p)
         {
             $result = PyUnicode_FromStringAndSize(p->c_str(), p->size());
@@ -144,6 +152,84 @@
     temp = SWIG_NewPointerObj(*$1, SWIGTYPE_p_swss__Selectable, 0);
     SWIG_Python_AppendOutput($result, temp);
 }
+
+%typemap(in, fragment="SWIG_AsPtr_std_string")
+    const std::vector<std::pair< std::string,std::string >,std::allocator< std::pair< std::string,std::string > > > &
+        (std::vector< std::pair< std::string,std::string >,std::allocator< std::pair< std::string,std::string > > > temp,
+        int res) {
+    res = SWIG_OK;
+    for (int i = 0; i < PySequence_Length($input); ++i) {
+        temp.push_back(std::pair< std::string,std::string >());
+        PyObject *item = PySequence_GetItem($input, i);
+        if (!PyTuple_Check(item) || PyTuple_Size(item) != 2) {
+            SWIG_fail;
+        }
+        PyObject *key = PyTuple_GetItem(item, 0);
+        PyObject *value = PyTuple_GetItem(item, 1);
+        std::string *ptr = (std::string *)0;
+        if (PyBytes_Check(key)) {
+            temp.back().first.assign(PyBytes_AsString(key), PyBytes_Size(key));
+        } else if (SWIG_AsPtr_std_string(key, &ptr)) {
+            temp.back().first = *ptr;
+        } else {
+            SWIG_fail;
+        }
+        if (PyBytes_Check(value)) {
+            temp.back().second.assign(PyBytes_AsString(value), PyBytes_Size(value));
+        } else if (SWIG_AsPtr_std_string(value, &ptr)) {
+            temp.back().second = *ptr;
+        } else {
+            SWIG_fail;
+        }
+    }
+    $1 = &temp;
+}
+
+%typemap(typecheck) const std::vector< std::pair< std::string,std::string >,std::allocator< std::pair< std::string,std::string > > > &{
+    $1 = 1;
+    for (int i = 0; i < PySequence_Length($input); ++i) {
+        PyObject *item = PySequence_GetItem($input, i);
+        if (!PyTuple_Check(item) || PyTuple_Size(item) != 2) {
+            $1 = 0;
+            break;
+        }
+        PyObject *key = PyTuple_GetItem(item, 0);
+        PyObject *value = PyTuple_GetItem(item, 1);
+        if (!PyBytes_Check(key)
+            && !PyUnicode_Check(key)
+            && !PyString_Check(key)
+            && !PyBytes_Check(value)
+            && !PyUnicode_Check(value)
+            && !PyString_Check(value)) {
+            $1 = 0;
+            break;
+        }
+    }
+}
+
+
+#endif
+
+#ifdef SWIGGO
+// Mapping c++ exception to go language panic
+%exception {
+	try {
+		$function
+	} catch(const std::system_error& e) {
+        if (e.code() == std::make_error_code(std::errc::connection_reset))
+        {
+		    SWIG_exception(SWIG_SystemError, "connection_reset");
+        }
+        else
+        {
+		    SWIG_exception(SWIG_SystemError, e.what());
+        }
+	} catch(std::exception &e) {
+		SWIG_exception(SWIG_RuntimeError,e.what());
+	} catch(...) {
+		SWIG_exception(SWIG_RuntimeError,"Unknown exception");
+	}
+}
 #endif
 
 %inline %{
@@ -173,13 +259,13 @@ T castSelectableObj(swss::Selectable *temp)
 %include "select.h"
 %include "rediscommand.h"
 %include "redispipeline.h"
+%include "redisreply.h"
 %include "redisselect.h"
 %include "redistran.h"
 %include "configdb.h"
 %include "zmqserver.h"
 %include "zmqclient.h"
 %include "zmqconsumerstatetable.h"
-%include "zmqproducerstatetable.h"
 
 %extend swss::DBConnector {
     %template(hgetall) hgetall<std::map<std::string, std::string>>;
@@ -211,7 +297,15 @@ T castSelectableObj(swss::Selectable *temp)
 %clear std::vector<std::pair<std::string, std::string>> &values;
 
 %include "producertable.h"
+
+#ifdef SWIGGO
+// Generate inheritance information for ProducerStateTable and ZmqProducerStateTable
+%feature("director") swss::ProducerStateTable;
+%feature("director") swss::ZmqProducerStateTable;
+#endif
+
 %include "producerstatetable.h"
+%include "zmqproducerstatetable.h"
 
 %apply std::string& OUTPUT {std::string &key};
 %apply std::string& OUTPUT {std::string &op};

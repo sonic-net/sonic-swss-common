@@ -9,7 +9,7 @@
 #include <fstream>
 #include <uuid/uuid.h>
 #include "string.h"
-#include "json.hpp"
+#include <nlohmann/json.hpp>
 #include "zmq.h"
 #include <unordered_map>
 

@@ -3,7 +3,7 @@
 #include "common/redisreply.h"
 #include "common/producertable.h"
 #include "common/json.h"
-#include "common/json.hpp"
+#include <nlohmann/json.hpp>
 #include "common/logger.h"
 #include "common/redisapi.h"
 

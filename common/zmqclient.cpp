@@ -103,21 +103,24 @@ void ZmqClient::connect()
 }
 
 void ZmqClient::sendMsg(
-        const std::string& key,
-        const std::vector<swss::FieldValueTuple>& values,
-        const std::string& command,
         const std::string& dbName,
         const std::string& tableName,
+        const std::vector<KeyOpFieldsValuesTuple>& kcos,
         std::vector<char>& sendbuffer)
 {
     int serializedlen = (int)BinarySerializer::serializeBuffer(
                                                         sendbuffer.data(),
                                                         sendbuffer.size(),
-                                                        key,
-                                                        values,
-                                                        command,
                                                         dbName,
-                                                        tableName);
+                                                        tableName,
+                                                        kcos);
+
+    if (serializedlen >= MQ_RESPONSE_MAX_COUNT)
+    {
+        SWSS_LOG_THROW("ZmqClient sendMsg message was too big (buffer size %d bytes, got %d), reduce the message size, message DROPPED",
+                MQ_RESPONSE_MAX_COUNT,
+                serializedlen);
+    }
 
     SWSS_LOG_DEBUG("sending: %d", serializedlen);
     int zmq_err = 0;

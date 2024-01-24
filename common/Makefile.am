@@ -70,11 +70,13 @@ common_libswsscommon_la_SOURCES = \
     common/profileprovider.cpp       \
     common/zmqclient.cpp             \
     common/zmqserver.cpp             \
+    common/asyncdbupdater.cpp   \
     common/redis_table_waiter.cpp
 
 common_libswsscommon_la_CXXFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CFLAGS) $(CODE_COVERAGE_CXXFLAGS)
 common_libswsscommon_la_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CPPFLAGS) $(CODE_COVERAGE_CPPFLAGS)
 common_libswsscommon_la_LIBADD = -lpthread $(LIBNL_LIBS) $(CODE_COVERAGE_LIBS) -lzmq -lboost_serialization -luuid -lyang
+common_libswsscommon_la_LDFLAGS = -Wl,-z,now $(LDFLAGS)
 
 common_swssloglevel_SOURCES =  \
 	common/loglevel.cpp        \
@@ -84,3 +86,4 @@ common_swssloglevel_SOURCES =  \
 common_swssloglevel_CXXFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CODE_COVERAGE_CXXFLAGS)
 common_swssloglevel_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CODE_COVERAGE_CPPFLAGS)
 common_swssloglevel_LDADD = common/libswsscommon.la $(CODE_COVERAGE_LIBS)
+common_swssloglevel_LDFLAGS = -Wl,-z,now $(LDFLAGS)
