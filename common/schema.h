@@ -100,6 +100,9 @@ namespace swss {
 #define APP_ISOLATION_GROUP_TABLE_NAME      "ISOLATION_GROUP_TABLE"
 #define APP_BFD_SESSION_TABLE_NAME          "BFD_SESSION_TABLE"
 
+
+#define APP_SAG_TABLE_NAME                  "SAG_TABLE"
+
 #define APP_FC_TO_NHG_INDEX_MAP_TABLE_NAME   "FC_TO_NHG_INDEX_MAP_TABLE"
 
 #define APP_BGP_PROFILE_TABLE_NAME           "BGP_PROFILE_TABLE"
@@ -433,6 +436,8 @@ namespace swss {
 
 #define CFG_FLOW_COUNTER_ROUTE_PATTERN_TABLE_NAME   "FLOW_COUNTER_ROUTE_PATTERN"
 #define CFG_LOGGER_TABLE_NAME                       "LOGGER"
+
+#define CFG_SAG_TABLE_NAME                          "SAG"
 
 /***** STATE DATABASE *****/
 
