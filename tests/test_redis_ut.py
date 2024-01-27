@@ -5,7 +5,7 @@ import multiprocessing
 from threading import Thread
 from pympler.tracker import SummaryTracker
 from swsscommon import swsscommon
-from swsscommon.swsscommon import ConfigDBPipeConnector, DBInterface, SonicV2Connector, SonicDBConfig, ConfigDBConnector, SonicDBConfig, transpose_pops
+from swsscommon.swsscommon import ConfigDBPipeConnector, DBInterface, SonicV2Connector, SonicDBConfig, ConfigDBConnector, SonicDBConfig, transpose_pops, SonicDBKey
 import json
 import gc
 
@@ -829,3 +829,23 @@ def test_ConfigDBConnector_with_statement(self):
 
     # check close() method called by with statement
     ConfigDBConnector.close.assert_called_once_with()
+
+
+def test_SmartSwitchDBConnector():
+    test_dir = os.path.dirname(os.path.abspath(__file__))
+    global_db_config = os.path.join(test_dir, 'redis_multi_db_ut_config', 'database_global.json')
+    SonicDBConfig.load_sonic_global_db_config(global_db_config)
+    db_key = SonicDBKey()
+    db_key.containerName = "dpu0"
+    db = swsscommon.DBConnector("DPU_APPL_DB", 0, True, db_key)
+    tbl = swsscommon.Table(db, "DASH_ENI_TABLE")
+    fvs = swsscommon.FieldValuePairs([('dashfield1','dashvalue1'), ('dashfield2', 'dashvalue2')])
+    tbl.set("dputest1", fvs)
+    tbl.set("dputest2", fvs)
+    keys = tbl.getKeys()
+    assert len(keys) == 2
+    assert "dputest1" in keys
+    assert "dputest2" in keys
+    assert tbl.get("dputest1")[1][0] == ("dashfield1", "dashvalue1")
+    assert tbl.get("dputest2")[1][1] == ("dashfield2", "dashvalue2")
+
