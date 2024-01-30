@@ -15,8 +15,8 @@ ZmqServer::ZmqServer(const std::string& endpoint)
     : m_endpoint(endpoint)
 {
     m_buffer.resize(MQ_RESPONSE_MAX_COUNT);
-    m_mqPollThread = std::make_shared<std::thread>(&ZmqServer::mqPollThread, this);
     m_runThread = true;
+    m_mqPollThread = std::make_shared<std::thread>(&ZmqServer::mqPollThread, this);
 
     SWSS_LOG_DEBUG("ZmqServer ctor endpoint: %s", endpoint.c_str());
 }
