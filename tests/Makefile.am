@@ -34,7 +34,6 @@ tests_tests_SOURCES = tests/redis_ut.cpp                \
                       tests/countertable_ut.cpp         \
                       tests/timer_ut.cpp                \
                       tests/cli_ut.cpp                  \
-                      tests/defaultvalueprovider_ut.cpp \
                       tests/events_common_ut.cpp        \
                       tests/events_service_ut.cpp       \
                       tests/events_ut.cpp               \
@@ -48,3 +47,7 @@ tests_tests_SOURCES = tests/redis_ut.cpp                \
 tests_tests_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_GTEST) $(LIBNL_CFLAGS)
 tests_tests_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_GTEST) $(LIBNL_CFLAGS) -fno-access-control
 tests_tests_LDADD = $(LDADD_GTEST) -lpthread common/libswsscommon.la $(LIBNL_LIBS) $(CODE_COVERAGE_LIBS) sonic-db-cli/libsonicdbcli.la -lzmq -luuid -lboost_serialization
+
+if YANGMODS
+tests_tests_SOURCES += tests/defaultvalueprovider_ut.cpp
+endif
