@@ -37,8 +37,16 @@ AC_ARG_ENABLE(python2,
 	no)  python2=false ;;
 	*) AC_MSG_ERROR(bad value ${enableval} for --enable-python2) ;;
 esac],[python2=true])
+AC_ARG_ENABLE(yangmodules,
+[  --enable-yangmodules   Generate classes that depend on libyang],
+[case "${enableval}" in
+	yes) yangmodules=true ;;
+	no)  yangmodules=false ;;
+	*) AC_MSG_ERROR(bad value ${enableval} for --enable-yangmodules) ;;
+esac],[yangmodules=true])
 AM_CONDITIONAL(DEBUG, test x$debug = xtrue)
 AM_CONDITIONAL(PYTHON2, test x$python2 = xtrue)
+AM_CONDITIONAL(YANGMODS, test x$yangmodules = xtrue)
 if test x$CONFIGURED_ARCH = xarmhf && test x$CROSS_BUILD_ENVIRON = xy; then
 	AM_CONDITIONAL(ARCH64, false)
 else

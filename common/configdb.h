@@ -255,6 +255,12 @@ protected:
                     ret.setdefault(table_name, {})[self.deserialize_key(row)] = entry
             return ret
 
+%}
+#endif
+
+#if defined(SWIG) && defined(SWIGPYTHON) && defined(ENABLE_YANG_MODULES)
+%pythoncode %{
+
     class YangDefaultDecorator(object):
         def __init__(self, config_db_connector):
             self.connector = config_db_connector
