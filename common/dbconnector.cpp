@@ -447,6 +447,22 @@ vector<string> SonicDBConfig::getNamespaces()
     return vector<string>(list.begin(), list.end());
 }
 
+vector<SonicDBKey> SonicDBConfig::getDbKeys()
+{
+    vector<SonicDBKey> keys;
+    std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
+
+    if (!m_init)
+        initialize(DEFAULT_SONIC_DB_CONFIG_FILE);
+
+    // This API returns back all db keys.
+    for (auto it = m_inst_info.cbegin(); it != m_inst_info.cend(); ++it) {
+        keys.push_back(it->first);
+    }
+
+    return keys;
+}
+
 std::vector<std::string> SonicDBConfig::getDbList(const std::string &netns, const std::string &containerName)
 {
     SonicDBKey key;
