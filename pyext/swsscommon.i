@@ -80,6 +80,7 @@
 %template(GetConfigResult) std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>;
 %template(GetInstanceListResult) std::map<std::string, swss::RedisInstInfo>;
 %template(KeyOpFieldsValuesQueue) std::deque<std::tuple<std::string, std::string, std::vector<std::pair<std::string, std::string>>>>;
+%template(VectorSonicDbKey) std::vector<swss::SonicDBKey>;
 
 #ifdef SWIGPYTHON
 %exception {
