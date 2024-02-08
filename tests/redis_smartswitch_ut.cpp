@@ -58,3 +58,16 @@ TEST(DBConnector, access_dpu_db_from_dpu)
     DBConnector db("DPU_APPL_DB", 0, true, key);
     TestDPUDatabase(db);
 }
+
+TEST(DBConnector, get_dpu_zmq_address)
+{
+    SonicDBKey key;
+    key.containerName = "dpu1";
+    SonicDBInfo dbInfo = SonicDBConfig::getDbInfo("DPU_APPL_DB", key);
+    EXPECT_STREQ(dbInfo.zmq.c_str(), "remote-zmq");
+
+    RedisInstInfo zmq = SonicDBConfig::getZmqInfo("DPU_APPL_DB", key);
+    EXPECT_STREQ(zmq.hostname.c_str(), "127.0.0.1");
+    EXPECT_EQ(zmq.port, 1234);
+}
+

@@ -85,7 +85,12 @@ TEST(DBConnector, multi_ns_test)
                 for (auto it = j["INSTANCES"].begin(); it!= j["INSTANCES"].end(); it++)
                 {
                    string instName = it.key();
-                   string socket = it.value().at("unix_socket_path");
+                   string socket;
+                   auto path = it.value().find("unix_socket_path");
+                   if (path != it.value().end())
+                   {
+                           socket = *path;
+                   }
                    string hostname = it.value().at("hostname");
                    int port = it.value().at("port");
                    m_inst_info[instName] = {socket, hostname, port};

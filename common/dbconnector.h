@@ -36,6 +36,7 @@ public:
     std::string instName;
     int dbId;
     std::string separator;
+    std::string zmq;
 };
 
 struct SonicDBKey
@@ -159,6 +160,7 @@ private:
                                     std::unordered_map<int, std::string> &separator_entry);
     static RedisInstInfo& getRedisInfo(const std::string &dbName, const SonicDBKey &key);
     static SonicDBInfo& getDbInfo(const std::string &dbName, const SonicDBKey &key);
+    static RedisInstInfo& getZmqInfo(const std::string &dbName, const SonicDBKey &key);
 };
 
 class RedisContext

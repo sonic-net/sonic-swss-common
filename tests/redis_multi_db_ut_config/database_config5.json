@@ -9,6 +9,10 @@
             "hostname" : "127.0.0.1",
             "port": 6379,
             "unix_socket_path": ""
+        },
+        "remote-zmq":{
+            "hostname" : "127.0.0.1",
+            "port": 1234
         }
     },
     "DATABASES" : {
@@ -96,22 +100,26 @@
             "id" : 15,
             "separator": ":",
             "instance" : "remote-redis",
+            "zmq" : "remote-zmq",
             "format": "proto"
         },
         "DPU_APPL_STATE_DB" : {
             "id" : 16,
             "separator": "|",
-            "instance" : "remote-redis"
+            "instance" : "remote-redis",
+            "zmq" : "remote-zmq"
         },
         "DPU_STATE_DB" : {
             "id" : 17,
             "separator": "|",
-            "instance" : "remote-redis"
+            "instance" : "remote-redis",
+            "zmq" : "remote-zmq"
         },
         "DPU_COUNTERS_DB" : {
             "id" : 18,
             "separator": ":",
-            "instance" : "remote-redis"
+            "instance" : "remote-redis",
+            "zmq" : "remote-zmq"
         }
     },
     "VERSION" : "1.0"

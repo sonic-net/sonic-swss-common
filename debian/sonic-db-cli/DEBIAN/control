@@ -1,0 +1,10 @@
+Package: sonic-db-cli
+Source: sonic
+Version: 1.0.0
+Architecture: amd64
+Maintainer: Shuotian Cheng <shuche@microsoft.com>
+Installed-Size: 63
+Depends: libc6 (>= 2.14), libgcc1 (>= 1:3.0), libhiredis0.14 (>= 0.14.0), libnl-3-200 (>= 3.5.0-1), libnl-genl-3-200 (>= 3.5.0-1), libnl-nf-3-200 (>= 3.5.0-1), libnl-route-3-200 (>= 3.5.0-1), libstdc++6 (>= 7), libswsscommon (>= 1.0.0)
+Section: libs
+Priority: optional
+Description: This package contains SONiC DB cli.

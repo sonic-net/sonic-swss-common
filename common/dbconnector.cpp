@@ -51,7 +51,15 @@ void SonicDBConfig::parseDatabaseConfig(const string &file,
                string instName = it.value().at("instance");
                int dbId = it.value().at("id");
                string separator = it.value().at("separator");
-               db_entry[dbName] = {instName, dbId, separator};
+
+               string zmq;
+               auto zmq_value = it.value().find("zmq");
+               if (zmq_value != it.value().end())
+               {
+                    zmq = *zmq_value;
+               }
+
+               db_entry[dbName] = {instName, dbId, separator, zmq};
 
                separator_entry.emplace(dbId, separator);
             }
@@ -285,6 +293,40 @@ RedisInstInfo& SonicDBConfig::getRedisInfo(const std::string &dbName, const Soni
     }
     auto& redisInfos = foundEntry->second;
     auto foundRedis = redisInfos.find(getDbInst(dbName, key));
+    if (foundRedis == redisInfos.end())
+    {
+        string msg = "Failed to find the Redis instance for " + dbName + " database in " + key.toString() + " key";
+        SWSS_LOG_ERROR("%s", msg.c_str());
+        throw out_of_range(msg);
+    }
+    return foundRedis->second;
+}
+
+RedisInstInfo& SonicDBConfig::getZmqInfo(const std::string &dbName, const SonicDBKey &key)
+{
+    std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
+
+    SWSS_LOG_ENTER();
+
+    if (!m_init)
+        initialize(DEFAULT_SONIC_DB_CONFIG_FILE);
+
+    if (!key.isEmpty())
+    {
+        if (!m_global_init)
+        {
+            SWSS_LOG_THROW("Initialize global DB config using API SonicDBConfig::initializeGlobalConfig");
+        }
+    }
+    auto foundEntry = m_inst_info.find(key);
+    if (foundEntry == m_inst_info.end())
+    {
+        string msg = "Key " + key.toString() + " is not a valid key name in Redis instances in config file";
+        SWSS_LOG_ERROR("%s", msg.c_str());
+        throw out_of_range(msg);
+    }
+    auto& redisInfos = foundEntry->second;
+    auto foundRedis = redisInfos.find(getDbInfo(dbName, key).zmq);
     if (foundRedis == redisInfos.end())
     {
         string msg = "Failed to find the Redis instance for " + dbName + " database in " + key.toString() + " key";
