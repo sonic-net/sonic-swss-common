@@ -164,8 +164,9 @@ private:
                                     std::unordered_map<int, std::string> &separator_entry);
     static RedisInstInfo& getRedisInfo(const std::string &dbName, const SonicDBKey &key);
     static SonicDBInfo& getDbInfo(const std::string &dbName, const SonicDBKey &key);
-    static RedisInstInfo getZmqInfo(const std::string &dbName, const SonicDBKey &key);
-    static RedisInstInfo findInstInfo(const std::map<std::string, RedisInstInfo> &redisInfos, const std::string &dbName, const SonicDBKey &key, const std::string &instanceName);
+    static RedisInstInfo& getZmqInfo(const std::string &dbName, const SonicDBKey &key);
+    static std::map<std::string, RedisInstInfo>& getRedisInfos(const SonicDBKey &key);
+    static RedisInstInfo& findInstInfo(std::map<std::string, RedisInstInfo> &redisInfos, const std::string &dbName, const SonicDBKey &key, const std::string &instanceName);
 };
 
 class RedisContext

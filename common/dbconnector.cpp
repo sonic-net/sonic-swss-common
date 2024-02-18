@@ -274,6 +274,24 @@ RedisInstInfo& SonicDBConfig::getRedisInfo(const std::string &dbName, const Soni
 
     SWSS_LOG_ENTER();
 
+    auto& redisInfos = SonicDBConfig::getRedisInfos(key);
+    auto instanceName = getDbInst(dbName, key);
+    return SonicDBConfig::findInstInfo(redisInfos, dbName, key, instanceName);
+}
+
+RedisInstInfo& SonicDBConfig::getZmqInfo(const std::string &dbName, const SonicDBKey &key)
+{
+    std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
+
+    SWSS_LOG_ENTER();
+
+    auto& redisInfos = SonicDBConfig::getRedisInfos(key);
+    auto instanceName = getDbInfo(dbName, key).zmq;
+    return SonicDBConfig::findInstInfo(redisInfos, dbName, key, instanceName);
+}
+
+std::map<std::string, RedisInstInfo>& SonicDBConfig::getRedisInfos(const SonicDBKey &key)
+{
     if (!m_init)
         initialize(DEFAULT_SONIC_DB_CONFIG_FILE);
 
@@ -291,36 +309,11 @@ RedisInstInfo& SonicDBConfig::getRedisInfo(const std::string &dbName, const Soni
         SWSS_LOG_ERROR("%s", msg.c_str());
         throw out_of_range(msg);
     }
-    auto& redisInfos = foundEntry->second;
-    auto foundRedis = redisInfos.find(getDbInst(dbName, key));
-    if (foundRedis == redisInfos.end())
-    {
-        string msg = "Failed to find the Redis instance for " + dbName + " database in " + key.toString() + " key";
-        SWSS_LOG_ERROR("%s", msg.c_str());
-        throw out_of_range(msg);
-    }
-    return foundRedis->second;
+
+    return foundEntry->second;
 }
 
-RedisInstInfo SonicDBConfig::getZmqInfo(const std::string &dbName, const SonicDBKey &key)
-{
-    std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
-
-    SWSS_LOG_ENTER();
-
-    auto redisInfos = SonicDBConfig::getInstanceList(key);
-    if (redisInfos.empty())
-    {
-        string msg = "Key " + key.toString() + " is not a valid key name in Redis instances in config file";
-        SWSS_LOG_ERROR("%s", msg.c_str());
-        throw out_of_range(msg);
-    }
-
-    auto instanceName = getDbInfo(dbName, key).zmq;
-    return SonicDBConfig::findInstInfo(redisInfos, dbName, key, instanceName);
-}
-
-RedisInstInfo SonicDBConfig::findInstInfo(const std::map<std::string, RedisInstInfo> &redisInfos, const std::string &dbName, const SonicDBKey &key, const std::string &instanceName)
+RedisInstInfo& SonicDBConfig::findInstInfo(std::map<std::string, RedisInstInfo> &redisInfos, const std::string &dbName, const SonicDBKey &key, const std::string &instanceName)
 {
     auto foundRedis = redisInfos.find(instanceName);
     if (foundRedis == redisInfos.end())
