@@ -302,31 +302,27 @@ RedisInstInfo& SonicDBConfig::getRedisInfo(const std::string &dbName, const Soni
     return foundRedis->second;
 }
 
-RedisInstInfo& SonicDBConfig::getZmqInfo(const std::string &dbName, const SonicDBKey &key)
+RedisInstInfo SonicDBConfig::getZmqInfo(const std::string &dbName, const SonicDBKey &key)
 {
     std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
 
     SWSS_LOG_ENTER();
 
-    if (!m_init)
-        initialize(DEFAULT_SONIC_DB_CONFIG_FILE);
-
-    if (!key.isEmpty())
-    {
-        if (!m_global_init)
-        {
-            SWSS_LOG_THROW("Initialize global DB config using API SonicDBConfig::initializeGlobalConfig");
-        }
-    }
-    auto foundEntry = m_inst_info.find(key);
-    if (foundEntry == m_inst_info.end())
+    auto redisInfos = SonicDBConfig::getInstanceList(key);
+    if (redisInfos.empty())
     {
         string msg = "Key " + key.toString() + " is not a valid key name in Redis instances in config file";
         SWSS_LOG_ERROR("%s", msg.c_str());
         throw out_of_range(msg);
     }
-    auto& redisInfos = foundEntry->second;
-    auto foundRedis = redisInfos.find(getDbInfo(dbName, key).zmq);
+
+    auto instanceName = getDbInfo(dbName, key).zmq;
+    return SonicDBConfig::findInstInfo(redisInfos, dbName, key, instanceName);
+}
+
+RedisInstInfo SonicDBConfig::findInstInfo(const std::map<std::string, RedisInstInfo> &redisInfos, const std::string &dbName, const SonicDBKey &key, const std::string &instanceName)
+{
+    auto foundRedis = redisInfos.find(instanceName);
     if (foundRedis == redisInfos.end())
     {
         string msg = "Failed to find the Redis instance for " + dbName + " database in " + key.toString() + " key";
@@ -471,6 +467,32 @@ int SonicDBConfig::getDbPort(const string &dbName, const string &netns, const st
 int SonicDBConfig::getDbPort(const string &dbName, const SonicDBKey &key)
 {
     return getRedisInfo(dbName, key).port;
+}
+
+string SonicDBConfig::getZmqHostname(const string &dbName, const string &netns, const std::string &containerName)
+{
+    SonicDBKey key;
+    key.netns = netns;
+    key.containerName = containerName;
+    return getZmqHostname(dbName, key);
+}
+
+string SonicDBConfig::getZmqHostname(const string &dbName, const SonicDBKey &key)
+{
+    return getZmqInfo(dbName, key).hostname;
+}
+
+int SonicDBConfig::getZmqPort(const string &dbName, const string &netns, const std::string &containerName)
+{
+    SonicDBKey key;
+    key.netns = netns;
+    key.containerName = containerName;
+    return getZmqPort(dbName, key);
+}
+
+int SonicDBConfig::getZmqPort(const string &dbName, const SonicDBKey &key)
+{
+    return getZmqInfo(dbName, key).port;
 }
 
 vector<string> SonicDBConfig::getNamespaces()

@@ -69,5 +69,11 @@ TEST(DBConnector, get_dpu_zmq_address)
     RedisInstInfo zmq = SonicDBConfig::getZmqInfo("DPU_APPL_DB", key);
     EXPECT_STREQ(zmq.hostname.c_str(), "127.0.0.1");
     EXPECT_EQ(zmq.port, 1234);
+
+    std::string hostname = SonicDBConfig::getZmqHostname("DPU_APPL_DB", key);
+    EXPECT_STREQ(hostname.c_str(), "127.0.0.1");
+
+    int port = SonicDBConfig::getZmqPort("DPU_APPL_DB", key);
+    EXPECT_EQ(port, 1234);
 }
 

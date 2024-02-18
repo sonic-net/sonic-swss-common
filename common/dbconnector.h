@@ -127,6 +127,10 @@ public:
     static std::string getDbHostname(const std::string &dbName, const SonicDBKey &key);
     static int getDbPort(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE, const std::string &containerName=EMPTY_CONTAINERNAME);
     static int getDbPort(const std::string &dbName, const SonicDBKey &key);
+    static std::string getZmqHostname(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE, const std::string &containerName=EMPTY_CONTAINERNAME);
+    static std::string getZmqHostname(const std::string &dbName, const SonicDBKey &key);
+    static int getZmqPort(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE, const std::string &containerName=EMPTY_CONTAINERNAME);
+    static int getZmqPort(const std::string &dbName, const SonicDBKey &key);
     static std::vector<std::string> getNamespaces();
 #if defined(SWIG) && defined(SWIGPYTHON)
     %pythoncode %{
@@ -160,7 +164,8 @@ private:
                                     std::unordered_map<int, std::string> &separator_entry);
     static RedisInstInfo& getRedisInfo(const std::string &dbName, const SonicDBKey &key);
     static SonicDBInfo& getDbInfo(const std::string &dbName, const SonicDBKey &key);
-    static RedisInstInfo& getZmqInfo(const std::string &dbName, const SonicDBKey &key);
+    static RedisInstInfo getZmqInfo(const std::string &dbName, const SonicDBKey &key);
+    static RedisInstInfo findInstInfo(const std::map<std::string, RedisInstInfo> &redisInfos, const std::string &dbName, const SonicDBKey &key, const std::string &instanceName);
 };
 
 class RedisContext
