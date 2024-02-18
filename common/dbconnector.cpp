@@ -302,6 +302,7 @@ std::map<std::string, RedisInstInfo>& SonicDBConfig::getRedisInfos(const SonicDB
             SWSS_LOG_THROW("Initialize global DB config using API SonicDBConfig::initializeGlobalConfig");
         }
     }
+
     auto foundEntry = m_inst_info.find(key);
     if (foundEntry == m_inst_info.end())
     {
@@ -322,6 +323,7 @@ RedisInstInfo& SonicDBConfig::findInstInfo(std::map<std::string, RedisInstInfo> 
         SWSS_LOG_ERROR("%s", msg.c_str());
         throw out_of_range(msg);
     }
+
     return foundRedis->second;
 }
 
