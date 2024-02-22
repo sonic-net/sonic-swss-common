@@ -48,6 +48,40 @@ NetLink::~NetLink()
     }
 }
 
+void NetLink::setRxBufSizeIfSupported(int size)
+{
+    int fd, err;
+    char *increasedBufSupport;
+
+    if (size < 0) {
+        SWSS_LOG_ERROR("%s(): Rx Buffer size cannot be negative", __FUNCTION__);
+    } else if (size <= 3145728) {
+        /* Permissible buffer size for all systems */
+        nl_socket_set_buffer_size(m_socket, 3145728, 0);
+    } else {
+        /* Check if the system is capable of the buffer size before setting it */
+        increasedBufSupport = getenv("supports_increased_netlink_buffer");
+        if (increasedBufSupport && !strcmp(increasedBufSupport, "true")) {
+            fd =  nl_socket_get_fd(m_socket);
+            if (fd <= 0) {
+                SWSS_LOG_ERROR("%s(): Invlaid socket fd", __FUNCTION__);
+                return;
+            }
+            /* We maybe going above the system default rmem, so use SO_RCVBUFFORCE */
+            SWSS_LOG_INFO("%s(): Setting buffer size as %d for netlink fd = %d",
+                    __FUNCTION__, size,  fd);
+            err = setsockopt(fd, SOL_SOCKET, SO_RCVBUFFORCE, &size, sizeof(size));
+            if (err != 0) {
+                SWSS_LOG_ERROR("%s(): Failed to set  buffer size as %d for netlink fd = %d",
+                       __FUNCTION__, size, fd);
+            }
+        } else {
+            SWSS_LOG_INFO("%s(): increasedBufSupport is %s, not applying the buffer size",
+                    __FUNCTION__, increasedBufSupport);
+        }
+    }
+}
+
 void NetLink::registerGroup(int rtnlGroup)
 {
     int err = nl_socket_add_membership(m_socket, rtnlGroup);
