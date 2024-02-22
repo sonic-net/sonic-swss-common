@@ -164,6 +164,7 @@
         temp.push_back(std::pair< std::string,std::string >());
         PyObject *item = PySequence_GetItem($input, i);
         if (!PyTuple_Check(item) || PyTuple_Size(item) != 2) {
+            Py_DECREF(item);
             SWIG_fail;
         }
         PyObject *key = PyTuple_GetItem(item, 0);
@@ -174,6 +175,7 @@
         } else if (SWIG_AsPtr_std_string(key, &ptr)) {
             temp.back().first = *ptr;
         } else {
+            Py_DECREF(item);
             SWIG_fail;
         }
         if (PyBytes_Check(value)) {
@@ -181,8 +183,10 @@
         } else if (SWIG_AsPtr_std_string(value, &ptr)) {
             temp.back().second = *ptr;
         } else {
+            Py_DECREF(item);
             SWIG_fail;
         }
+        Py_DECREF(item);
     }
     $1 = &temp;
 }
@@ -193,6 +197,7 @@
         PyObject *item = PySequence_GetItem($input, i);
         if (!PyTuple_Check(item) || PyTuple_Size(item) != 2) {
             $1 = 0;
+            Py_DECREF(item);
             break;
         }
         PyObject *key = PyTuple_GetItem(item, 0);
@@ -204,8 +209,10 @@
             && !PyUnicode_Check(value)
             && !PyString_Check(value)) {
             $1 = 0;
+            Py_DECREF(item);
             break;
         }
+        Py_DECREF(item);
     }
 }
 
