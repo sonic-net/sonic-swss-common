@@ -10,6 +10,22 @@
         {
             "namespace" : "asic1",
             "include" : "../redis_multi_db_ut_config/database_config1.json"
+        },
+        {
+            "namespace" : "asic2",
+            "include" : "../redis_multi_db_ut_config/database_config2.json"
+        },
+        {
+            "namespace" : "asic3",
+            "include" : "../redis_multi_db_ut_config/database_config3.json"
+        },
+        {
+            "container_name" : "dpu0",
+            "include" : "../redis_multi_db_ut_config/database_config4.json"
+        },
+        {
+            "container_name" : "dpu1",
+            "include" : "../redis_multi_db_ut_config/database_config5.json"
         }
     ],
     "VERSION" : "1.0"

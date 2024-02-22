@@ -11,17 +11,7 @@
 #include "logger.h"
 #include "table.h"
 #include "json.h"
-
-#if defined(__arm__) || defined(__aarch64__)
-#define WARNINGS_NO_CAST_ALIGN \
-    _Pragma ("GCC diagnostic push") \
-    _Pragma ("GCC diagnostic ignored \"-Wcast-align\"")
-#define WARNINGS_RESET \
-    _Pragma ("GCC diagnostic pop")
-#else
-#define WARNINGS_NO_CAST_ALIGN
-#define WARNINGS_RESET
-#endif
+#include "armhelper.h"
 
 using namespace std;
 using namespace swss;

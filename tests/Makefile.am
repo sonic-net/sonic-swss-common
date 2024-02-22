@@ -1,53 +1,53 @@
-INCLUDES = -I $(top_srcdir)
-
-bin_PROGRAMS = tests
-
-if DEBUG
-DBGFLAGS = -ggdb -DDEBUG
-else
-DBGFLAGS = -g -DNDEBUG
-endif
+bin_PROGRAMS += tests/tests
 
 CFLAGS_GTEST =
 LDADD_GTEST = -L/usr/src/gtest -lgtest -lgtest_main -lgmock -lgmock_main
 
-tests_SOURCES = redis_ut.cpp                \
-                redis_piped_ut.cpp          \
-                redis_state_ut.cpp          \
-                redis_piped_state_ut.cpp    \
-                tokenize_ut.cpp             \
-                json_ut.cpp                 \
-                ntf_ut.cpp                  \
-                ipaddress_ut.cpp            \
-                ipprefix_ut.cpp             \
-                macaddress_ut.cpp           \
-                converter_ut.cpp            \
-                exec_ut.cpp                 \
-                redis_subscriber_state_ut.cpp \
-                selectable_priority.cpp       \
-                warm_restart_ut.cpp         \
-                redis_multi_db_ut.cpp       \
-                logger_ut.cpp               \
-                ../common/loglevel.cpp      \
-                loglevel_ut.cpp             \
-                redis_multi_ns_ut.cpp       \
-                fdb_flush.cpp               \
-                stringutility_ut.cpp        \
-                redisutility_ut.cpp         \
-                boolean_ut.cpp              \
-                status_code_util_test.cpp   \
-                saiaclschema_ut.cpp         \
-                countertable_ut.cpp         \
-                timer_ut.cpp                \
-                cli_ut.cpp                  \
-                defaultvalueprovider_ut.cpp \
-                events_common_ut.cpp        \
-                events_service_ut.cpp       \
-                events_ut.cpp               \
-                restart_waiter_ut.cpp       \
-                redis_table_waiter_ut.cpp   \
-                main.cpp
+tests_tests_SOURCES = tests/redis_ut.cpp                \
+                      tests/redis_piped_ut.cpp          \
+                      tests/redis_command_ut.cpp        \
+                      tests/redis_state_ut.cpp          \
+                      tests/redis_piped_state_ut.cpp    \
+                      tests/tokenize_ut.cpp             \
+                      tests/json_ut.cpp                 \
+                      tests/ntf_ut.cpp                  \
+                      tests/ipaddress_ut.cpp            \
+                      tests/ipprefix_ut.cpp             \
+                      tests/macaddress_ut.cpp           \
+                      tests/converter_ut.cpp            \
+                      tests/exec_ut.cpp                 \
+                      tests/redis_subscriber_state_ut.cpp \
+                      tests/selectable_priority.cpp       \
+                      tests/warm_restart_ut.cpp         \
+                      tests/redis_multi_db_ut.cpp       \
+                      tests/logger_ut.cpp               \
+                      common/loglevel.cpp               \
+                      tests/loglevel_ut.cpp             \
+                      tests/redis_multi_ns_ut.cpp       \
+                      tests/redis_smartswitch_ut.cpp    \
+                      tests/fdb_flush.cpp               \
+                      tests/stringutility_ut.cpp        \
+                      tests/redisutility_ut.cpp         \
+                      tests/boolean_ut.cpp              \
+                      tests/status_code_util_test.cpp   \
+                      tests/saiaclschema_ut.cpp         \
+                      tests/countertable_ut.cpp         \
+                      tests/timer_ut.cpp                \
+                      tests/cli_ut.cpp                  \
+                      tests/events_common_ut.cpp        \
+                      tests/events_service_ut.cpp       \
+                      tests/events_ut.cpp               \
+                      tests/restart_waiter_ut.cpp       \
+                      tests/redis_table_waiter_ut.cpp   \
+                      tests/binary_serializer_ut.cpp    \
+                      tests/zmq_state_ut.cpp            \
+                      tests/profileprovider_ut.cpp      \
+                      tests/main.cpp
 
-tests_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_GTEST) $(LIBNL_CFLAGS)
-tests_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_GTEST) $(LIBNL_CFLAGS)
-tests_LDADD = $(LDADD_GTEST) -lpthread -L$(top_srcdir)/common -lswsscommon $(LIBNL_LIBS) $(CODE_COVERAGE_LIBS) -L$(top_srcdir)/sonic-db-cli -lsonicdbcli -lzmq -luuid -lboost_serialization
+tests_tests_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_GTEST) $(LIBNL_CFLAGS)
+tests_tests_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_GTEST) $(LIBNL_CFLAGS) -fno-access-control
+tests_tests_LDADD = $(LDADD_GTEST) -lpthread common/libswsscommon.la $(LIBNL_LIBS) $(CODE_COVERAGE_LIBS) sonic-db-cli/libsonicdbcli.la -lzmq -luuid -lboost_serialization
+
+if YANGMODS
+tests_tests_SOURCES += tests/defaultvalueprovider_ut.cpp
+endif

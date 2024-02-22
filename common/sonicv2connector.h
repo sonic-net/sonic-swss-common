@@ -20,6 +20,8 @@ public:
 
     void close(const std::string& db_name);
 
+    void close();
+
     std::vector<std::string> get_db_list();
 
     int get_dbid(const std::string& db_name);

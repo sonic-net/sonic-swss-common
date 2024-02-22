@@ -12,7 +12,7 @@
 using namespace swss;
 using namespace std;
 
-static const string FAST_REBOOT_KEY = "FAST_REBOOT|system";
+static const string FAST_REBOOT_KEY = "FAST_RESTART_ENABLE_TABLE|system";
 
 static void set_reboot_status(string status, int delay = 0)
 {
@@ -31,12 +31,12 @@ class FastBootHelper
 public:
     FastBootHelper(): db("STATE_DB", 0)
     {
-        db.set(FAST_REBOOT_KEY, "1");
+        db.hset(FAST_REBOOT_KEY, "enable", "true");
     }
 
     ~FastBootHelper()
     {
-        db.del({FAST_REBOOT_KEY});
+        db.hset(FAST_REBOOT_KEY, "enable", "false");
     }
 private:
     DBConnector db;

@@ -67,9 +67,23 @@ public:
         }
         catch (exception &e)
         {
-            EXPECT_TRUE(strstr(e.what(), "Namespace invalid is not a valid namespace name in config file"));
+            // EXPECT_TRUE(strstr(e.what(), "Key :invalid invalid is not a valid key name in config file"));
+            EXPECT_STREQ(e.what(), "Key :invalid is not a valid key name in config file");
         }
 
+        // reset SonicDBConfig, init should be false
+        SonicDBConfig::reset();
+        cout<<"RESET: isInit = "<<SonicDBConfig::isInit()<<endl;
+        EXPECT_FALSE(SonicDBConfig::isInit());
+        EXPECT_FALSE(SonicDBConfig::isGlobalInit());
+
+        // reinitialize SonicDBConfig, init should be true
+        SonicDBConfig::initialize(existing_file);
+        cout<<"INIT: load local db config file, isInit = "<<SonicDBConfig::isInit()<<endl;
+        EXPECT_TRUE(SonicDBConfig::isInit());
+        SonicDBConfig::initializeGlobalConfig(global_existing_file);
+        cout<<"INIT: load global db config file, isInit = "<<SonicDBConfig::isGlobalInit()<<endl;
+        EXPECT_TRUE(SonicDBConfig::isGlobalInit());
     }
 };
 

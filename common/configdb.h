@@ -59,6 +59,13 @@ protected:
             self.handlers = {}
             self.fire_init_data = {}
 
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_value, exc_tb):
+            self.close()
+            pass
+
         @property
         def KEY_SEPARATOR(self):
             return self.getKeySeparator()
@@ -105,8 +112,11 @@ protected:
                     try:
                         (table, row) = key.split(self.TABLE_NAME_SEPARATOR, 1)
                         if table in self.handlers:
-                            client = self.get_redis_client(self.db_name)
-                            data = self.raw_to_typed(client.hgetall(key))
+                            if item['data'] == 'del':
+                                data = None
+                            else:
+                                client = self.get_redis_client(self.db_name)
+                                data = self.raw_to_typed(client.hgetall(key))
                             if table in init_data and row in init_data[table]:
                                 cache_hit = init_data[table][row] == data
                                 del init_data[table][row]
@@ -198,8 +208,12 @@ protected:
         def mod_config(self, data):
             raw_config = {}
             for table_name, table_data in data.items():
+                if table_data == {}:
+                    # When table data is {}, no action.
+                    continue
                 raw_config[table_name] = {}
                 if table_data == None:
+                    # When table data is 'None', delete the table.
                     continue
                 for key, data in table_data.items():
                     raw_key = self.serialize_key(key)
@@ -240,6 +254,12 @@ protected:
                     entry = self.raw_to_typed(entry)
                     ret.setdefault(table_name, {})[self.deserialize_key(row)] = entry
             return ret
+
+%}
+#endif
+
+#if defined(SWIG) && defined(SWIGPYTHON) && defined(ENABLE_YANG_MODULES)
+%pythoncode %{
 
     class YangDefaultDecorator(object):
         def __init__(self, config_db_connector):

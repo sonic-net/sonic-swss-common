@@ -72,6 +72,11 @@
             "separator": ":",
             "instance": "redis"
         },
+        "PROFILE_DB" : {
+            "id" : 12,
+            "separator": "|",
+            "instance" : "redis"
+        },
         "STATE_DB2" : {
             "id" : 13,
             "separator": "|",

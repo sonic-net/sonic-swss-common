@@ -44,11 +44,13 @@ void Logger::terminateSettingThread()
 
     if (m_settingThread)
     {
-        m_runSettingThread = false;
+        m_stopEvent->notify();
 
         m_settingThread->join();
 
         m_settingThread = nullptr;
+
+        m_stopEvent = nullptr;
     }
 }
 
@@ -56,7 +58,7 @@ void Logger::restartSettingThread()
 {
     terminateSettingThread();
 
-    m_runSettingThread = true;
+    m_stopEvent = std::make_unique<SelectableEvent>(0);
 
     m_settingThread.reset(new std::thread(&Logger::settingThread, this));
 }
@@ -166,6 +168,11 @@ void Logger::linkToDbNative(const std::string& dbName, const char * defPrio)
     getInstance().restartSettingThread();
 }
 
+void Logger::restartLogger()
+{
+    getInstance().restartSettingThread();
+}
+
 Logger& Logger::getInstance()
 {
     static Logger m_logger;
@@ -190,8 +197,9 @@ void Logger::settingThread()
     auto table = std::make_shared<SubscriberStateTable>(&db, CFG_LOGGER_TABLE_NAME);
     selectables.emplace(CFG_LOGGER_TABLE_NAME, table);
     select.addSelectable(table.get());
+    select.addSelectable(m_stopEvent.get());
 
-    while (m_runSettingThread)
+    while (1)
     {
 
         Selectable *selectable = nullptr;
@@ -209,6 +217,11 @@ void Logger::settingThread()
         {
             SWSS_LOG_DEBUG("%s select timeout", __PRETTY_FUNCTION__);
             continue;
+        }
+
+        if (selectable == m_stopEvent.get())
+        {
+            break;
         }
 
         KeyOpFieldsValuesTuple koValues;

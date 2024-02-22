@@ -134,13 +134,9 @@ void ProducerStateTable::set(const string &key, const vector<FieldValueTuple> &v
         args.emplace_back(fvValue(iv));
     }
 
-    // Transform data structure
-    vector<const char *> args1;
-    transform(args.begin(), args.end(), back_inserter(args1), [](const string &s) { return s.c_str(); } );
-
     // Invoke redis command
     RedisCommand command;
-    command.formatArgv((int)args1.size(), &args1[0], NULL);
+    command.format(args);
     m_pipe->push(command, REDIS_REPLY_NIL);
     if (!m_buffered)
     {
@@ -171,13 +167,9 @@ void ProducerStateTable::del(const string &key, const string &op /*= DEL_COMMAND
     args.emplace_back("''");
     args.emplace_back("''");
 
-    // Transform data structure
-    vector<const char *> args1;
-    transform(args.begin(), args.end(), back_inserter(args1), [](const string &s) { return s.c_str(); } );
-
     // Invoke redis command
     RedisCommand command;
-    command.formatArgv((int)args1.size(), &args1[0], NULL);
+    command.format(args);
     m_pipe->push(command, REDIS_REPLY_NIL);
     if (!m_buffered)
     {
@@ -224,13 +216,9 @@ void ProducerStateTable::set(const std::vector<KeyOpFieldsValuesTuple>& values)
         }
     }
 
-    // Transform data structure
-    vector<const char *> args1;
-    transform(args.begin(), args.end(), back_inserter(args1), [](const string &s) { return s.c_str(); } );
-
     // Invoke redis command
     RedisCommand command;
-    command.formatArgv((int)args1.size(), &args1[0], NULL);
+    command.format(args);
     m_pipe->push(command, REDIS_REPLY_NIL);
     if (!m_buffered)
     {
@@ -265,13 +253,9 @@ void ProducerStateTable::del(const std::vector<std::string>& keys)
     }
     args.emplace_back("G");
 
-    // Transform data structure
-    vector<const char *> args1;
-    transform(args.begin(), args.end(), back_inserter(args1), [](const string &s) { return s.c_str(); } );
-
     // Invoke redis command
     RedisCommand command;
-    command.formatArgv((int)args1.size(), &args1[0], NULL);
+    command.format(args);
     m_pipe->push(command, REDIS_REPLY_NIL);
     if (!m_buffered)
     {
@@ -307,13 +291,9 @@ void ProducerStateTable::clear()
     args.emplace_back(getStateHashPrefix() + getTableName());
     args.emplace_back(getDelKeySetName());
 
-    // Transform data structure
-    vector<const char *> args1;
-    transform(args.begin(), args.end(), back_inserter(args1), [](const string &s) { return s.c_str(); } );
-
     // Invoke redis command
     RedisCommand cmd;
-    cmd.formatArgv((int)args1.size(), &args1[0], NULL);
+    cmd.format(args);
     m_pipe->push(cmd, REDIS_REPLY_NIL);
     m_pipe->flush();
 }
@@ -466,13 +446,9 @@ void ProducerStateTable::apply_temp_view()
         SWSS_LOG_DEBUG("apply_view.lua is called with following argument list: %s", ss.str().c_str());
     }
 
-    // Transform data structure
-    vector<const char *> args1;
-    transform(args.begin(), args.end(), back_inserter(args1), [](const string &s) { return s.c_str(); } );
-
     // Invoke redis command
     RedisCommand command;
-    command.formatArgv((int)args1.size(), &args1[0], NULL);
+    command.format(args);
     m_pipe->push(command, REDIS_REPLY_NIL);
     m_pipe->flush();
 

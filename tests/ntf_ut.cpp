@@ -164,3 +164,54 @@ TEST(Notifications, peek)
     int rc = nc.peek();
     EXPECT_EQ(rc, 0);
 }
+
+TEST(Notifications, pipelineProducer)
+{
+    SWSS_LOG_ENTER();
+
+    swss::DBConnector dbNtf("ASIC_DB", 0, true);
+    swss::RedisPipeline pipeline{&dbNtf};
+    swss::NotificationConsumer nc(&dbNtf, "NOTIFICATIONS", 100, (size_t)10);
+    const bool buffered = true;
+    swss::NotificationProducer notifications(&pipeline, "NOTIFICATIONS", buffered);
+
+    std::vector<swss::FieldValueTuple> entry;
+    for(int i = 0; i < messages; i++)
+    {
+        auto s = std::to_string(i+1);
+        auto sentClients = notifications.send("ntf", s, entry);
+        // In buffered mode we get -1 in return
+        EXPECT_EQ(sentClients, -1);
+    }
+
+    // Flush the pipeline
+    pipeline.flush();
+
+    // Pop all the notifications
+    std::deque<swss::KeyOpFieldsValuesTuple> vkco;
+    size_t popped = 0;
+    size_t npop = 10000;
+    int collected = 0;
+    while(nc.peek() > 0 && popped < npop)
+    {
+        nc.pops(vkco);
+        popped += vkco.size();
+
+        for (auto& kco : vkco)
+        {
+            collected++;
+            auto data = kfvKey(kco);
+            auto op = kfvOp(kco);
+
+            EXPECT_EQ(op, "ntf");
+            int i = stoi(data);
+            EXPECT_EQ(i, collected);
+        }
+    }
+    EXPECT_EQ(popped, (size_t)messages);
+
+    // Peek and get nothing more
+    int rc = nc.peek();
+    EXPECT_EQ(rc, 0);
+}
+

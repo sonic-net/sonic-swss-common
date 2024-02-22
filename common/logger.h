@@ -10,6 +10,7 @@
 #include <functional>
 
 #include "concurrentmap.h"
+#include "selectableevent.h"
 
 namespace swss {
 
@@ -91,6 +92,7 @@ public:
     static void linkToDb(const std::string& dbName, const PriorityChangeNotify& notify, const std::string& defPrio);
     // Must be called after all linkToDb to start select from DB
     static void linkToDbNative(const std::string& dbName, const char * defPrio="NOTICE");
+    static void restartLogger();
     void write(Priority prio, const char *fmt, ...)
 #ifdef __GNUC__
         __attribute__ ((format (printf, 3, 4)))
@@ -160,7 +162,7 @@ private:
     std::atomic<Output> m_output = { SWSS_SYSLOG };
     std::unique_ptr<std::thread> m_settingThread;
     std::mutex m_mutex;
-    volatile bool m_runSettingThread = true;
+    std::unique_ptr<SelectableEvent> m_stopEvent;
 };
 
 }

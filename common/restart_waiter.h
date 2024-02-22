@@ -20,7 +20,9 @@ public:
     static bool waitFastBootDone(unsigned int maxWaitSec = 180,
                                     unsigned int dbTimeout = 0,
                                     bool isTcpConn = false);
-
+    
+    static bool isAdvancedBootInProgressHelper(swss::DBConnector &stateDb,
+                                                bool checkFastBoot = false);
     static bool isAdvancedBootInProgress(swss::DBConnector &stateDb);
     static bool isFastBootInProgress(swss::DBConnector &stateDb);
     static bool isWarmBootInProgress(swss::DBConnector &stateDb);

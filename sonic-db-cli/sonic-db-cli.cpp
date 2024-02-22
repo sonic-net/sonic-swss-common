@@ -41,7 +41,7 @@ string handleSingleOperation(
     const string& netns,
     const string& db_name,
     const string& operation,
-    bool isTcpConn)
+    bool useUnixSocket)
 {
     shared_ptr<DBConnector> client;
     auto host = SonicDBConfig::getDbHostname(db_name, netns);
@@ -49,9 +49,9 @@ string handleSingleOperation(
     try
     {
         auto db_id =  SonicDBConfig::getDbId(db_name, netns);
-        if (!isTcpConn && db_name != "redis_chassis.server")
+        if (useUnixSocket && db_name != "redis_chassis.server")
         {
-            auto db_socket = SonicDBConfig::getDbSock(db_name);
+            auto db_socket = SonicDBConfig::getDbSock(db_name, netns);
             message += db_name + ": Connection refused";
             client = make_shared<DBConnector>(db_id, db_socket, 0);
         }
@@ -89,7 +89,7 @@ string handleSingleOperation(
 int handleAllInstances(
     const string& netns,
     const string& operation,
-    bool isTcpConn)
+    bool useUnixSocket)
 {
     auto db_names = SonicDBConfig::getDbList(netns);
     // Operate All Redis Instances in Parallel
@@ -97,7 +97,7 @@ int handleAllInstances(
     list<future<string>> responses;
     for (auto& db_name : db_names)
     {
-        future<string> response = std::async(std::launch::async, handleSingleOperation, netns, db_name, operation, isTcpConn);
+        future<string> response = std::async(std::launch::async, handleSingleOperation, netns, db_name, operation, useUnixSocket);
         responses.push_back(std::move(response));
     }
 
@@ -133,22 +133,22 @@ int executeCommands(
     const string& db_name,
     vector<string>& commands,
     const string& netns,
-    bool isTcpConn)
+    bool useUnixSocket)
 {
     shared_ptr<DBConnector> client = nullptr;
     try
     {
         int db_id =  SonicDBConfig::getDbId(db_name, netns);
-        if (isTcpConn)
+        if (useUnixSocket)
+        {
+            auto db_socket = SonicDBConfig::getDbSock(db_name, netns);
+            client = make_shared<DBConnector>(db_id, db_socket, 0);
+        }
+        else
         {
             auto host = SonicDBConfig::getDbHostname(db_name, netns);
             auto port = SonicDBConfig::getDbPort(db_name, netns);
             client = make_shared<DBConnector>(db_id, host, port, 0);
-        }
-        else
-        {
-            auto db_socket = SonicDBConfig::getDbSock(db_name);
-            client = make_shared<DBConnector>(db_id, db_socket, 0);
         }
     }
     catch (const exception& e)
@@ -279,19 +279,16 @@ int sonic_db_cli(
     {
         auto dbOrOperation = options.m_db_or_op;
         auto netns = options.m_namespace;
-        bool isTcpConn = !options.m_unixsocket;
+        bool useUnixSocket = options.m_unixsocket;
         // Load the database config for the namespace
         if (!netns.empty())
         {
             initializeGlobalConfig();
+
+            // Use the unix domain connectivity if namespace not empty.
+            useUnixSocket = true;
         }
-        else
-        {
-            // Use the tcp connectivity if namespace is local and unixsocket cmd_option is present.
-            isTcpConn = true;
-            netns = "";
-        }
-        
+
         if (options.m_cmd.size() != 0)
         {
             auto commands = options.m_cmd;
@@ -301,7 +298,7 @@ int sonic_db_cli(
                 initializeConfig();
             }
 
-            return executeCommands(dbOrOperation, commands, netns, isTcpConn);
+            return executeCommands(dbOrOperation, commands, netns, useUnixSocket);
         }
         else if (dbOrOperation == "PING"
                 || dbOrOperation == "SAVE"
@@ -317,7 +314,7 @@ int sonic_db_cli(
                     initializeConfig();
                 }
 
-                return handleAllInstances(netns, dbOrOperation, isTcpConn);
+                return handleAllInstances(netns, dbOrOperation, useUnixSocket);
             }
             catch (const exception& e)
             {
@@ -341,6 +338,38 @@ int sonic_db_cli(
     }
 
     return 0;
+}
+
+
+int cli_exception_wrapper(
+    int argc,
+    char** argv,
+    function<void()> initializeGlobalConfig,
+    function<void()> initializeConfig)
+{
+    try
+    {
+        return sonic_db_cli(
+                        argc,
+                        argv,
+                        initializeGlobalConfig,
+                        initializeConfig);
+    }
+    catch (const exception& e)
+    {
+        // sonic-db-cli is porting from python version.
+        // in python version, when any exception happen sonic-db-cli will crash but will not generate core dump file.
+        // catch all exception here to avoid a core dump file generated.
+        cerr << "An exception of type " << e.what() << " occurred. Arguments:" << endl;
+        for (int idx = 0; idx < argc; idx++)
+        {
+            cerr << argv[idx]  << " ";
+        }
+        cerr << endl;
+
+        // when python version crash, exit code is 1.
+        return 1;
+    }
 }
 
 string getCommandName(vector<string>& commands)

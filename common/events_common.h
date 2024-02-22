@@ -11,7 +11,7 @@
 #include <errno.h>
 #include <cxxabi.h>
 #include "string.h"
-#include "json.hpp"
+#include <nlohmann/json.hpp>
 #include "zmq.h"
 #include <unordered_map>
 #include <boost/serialization/vector.hpp>
