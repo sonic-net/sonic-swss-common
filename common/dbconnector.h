@@ -127,6 +127,7 @@ public:
     static int getDbPort(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE, const std::string &containerName=EMPTY_CONTAINERNAME);
     static int getDbPort(const std::string &dbName, const SonicDBKey &key);
     static std::vector<std::string> getNamespaces();
+    static std::vector<SonicDBKey> getDbKeys();
 #if defined(SWIG) && defined(SWIGPYTHON)
     %pythoncode %{
         ## TODO: the python function and C++ one is not on-par

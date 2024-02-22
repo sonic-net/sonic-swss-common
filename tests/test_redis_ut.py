@@ -835,6 +835,7 @@ def test_SmartSwitchDBConnector():
     test_dir = os.path.dirname(os.path.abspath(__file__))
     global_db_config = os.path.join(test_dir, 'redis_multi_db_ut_config', 'database_global.json')
     SonicDBConfig.load_sonic_global_db_config(global_db_config)
+    global_db_config_json = json.load(open(global_db_config))
     db_key = SonicDBKey()
     db_key.containerName = "dpu0"
     db = swsscommon.DBConnector("DPU_APPL_DB", 0, True, db_key)
@@ -848,4 +849,5 @@ def test_SmartSwitchDBConnector():
     assert "dputest2" in keys
     assert tbl.get("dputest1")[1][0] == ("dashfield1", "dashvalue1")
     assert tbl.get("dputest2")[1][1] == ("dashfield2", "dashvalue2")
+    assert len(SonicDBConfig.getDbKeys()) == len(global_db_config_json["INCLUDES"])
 
