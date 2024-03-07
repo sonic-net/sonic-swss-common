@@ -151,3 +151,88 @@ jobs:
         codeCoverageTool: Cobertura
         summaryFileLocation: '$(System.DefaultWorkingDirectory)/coverage.xml'
       displayName: 'Publish test coverage'
+  - ${{ if and(eq(variables['Build.Reason'], 'PullRequest'), ne(variables['DIFF_COVER_DISABLE'], 'true')) }}:
+    - script: |
+        sudo pip install diff-cover
+        target_branch=$(System.PullRequest.TargetBranch)
+        compare_branch=origin/${target_branch#refs/heads/}
+        mkdir -p .coverage/htmlcov
+        converage_files="$DIFF_COVER_COVERAGE_FILES"
+        if [ -z "$converage_files" ]; then
+          converage_files="$(find . -maxdepth 2 -name coverage.xml)"
+        fi
+        if [ -z "$converage_files" ]; then
+          echo "Skipped, the coverage files not found"
+          exit 0
+        fi
+        diff-cover $converage_files --ignore-unstaged --compare-branch=$compare_branch --html-report=.coverage/htmlcov/index.html
+        diff-cover $converage_files --ignore-unstaged --compare-branch=$compare_branch --json-report=.coverage/diff-cover.json
+        echo "##vso[task.setvariable variable=disable.coverage.autogenerate;]true"
+        echo "##vso[task.setvariable variable=has.coverage.files;]true"
+      displayName: "Show diff coverage"
+      continueOnError: true
+    - ${{ if ne(variables['DIFF_COVER_CHECK_DISABLE'], 'true') }}:
+      - task: PythonScript@0
+        inputs:
+          scriptSource: inline
+          script: |
+            import json, requests, os, datetime
+            cover = {}
+            checkThreshold=os.environ.get('DIFF_COVER_CHECK_THRESHOLD')
+            if not checkThreshold:
+              checkThreshold = '0'
+            threshold = 0
+            try:
+              threshold = float(checkThreshold)
+            except:
+              print('Failed to parse the DIFF_COVER_CHECK_THRESHOLD={0} to float'.format(checkThreshold))
+              exit(0)
+            with open(".coverage/diff-cover.json", "r") as f:
+              cover=json.load(f)
+            properties = {
+              'pullRequestId': $(System.PullRequest.PullRequestNumber),
+              'repoUri': '$(System.PullRequest.SourceRepositoryURI)',
+              'targetBranch': '$(System.PullRequest.TargetBranch)',
+              'sourceCommitId': '$(system.pullRequest.sourceCommitId)',
+              'sourceVersion': '$(Build.SourceVersion)',
+              'jobName': '$(Agent.JobName)',
+              'jobId': '$(System.JobId)',
+              'definitionName': '$(Build.DefinitionName)',
+              'stageName': '$(System.StageName)',
+              'jobAttempt': '$(System.JobAttempt)',
+              'timestamp': datetime.datetime.now().isoformat(),
+              'cover.threshold': threshold,
+              'cover.num_lines': cover.get("total_num_lines"),
+              'cover.num_violations': cover.get("total_num_violations"),
+              'cover.percent_covered': cover.get("total_percent_covered"),
+            }
+            data = [
+              {
+                'op': 'add',
+                'path': '/codediff.{0}'.format('$(Agent.JobName)'),
+                'value': json.dumps(properties)
+              }
+            ]
+            url="$(System.CollectionUri)$(System.TeamProjectId)/_apis/build/builds/$(Build.BuildId)/properties?api-version=6.0-preview.1"
+            authentication='Bearer {0}'.format(os.environ.get('SYSTEM_ACCESSTOKEN'))
+            headers = {"Authorization":authentication, "Content-Type":"application/json-patch+json"}
+            response = requests.patch(url, headers=headers, data=json.dumps(data))
+            if (response.status_code == 200):
+              print('The request was succeeded.')
+            else:
+              print('The request was failed, with error: {0}'.format(response.status_code))
+              print('The failure reason is {0}'.format(response.reason))
+        displayName: 'Update Build coverage'
+        condition: eq(variables['has.coverage.files'], 'true')
+        continueOnError: true
+        env:
+          SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+    - ${{ if ne(variables['DIFF_COVER_COVERAGE_REPORT_DISABLE'], 'true') }}:
+      - task: PublishCodeCoverageResults@1
+        inputs:
+          codeCoverageTool: Cobertura
+          summaryFileLocation: '$(System.DefaultWorkingDirectory)/coverage.xml'
+          reportDirectory: '$(System.DefaultWorkingDirectory)/diff-cover/htmlcov'
+        displayName: 'Publish coverage'
+        condition: eq(variables['has.coverage.files'], 'true')
+        continueOnError: true
