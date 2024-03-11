@@ -39,6 +39,7 @@ namespace swss {
 #define APP_ROUTE_TABLE_NAME              "ROUTE_TABLE"
 #define APP_LABEL_ROUTE_TABLE_NAME        "LABEL_ROUTE_TABLE"
 #define APP_TUNNEL_DECAP_TABLE_NAME       "TUNNEL_DECAP_TABLE"
+#define APP_TUNNEL_DECAP_TERM_TABLE_NAME  "TUNNEL_DECAP_TERM_TABLE"
 #define APP_TUNNEL_ROUTE_TABLE_NAME       "TUNNEL_ROUTE_TABLE"
 #define APP_FDB_TABLE_NAME                "FDB_TABLE"
 #define APP_PFC_WD_TABLE_NAME             "PFC_WD_TABLE"
@@ -417,6 +418,7 @@ namespace swss {
 #define CFG_PEER_SWITCH_TABLE_NAME                  "PEER_SWITCH"
 
 #define CFG_TUNNEL_TABLE_NAME                       "TUNNEL"
+#define CFG_SUBNET_DECAP_TABLE_NAME                 "SUBNET_DECAP"
 
 #define CFG_SYSTEM_PORT_TABLE_NAME                  "SYSTEM_PORT"
 #define CFG_VOQ_INBAND_INTERFACE_TABLE_NAME         "VOQ_INBAND_INTERFACE"
