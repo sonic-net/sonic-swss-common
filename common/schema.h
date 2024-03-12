@@ -557,6 +557,7 @@ namespace swss {
 #define APP_FABRIC_MONITOR_DATA_TABLE_NAME	"FABRIC_MONITOR_TABLE"
 #define APP_FABRIC_MONITOR_PORT_TABLE_NAME	"FABRIC_PORT_TABLE"
 
+
 #ifdef __cplusplus
 }
 #endif
