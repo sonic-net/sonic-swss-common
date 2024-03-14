@@ -77,12 +77,12 @@ bool PubSub::hasCachedData()
     return m_keyspace_event_buffer.size() > 1;
 }
 
-map<string, string> PubSub::get_message(double timeout, bool interrupt_on_signal)
+map<string, string> PubSub::get_message(double seconds, bool interrupt_on_signal)
 {
-    return get_message_internal(timeout, interrupt_on_signal).second;
+    return get_message_internal(seconds, interrupt_on_signal).second;
 }
 
-MessageResultPair PubSub::get_message_internal(double timeout, bool interrupt_on_signal)
+MessageResultPair PubSub::get_message_internal(double seconds, bool interrupt_on_signal)
 {
     MessageResultPair ret;
 
@@ -93,7 +93,7 @@ MessageResultPair PubSub::get_message_internal(double timeout, bool interrupt_on
     }
 
     Selectable *selected;
-    int rc = m_select.select(&selected, int(timeout), interrupt_on_signal);
+    int rc = m_select.select(&selected, int(seconds * 1000), interrupt_on_signal);
     ret.first = rc;
     switch (rc)
     {
