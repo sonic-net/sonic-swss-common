@@ -72,7 +72,7 @@ common_libswsscommon_la_SOURCES = \
 
 common_libswsscommon_la_CXXFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CFLAGS) $(CODE_COVERAGE_CXXFLAGS)
 common_libswsscommon_la_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CPPFLAGS) $(CODE_COVERAGE_CPPFLAGS)
-common_libswsscommon_la_LIBADD = -lpthread $(LIBNL_LIBS) $(CODE_COVERAGE_LIBS) -lzmq -lboost_serialization -luuid
+common_libswsscommon_la_LIBADD = -lpthread $(LIBNL_LIBS) $(CODE_COVERAGE_LIBS) -lzmq -lboost_serialization -luuid -ldl -lssl -lcrypto -lhiredis_ssl
 common_libswsscommon_la_LDFLAGS = -Wl,-z,now $(LDFLAGS)
 
 if YANGMODS

@@ -14,9 +14,108 @@
 #include "common/redispipeline.h"
 #include "common/pubsub.h"
 
+#include <iostream>
+#include <string>
+#include <grp.h>
+#include <cstring>
+
 using json = nlohmann::json;
 using namespace std;
 using namespace swss;
+#define SUDO_GID 27
+
+bool isUserInSudoGroup() {
+    int ngroups = getgroups(0, nullptr); // Get the number of supplementary groups
+    bool group_sudo_exists = false;
+    gid_t groupToFind = SUDO_GID;
+
+    if (ngroups < 0) {
+        SWSS_LOG_ERROR("no ngroups exits");
+        return false;
+    }
+
+    std::vector<gid_t> groups(ngroups);
+    if (getgroups(ngroups, groups.data()) < 0) {
+        SWSS_LOG_ERROR("no ngroups exits");
+        return false;
+    }
+
+    for (const auto& group : groups) {
+        if (group == groupToFind) {
+            group_sudo_exists = true;
+            break;
+
+        }
+    }
+    return group_sudo_exists;
+}
+
+bool isRootUser() {
+    uid_t uid = getuid(); // Get the user ID of the current user
+
+    return (uid == 0);
+}
+
+bool is_admin_user() {
+    bool is_admin_user = false;
+
+    if (isRootUser()) {
+        is_admin_user = true;
+    } else if (isUserInSudoGroup()) {
+        is_admin_user = true;
+    } 
+
+    return is_admin_user;
+}
+
+
+// Function to write content to a file
+void writeFile(const std::string& filename, const std::string& content) {
+    std::ofstream outputFile(filename, std::ios_base::app);
+
+    if (!outputFile.is_open()) {
+        std::cerr << "Failed to open the file for writing." << std::endl;
+        return;
+    }
+
+    outputFile << content;
+    outputFile.close();
+
+}
+
+// Function to read the entire content of a file and return as a string
+std::string readFileContent_pw(const std::string& filename) {
+    std::ifstream inputFile(filename);
+    std::string content;
+
+    if (!inputFile.is_open()) {
+        std::cerr << "Failed to open the file." << std::endl;
+        return content;
+    }
+
+    content.assign((std::istreambuf_iterator<char>(inputFile)), std::istreambuf_iterator<char>());
+
+    inputFile.close();
+
+    // Check if the string ends with '\n' and remove it.
+    if (!content.empty() && content.back() == '\n') {
+        content.pop_back();
+    }
+
+    return content;
+}
+
+std::string get_auth_cmd() {
+    std::string command = "";
+    if (is_admin_user()){
+        std::string shadow_redis_admin = readFileContent_pw("/etc/shadow_redis_dir/shadow_redis_admin");
+        command = std::string("auth admin ") + shadow_redis_admin;
+    }else{
+        std::string shadow_redis_monitor = readFileContent_pw("/etc/shadow_redis_dir/shadow_redis_monitor");
+        command = std::string("auth monitor ") + shadow_redis_monitor;
+    }
+    return command;
+}
 
 
 void SonicDBConfig::parseDatabaseConfig(const string &file,
@@ -541,11 +640,11 @@ RedisContext::RedisContext(const RedisContext &other)
     const char *unixPath = octx->unix_sock.path;
     if (unixPath)
     {
-        initContext(unixPath, octx->timeout);
+        initContext(unixPath, octx->connect_timeout);
     }
     else
     {
-        initContext(octx->tcp.host, octx->tcp.port, octx->timeout);
+        initContext(octx->tcp.host, octx->tcp.port, octx->connect_timeout);
     }
 }
 
@@ -563,6 +662,41 @@ void RedisContext::initContext(const char *host, int port, const timeval *tv)
     if (m_conn->err)
         throw system_error(make_error_code(errc::address_not_available),
                            "Unable to connect to redis");
+
+    // Redis SSL configuration
+    redisSSLContext *ssl;
+    redisSSLContextError ssl_error = REDIS_SSL_CTX_NONE;
+    const char *ca = "/etc/shadow_redis_dir/certs_redis/ca.crt";
+    redisInitOpenSSL();
+
+    redisSSLOptions options = {
+        .cacert_filename = ca,
+        .capath = NULL,
+        .cert_filename = NULL,
+        .private_key_filename = NULL,
+        .server_name = NULL,
+        .verify_mode = REDIS_SSL_VERIFY_NONE,
+    };
+
+
+    ssl = redisCreateSSLContextWithOptions(&options, &ssl_error);
+    if (!ssl || ssl_error != REDIS_SSL_CTX_NONE) {
+        SWSS_LOG_ERROR("SSL Context error: %s\n", redisSSLContextGetError(ssl_error));
+        exit(1);
+    }
+
+    // start ssl connection
+    if (redisInitiateSSLWithContext(m_conn, ssl) != REDIS_OK) {
+        SWSS_LOG_ERROR("Couldn't initialize SSL!\n");
+        redisFree(m_conn);
+        exit(1);
+    }
+
+
+    // Redis Authentication
+    std::string command = "";
+    command = get_auth_cmd();
+    RedisReply r1(this, command, REDIS_REPLY_STATUS);
 }
 
 void RedisContext::initContext(const char *path, const timeval *tv)
@@ -579,6 +713,11 @@ void RedisContext::initContext(const char *path, const timeval *tv)
     if (m_conn->err)
         throw system_error(make_error_code(errc::address_not_available),
                            "Unable to connect to redis (unix-socket)");
+
+    // Redis Authentication
+    std::string command = "";
+    command = get_auth_cmd();
+    RedisReply r1(this, command, REDIS_REPLY_STATUS);
 }
 
 redisContext *RedisContext::getContext() const
