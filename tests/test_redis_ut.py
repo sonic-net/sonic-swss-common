@@ -5,8 +5,17 @@ import multiprocessing
 from threading import Thread
 from pympler.tracker import SummaryTracker
 from swsscommon import swsscommon
-from swsscommon.swsscommon import ConfigDBPipeConnector, DBInterface, SonicV2Connector, SonicDBConfig, ConfigDBConnector, SonicDBConfig, transpose_pops
+from swsscommon.swsscommon import ConfigDBPipeConnector, DBInterface, SonicV2Connector, SonicDBConfig, ConfigDBConnector, SonicDBConfig, transpose_pops, SonicDBKey
 import json
+import gc
+
+import sys
+if sys.version_info.major == 3:
+    from unittest import mock
+else:
+    # Expect the 'mock' package for python 2
+    # https://pypi.python.org/pypi/mock
+    import mock
 
 def test_ProducerTable():
     db = swsscommon.DBConnector("APPL_DB", 0, True)
@@ -802,3 +811,43 @@ def test_ConfigDBConnector():
     config_db.mod_config(allconfig)
     allconfig = config_db.get_config()
     assert len(allconfig) == 0
+
+
+@mock.patch("swsscommon.swsscommon.ConfigDBConnector.close")
+def test_ConfigDBConnector_with_statement(self):
+    # test ConfigDBConnector support 'with' statement
+    with ConfigDBConnector() as config_db:
+        assert config_db.db_name == ""
+        assert config_db.TABLE_NAME_SEPARATOR == "|"
+        config_db.connect(wait_for_init=False)
+        assert config_db.db_name == "CONFIG_DB"
+        assert config_db.TABLE_NAME_SEPARATOR == "|"
+        config_db.get_redis_client(config_db.CONFIG_DB).flushdb()
+        config_db.set_entry("TEST_PORT", "Ethernet111", {"alias": "etp1x"})
+        allconfig = config_db.get_config()
+        assert allconfig["TEST_PORT"]["Ethernet111"]["alias"] == "etp1x"
+
+    # check close() method called by with statement
+    ConfigDBConnector.close.assert_called_once_with()
+
+
+def test_SmartSwitchDBConnector():
+    test_dir = os.path.dirname(os.path.abspath(__file__))
+    global_db_config = os.path.join(test_dir, 'redis_multi_db_ut_config', 'database_global.json')
+    SonicDBConfig.load_sonic_global_db_config(global_db_config)
+    global_db_config_json = json.load(open(global_db_config))
+    db_key = SonicDBKey()
+    db_key.containerName = "dpu0"
+    db = swsscommon.DBConnector("DPU_APPL_DB", 0, True, db_key)
+    tbl = swsscommon.Table(db, "DASH_ENI_TABLE")
+    fvs = swsscommon.FieldValuePairs([('dashfield1','dashvalue1'), ('dashfield2', 'dashvalue2')])
+    tbl.set("dputest1", fvs)
+    tbl.set("dputest2", fvs)
+    keys = tbl.getKeys()
+    assert len(keys) == 2
+    assert "dputest1" in keys
+    assert "dputest2" in keys
+    assert tbl.get("dputest1")[1][0] == ("dashfield1", "dashvalue1")
+    assert tbl.get("dputest2")[1][1] == ("dashfield2", "dashvalue2")
+    assert len(SonicDBConfig.getDbKeys()) == len(global_db_config_json["INCLUDES"])
+

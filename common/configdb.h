@@ -59,6 +59,13 @@ protected:
             self.handlers = {}
             self.fire_init_data = {}
 
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_value, exc_tb):
+            self.close()
+            pass
+
         @property
         def KEY_SEPARATOR(self):
             return self.getKeySeparator()
@@ -247,6 +254,12 @@ protected:
                     entry = self.raw_to_typed(entry)
                     ret.setdefault(table_name, {})[self.deserialize_key(row)] = entry
             return ret
+
+%}
+#endif
+
+#if defined(SWIG) && defined(SWIGPYTHON) && defined(ENABLE_YANG_MODULES)
+%pythoncode %{
 
     class YangDefaultDecorator(object):
         def __init__(self, config_db_connector):

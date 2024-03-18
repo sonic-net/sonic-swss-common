@@ -26,10 +26,8 @@ common_libswsscommon_la_SOURCES = \
     common/configdb.cpp              \
     common/dbconnector.cpp           \
     common/dbinterface.cpp           \
-    common/defaultvalueprovider.cpp  \
     common/sonicv2connector.cpp      \
     common/table.cpp                 \
-    common/decoratortable.cpp        \
     common/json.cpp                  \
     common/producertable.cpp         \
     common/producerstatetable.cpp    \
@@ -60,7 +58,6 @@ common_libswsscommon_la_SOURCES = \
     common/exec.cpp                  \
     common/saiaclschema.cpp          \
     common/subscriberstatetable.cpp  \
-    common/decoratorsubscriberstatetable.cpp \
     common/timestamp.cpp             \
     common/warm_restart.cpp          \
     common/luatable.cpp              \
@@ -70,13 +67,22 @@ common_libswsscommon_la_SOURCES = \
     common/profileprovider.cpp       \
     common/zmqclient.cpp             \
     common/zmqserver.cpp             \
-    common/asyncdbupdater.cpp   \
+    common/asyncdbupdater.cpp        \
     common/redis_table_waiter.cpp
 
 common_libswsscommon_la_CXXFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CFLAGS) $(CODE_COVERAGE_CXXFLAGS)
 common_libswsscommon_la_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CPPFLAGS) $(CODE_COVERAGE_CPPFLAGS)
-common_libswsscommon_la_LIBADD = -lpthread $(LIBNL_LIBS) $(CODE_COVERAGE_LIBS) -lzmq -lboost_serialization -luuid -lyang
+common_libswsscommon_la_LIBADD = -lpthread $(LIBNL_LIBS) $(CODE_COVERAGE_LIBS) -lzmq -lboost_serialization -luuid
 common_libswsscommon_la_LDFLAGS = -Wl,-z,now $(LDFLAGS)
+
+if YANGMODS
+common_libswsscommon_la_SOURCES += \
+    common/defaultvalueprovider.cpp  \
+    common/decoratortable.cpp        \
+    common/decoratorsubscriberstatetable.cpp
+
+common_libswsscommon_la_LIBADD += -lyang
+endif
 
 common_swssloglevel_SOURCES =  \
 	common/loglevel.cpp        \

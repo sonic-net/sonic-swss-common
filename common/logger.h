@@ -10,6 +10,7 @@
 #include <functional>
 
 #include "concurrentmap.h"
+#include "selectableevent.h"
 
 namespace swss {
 
@@ -161,7 +162,7 @@ private:
     std::atomic<Output> m_output = { SWSS_SYSLOG };
     std::unique_ptr<std::thread> m_settingThread;
     std::mutex m_mutex;
-    volatile bool m_runSettingThread = true;
+    std::unique_ptr<SelectableEvent> m_stopEvent;
 };
 
 }

@@ -32,6 +32,11 @@ void DBInterface::close(const std::string& dbName)
     m_redisClient.erase(dbName);
 }
 
+void DBInterface::close()
+{
+    m_redisClient.clear();
+}
+
 int64_t DBInterface::del(const string& dbName, const std::string& key, bool blocking)
 {
     auto innerfunc = [&]
