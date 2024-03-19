@@ -73,6 +73,27 @@ private:
     std::set<Selectable *, Select::cmp> m_ready;
 };
 
+class SelectHelper
+{
+public:
+    void DoSelect(Select& select, int timeout = -1, bool interrupt_on_signal = false);
+
+    Selectable &GetSelectable()
+    {
+        return *(m_selectable);
+    }
+
+    int GetResult()
+    {
+        return m_result;
+    }
+
+private:
+    Selectable *m_selectable;
+
+    int m_result;
+};
+
 }
 
 #endif

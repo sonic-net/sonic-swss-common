@@ -59,6 +59,7 @@ common_libswsscommon_la_SOURCES = \
     common/saiaclschema.cpp          \
     common/subscriberstatetable.cpp  \
     common/timestamp.cpp             \
+    common/tuplehelper.cpp           \
     common/warm_restart.cpp          \
     common/luatable.cpp              \
     common/countertable.cpp          \

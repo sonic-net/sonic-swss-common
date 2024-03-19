@@ -38,26 +38,10 @@ protected:
 };
 
 #if defined(SWIG) && defined(SWIGGO)
-%go_import("fmt")
 %insert(go_wrapper) %{
 
 type ConfigDBConnector struct {
     ConfigDBConnector_Native
-}
-
-func (configDbConnector ConfigDBConnector) Hget(table string, key string, field string) (string, error) {
-    var fieldValuePairs = configDbConnector.Get_entry(table, key)
-    if fieldValuePairs.Has_key(field) {
-        return fieldValuePairs.Get(field), nil
-    }
-
-    return "", fmt.Errorf("Can't read %s:%s from %s table", key, field, table)
-}
-
-func (configDbConnector ConfigDBConnector) Hset(table string, key string, field string, value string) {
-    var fieldValuePairs = configDbConnector.Get_entry(table, key)
-    fieldValuePairs.Set(field, value)
-    configDbConnector.Set_entry(table, key, fieldValuePairs)
 }
 
 func NewConfigDBConnector(a ...interface{}) *ConfigDBConnector {

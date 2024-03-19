@@ -25,6 +25,7 @@
 #include "select.h"
 #include "selectable.h"
 #include "rediscommand.h"
+#include "tuplehelper.h"
 #include "table.h"
 #include "countertable.h"
 #include "redispipeline.h"
@@ -260,9 +261,20 @@ T castSelectableObj(swss::Selectable *temp)
 %include "sonicv2connector.h"
 %include "pubsub.h"
 %include "profileprovider.h"
+
+#ifdef SWIGGO
+// Generate inheritance information for Selectable and SubscriberStateTable
+%feature("director") swss::Selectable;
+%feature("director") swss::RedisSelect;
+%feature("director") swss::TableConsumable;
+%feature("director") swss::ConsumerTableBase;
+%feature("director") swss::SubscriberStateTable;
+#endif
+
 %include "selectable.h"
 %include "select.h"
 %include "rediscommand.h"
+%include "tuplehelper.h"
 %include "redispipeline.h"
 %include "redisreply.h"
 %include "redisselect.h"

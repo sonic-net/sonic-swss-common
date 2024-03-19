@@ -214,4 +214,9 @@ std::string Select::resultToString(int result)
     }
 }
 
+void SelectHelper::DoSelect(Select& select, int timeout, bool interrupt_on_signal)
+{
+    m_result = select.select(&m_selectable, timeout, interrupt_on_signal);
+}
+
 };
