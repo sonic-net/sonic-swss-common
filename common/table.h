@@ -10,6 +10,7 @@
 #include <deque>
 #include "hiredis/hiredis.h"
 #include "dbconnector.h"
+#include "rediscommand.h"
 #include "redisreply.h"
 #include "redisselect.h"
 #include "redispipeline.h"
@@ -20,14 +21,6 @@ namespace swss {
 
 // Mapping of DB ID to table name separator string
 typedef std::map<int, std::string> TableNameSeparatorMap;
-
-typedef std::pair<std::string, std::string> FieldValueTuple;
-#define fvField std::get<0>
-#define fvValue std::get<1>
-typedef std::tuple<std::string, std::string, std::vector<FieldValueTuple> > KeyOpFieldsValuesTuple;
-#define kfvKey    std::get<0>
-#define kfvOp     std::get<1>
-#define kfvFieldsValues std::get<2>
 
 typedef std::map<std::string,std::string> TableMap;
 typedef std::map<std::string,TableMap> TableDump;

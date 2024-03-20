@@ -1,4 +1,4 @@
- #ifndef __TUPLE_HELPER__
+#ifndef __TUPLE_HELPER__
 #define __TUPLE_HELPER__
 
 #include <string>
@@ -13,15 +13,15 @@ namespace swss {
  */
 class TupleHelper {
 public:
-    static std::string getField(const FieldValueTuple& tuple);
+    static const std::string& getField(const FieldValueTuple& tuple);
     
-    static std::string getValue(const FieldValueTuple& tuple);
+    static const std::string& getValue(const FieldValueTuple& tuple);
 
-    static std::string getKey(const KeyOpFieldsValuesTuple& tuple);
+    static const std::string& getKey(const KeyOpFieldsValuesTuple& tuple);
     
-    static std::string getOp(const KeyOpFieldsValuesTuple& tuple);
+    static const std::string& getOp(const KeyOpFieldsValuesTuple& tuple);
     
-    static std::vector<FieldValueTuple> getFieldsValues(const KeyOpFieldsValuesTuple& tuple);
+    static const std::vector<FieldValueTuple>& getFieldsValues(const KeyOpFieldsValuesTuple& tuple);
 };
 
 }
