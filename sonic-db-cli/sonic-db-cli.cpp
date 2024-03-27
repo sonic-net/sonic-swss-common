@@ -49,7 +49,7 @@ string handleSingleOperation(
     try
     {
         auto db_id =  SonicDBConfig::getDbId(db_name, netns);
-        if (useUnixSocket && db_name != "redis_chassis.server")
+        if (useUnixSocket && host != "redis_chassis.server")
         {
             auto db_socket = SonicDBConfig::getDbSock(db_name, netns);
             message += db_name + ": Connection refused";
