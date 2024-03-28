@@ -17,7 +17,11 @@ public:
 
     bool isConnected();
 
+    std::string endpoint();
+
     void connect();
+
+    void close();
 
     void sendMsg(const std::string& dbName,
                  const std::string& tableName,

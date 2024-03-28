@@ -192,6 +192,7 @@ static void producerBatchWorker(string tableName, string endpoint, bool dbPersis
         }
     }
 
+    client.close();
     cout << "Producer thread ended: " << tableName << endl;
 }
 
@@ -268,6 +269,7 @@ static void consumerWorker(string tableName, string endpoint, bool dbPersistence
         }
     }
 
+    server.close();
     cout << "Consumer thread ended: " << tableName << endl;
 }
 

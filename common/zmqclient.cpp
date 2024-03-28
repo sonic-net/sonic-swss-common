@@ -22,21 +22,7 @@ ZmqClient::ZmqClient(const std::string& endpoint)
 
 ZmqClient::~ZmqClient()
 {
-    std::lock_guard<std::mutex> lock(m_socketMutex);
-    if (m_socket)
-    {
-        int rc = zmq_close(m_socket);
-        if (rc != 0)
-        {
-            SWSS_LOG_ERROR("failed to close zmq socket, zmqerrno: %d",
-                    zmq_errno());
-        }
-    }
-
-    if (m_context)
-    {
-        zmq_ctx_destroy(m_context);
-    }
+    close();
 }
     
 void ZmqClient::initialize(const std::string& endpoint)
@@ -47,6 +33,11 @@ void ZmqClient::initialize(const std::string& endpoint)
     m_socket = nullptr;
 
     connect();
+}
+
+std::string ZmqClient::endpoint()
+{
+    return m_endpoint;
 }
     
 bool ZmqClient::isConnected()
@@ -100,6 +91,30 @@ void ZmqClient::connect()
     }
 
     m_connected = true;
+}
+
+void ZmqClient::close()
+{
+    std::lock_guard<std::mutex> lock(m_socketMutex);
+    if (m_socket)
+    {
+        int rc = zmq_close(m_socket);
+        if (rc != 0)
+        {
+            SWSS_LOG_ERROR("failed to close zmq socket, zmqerrno: %d",
+                    zmq_errno());
+        }
+
+        m_socket = nullptr;
+    }
+
+    if (m_context)
+    {
+        zmq_ctx_destroy(m_context);
+        m_context = nullptr;
+    }
+
+    m_connected = false;
 }
 
 void ZmqClient::sendMsg(
