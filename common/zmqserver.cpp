@@ -25,6 +25,11 @@ ZmqServer::~ZmqServer()
     close();
 }
 
+std::string ZmqServer::endpoint()
+{
+    return m_endpoint;
+}
+
 void ZmqServer::connect()
 {
     if (m_mqPollThread)
@@ -46,16 +51,6 @@ void ZmqServer::close()
     m_mqPollThread->join();
     m_mqPollThread = nullptr;
     m_runThread = false;
-}
-
-void ZmqServer::close()
-{
-    if (m_mqPollThread)
-    {
-        m_runThread = false;
-        m_mqPollThread->join();
-        m_mqPollThread = nullptr;
-    }
 }
 
 void ZmqServer::registerMessageHandler(
