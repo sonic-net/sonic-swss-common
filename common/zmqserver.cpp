@@ -48,9 +48,9 @@ void ZmqServer::close()
         return;
     }
     
+    m_runThread = false;
     m_mqPollThread->join();
     m_mqPollThread = nullptr;
-    m_runThread = false;
 }
 
 void ZmqServer::registerMessageHandler(
