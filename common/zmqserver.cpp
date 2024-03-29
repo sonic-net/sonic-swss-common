@@ -37,8 +37,8 @@ void ZmqServer::connect()
         return;
     }
 
-    m_mqPollThread = std::make_shared<std::thread>(&ZmqServer::mqPollThread, this);
     m_runThread = true;
+    m_mqPollThread = std::make_shared<std::thread>(&ZmqServer::mqPollThread, this);
 }
 
 void ZmqServer::close()
