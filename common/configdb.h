@@ -37,6 +37,22 @@ protected:
     std::string m_db_name;
 };
 
+#if defined(SWIG) && defined(SWIGGO)
+%insert(go_wrapper) %{
+
+type ConfigDBConnector struct {
+    ConfigDBConnector_Native
+}
+
+func NewConfigDBConnector(a ...interface{}) *ConfigDBConnector {
+    return &ConfigDBConnector{
+        NewConfigDBConnector_Native(a...),
+    }
+}
+%}
+#endif
+
+
 #if defined(SWIG) && defined(SWIGPYTHON)
 %pythoncode %{
     ## Note: diamond inheritance, reusing functions in both classes
