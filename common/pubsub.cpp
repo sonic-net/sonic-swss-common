@@ -93,7 +93,7 @@ MessageResultPair PubSub::get_message_internal(double timeout, bool interrupt_on
     }
 
     Selectable *selected;
-    int rc = m_select.select(&selected, int(timeout), interrupt_on_signal);
+    int rc = m_select.select(&selected, int(timeout * 1000), interrupt_on_signal);
     ret.first = rc;
     switch (rc)
     {
