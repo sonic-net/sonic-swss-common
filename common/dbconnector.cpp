@@ -84,7 +84,6 @@ void SonicDBConfig::initializeGlobalConfig(const string &file)
 
     if (m_global_init)
     {
-        SWSS_LOG_ERROR("SonicDBConfig Global config is already initialized");
         return;
     }
 
