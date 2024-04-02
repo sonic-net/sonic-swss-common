@@ -128,7 +128,7 @@ stages:
       arch: amd64
       sonic_slave: sonic-slave-bookworm:$(BUILD_BRANCH)
       artifact_name: sonic-swss-common-bookworm
-      debian_version: bookworm
+      debian_version: ${{ parameters.debian_version }}
 
   - template: .azure-pipelines/build-template.yml
     parameters:
@@ -137,7 +137,7 @@ stages:
       pool: sonicbld-armhf
       sonic_slave: sonic-slave-bookworm-armhf:$(BUILD_BRANCH)
       artifact_name: sonic-swss-common-bookworm.armhf
-      debian_version: bookworm
+      debian_version: ${{ parameters.debian_version }}
 
   - template: .azure-pipelines/build-template.yml
     parameters:
@@ -146,7 +146,7 @@ stages:
       pool: sonicbld-arm64
       sonic_slave: sonic-slave-bookworm-arm64:$(BUILD_BRANCH)
       artifact_name: sonic-swss-common-bookworm.arm64
-      debian_version: bookworm
+      debian_version: ${{ parameters.debian_version }}
 
 - stage: BuildSairedis
   dependsOn: Build
