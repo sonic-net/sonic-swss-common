@@ -20,6 +20,8 @@ public:
 
     void close(const std::string& db_name);
 
+    void close();
+
     std::vector<std::string> get_db_list();
 
     int get_dbid(const std::string& db_name);
@@ -62,7 +64,7 @@ private:
     std::string m_netns;
 };
 
-#ifdef SWIG
+#if defined(SWIG) && defined(SWIGPYTHON)
 %pythoncode %{
     class SonicV2Connector(SonicV2Connector_Native):
 

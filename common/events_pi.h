@@ -9,7 +9,7 @@
 #include <fstream>
 #include <uuid/uuid.h>
 #include "string.h"
-#include "json.hpp"
+#include <nlohmann/json.hpp>
 #include "zmq.h"
 #include <unordered_map>
 
@@ -61,6 +61,7 @@ class EventPublisher : public events_base
         int publish(const string event_tag,
                 const event_params_t *params);
         int send_evt(const string str_data);
+        void remove_runtime_id();
 
         void *m_zmq_ctx;
         void *m_socket;

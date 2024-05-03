@@ -11,7 +11,7 @@
 #include <errno.h>
 #include <cxxabi.h>
 #include "string.h"
-#include "json.hpp"
+#include <nlohmann/json.hpp>
 #include "zmq.h"
 #include <unordered_map>
 #include <boost/serialization/vector.hpp>
@@ -47,8 +47,8 @@ using namespace chrono;
 #define RET_ON_ERR(res, msg, ...)\
     if (!(res)) {\
         int _e = errno; \
-        SWSS_LOG_ERROR(msg, ##__VA_ARGS__); \
-        SWSS_LOG_ERROR("last:errno=%d", _e); \
+        SWSS_LOG_INFO(msg, ##__VA_ARGS__); \
+        SWSS_LOG_INFO("last:errno=%d", _e); \
         goto out; }
 
 static const int LINGER_TIMEOUT = 100;  /* Linger timeout in milliseconds */
@@ -323,7 +323,7 @@ struct serialization
             /* override with zmq err */
             rc = zmq_errno();
             if (rc != 11) {
-                SWSS_LOG_ERROR("Failure to read part rc=%d", rc);
+                SWSS_LOG_INFO("Failure to read part rc=%d", rc);
             }
         }
     out:

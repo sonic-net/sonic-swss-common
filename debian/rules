@@ -8,7 +8,7 @@ DPKG_EXPORT_BUILDFLAGS = 1
 include /usr/share/dpkg/default.mk
 
 # see FEATURE AREAS in dpkg-buildflags(1)
-#export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 
 # see ENVIRONMENT in dpkg-buildflags(1)
 # package maintainers to append CFLAGS
@@ -16,9 +16,9 @@ include /usr/share/dpkg/default.mk
 # package maintainers to append LDFLAGS
 #export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
 
-DEBIAN_DIST_CODENAME := $(shell lsb_release -sc | sed -e 's/\#/ /g')
-
 DOPACKAGES = $(shell dh_listpackages)
+
+CONFIGURE_ARGS = --disable-static
 
 # For Debian jessie, stretch, and buster, and Ubuntu bionic and focal, build
 # Python 2 bindings. This is controlled by the build profile being used.
@@ -28,19 +28,19 @@ else
 CONFIGURE_ARGS += --disable-python2
 endif
 
-# main packaging script based on dh7 syntax
+# Skip compiling classes that depend on libyang
+ifneq (,$(filter noyangmod,$(DEB_BUILD_PROFILES)))
+CONFIGURE_ARGS += --disable-yangmodules
+else
+CONFIGURE_ARGS += --enable-yangmodules
+endif
+
+# main packaging script
 %:
-	dh $@  --with autoreconf
+	dh $@
 
 # dh_make generated override targets
 # This is example for Cmake (See https://bugs.debian.org/641051 )
 override_dh_auto_configure:
 	dh_auto_configure -- $(CONFIGURE_ARGS) $(DEB_CONFIGURE_EXTRA_FLAGS)
 #	-DCMAKE_LIBRARY_PATH=$(DEB_HOST_MULTIARCH)
-
-override_dh_clean:
-	dh_clean
-	rm -f pyext/swsscommon.py pyext/swsscommon_wrap.cpp
-
-override_dh_strip:
-	dh_strip -plibswsscommon --dbg-package=libswsscommon-dbg

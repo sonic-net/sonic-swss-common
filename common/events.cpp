@@ -35,12 +35,18 @@ void
 EventPublisher::drop_publisher(event_handle_t handle)
 {
     lst_publishers_t::iterator it;
+    EventPublisher_ptr_t p;
 
     for(it=s_publishers.begin(); it != s_publishers.end(); ++it) {
         if (it->second.get() == handle) {
+            p = it->second;
             s_publishers.erase(it);
             break;
         }
+    }
+
+    if(p != NULL) {
+        p->remove_runtime_id();
     }
 }
 
@@ -114,10 +120,6 @@ out:
 
 EventPublisher::~EventPublisher()
 {
-    if (!m_runtime_id.empty()) {
-        /* Retire the runtime ID */
-        send_evt(EVENT_STR_CTRL_DEINIT);
-    }
     m_event_service.close_service();
     if (m_socket != NULL) {
         zmq_close(m_socket);
@@ -125,6 +127,14 @@ EventPublisher::~EventPublisher()
     zmq_ctx_term(m_zmq_ctx);
 }
 
+void
+EventPublisher::remove_runtime_id()
+{
+    if (!m_runtime_id.empty()) {
+        /* Retire the runtime ID */
+        send_evt(EVENT_STR_CTRL_DEINIT);
+    }
+}
 
 int
 EventPublisher::send_evt(const string str_data)
@@ -355,7 +365,7 @@ EventSubscriber::init(bool use_cache, int recv_timeout,
         RET_ON_ERR(rc == 0, "Fails to set option rc=%d", rc);
     }
     else {
-        for (const auto e: *subs_sources) {
+        for (const auto &e: *subs_sources) {
             rc = zmq_setsockopt(sock, ZMQ_SUBSCRIBE, e.c_str(), e.size());
             RET_ON_ERR(rc == 0, "Fails to set option rc=%d", rc);
         }
@@ -390,14 +400,14 @@ EventSubscriber::prune_track()
     map<time_t, vector<runtime_id_t> > lst;
 
     /* Sort entries by last touched time */
-    for(const auto e: m_track) {
+    for(const auto &e: m_track) {
         lst[e.second.epoch_secs].push_back(e.first);
     }
 
     /* By default it walks from lowest value / earliest timestamp */
     map<time_t, vector<runtime_id_t> >::const_iterator itc = lst.begin();
     for(; (itc != lst.end()) && (m_track.size() > MAX_PUBLISHERS_COUNT); ++itc) {
-        for (const auto r: itc->second) {
+        for (const auto &r: itc->second) {
             m_track.erase(r);
         }
     }
@@ -418,7 +428,7 @@ EventSubscriber::event_receive(event_receive_op_C_t &op)
     rc = event_receive(event_str, op.missed_cnt, op.publish_epoch_ms);
     if (rc != 0) {
         if (rc != 11) {
-            SWSS_LOG_ERROR("failed to receive event. rc=%d", rc);
+            SWSS_LOG_INFO("failed to receive event. rc=%d", rc);
         }
         goto out;
     }
@@ -443,7 +453,7 @@ EventSubscriber::event_receive(event_receive_op_t &op)
     rc = event_receive(event_str, op.missed_cnt, op.publish_epoch_ms);
     if (rc != 0) {
         if (rc != 11) {
-            SWSS_LOG_ERROR("failed to receive event. rc=%d", rc);
+            SWSS_LOG_INFO("failed to receive event. rc=%d", rc);
         }
         goto out;
     }
@@ -483,7 +493,7 @@ EventSubscriber::event_receive(string &event_str, uint32_t &missed_cnt,
             rc = zmq_message_read(m_socket, 0, evt_source, event_data);
             if (rc != 0) {
                 if (rc != 11) {
-                    SWSS_LOG_ERROR("Failure to read message from sock rc=%d", rc);
+                    SWSS_LOG_INFO("Failure to read message from sock rc=%d", rc);
                 }
                 goto out;
             }

@@ -1,19 +1,17 @@
-SWIG_SOURCES = ../swsscommon.i
+pkgpython3_PYTHON = pyext/py3/swsscommon.py pyext/py3/__init__.py
+pkgpy3exec_LTLIBRARIES = pyext/py3/_swsscommon.la
 
-pkgpython3_PYTHON = swsscommon.py __init__.py
-pkgpy3exec_LTLIBRARIES = _swsscommon.la
+pyext_py3__swsscommon_la_SOURCES = pyext/py3/swsscommon_wrap.cpp
+pyext_py3__swsscommon_la_CPPFLAGS = -std=c++11 -Icommon -I/usr/include/python$(PYTHON3_VERSION) -fstack-protector-strong
+pyext_py3__swsscommon_la_LDFLAGS = -module -Wl,-z,now
+pyext_py3__swsscommon_la_LIBADD = common/libswsscommon.la $(PYTHON3_BLDLIBRARY)
 
-_swsscommon_la_SOURCES = swsscommon_wrap.cpp
-_swsscommon_la_CPPFLAGS = -std=c++11 -I../../common -I/usr/include/python$(PYTHON3_VERSION)
-_swsscommon_la_LDFLAGS = -module
-_swsscommon_la_LIBADD = ../../common/libswsscommon.la $(PYTHON3_BLDLIBRARY)
-
-SWIG_FLAG = -Wall -c++ -python -keyword
-if ARCH64
-SWIG_FLAG += -DSWIGWORDSIZE64
+if YANGMODS
+SWIG_FLAG += -DENABLE_YANG_MODULES
+pyext_py3__swsscommon_la_CPPFLAGS += -DENABLE_YANG_MODULES
 endif
 
-swsscommon_wrap.cpp: $(SWIG_SOURCES)
-	$(SWIG) $(SWIG_FLAG) -I../../common -o $@ $<
+pyext/py3/swsscommon_wrap.cpp: $(SWIG_SOURCES)
+	$(SWIG) $(SWIG_FLAG) -Icommon -o $@ $<
 
-CLEANFILES = swsscommon_wrap.cpp
+CLEANFILES += pyext/py3/swsscommon_wrap.cpp pyext/py3/swsscommon.py

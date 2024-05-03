@@ -15,7 +15,7 @@ parameters:
 
 - name: timeout
   type: number
-  default: 60
+  default: 90
 
 - name: sonic_slave
   type: string
@@ -49,7 +49,7 @@ jobs:
       vmImage: 'ubuntu-20.04'
 
   container:
-    image: sonicdev-microsoft.azurecr.io:443/${{ parameters.sonic_slave }}:latest
+    image: sonicdev-microsoft.azurecr.io:443/${{ parameters.sonic_slave }}
     options:  "--privileged"
 
   steps:
@@ -63,24 +63,23 @@ jobs:
       git status
     displayName: Set up sonic-sairedis branch
   - script: |
+      set -ex
+      sudo apt-get update
       sudo apt-get install -qq -y \
         qtbase5-dev \
-        libdbus-glib-1-2 \
         libdbus-glib-1-dev \
         libpcsclite-dev \
         docbook-to-man \
         docbook-utils \
         aspell-en \
-        libhiredis0.14 \
         libhiredis-dev \
         libnl-3-dev \
         libnl-genl-3-dev \
         libnl-route-3-dev \
         libnl-nf-3-dev \
         libnl-cli-3-dev \
-        swig3.0 \
-        libpython2.7-dev \
-        libzmq5 libzmq3-dev
+        swig4.0 \
+        libzmq3-dev
 
       sudo apt-get install -y redis-server
       sudo sed -ri 's/^# unixsocket/unixsocket/' /etc/redis/redis.conf
@@ -88,6 +87,7 @@ jobs:
       sudo sed -ri 's/redis-server.sock/redis.sock/' /etc/redis/redis.conf
       sudo sed -ri 's/^databases .*/databases 17/' /etc/redis/redis.conf
       sudo service redis-server start
+      sudo mkdir -m 755 /var/run/sswsyncd
 
       sudo apt-get install -y rsyslog
       sudo service rsyslog start
@@ -127,9 +127,11 @@ jobs:
       set -ex
       rm ../*.deb || true
       ./autogen.sh
-      DEB_BUILD_OPTIONS=nocheck fakeroot dpkg-buildpackage -b -us -uc -Tbinary-syncd-vs -j$(nproc)
+      DEB_BUILD_OPTIONS=nocheck DEB_BUILD_PROFILES=nopython2 fakeroot dpkg-buildpackage -b -us -uc -Psyncd,vs,nopython2 -j$(nproc)
       # Add SYS_TIME capability for settimeofday ok in syncd test
-      sudo setcap "cap_sys_time=eip" syncd/.libs/tests
+      sudo setcap "cap_sys_time=eip" syncd/.libs/syncd_tests
+      # Add CAP_DAC_OVERRIDE capability for system directory creation in syncd unittest
+      sudo setcap "cap_dac_override,cap_ipc_lock,cap_ipc_owner,cap_sys_time=eip" unittest/syncd/.libs/tests
       make check
       mv ../*.deb .
     displayName: "Compile sonic sairedis"

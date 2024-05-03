@@ -11,6 +11,7 @@
 using namespace swss;
 using namespace std;
 
+const string not_exist_config_file = "./tests/redis_multi_db_ut_config/database_config_not_exist.json";
 const string config_file = "./tests/redis_multi_db_ut_config/database_config.json";
 const string global_config_file = "./tests/redis_multi_db_ut_config/database_global.json";
 
@@ -279,6 +280,55 @@ TEST(sonic_db_cli, test_cli_ping_cmd)
     EXPECT_EQ("True\n", output);
 }
 
+TEST(sonic_db_cli, test_cli_ping_cmd_no_config)
+{
+    char *args[3];
+    args[0] = "sonic-db-cli";
+    args[1] = "PING";
+
+    // data base file does not exist, will throw exception
+    auto initializeGlobalConfig = []()
+    {
+        SonicDBConfig::initializeGlobalConfig(not_exist_config_file);
+    };
+
+    auto initializeConfig = []()
+    {
+        SonicDBConfig::initialize(not_exist_config_file);
+    };
+
+    optind = 0;
+    int exit_code = sonic_db_cli(
+                    2,
+                    args,
+                    initializeGlobalConfig,
+                    initializeConfig);
+
+    EXPECT_EQ(1, exit_code);
+
+    // When ping with DB name, exception will happen
+    args[0] = "sonic-db-cli";
+    args[1] = "TEST_DB";
+    args[2] = "PING";
+
+    bool exception_happen = false;
+    try
+    {
+        optind = 0;
+        exit_code = sonic_db_cli(
+                        3,
+                        args,
+                        initializeGlobalConfig,
+                        initializeConfig);
+    }
+    catch (const exception& e)
+    {
+        exception_happen = true;
+    }
+
+    EXPECT_EQ(true, exception_happen);
+}
+
 TEST(sonic_db_cli, test_cli_save_cmd)
 {
     char *args[2];
@@ -330,7 +380,7 @@ TEST(sonic_db_cli, test_cli_multi_ns_cmd)
     char *args[7];
     args[0] = "sonic-db-cli";
     args[1] = "-n";
-    args[2] = "asic0";
+    args[2] = "asic2";
     args[3] = "TEST_DB";
     
     // set key to test DB
@@ -359,7 +409,7 @@ TEST(sonic_db_cli, test_cli_unix_socket_cmd)
     args[0] = "sonic-db-cli";
     args[1] = "-s";
     args[2] = "-n";
-    args[3] = "asic0";
+    args[3] = "asic2";
     args[4] = "TEST_DB";
     
     // set key to test DB
@@ -381,7 +431,7 @@ TEST(sonic_db_cli, test_cli_eval_cmd)
     char *args[11];
     args[0] = "sonic-db-cli";
     args[1] = "-n";
-    args[2] = "asic0";
+    args[2] = "asic2";
     args[3] = "TEST_DB";
     
     // run eval command: EVAL "return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}" 2 k1 k2 v1 v2
@@ -400,24 +450,24 @@ TEST(sonic_db_cli, test_parallel_cmd) {
     char *args[7];
     args[0] = "sonic-db-cli";
     args[1] = "-n";
-    args[2] = "asic0";
+    args[2] = "asic2";
     args[4] = "SAVE";
 
-    auto db_names = swss::SonicDBConfig::getDbList("asic0");
+    auto db_names = swss::SonicDBConfig::getDbList("asic2");
     for (auto& db_name : db_names)
     {
-        generateTestData("asic0", const_cast<char*>(db_name.c_str()));
+        generateTestData("asic2", const_cast<char*>(db_name.c_str()));
     }
-    db_names = swss::SonicDBConfig::getDbList("asic1");
+    db_names = swss::SonicDBConfig::getDbList("asic3");
     for (auto& db_name : db_names)
     {
-        generateTestData("asic1", const_cast<char*>(db_name.c_str()));
+        generateTestData("asic3", const_cast<char*>(db_name.c_str()));
     }
 
     // save 2 DBs and get save DB performance
     auto begin_time = clock();
-    db_names = swss::SonicDBConfig::getDbList("asic0");
-    args[2] = "asic0";
+    db_names = swss::SonicDBConfig::getDbList("asic2");
+    args[2] = "asic2";
     for (auto& db_name : db_names)
     {
         args[3] = const_cast<char*>(db_name.c_str());
@@ -425,8 +475,8 @@ TEST(sonic_db_cli, test_parallel_cmd) {
         sonic_db_cli(5, args);
     }
 
-    db_names = swss::SonicDBConfig::getDbList("asic1");
-    args[2] = "asic1";
+    db_names = swss::SonicDBConfig::getDbList("asic3");
+    args[2] = "asic3";
     for (auto& db_name : db_names)
     {
         args[3] = const_cast<char*>(db_name.c_str());
@@ -437,15 +487,15 @@ TEST(sonic_db_cli, test_parallel_cmd) {
     auto sequential_time = float( clock () - begin_time );
 
     // prepare data
-    db_names = swss::SonicDBConfig::getDbList("asic0");
+    db_names = swss::SonicDBConfig::getDbList("asic2");
     for (auto& db_name : db_names)
     {
-        generateTestData("asic0", const_cast<char*>(db_name.c_str()));
+        generateTestData("asic2", const_cast<char*>(db_name.c_str()));
     }
-    db_names = swss::SonicDBConfig::getDbList("asic1");
+    db_names = swss::SonicDBConfig::getDbList("asic3");
     for (auto& db_name : db_names)
     {
-        generateTestData("asic0", const_cast<char*>(db_name.c_str()));
+        generateTestData("asic3", const_cast<char*>(db_name.c_str()));
     }
 
     // save 2 DBs in parallel, and get save DB performance
@@ -457,4 +507,36 @@ TEST(sonic_db_cli, test_parallel_cmd) {
 
     auto parallen_time = float( clock () - begin_time );
     EXPECT_TRUE(parallen_time < sequential_time);
+}
+
+TEST(sonic_db_cli, test_cli_not_throw_exception)
+{
+    char *args[5];
+    args[0] = "sonic-db-cli";
+    args[1] = "TEST_DB";
+    
+    // set key to test DB
+    args[2] = "SET";
+    args[3] = "testkey";
+    args[4] = "testvalue";
+
+    // data base file does not exist, will throw exception
+    auto initializeGlobalConfig = []()
+    {
+        throw std::system_error();
+    };
+
+    auto initializeConfig = []()
+    {
+        throw std::system_error();
+    };
+
+    optind = 0;
+    int exit_code = cli_exception_wrapper(
+                        5,
+                        args,
+                        initializeGlobalConfig,
+                        initializeConfig);
+
+    EXPECT_EQ(1, exit_code);
 }
