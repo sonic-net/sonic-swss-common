@@ -412,7 +412,6 @@ namespace swss {
 #define CFG_PORT_STORM_CONTROL_TABLE_NAME           "PORT_STORM_CONTROL"
 #define CFG_VRRP_TABLE_NAME                         "VRRP"
 #define CFG_VRRP6_TABLE_NAME                        "VRRP6"
-
 #define CFG_RATES_TABLE_NAME                        "RATES"
 
 #define CFG_FEATURE_TABLE_NAME                      "FEATURE"
