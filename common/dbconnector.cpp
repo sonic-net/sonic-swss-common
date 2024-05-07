@@ -632,6 +632,8 @@ void DBConnector::select(DBConnector *db)
 DBConnector::DBConnector(const DBConnector &other)
     : RedisContext(other)
     , m_dbId(other.m_dbId)
+    , m_dbName(other.m_dbName)
+    , m_key(other.m_key)
 {
     select(this);
 }

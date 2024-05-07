@@ -40,6 +40,7 @@ namespace swss {
 #define APP_ROUTE_TABLE_NAME              "ROUTE_TABLE"
 #define APP_LABEL_ROUTE_TABLE_NAME        "LABEL_ROUTE_TABLE"
 #define APP_TUNNEL_DECAP_TABLE_NAME       "TUNNEL_DECAP_TABLE"
+#define APP_TUNNEL_DECAP_TERM_TABLE_NAME  "TUNNEL_DECAP_TERM_TABLE"
 #define APP_TUNNEL_ROUTE_TABLE_NAME       "TUNNEL_ROUTE_TABLE"
 #define APP_FDB_TABLE_NAME                "FDB_TABLE"
 #define APP_PFC_WD_TABLE_NAME             "PFC_WD_TABLE"
@@ -425,6 +426,7 @@ namespace swss {
 #define CFG_PEER_SWITCH_TABLE_NAME                  "PEER_SWITCH"
 
 #define CFG_TUNNEL_TABLE_NAME                       "TUNNEL"
+#define CFG_SUBNET_DECAP_TABLE_NAME                 "SUBNET_DECAP"
 
 #define CFG_SYSTEM_PORT_TABLE_NAME                  "SYSTEM_PORT"
 #define CFG_VOQ_INBAND_INTERFACE_TABLE_NAME         "VOQ_INBAND_INTERFACE"
@@ -439,6 +441,7 @@ namespace swss {
 #define CFG_CHASSIS_MODULE_TABLE                    "CHASSIS_MODULE"
 
 #define CFG_TWAMP_SESSION_TABLE_NAME                "TWAMP_SESSION"
+#define CFG_BANNER_MESSAGE_TABLE_NAME               "BANNER_MESSAGE"
 
 #define CFG_DHCP_TABLE                              "DHCP_RELAY"
 
@@ -446,6 +449,8 @@ namespace swss {
 #define CFG_LOGGER_TABLE_NAME                       "LOGGER"
 
 #define CFG_SAG_TABLE_NAME                          "SAG"
+
+#define CFG_SUPPRESS_ASIC_SDK_HEALTH_EVENT_NAME     "SUPPRESS_ASIC_SDK_HEALTH_EVENT"
 
 /***** STATE DATABASE *****/
 
@@ -511,6 +516,9 @@ namespace swss {
 #define STATE_BUFFER_PROFILE_TABLE_NAME             "BUFFER_PROFILE_TABLE"
 #define STATE_DHCPv6_COUNTER_TABLE_NAME             "DHCPv6_COUNTER_TABLE"
 
+#define STATE_TUNNEL_DECAP_TABLE_NAME               "TUNNEL_DECAP_TABLE"
+#define STATE_TUNNEL_DECAP_TERM_TABLE_NAME          "TUNNEL_DECAP_TERM_TABLE"
+
 #define STATE_BFD_SESSION_TABLE_NAME                "BFD_SESSION_TABLE"
 #define STATE_ROUTE_TABLE_NAME                      "ROUTE_TABLE"
 #define STATE_VNET_RT_TUNNEL_TABLE_NAME             "VNET_ROUTE_TUNNEL_TABLE"
@@ -521,6 +529,8 @@ namespace swss {
 #define STATE_VNET_MONITOR_TABLE_NAME          "VNET_MONITOR_TABLE"
 
 #define STATE_TRANSCEIVER_INFO_TABLE_NAME           "TRANSCEIVER_INFO"
+
+#define STATE_ASIC_SDK_HEALTH_EVENT_TABLE_NAME      "ASIC_SDK_HEALTH_EVENT_TABLE"
 
 // ACL table and ACL rule table
 #define STATE_ACL_TABLE_TABLE_NAME                  "ACL_TABLE_TABLE"

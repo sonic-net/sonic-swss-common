@@ -18,6 +18,11 @@ class PubSub : protected RedisSelect
 public:
     explicit PubSub(DBConnector *other);
 
+    /**
+     * @brief Get published message 
+     * @param timeout                Get message timeout in seconds
+     * @param interrupt_on_signal    Interrupt when reseive EINTR signal
+     */
     std::map<std::string, std::string> get_message(double timeout = 0.0, bool interrupt_on_signal = false);
     std::map<std::string, std::string> listen_message(bool interrupt_on_signal = false);
 
