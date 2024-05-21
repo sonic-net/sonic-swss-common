@@ -23,6 +23,7 @@ namespace swss {
 #define CHASSIS_APP_DB      12
 #define CHASSIS_STATE_DB    13
 #define APPL_STATE_DB       14
+#define EVENT_DB            19
 
 /***** APPLICATION DATABASE *****/
 
@@ -440,6 +441,7 @@ namespace swss {
 #define CFG_CHASSIS_MODULE_TABLE                    "CHASSIS_MODULE"
 
 #define CFG_TWAMP_SESSION_TABLE_NAME                "TWAMP_SESSION"
+#define CFG_BANNER_MESSAGE_TABLE_NAME               "BANNER_MESSAGE"
 #define CFG_LOGGING_TABLE_NAME                      "LOGGING"
 
 #define CFG_DHCP_TABLE                              "DHCP_RELAY"
@@ -566,6 +568,12 @@ namespace swss {
 #define CFG_FABRIC_MONITOR_PORT_TABLE_NAME	"FABRIC_PORT"
 #define APP_FABRIC_MONITOR_DATA_TABLE_NAME	"FABRIC_MONITOR_TABLE"
 #define APP_FABRIC_MONITOR_PORT_TABLE_NAME	"FABRIC_PORT_TABLE"
+
+#define EVENT_HISTORY_TABLE_NAME          "EVENT"
+#define EVENT_CURRENT_ALARM_TABLE_NAME    "ALARM"
+#define EVENT_STATS_TABLE_NAME            "EVENT_STATS"
+#define EVENT_ALARM_STATS_TABLE_NAME      "ALARM_STATS"
+
 
 #ifdef __cplusplus
 }
