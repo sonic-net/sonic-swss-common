@@ -19,6 +19,8 @@ TEST(DBConnector, multi_ns_test)
     std::string local_file, dir_name;
     set<string> namespaces;
     vector<string> ns_names;
+    vector<SonicDBKey> dbkeys;
+    vector<SonicDBKey> target_dbkeys;
 
     // load global config file again, should throw exception with init already done
     try
@@ -67,7 +69,12 @@ TEST(DBConnector, multi_ns_test)
             {
                 key.netns = element["namespace"];
             }
+            if (!element["container_name"].empty())
+            {
+                key.containerName = element["container_name"];
+            }
             namespaces.insert(key.netns);
+            target_dbkeys.push_back(key);
 
             if (!element["container_name"].empty())
             {
@@ -136,6 +143,18 @@ TEST(DBConnector, multi_ns_test)
     sort (ns_names.begin(), ns_names.end());
     EXPECT_EQ(ns_names.size(), namespaces.size());
     EXPECT_TRUE(std::equal(namespaces.begin(), namespaces.end(), ns_names.begin()));
+
+    dbkeys = SonicDBConfig::getDbKeys();
+    EXPECT_EQ(dbkeys.size(), target_dbkeys.size());
+    for (auto &key : target_dbkeys)
+    {
+        cout<< "target key " << key.toString() <<endl;
+    }
+    for (auto &key : dbkeys)
+    {
+        cout<< "Check key " << key.toString() <<endl;
+        EXPECT_TRUE(std::find(target_dbkeys.begin(), target_dbkeys.end(), key) != target_dbkeys.end());
+    }
 }
 
 void clearNetnsDB()
