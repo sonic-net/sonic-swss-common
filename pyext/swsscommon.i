@@ -56,6 +56,8 @@
 #include "zmqclient.h"
 #include "zmqconsumerstatetable.h"
 #include "zmqproducerstatetable.h"
+#include <memory>
+#include <functional>
 %}
 
 %include <std_string.i>
@@ -163,13 +165,16 @@
     res = SWIG_OK;
     for (int i = 0; i < PySequence_Length($input); ++i) {
         temp.push_back(std::pair< std::string,std::string >());
-        PyObject *item = PySequence_GetItem($input, i);
-        if (!PyTuple_Check(item) || PyTuple_Size(item) != 2) {
-            Py_DECREF(item);
+        std::unique_ptr<PyObject, std::function<void(PyObject *)> > item(
+            PySequence_GetItem($input, i), 
+            [](PyObject *ptr){
+                Py_DECREF(ptr);
+            });
+        if (!PyTuple_Check(item.get()) || PyTuple_Size(item.get()) != 2) {
             SWIG_fail;
         }
-        PyObject *key = PyTuple_GetItem(item, 0);
-        PyObject *value = PyTuple_GetItem(item, 1);
+        PyObject *key = PyTuple_GetItem(item.get(), 0);
+        PyObject *value = PyTuple_GetItem(item.get(), 1);
         std::string str;
 
         if (PyBytes_Check(key)) {
@@ -177,7 +182,6 @@
         } else if (SWIG_AsVal_std_string(key, &str) != SWIG_ERROR) {
             temp.back().first = str;
         } else {
-            Py_DECREF(item);
             SWIG_fail;
         }
         if (PyBytes_Check(value)) {
@@ -185,10 +189,8 @@
         } else if (SWIG_AsVal_std_string(value, &str) != SWIG_ERROR) {
             temp.back().second = str;
         } else {
-            Py_DECREF(item);
             SWIG_fail;
         }
-        Py_DECREF(item);
     }
     $1 = &temp;
 }
@@ -196,14 +198,17 @@
 %typemap(typecheck) const std::vector< std::pair< std::string,std::string >,std::allocator< std::pair< std::string,std::string > > > &{
     $1 = 1;
     for (int i = 0; i < PySequence_Length($input); ++i) {
-        PyObject *item = PySequence_GetItem($input, i);
-        if (!PyTuple_Check(item) || PyTuple_Size(item) != 2) {
+        std::unique_ptr<PyObject, std::function<void(PyObject *)> > item(
+            PySequence_GetItem($input, i), 
+            [](PyObject *ptr){
+                Py_DECREF(ptr);
+            });
+        if (!PyTuple_Check(item.get()) || PyTuple_Size(item.get()) != 2) {
             $1 = 0;
-            Py_DECREF(item);
             break;
         }
-        PyObject *key = PyTuple_GetItem(item, 0);
-        PyObject *value = PyTuple_GetItem(item, 1);
+        PyObject *key = PyTuple_GetItem(item.get(), 0);
+        PyObject *value = PyTuple_GetItem(item.get(), 1);
         if (!PyBytes_Check(key)
             && !PyUnicode_Check(key)
             && !PyString_Check(key)
@@ -211,10 +216,8 @@
             && !PyUnicode_Check(value)
             && !PyString_Check(value)) {
             $1 = 0;
-            Py_DECREF(item);
             break;
         }
-        Py_DECREF(item);
     }
 }
 

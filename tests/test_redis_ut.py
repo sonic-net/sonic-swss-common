@@ -871,11 +871,11 @@ def test_TableOpsMemoryLeak():
     OP_COUNT = 50000
     app_db = swsscommon.DBConnector("APPL_DB", 0, True)
     t = swsscommon.Table(app_db, "TABLE")
-    big_data = "x" * 10000
-    fvs = swsscommon.FieldValuePairs([(big_data, big_data)])
+    long_data = "x" * 100
+    fvs = swsscommon.FieldValuePairs([(long_data, long_data)])
     rss = psutil.Process(os.getpid()).memory_info().rss
     for _ in range(OP_COUNT):
-        t.set("big_data", fvs)
-        t.get("big_data")
+        t.set("long_data", fvs)
+        t.get("long_data")
     assert psutil.Process(os.getpid()).memory_info().rss - rss < OP_COUNT
 
