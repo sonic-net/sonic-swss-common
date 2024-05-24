@@ -156,7 +156,7 @@
     SWIG_Python_AppendOutput($result, temp);
 }
 
-%typemap(in, fragment="SWIG_AsPtr_std_string")
+%typemap(in, fragment="SWIG_AsVal_std_string")
     const std::vector<std::pair< std::string,std::string >,std::allocator< std::pair< std::string,std::string > > > &
         (std::vector< std::pair< std::string,std::string >,std::allocator< std::pair< std::string,std::string > > > temp,
         int res) {
@@ -165,25 +165,30 @@
         temp.push_back(std::pair< std::string,std::string >());
         PyObject *item = PySequence_GetItem($input, i);
         if (!PyTuple_Check(item) || PyTuple_Size(item) != 2) {
+            Py_DECREF(item);
             SWIG_fail;
         }
         PyObject *key = PyTuple_GetItem(item, 0);
         PyObject *value = PyTuple_GetItem(item, 1);
-        std::string *ptr = (std::string *)0;
+        std::string str;
+
         if (PyBytes_Check(key)) {
             temp.back().first.assign(PyBytes_AsString(key), PyBytes_Size(key));
-        } else if (SWIG_AsPtr_std_string(key, &ptr)) {
-            temp.back().first = *ptr;
+        } else if (SWIG_AsVal_std_string(key, &str) != SWIG_ERROR) {
+            temp.back().first = str;
         } else {
+            Py_DECREF(item);
             SWIG_fail;
         }
         if (PyBytes_Check(value)) {
             temp.back().second.assign(PyBytes_AsString(value), PyBytes_Size(value));
-        } else if (SWIG_AsPtr_std_string(value, &ptr)) {
-            temp.back().second = *ptr;
+        } else if (SWIG_AsVal_std_string(value, &str) != SWIG_ERROR) {
+            temp.back().second = str;
         } else {
+            Py_DECREF(item);
             SWIG_fail;
         }
+        Py_DECREF(item);
     }
     $1 = &temp;
 }
@@ -194,6 +199,7 @@
         PyObject *item = PySequence_GetItem($input, i);
         if (!PyTuple_Check(item) || PyTuple_Size(item) != 2) {
             $1 = 0;
+            Py_DECREF(item);
             break;
         }
         PyObject *key = PyTuple_GetItem(item, 0);
@@ -205,8 +211,10 @@
             && !PyUnicode_Check(value)
             && !PyString_Check(value)) {
             $1 = 0;
+            Py_DECREF(item);
             break;
         }
+        Py_DECREF(item);
     }
 }
 
