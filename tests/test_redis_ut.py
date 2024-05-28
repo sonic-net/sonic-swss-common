@@ -1,5 +1,6 @@
 import os
 import time
+import psutil
 import pytest
 import multiprocessing
 from threading import Thread
@@ -802,3 +803,31 @@ def test_ConfigDBConnector():
     config_db.mod_config(allconfig)
     allconfig = config_db.get_config()
     assert len(allconfig) == 0
+
+
+def test_TableSetBinary():
+    app_db = swsscommon.DBConnector("APPL_DB", 0, True)
+    t = swsscommon.Table(app_db, "TABLE")
+    buff = b""
+    for i in range(0, 256):
+        buff += bytes([i])
+    buff = buff.decode('latin-1')
+    fvs = swsscommon.FieldValuePairs([("binary", buff)])
+    t.set("binary", fvs)
+    (status, fvs) = t.get("binary")
+    assert status == True
+    assert fvs[0][1] == buff
+
+
+def test_TableOpsMemoryLeak():
+    OP_COUNT = 50000
+    app_db = swsscommon.DBConnector("APPL_DB", 0, True)
+    t = swsscommon.Table(app_db, "TABLE")
+    long_data = "x" * 100
+    fvs = swsscommon.FieldValuePairs([(long_data, long_data)])
+    rss = psutil.Process(os.getpid()).memory_info().rss
+    for _ in range(OP_COUNT):
+        t.set("long_data", fvs)
+        t.get("long_data")
+    assert psutil.Process(os.getpid()).memory_info().rss - rss < OP_COUNT
+
