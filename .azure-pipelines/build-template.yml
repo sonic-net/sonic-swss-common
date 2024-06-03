@@ -110,7 +110,7 @@ jobs:
       displayName: "Install gcovr 5.2 (for --exclude-throw-branches support)"
     - script: |
         set -ex
-        sudo pip install Pympler==0.8
+        sudo pip install Pympler==0.8 pytest psutil
         sudo apt-get install -y redis-server
         sudo sed -i 's/notify-keyspace-events ""/notify-keyspace-events AKE/' /etc/redis/redis.conf
         sudo sed -ri 's/^# unixsocket/unixsocket/' /etc/redis/redis.conf
