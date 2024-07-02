@@ -3,7 +3,7 @@
 # build and install team/vrf driver
 #
 
-set -e
+set -ex
 
 source /etc/os-release
 
@@ -65,7 +65,7 @@ function build_and_install_kmodule()
     mv .config .config.bk
     cp /boot/config-$(uname -r) .config
     grep NET_TEAM .config.bk >> .config
-    make VERSION=$VERSION PATCHLEVEL=$PATCHLEVEL SUBLEVEL=$SUBLEVEL EXTRAVERSION=-${EXTRAVERSION} LOCALVERSION=-${LOCALVERSION} modules_prepare
+    echo m | make VERSION=$VERSION PATCHLEVEL=$PATCHLEVEL SUBLEVEL=$SUBLEVEL EXTRAVERSION=-${EXTRAVERSION} LOCALVERSION=-${LOCALVERSION} modules_prepare
     cp /usr/src/linux-headers-$(uname -r)/Module.symvers .
     make -j$(nproc) M=drivers/net/team
     mv drivers/net/Makefile drivers/net/Makefile.bak
