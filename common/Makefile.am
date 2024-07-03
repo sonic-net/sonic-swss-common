@@ -68,7 +68,8 @@ common_libswsscommon_la_SOURCES = \
     common/zmqclient.cpp             \
     common/zmqserver.cpp             \
     common/asyncdbupdater.cpp        \
-    common/redis_table_waiter.cpp
+    common/redis_table_waiter.cpp    \
+    common/interface.h
 
 common_libswsscommon_la_CXXFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CFLAGS) $(CODE_COVERAGE_CXXFLAGS)
 common_libswsscommon_la_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CPPFLAGS) $(CODE_COVERAGE_CPPFLAGS)
