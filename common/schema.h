@@ -29,6 +29,9 @@ namespace swss {
 #define DPU_COUNTERS_DB     18
 #define EVENT_DB            19
 #define BMP_STATE_DB        20
+#define POE_ASIC_DB         21
+#define POE_COUNTERS_DB     22
+#define POE_FLEX_COUNTER_DB 23
 
 /***** APPLICATION DATABASE *****/
 
@@ -117,6 +120,7 @@ namespace swss {
 #define APP_BFD_SESSION_TABLE_NAME          "BFD_SESSION_TABLE"
 #define APP_ICMP_ECHO_SESSION_TABLE_NAME    "ICMP_ECHO_SESSION_TABLE"
 
+#define APP_POE_TABLE_NAME                  "POE_TABLE"
 
 #define APP_SAG_TABLE_NAME                  "SAG_TABLE"
 
@@ -322,6 +326,7 @@ namespace swss {
 #define CFG_SEND_TO_INGRESS_PORT_TABLE_NAME  "SEND_TO_INGRESS_PORT"
 
 #define CFG_GEARBOX_TABLE_NAME           "GEARBOX"
+#define CFG_POE_TABLE_NAME               "POE_PORT"
 
 #define CFG_INTF_TABLE_NAME               "INTERFACE"
 #define CFG_LOOPBACK_INTERFACE_TABLE_NAME "LOOPBACK_INTERFACE"
@@ -594,6 +599,10 @@ namespace swss {
 #define STATE_HIGH_FREQUENCY_TELEMETRY_SESSION_TABLE_NAME "HIGH_FREQUENCY_TELEMETRY_SESSION_TABLE"
 
 #define STATE_BGP_PEER_CONFIGURED_TABLE_NAME "BGP_PEER_CONFIGURED_TABLE"
+
+#define STATE_POE_DEVICE_TABLE_NAME                 "POE_DEVICE_TABLE"
+#define STATE_POE_PSE_TABLE_NAME                    "POE_PSE_TABLE"
+#define STATE_POE_PORT_TABLE_NAME                   "POE_PORT_TABLE"
 
 // ACL table and ACL rule table
 #define STATE_ACL_TABLE_TABLE_NAME                  "ACL_TABLE_TABLE"
