@@ -2,7 +2,10 @@
 
 #include <string>
 #include <queue>
+#include <unordered_set>
 #include <functional>
+#include <chrono>
+#include <iostream>
 #include "redisreply.h"
 #include "rediscommand.h"
 #include "dbconnector.h"
@@ -22,9 +25,11 @@ public:
     RedisPipeline(const DBConnector *db, size_t sz = 128)
         : COMMAND_MAX(sz)
         , m_remaining(0)
+        , m_shaPub("")
     {
         m_db = db->newConnector(NEWCONNECTOR_TIMEOUT);
         initializeOwnerTid();
+        lastHeartBeat = std::chrono::steady_clock::now();
     }
 
     ~RedisPipeline() {
@@ -113,11 +118,19 @@ public:
 
     void flush()
     {
+        lastHeartBeat = std::chrono::steady_clock::now();
+
+        if (m_remaining == 0) {
+            return;
+        }
+
         while(m_remaining)
         {
             // Construct an object to use its dtor, so that resource is released
             RedisReply r(pop());
         }
+
+        publish();
     }
 
     size_t size()
@@ -145,11 +158,42 @@ public:
         m_ownerTid = gettid();
     }
 
+    void addChannel(std::string channel)
+    {
+        if (m_channels.find(channel) != m_channels.end())
+            return;
+
+        m_channels.insert(channel);
+        m_luaPub += "redis.call('PUBLISH', '" + channel + "', 'G');";
+        m_shaPub = loadRedisScript(m_luaPub);
+    }
+
+    int getIdleTime(std::chrono::time_point<std::chrono::steady_clock> tcurrent=std::chrono::steady_clock::now())
+    {
+        return static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(tcurrent - lastHeartBeat).count());
+    }
+
+    void publish() {
+        if (m_shaPub.empty()) {
+            return;
+        }
+        RedisCommand cmd;
+        cmd.format(
+            "EVALSHA %s 0",
+            m_shaPub.c_str());
+        RedisReply r(m_db, cmd);
+    }
+
 private:
     DBConnector *m_db;
     std::queue<int> m_expectedTypes;
     size_t m_remaining;
     long int m_ownerTid;
+
+    std::string m_luaPub;
+    std::string m_shaPub;
+    std::chrono::time_point<std::chrono::steady_clock> lastHeartBeat; // marks the timestamp of latest pipeline flush being invoked
+    std::unordered_set<std::string> m_channels;
 
     void mayflush()
     {

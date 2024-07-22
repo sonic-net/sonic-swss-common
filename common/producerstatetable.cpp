@@ -27,25 +27,22 @@ ProducerStateTable::ProducerStateTable(RedisPipeline *pipeline, const string &ta
     , m_tempViewActive(false)
     , m_pipe(pipeline)
 {
+
+    m_pipe->addChannel(getChannelName(m_pipe->getDbId()));
+
     // num in luaSet and luaDel means number of elements that were added to the key set,
     // not including all the elements already present into the set.
     string luaSet =
         "local added = redis.call('SADD', KEYS[2], ARGV[2])\n"
         "for i = 0, #KEYS - 3 do\n"
         "    redis.call('HSET', KEYS[3 + i], ARGV[3 + i * 2], ARGV[4 + i * 2])\n"
-        "end\n"
-        " if added > 0 then \n"
-        "    redis.call('PUBLISH', KEYS[1], ARGV[1])\n"
         "end\n";
     m_shaSet = m_pipe->loadRedisScript(luaSet);
 
     string luaDel =
         "local added = redis.call('SADD', KEYS[2], ARGV[2])\n"
         "redis.call('SADD', KEYS[4], ARGV[2])\n"
-        "redis.call('DEL', KEYS[3])\n"
-        "if added > 0 then \n"
-        "    redis.call('PUBLISH', KEYS[1], ARGV[1])\n"
-        "end\n";
+        "redis.call('DEL', KEYS[3])\n";
     m_shaDel = m_pipe->loadRedisScript(luaDel);
 
     string luaBatchedSet =
@@ -59,9 +56,6 @@ ProducerStateTable::ProducerStateTable(RedisPipeline *pipeline, const string &ta
         "        redis.call('HSET', KEYS[3] .. KEYS[4 + i], attr, val)\n"
         "    end\n"
         "    idx = idx + tonumber(ARGV[idx]) * 2 + 1\n"
-        "end\n"
-        "if added > 0 then \n"
-        "    redis.call('PUBLISH', KEYS[1], ARGV[1])\n"
         "end\n";
     m_shaBatchedSet = m_pipe->loadRedisScript(luaBatchedSet);
 
@@ -71,9 +65,6 @@ ProducerStateTable::ProducerStateTable(RedisPipeline *pipeline, const string &ta
         "    added = added + redis.call('SADD', KEYS[2], KEYS[5 + i])\n"
         "    redis.call('SADD', KEYS[3], KEYS[5 + i])\n"
         "    redis.call('DEL', KEYS[4] .. KEYS[5 + i])\n"
-        "end\n"
-        "if added > 0 then \n"
-        "    redis.call('PUBLISH', KEYS[1], ARGV[1])\n"
         "end\n";
     m_shaBatchedDel = m_pipe->loadRedisScript(luaBatchedDel);
 
