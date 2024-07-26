@@ -27,7 +27,7 @@ namespace swss
 
             void stop();
 
-            void inc(uint64_t count = 1);
+            std::string inc(uint64_t count = 1);
 
             void reset();
 
