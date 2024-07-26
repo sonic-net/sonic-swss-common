@@ -51,9 +51,11 @@ void PerformanceTimer::stop()
     m_stop = std::chrono::steady_clock::now();
 }
 
-void PerformanceTimer::inc(uint64_t count)
+std::string PerformanceTimer::inc(uint64_t count)
 {
     SWSS_LOG_ENTER();
+
+    std::string output = "";
 
     m_calls += 1;
 
@@ -68,7 +70,7 @@ void PerformanceTimer::inc(uint64_t count)
     if (count == 0) {
         m_gaps.pop_back();
         m_calls -= 1;
-        return;
+        return output;
     }
 
     if (m_incs.size() <= LIMIT) {
@@ -84,16 +86,19 @@ void PerformanceTimer::inc(uint64_t count)
 
         if (m_enable && mseconds > 0)
         {
+            output = getTimerState();
             std::ifstream indicator(INDICATOR);
             if (indicator.good()) {
-                SWSS_LOG_NOTICE("%s", getTimerState().c_str());
+                SWSS_LOG_NOTICE("%s", output.c_str());
             } else {
-                SWSS_LOG_INFO("%s", getTimerState().c_str());
+                SWSS_LOG_INFO("%s", output.c_str());
             }
         }
 
         reset();
     }
+
+    return output;
 }
 
 std::string PerformanceTimer::getTimerState()
