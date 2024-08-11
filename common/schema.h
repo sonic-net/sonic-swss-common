@@ -24,6 +24,7 @@ namespace swss {
 #define CHASSIS_STATE_DB    13
 #define APPL_STATE_DB       14
 #define EVENT_DB            19
+#define BMP_STATE_DB        20
 
 /***** APPLICATION DATABASE *****/
 
@@ -323,6 +324,7 @@ namespace swss {
 #define CFG_BGP_MONITORS_TABLE_NAME "BGP_MONITORS"
 #define CFG_BGP_PEER_RANGE_TABLE_NAME "BGP_PEER_RANGE"
 #define CFG_BGP_DEVICE_GLOBAL_TABLE_NAME "BGP_DEVICE_GLOBAL"
+#define CFG_BMP_TABLE_NAME "BMP"
 
 #define CFG_SWITCH_HASH_TABLE_NAME     "SWITCH_HASH"
 #define CFG_DEVICE_METADATA_TABLE_NAME "DEVICE_METADATA"
@@ -574,6 +576,10 @@ namespace swss {
 #define EVENT_STATS_TABLE_NAME            "EVENT_STATS"
 #define EVENT_ALARM_STATS_TABLE_NAME      "ALARM_STATS"
 
+/***** BMP STATE DATABASE *****/
+#define BMP_STATE_BGP_NEIGHBOR_TABLE             "BGP_NEIGHBOR_TABLE"
+#define BMP_STATE_BGP_RIB_IN_TABLE               "BGP_RIB_IN_TABLE"
+#define BMP_STATE_BGP_RIB_OUT_TABLE              "BGP_RIB_OUT_TABLE"
 
 #ifdef __cplusplus
 }

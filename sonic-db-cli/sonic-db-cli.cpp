@@ -139,14 +139,14 @@ int executeCommands(
     try
     {
         int db_id =  SonicDBConfig::getDbId(db_name, netns);
-        if (useUnixSocket)
+        auto host = SonicDBConfig::getDbHostname(db_name, netns);
+        if (useUnixSocket && host != "redis_chassis.server")
         {
             auto db_socket = SonicDBConfig::getDbSock(db_name, netns);
             client = make_shared<DBConnector>(db_id, db_socket, 0);
         }
         else
         {
-            auto host = SonicDBConfig::getDbHostname(db_name, netns);
             auto port = SonicDBConfig::getDbPort(db_name, netns);
             client = make_shared<DBConnector>(db_id, host, port, 0);
         }
