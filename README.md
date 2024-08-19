@@ -29,10 +29,13 @@ Checkout the source:
 
 Install build dependencies:
 
+    echo 'deb http://download.opensuse.org/repositories/network:/messaging:/zeromq:/release-stable/Debian_9.0/ ./' | sudo tee -a /etc/apt/sources.list > /dev/null
+    wget https://download.opensuse.org/repositories/network:/messaging:/zeromq:/release-stable/Debian_9.0/Release.key -O- | sudo apt-key add
     sudo apt-get install make libtool m4 autoconf dh-exec debhelper cmake pkg-config \
                          libhiredis-dev libnl-3-dev libnl-genl-3-dev libnl-route-3-dev \
                          libnl-nf-3-dev swig3.0 libpython2.7-dev libpython3-dev \
-                         libgtest-dev libgmock-dev libboost-dev
+                         libgtest-dev libgmock-dev libboost-dev libboost-serialization-dev \
+                         libyang-dev uuid-dev nlohmann-json3-dev libzmq3-dev
 
 Build and Install Google Test and Mock from DEB source packages:
 
