@@ -311,8 +311,8 @@ struct serialization
         zmq_msg_init(&msg);
         int rc = zmq_msg_recv(&msg, sock, flag);
         if (rc == 1) {
-            string control_character((const char*)zmq_msg_data(&msg), zmq_msg_size(&msg));
-            if (control_character.c_str() == "#001") {
+            char control_character = *(char*)zmq_msg_data(&msg);
+            if (control_character == 0x01) {
                 SWSS_LOG_INFO("Received subscription message when XSUB connect to XPUB");
             }
             rc = 0;
