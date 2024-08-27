@@ -39,6 +39,11 @@ ZmqConsumerStateTable::ZmqConsumerStateTable(DBConnector *db, const std::string 
     SWSS_LOG_DEBUG("ZmqConsumerStateTable ctor tableName: %s", tableName.c_str());
 }
 
+ZmqConsumerStateTable::~ZmqConsumerStateTable()
+{
+    m_zmqServer.unregisterMessageHandler(m_db->getDbName(), getTableName());
+}
+
 void ZmqConsumerStateTable::handleReceivedData(const std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> &kcos)
 {
     for (auto kco : kcos)

@@ -19,6 +19,7 @@ public:
     static constexpr int DEFAULT_POP_BATCH_SIZE = 128;
 
     ZmqConsumerStateTable(DBConnector *db, const std::string &tableName, ZmqServer &zmqServer, int popBatchSize = DEFAULT_POP_BATCH_SIZE, int pri = 0, bool dbPersistence = false);
+    ~ZmqConsumerStateTable();
 
     /* Get multiple pop elements */
     void pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const std::string &prefix = EMPTY_PREFIX);

@@ -18,7 +18,8 @@ ZmqServer::ZmqServer(const std::string& endpoint)
 
 ZmqServer::ZmqServer(const std::string& endpoint, const std::string& vrf)
     : m_endpoint(endpoint),
-    m_vrf(vrf)
+    m_vrf(vrf),
+    m_proxy_mode(false)
 {
     m_buffer.resize(MQ_RESPONSE_MAX_COUNT);
     m_runThread = true;
@@ -33,11 +34,23 @@ ZmqServer::~ZmqServer()
     m_mqPollThread->join();
 }
 
+void ZmqServer::enableProxyMode(const std::string& proxy_endpoint)
+{
+    m_proxy_client = make_unique<ZmqClient>(proxy_endpoint);
+    m_proxy_mode = true;
+}
+
+bool ZmqServer::isProxyMode() const {
+    return m_proxy_mode;
+}
+
 void ZmqServer::registerMessageHandler(
                                     const std::string dbName,
                                     const std::string tableName,
                                     ZmqMessageHandler* handler)
 {
+    std::lock_guard<std::mutex> lock(m_handlerMapMutext);
+
     auto dbResult = m_HandlerMap.insert(pair<string, map<string, ZmqMessageHandler*>>(dbName, map<string, ZmqMessageHandler*>()));
     if (dbResult.second) {
         SWSS_LOG_DEBUG("ZmqServer add handler mapping for db: %s", dbName.c_str());
@@ -49,10 +62,31 @@ void ZmqServer::registerMessageHandler(
     }
 }
 
+void ZmqServer::unregisterMessageHandler(const std::string &dbName, const std::string &tableName)
+{
+    std::lock_guard<std::mutex> lock(m_handlerMapMutext);
+
+    SWSS_LOG_DEBUG("ZmqServer unregister handler for db: %s, table: %s", dbName.c_str(), tableName.c_str());
+
+    auto db = m_HandlerMap.find(dbName);
+    if (db == m_HandlerMap.end()) {
+        SWSS_LOG_ERROR("ZmqServer can't unregister a handler for db: %s - not found", dbName.c_str());
+        return;
+    }
+
+    auto removed = db->second.erase(tableName);
+    if (!removed) {
+        SWSS_LOG_ERROR("ZmqServer can't unregister a handler for db: %s table %s - not found", dbName.c_str(), tableName.c_str());
+        return;
+    }
+}
+
 ZmqMessageHandler* ZmqServer::findMessageHandler(
                                                 const std::string dbName,
                                                 const std::string tableName)
 {
+    std::lock_guard<std::mutex> lock(m_handlerMapMutext);
+
     auto dbMappingIter = m_HandlerMap.find(dbName);
     if (dbMappingIter == m_HandlerMap.end()) {
         SWSS_LOG_DEBUG("ZmqServer can't find any handler for db: %s", dbName.c_str());
@@ -77,12 +111,15 @@ void ZmqServer::handleReceivedData(const char* buffer, const size_t size)
 
     // find handler
     auto handler = findMessageHandler(dbName, tableName);
-    if (handler == nullptr) {
-        SWSS_LOG_WARN("ZmqServer can't find handler for received message: %s", buffer);
-        return;
+    if (handler) {
+        handler->handleReceivedData(kcos);
+    } else {
+        if (isProxyMode()) {
+            m_proxy_client->sendRaw(buffer, size);
+        } else {
+            SWSS_LOG_WARN("ZmqServer can't find handler for received message: %.*s", (int)size, buffer);
+        }
     }
-
-    handler->handleReceivedData(kcos);
 }
 
 void ZmqServer::mqPollThread()
