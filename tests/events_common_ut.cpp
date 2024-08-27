@@ -97,9 +97,41 @@ TEST(events_common, send_recv)
     zmq_ctx_term(zmq_ctx);
 }
 
+TEST(events_common, send_recv_control_character)
+{
+#if 0
+    {
+        /* Direct log messages to stdout */
+        string dummy, op("STDOUT");
+        swss::Logger::swssOutputNotify(dummy, op);
+        swss::Logger::setMinPrio(swss::Logger::SWSS_DEBUG);
+    }
+#endif
 
+    char *path = "tcp://127.0.0.1:5570";
+    void *zmq_ctx = zmq_ctx_new();
+    void *sock_p0 = zmq_socket (zmq_ctx, ZMQ_PAIR);
+    EXPECT_EQ(0, zmq_connect (sock_p0, path));
 
+    void *sock_p1 = zmq_socket (zmq_ctx, ZMQ_PAIR);
+    EXPECT_EQ(0, zmq_bind (sock_p1, path));
 
+    string source;
+    map<string, string> m;
 
+    zmq_msg_t ctrl_msg;
+    zmq_msg_init_size(&ctrl_msg, 1);
 
+    *(char*)zmq_msg_data(&ctrl_msg) = 0x01;
 
+    EXPECT_EQ(1, zmq_mesg_send(&ctrl_msg, sock_p0, 0));
+
+    // First part will be read only and will return as 0, but will not be deserialized event
+    EXPECT_EQ(0, zmq_message_read(sock_p1, 0, source1, m1));
+
+    EXPECT_EQ("", source);
+    EXPECT_EQ(0, m.size());
+    zmq_close(sock_p0);
+    zmq_close(sock_p1);
+    zmq_ctx_term(zmq_ctx);
+}
