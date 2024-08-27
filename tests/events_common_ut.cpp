@@ -124,10 +124,10 @@ TEST(events_common, send_recv_control_character)
 
     *(char*)zmq_msg_data(&ctrl_msg) = 0x01;
 
-    EXPECT_EQ(1, zmq_mesg_send(&ctrl_msg, sock_p0, 0));
+    EXPECT_EQ(1, zmq_msg_send(&ctrl_msg, sock_p0, 0));
 
     // First part will be read only and will return as 0, but will not be deserialized event
-    EXPECT_EQ(0, zmq_message_read(sock_p1, 0, source1, m1));
+    EXPECT_EQ(0, zmq_message_read(sock_p1, 0, source, m));
 
     EXPECT_EQ("", source);
     EXPECT_EQ(0, m.size());
