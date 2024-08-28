@@ -312,8 +312,10 @@ struct serialization
         int rc = zmq_msg_recv(&msg, sock, flag);
         if (rc == 1) {
             char control_character = *(char*)zmq_msg_data(&msg);
-            if (control_character == 0x01) {
-                SWSS_LOG_INFO("Received subscription message when XSUB connect to XPUB");
+            if (control_character == 0x01 || control_character == 0x00) {
+                SWSS_LOG_INFO("Received subscription/unsubscription message when XSUB connect to XPUB: %c", control_character);
+            } else {
+                SWSS_LOG_DEBUG("Received non subscription based control character: %c", control_character);
             }
             rc = 0;
         } else if (rc != -1) {

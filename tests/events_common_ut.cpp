@@ -119,18 +119,28 @@ TEST(events_common, send_recv_control_character)
     string source;
     map<string, string> m;
 
-    zmq_msg_t ctrl_msg;
-    zmq_msg_init_size(&ctrl_msg, 1);
-
-    *(char*)zmq_msg_data(&ctrl_msg) = 0x01;
-
-    EXPECT_EQ(1, zmq_msg_send(&ctrl_msg, sock_p0, 0));
-
+    // Subscription based control character test
+    zmq_msg_t sub_msg;
+    zmq_msg_init_size(&sub_msg, 1);
+    *(char*)zmq_msg_data(&sub_msg) = 0x01;
+    EXPECT_EQ(1, zmq_msg_send(&sub_msg, sock_p0, 0));
+    zmq_msg_close(&sub_msg);
     // First part will be read only and will return as 0, but will not be deserialized event
     EXPECT_EQ(0, zmq_message_read(sock_p1, 0, source, m));
-
     EXPECT_EQ("", source);
     EXPECT_EQ(0, m.size());
+
+   // Non-subscription based control character test
+    zmq_msg_t ctrl_msg;
+    zmq_msg_init_size(&ctrl_msg, 1);
+    *(char*)zmq_msg_data(&ctrl_msg) = 0x07;
+    EXPECT_EQ(1, zmq_msg_send(&ctrl_msg, sock_p0, 0));
+    zmq_msg_close(&ctrl_msg);
+    // First part will be read only and will return as 0, but will not be deserialized event
+    EXPECT_EQ(0, zmq_message_read(sock_p1, 0, source, m));
+    EXPECT_EQ("", source);
+    EXPECT_EQ(0, m.size());
+
     zmq_close(sock_p0);
     zmq_close(sock_p1);
     zmq_ctx_term(zmq_ctx);
