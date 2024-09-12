@@ -192,8 +192,8 @@ private:
     {
         if ((size_t)(m_current_position - m_buffer + datalen + sizeof(size_t)) > m_buffer_size)
         {
-            SWSS_LOG_THROW("There are not enough buffer for binary serializer to serialize,\
-                             key count: %zu, data length %zu, buffer size: %zu",
+            SWSS_LOG_THROW("There are not enough buffer for binary serializer to serialize,\n"
+                           "  key count: %zu, data length %zu, buffer size: %zu",
                                                 m_kvp_count,
                                                 datalen,
                                                 m_buffer_size);

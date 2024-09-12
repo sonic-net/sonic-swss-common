@@ -9,23 +9,24 @@ extern "C" {
 #include <stdint.h>
 
 typedef struct {
-    char *field, *value;
+    const char *field;
+    const char *value;
 } SWSSFieldValuePair;
 
 typedef struct {
     uint64_t len;
-    SWSSFieldValuePair *data;
+    const SWSSFieldValuePair *data;
 } SWSSFieldValueArray;
 
 typedef struct {
-    char *key;
-    char *operation;
+    const char *key;
+    const char *operation;
     SWSSFieldValueArray fieldValues;
 } SWSSKeyOpFieldValues;
 
 typedef struct {
     uint64_t len;
-    SWSSKeyOpFieldValues *data;
+    const SWSSKeyOpFieldValues *data;
 } SWSSKeyOpFieldValuesArray;
 
 #ifdef __cplusplus
@@ -34,9 +35,11 @@ typedef struct {
 
 // Internal utilities (used to help define c-facing functions)
 #ifdef __cplusplus
+#include <boost/numeric/conversion/cast.hpp>
 #include <cstdlib>
 #include <exception>
 #include <iostream>
+#include <tuple>
 #include <utility>
 
 #include "../logger.h"
@@ -54,25 +57,33 @@ typedef struct {
         std::abort();                                                                              \
     }
 
+// malloc() with safe numeric casting of the size parameter
+template <class N> static inline void *mallocN(N size) {
+    return malloc(boost::numeric_cast<size_t>(size));
+}
+
 // T is anything that has a .size() method and which can be iterated over for pair<string, string>
 // eg unordered_map<string, string> or vector<pair<string, string>>
 template <class T> static inline SWSSFieldValueArray makeFieldValueArray(const T &in) {
-    SWSSFieldValueArray out;
-    out.len = (uint64_t)in.size();
-    out.data = (SWSSFieldValuePair *)malloc(out.len * sizeof(SWSSFieldValuePair));
+    SWSSFieldValuePair *data =
+        (SWSSFieldValuePair *)mallocN(in.size() * sizeof(SWSSFieldValuePair));
 
     size_t i = 0;
     for (const auto &pair : in) {
         SWSSFieldValuePair entry;
         entry.field = strdup(pair.first.c_str());
         entry.value = strdup(pair.second.c_str());
-        out.data[i++] = entry;
+        data[i++] = entry;
     }
 
+    SWSSFieldValueArray out;
+    out.len = (uint64_t)in.size();
+    out.data = data;
     return out;
 }
 
-static inline std::vector<swss::FieldValueTuple> takeFieldValueArray(SWSSFieldValueArray in) {
+static inline std::vector<swss::FieldValueTuple>
+takeFieldValueArray(const SWSSFieldValueArray &in) {
     std::vector<swss::FieldValueTuple> out;
     for (uint64_t i = 0; i < in.len; i++) {
         auto field = std::string(in.data[i].field);
@@ -82,24 +93,49 @@ static inline std::vector<swss::FieldValueTuple> takeFieldValueArray(SWSSFieldVa
     return out;
 }
 
-static inline SWSSKeyOpFieldValues makeKeyOpFieldValues(const swss::KeyOpFieldsValuesTuple &kfv) {
+static inline SWSSKeyOpFieldValues makeKeyOpFieldValues(const swss::KeyOpFieldsValuesTuple &in) {
     SWSSKeyOpFieldValues out;
-    out.key = strdup(kfvKey(kfv).c_str());
-    out.operation = strdup(kfvOp(kfv).c_str());
-    out.fieldValues = makeFieldValueArray(kfvFieldsValues(kfv));
+    out.key = strdup(kfvKey(in).c_str());
+    out.operation = strdup(kfvOp(in).c_str());
+    out.fieldValues = makeFieldValueArray(kfvFieldsValues(in));
     return out;
 }
 
-// T is anything that has a .size() method and which can be iterated over for KeyOpFieldValuesTuple
+static inline swss::KeyOpFieldsValuesTuple takeKeyOpFieldValues(const SWSSKeyOpFieldValues &in) {
+    std::string key(in.key), op(in.operation);
+    auto fieldValues = takeFieldValueArray(in.fieldValues);
+    return std::make_tuple(key, op, fieldValues);
+}
+
+template <class T> static inline const T &getReference(const T &t) {
+    return t;
+}
+
+template <class T> static inline const T &getReference(const std::shared_ptr<T> &t) {
+    return *t;
+}
+
+// T is anything that has a .size() method and which can be iterated over for
+// swss::KeyOpFieldValuesTuple
 template <class T> static inline SWSSKeyOpFieldValuesArray makeKeyOpFieldValuesArray(const T &in) {
-    SWSSKeyOpFieldValuesArray out;
-    out.len = (uint64_t)in.size();
-    out.data = (SWSSKeyOpFieldValues *)malloc(out.len * sizeof(SWSSKeyOpFieldValues));
+    SWSSKeyOpFieldValues *data =
+        (SWSSKeyOpFieldValues *)mallocN(in.size() * sizeof(SWSSKeyOpFieldValues));
 
     size_t i = 0;
     for (const auto &kfv : in)
-        out.data[i++] = makeKeyOpFieldValues(kfv);
+        data[i++] = makeKeyOpFieldValues(getReference(kfv));
 
+    SWSSKeyOpFieldValuesArray out;
+    out.len = (uint64_t)in.size();
+    out.data = data;
+    return out;
+}
+
+static inline std::vector<swss::KeyOpFieldsValuesTuple>
+takeKeyOpFieldValuesArray(const SWSSKeyOpFieldValuesArray &in) {
+    std::vector<swss::KeyOpFieldsValuesTuple> out;
+    for (uint64_t i = 0; i < in.len; i++)
+        out.push_back(takeKeyOpFieldValues(in.data[i]));
     return out;
 }
 
