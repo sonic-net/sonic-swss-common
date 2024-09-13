@@ -12,7 +12,7 @@
 namespace swss {
 
 // Redis will not response to other process when run shapop scripts with very big batch size.
-static const int SHA_POP_COMMAN_MAX_POP_SIZE = 1024;
+static const size_t SHA_POP_COMMAN_MAX_POP_SIZE = 1024;
 
 ConsumerStateTable::ConsumerStateTable(DBConnector *db, const std::string &tableName, int popBatchSize, int pri)
     : ConsumerTableBase(db, tableName, popBatchSize, pri)
@@ -41,8 +41,8 @@ void ConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const st
     // With shaPop sciipt, the poped count may smaller than batch size
     // Use not_poped_count to control run shaPop script how many times
     // Use poped_count to calculate and resize vkco queue after pop finished
-    int not_poped_count = POP_BATCH_SIZE;
-    int poped_count = 0;
+    size_t not_poped_count = POP_BATCH_SIZE;
+    size_t poped_count = 0;
     vkco.clear();
     vkco.resize(not_poped_count);
     for(;;)
@@ -64,12 +64,12 @@ void ConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const st
     }
 }
 
-int ConsumerStateTable::popsWithBatchSize(std::deque<KeyOpFieldsValuesTuple> &vkco, int popBatchSize, int queueStartIndex)
+size_t ConsumerStateTable::popsWithBatchSize(std::deque<KeyOpFieldsValuesTuple> &vkco, size_t popBatchSize, int queueStartIndex)
 {
 
     RedisCommand command;
     command.format(
-        "EVALSHA %s 3 %s %s%s %s %d %s",
+        "EVALSHA %s 3 %s %s%s %s %zu %s",
         m_shaPop.c_str(),
         getKeySetName().c_str(),
         getTableName().c_str(),
