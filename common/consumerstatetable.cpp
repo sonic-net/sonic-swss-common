@@ -84,7 +84,7 @@ int ConsumerStateTable::popsWithBatchSize(std::deque<KeyOpFieldsValuesTuple> &vk
     // if the set is empty, return an empty kco object
     if (ctx0->type == REDIS_REPLY_NIL)
     {
-        return;
+        return 0;
     }
 
     assert(ctx0->type == REDIS_REPLY_ARRAY);
