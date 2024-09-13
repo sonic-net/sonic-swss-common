@@ -69,13 +69,13 @@ size_t ConsumerStateTable::popsWithBatchSize(std::deque<KeyOpFieldsValuesTuple> 
 
     RedisCommand command;
     command.format(
-        "EVALSHA %s 3 %s %s%s %s %zu %s",
+        "EVALSHA %s 3 %s %s%s %s %d %s",
         m_shaPop.c_str(),
         getKeySetName().c_str(),
         getTableName().c_str(),
         getTableNameSeparator().c_str(),
         getDelKeySetName().c_str(),
-        popBatchSize,
+        (int)popBatchSize,
         getStateHashPrefix().c_str());
 
     RedisReply r(m_db, command);
