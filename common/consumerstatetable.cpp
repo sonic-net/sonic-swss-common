@@ -38,23 +38,33 @@ ConsumerStateTable::ConsumerStateTable(DBConnector *db, const std::string &table
 
 void ConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const std::string& /*prefix*/)
 {
+    // With shaPop sciipt, the poped count may smaller than batch size
+    // Use not_poped_count to control run shaPop script how many times
+    // Use poped_count to calculate and resize vkco queue after pop finished
     int not_poped_count = POP_BATCH_SIZE;
+    int poped_count = 0;
+    vkco.clear();
+    vkco.resize(not_poped_count);
     for(;;)
     {
         if (not_poped_count <= SHA_POP_COMMAN_MAX_POP_SIZE)
         {
-            popsWithBatchSize(vkco, not_poped_count);
+            poped_count += popsWithBatchSize(vkco, not_poped_count, poped_count);
+
+            // A call to resize with a smaller size does not invalidate any references to non-erased elements.
+            // https://en.cppreference.com/w/cpp/container/deque
+            vkco.resize(poped_count);
             return;
         }
         else
         {
-            popsWithBatchSize(vkco, SHA_POP_COMMAN_MAX_POP_SIZE);
+            poped_count += popsWithBatchSize(vkco, SHA_POP_COMMAN_MAX_POP_SIZE, poped_count);
             not_poped_count -= SHA_POP_COMMAN_MAX_POP_SIZE;
         }
     }
 }
 
-void ConsumerStateTable::popsWithBatchSize(std::deque<KeyOpFieldsValuesTuple> &vkco, int popBatchSize, const std::string& /*prefix*/)
+int ConsumerStateTable::popsWithBatchSize(std::deque<KeyOpFieldsValuesTuple> &vkco, int popBatchSize, int queueStartIndex)
 {
 
     RedisCommand command;
@@ -70,7 +80,6 @@ void ConsumerStateTable::popsWithBatchSize(std::deque<KeyOpFieldsValuesTuple> &v
 
     RedisReply r(m_db, command);
     auto ctx0 = r.getContext();
-    vkco.clear();
 
     // if the set is empty, return an empty kco object
     if (ctx0->type == REDIS_REPLY_NIL)
@@ -80,10 +89,9 @@ void ConsumerStateTable::popsWithBatchSize(std::deque<KeyOpFieldsValuesTuple> &v
 
     assert(ctx0->type == REDIS_REPLY_ARRAY);
     size_t n = ctx0->elements;
-    vkco.resize(n);
     for (size_t ie = 0; ie < n; ie++)
     {
-        auto& kco = vkco[ie];
+        auto& kco = vkco[queueStartIndex + ie];
         auto& values = kfvFieldsValues(kco);
         assert(values.empty());
 
@@ -112,6 +120,8 @@ void ConsumerStateTable::popsWithBatchSize(std::deque<KeyOpFieldsValuesTuple> &v
             kfvOp(kco) = SET_COMMAND;
         }
     }
+
+    return n;
 }
 
 }
