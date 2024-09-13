@@ -64,7 +64,7 @@ void ConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const st
     }
 }
 
-size_t ConsumerStateTable::popsWithBatchSize(std::deque<KeyOpFieldsValuesTuple> &vkco, size_t popBatchSize, int queueStartIndex)
+size_t ConsumerStateTable::popsWithBatchSize(std::deque<KeyOpFieldsValuesTuple> &vkco, size_t popBatchSize, size_t queueStartIndex)
 {
 
     RedisCommand command;
