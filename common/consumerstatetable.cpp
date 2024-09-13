@@ -11,6 +11,9 @@
 
 namespace swss {
 
+// Redis will not response to other process when run shapop scripts with very big batch size.
+static const int SHA_POP_COMMAN_MAX_POP_SIZE = 1024;
+
 ConsumerStateTable::ConsumerStateTable(DBConnector *db, const std::string &tableName, int popBatchSize, int pri)
     : ConsumerTableBase(db, tableName, popBatchSize, pri)
     , TableName_KeySet(tableName)
@@ -34,6 +37,24 @@ ConsumerStateTable::ConsumerStateTable(DBConnector *db, const std::string &table
 }
 
 void ConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const std::string& /*prefix*/)
+{
+    int not_poped_count = POP_BATCH_SIZE;
+    for(;;)
+    {
+        if (not_poped_count <= SHA_POP_COMMAN_MAX_POP_SIZE)
+        {
+            pops(vkco, not_poped_count);
+            return;
+        }
+        else
+        {
+            pops(vkco, SHA_POP_COMMAN_MAX_POP_SIZE);
+            not_poped_count -= SHA_POP_COMMAN_MAX_POP_SIZE;
+        }
+    }
+}
+
+void ConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, int popBatchSize, const std::string& /*prefix*/)
 {
 
     RedisCommand command;
