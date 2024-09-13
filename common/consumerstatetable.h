@@ -16,7 +16,7 @@ public:
     void pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const std::string &prefix = EMPTY_PREFIX);
 
 private:
-    size_t popsWithBatchSize(std::deque<KeyOpFieldsValuesTuple> &vkco, size_t popBatchSize, int queueStartIndex);
+    size_t popsWithBatchSize(std::deque<KeyOpFieldsValuesTuple> &vkco, size_t popBatchSize, size_t queueStartIndex);
     std::string m_shaPop;
 };
 
