@@ -43,18 +43,18 @@ void ConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const st
     {
         if (not_poped_count <= SHA_POP_COMMAN_MAX_POP_SIZE)
         {
-            pops(vkco, not_poped_count);
+            popsWithBatchSize(vkco, not_poped_count);
             return;
         }
         else
         {
-            pops(vkco, SHA_POP_COMMAN_MAX_POP_SIZE);
+            popsWithBatchSize(vkco, SHA_POP_COMMAN_MAX_POP_SIZE);
             not_poped_count -= SHA_POP_COMMAN_MAX_POP_SIZE;
         }
     }
 }
 
-void ConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, int popBatchSize, const std::string& /*prefix*/)
+void ConsumerStateTable::popsWithBatchSize(std::deque<KeyOpFieldsValuesTuple> &vkco, int popBatchSize, const std::string& /*prefix*/)
 {
 
     RedisCommand command;
