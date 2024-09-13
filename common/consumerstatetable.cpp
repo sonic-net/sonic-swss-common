@@ -65,7 +65,7 @@ void ConsumerStateTable::popsWithBatchSize(std::deque<KeyOpFieldsValuesTuple> &v
         getTableName().c_str(),
         getTableNameSeparator().c_str(),
         getDelKeySetName().c_str(),
-        POP_BATCH_SIZE,
+        popBatchSize,
         getStateHashPrefix().c_str());
 
     RedisReply r(m_db, command);
