@@ -2,6 +2,8 @@
 #define __BINARY_SERIALIZER__
 
 #include "common/armhelper.h"
+#include "common/rediscommand.h"
+#include "common/table.h"
 
 #include <string>
 
@@ -11,6 +13,26 @@ namespace swss {
 
 class BinarySerializer {
 public:
+    static size_t serializedSize(const string &dbName, const string &tableName,
+                                 const vector<KeyOpFieldsValuesTuple> &kcos) {
+        size_t n = 0;
+        n += dbName.size() + sizeof(size_t);
+        n += tableName.size() + sizeof(size_t);
+
+        for (const KeyOpFieldsValuesTuple &kco : kcos) {
+            const vector<FieldValueTuple> &fvs = kfvFieldsValues(kco);
+            n += kfvKey(kco).size() + sizeof(size_t);
+            n += to_string(fvs.size()).size() + sizeof(size_t);
+
+            for (const FieldValueTuple &fv : fvs) {
+                n += fvField(fv).size() + sizeof(size_t);
+                n += fvValue(fv).size() + sizeof(size_t);
+            }
+        }
+
+        return n + sizeof(size_t);
+    }
+
     static size_t serializeBuffer(
         const char* buffer,
         const size_t size,

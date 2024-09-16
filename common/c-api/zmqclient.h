@@ -21,8 +21,7 @@ int8_t SWSSZmqClient_isConnected(SWSSZmqClient zmqc);
 void SWSSZmqClient_connect(SWSSZmqClient zmqc);
 
 void SWSSZmqClient_sendMsg(SWSSZmqClient zmqc, const char *dbName, const char *tableName,
-                           const SWSSKeyOpFieldValuesArray *kcos, const char *sendBuffer,
-                           uint64_t bufferLen);
+                           const SWSSKeyOpFieldValuesArray *kcos);
 
 #ifdef __cplusplus
 }

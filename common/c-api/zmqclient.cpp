@@ -1,4 +1,5 @@
 #include "../zmqclient.h"
+#include "../binaryserializer.h"
 #include "util.h"
 #include "zmqclient.h"
 
@@ -23,11 +24,12 @@ void SWSSZmqClient_connect(SWSSZmqClient zmqc) {
 }
 
 void SWSSZmqClient_sendMsg(SWSSZmqClient zmqc, const char *dbName, const char *tableName,
-                           const SWSSKeyOpFieldValuesArray *kcos, const char *sendBuffer,
-                           uint64_t bufferLen) {
+                           const SWSSKeyOpFieldValuesArray *arr) {
     SWSSTry({
-        vector<char> v(sendBuffer, sendBuffer + bufferLen);
+        vector<KeyOpFieldsValuesTuple> kcos = takeKeyOpFieldValuesArray(*arr);
+        size_t bufSize = BinarySerializer::serializedSize(dbName, tableName, kcos);
+        vector<char> v(bufSize);
         ((ZmqClient *)zmqc)
-            ->sendMsg(string(dbName), string(tableName), takeKeyOpFieldValuesArray(*kcos), v);
+            ->sendMsg(string(dbName), string(tableName), kcos, v);
     });
 }
