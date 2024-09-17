@@ -3,6 +3,7 @@
 
 #include "dbconnector.h"
 #include "util.h"
+#include "zmqserver.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -14,13 +15,31 @@ typedef struct SWSSZmqConsumerStateTableOpaque *SWSSZmqConsumerStateTable;
 
 // Pass NULL for popBatchSize and/or pri to use the default values
 SWSSZmqConsumerStateTable SWSSZmqConsumerStateTable_new(SWSSDBConnector db, const char *tableName,
-                                                     const int32_t *popBatchSize,
-                                                     const int32_t *pri);
+                                                        SWSSZmqServer zmqs,
+                                                        const int32_t *popBatchSize,
+                                                        const int32_t *pri);
 
 void SWSSZmqConsumerStateTable_free(SWSSZmqConsumerStateTable tbl);
 
 // Result array and all of its members must be freed using free()
-// SWSSKeyOpFieldValuesArray SWSSConsumerStateTable_pops(SWSSConsumerStateTable tbl);
+SWSSKeyOpFieldValuesArray SWSSZmqConsumerStateTable_pops(SWSSZmqConsumerStateTable tbl);
+
+int32_t SWSSZmqConsumerStateTable_getFd(SWSSZmqConsumerStateTable tbl);
+
+uint64_t SWSSZmqConsumerStateTable_readData(SWSSZmqConsumerStateTable tbl);
+
+// Returns 0 for false, 1 for true
+uint8_t SWSSZmqConsumerStateTable_hasData(SWSSZmqConsumerStateTable tbl);
+
+// Returns 0 for false, 1 for true
+uint8_t SWSSZmqConsumerStateTable_hasCachedData(SWSSZmqConsumerStateTable tbl);
+
+// Returns 0 for false, 1 for true
+uint8_t SWSSZmqConsumerStateTable_initializedWithData(SWSSZmqConsumerStateTable tbl);
+
+const struct SWSSDBConnectorOpaque *SWSSZmqConsumerStateTable_getDbConnector(SWSSZmqConsumerStateTable tbl);
+
+uint64_t SWSSZmqConsumerStateTable_dbUpdaterQueueSize(SWSSZmqConsumerStateTable tbl);
 
 #ifdef __cplusplus
 }

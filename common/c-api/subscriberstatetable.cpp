@@ -15,9 +15,9 @@ using namespace std;
 SWSSSubscriberStateTable SWSSSubscriberStateTable_new(SWSSDBConnector db, const char *tableName,
                                                       const int32_t *p_popBatchSize,
                                                       const int32_t *p_pri) {
-    int popBatchSize = p_popBatchSize ? static_cast<int>(*p_popBatchSize)
+    int popBatchSize = p_popBatchSize ? numeric_cast<int>(*p_popBatchSize)
                                       : TableConsumable::DEFAULT_POP_BATCH_SIZE;
-    int pri = p_pri ? static_cast<int>(*p_pri) : 0;
+    int pri = p_pri ? numeric_cast<int>(*p_pri) : 0;
     SWSSTry(return (SWSSSubscriberStateTable) new SubscriberStateTable(
         (DBConnector *)db, string(tableName), popBatchSize, pri));
 }

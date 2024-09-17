@@ -45,6 +45,8 @@ typedef struct {
 #include "../logger.h"
 #include "../rediscommand.h"
 
+using boost::numeric_cast;
+
 // In the catch block, we must abort because passing an exception across an ffi boundary is
 // undefined behavior. It was also decided that no exceptions in swss-common are recoverable, so
 // there is no reason to convert exceptions into a returnable type.
@@ -59,7 +61,7 @@ typedef struct {
 
 // malloc() with safe numeric casting of the size parameter
 template <class N> static inline void *mallocN(N size) {
-    return malloc(boost::numeric_cast<size_t>(size));
+    return malloc(numeric_cast<size_t>(size));
 }
 
 // T is anything that has a .size() method and which can be iterated over for pair<string, string>
