@@ -23,6 +23,10 @@ namespace swss {
 #define CHASSIS_APP_DB      12
 #define CHASSIS_STATE_DB    13
 #define APPL_STATE_DB       14
+#define DPU_APPL_DB         15
+#define DPU_APPL_STATE_DB   16
+#define DPU_STATE_DB        17
+#define DPU_COUNTERS_DB     18
 #define EVENT_DB            19
 #define BMP_STATE_DB        20
 
