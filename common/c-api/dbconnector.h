@@ -8,6 +8,10 @@ extern "C" {
 
 #include <stdint.h>
 
+void SWSSSonicDBConfig_initialize(const char *path);
+
+void SWSSSonicDBConfig_initializeGlobalConfig(const char *path);
+
 typedef struct SWSSDBConnectorOpaque *SWSSDBConnector;
 
 // Pass 0 to timeout for infinity

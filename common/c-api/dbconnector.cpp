@@ -8,6 +8,14 @@
 using namespace swss;
 using namespace std;
 
+void SWSSSonicDBConfig_initialize(const char *path) {
+    SWSSTry(SonicDBConfig::initialize(path));
+}
+
+void SWSSSonicDBConfig_initializeGlobalConfig(const char *path) {
+    SWSSTry(SonicDBConfig::initializeGlobalConfig(path));
+}
+
 SWSSDBConnector SWSSDBConnector_new_tcp(int32_t dbId, const char *hostname, uint16_t port,
                                         uint32_t timeout) {
     SWSSTry(return (SWSSDBConnector) new DBConnector(dbId, string(hostname), port, timeout));
