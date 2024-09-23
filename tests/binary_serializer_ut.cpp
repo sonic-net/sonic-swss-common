@@ -24,12 +24,7 @@ TEST(BinarySerializer, serialize_deserialize)
     std::vector<KeyOpFieldsValuesTuple> kcos = std::vector<KeyOpFieldsValuesTuple>{
         KeyOpFieldsValuesTuple{test_entry_key, test_command, values},
         KeyOpFieldsValuesTuple{test_entry_key2, test_command2, std::vector<FieldValueTuple>{}}};
-    int serialized_len = (int)BinarySerializer::serializeBuffer(
-                                                                buffer,
-                                                                sizeof(buffer),
-                                                                test_db,
-                                                                test_table,
-                                                                kcos);
+    size_t serialized_len = serializeBuffer(buffer, sizeof(buffer), test_db, test_table, kcos);
     string serialized_str(buffer);
 
     EXPECT_EQ(serialized_len, 117);
@@ -38,7 +33,7 @@ TEST(BinarySerializer, serialize_deserialize)
     std::vector<KeyOpFieldsValuesTuple> deserialized_kcos;
     string db_name;
     string db_table;
-    BinarySerializer::deserializeBuffer(buffer, serialized_len, db_name, db_table, kcos_ptrs);
+    deserializeBuffer(buffer, serialized_len, db_name, db_table, kcos_ptrs);
     for (auto kco_ptr : kcos_ptrs)
     {
         deserialized_kcos.push_back(*kco_ptr);
@@ -56,12 +51,7 @@ TEST(BinarySerializer, serialize_overflow)
     values.push_back(std::make_pair("test_key", "test_value"));
     std::vector<KeyOpFieldsValuesTuple> kcos = std::vector<KeyOpFieldsValuesTuple>{
         KeyOpFieldsValuesTuple{"test_entry_key", "SET", values}};
-    EXPECT_THROW(BinarySerializer::serializeBuffer(
-                                                buffer,
-                                                sizeof(buffer),
-                                                "test_db",
-                                                "test_table",
-                                                kcos), runtime_error);
+    EXPECT_THROW(serializeBuffer(buffer, sizeof(buffer), "test_db", "test_table", kcos), runtime_error);
 }
 
 TEST(BinarySerializer, deserialize_overflow)
@@ -71,18 +61,13 @@ TEST(BinarySerializer, deserialize_overflow)
     values.push_back(std::make_pair("test_key", "test_value"));
     std::vector<KeyOpFieldsValuesTuple> kcos = std::vector<KeyOpFieldsValuesTuple>{
         KeyOpFieldsValuesTuple{"test_entry_key", "SET", values}};
-    int serialized_len = (int)BinarySerializer::serializeBuffer(
-                                                                buffer,
-                                                                sizeof(buffer),
-                                                                "test_db",
-                                                                "test_table",
-                                                                kcos);
+    size_t serialized_len = serializeBuffer(buffer, sizeof(buffer), "test_db", "test_table", kcos);
     string serialized_str(buffer);
 
     std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> kcos_ptrs;
     string db_name;
     string db_table;
-    EXPECT_THROW(BinarySerializer::deserializeBuffer(buffer, serialized_len - 10, db_name, db_table, kcos_ptrs), runtime_error);
+    EXPECT_THROW(deserializeBuffer(buffer, serialized_len - 10, db_name, db_table, kcos_ptrs), runtime_error);
 }
 
 TEST(BinarySerializer, protocol_buffer)
@@ -101,12 +86,7 @@ TEST(BinarySerializer, protocol_buffer)
     values.push_back(std::make_pair(test_key, proto_buf_val));
     std::vector<KeyOpFieldsValuesTuple> kcos = std::vector<KeyOpFieldsValuesTuple>{
         KeyOpFieldsValuesTuple{test_entry_key, test_command, values}};
-    int serialized_len = (int)BinarySerializer::serializeBuffer(
-                                                                buffer,
-                                                                sizeof(buffer),
-                                                                test_db,
-                                                                test_table,
-                                                                kcos);
+    size_t serialized_len = serializeBuffer(buffer, sizeof(buffer), test_db, test_table, kcos);
     string serialized_str(buffer);
 
     EXPECT_EQ(serialized_len, 95);
@@ -115,7 +95,7 @@ TEST(BinarySerializer, protocol_buffer)
     std::vector<KeyOpFieldsValuesTuple> deserialized_kcos;
     string db_name;
     string db_table;
-    BinarySerializer::deserializeBuffer(buffer, serialized_len, db_name, db_table, kcos_ptrs);
+    deserializeBuffer(buffer, serialized_len, db_name, db_table, kcos_ptrs);
     for (auto kco_ptr : kcos_ptrs)
     {
         deserialized_kcos.push_back(*kco_ptr);

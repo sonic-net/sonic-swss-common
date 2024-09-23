@@ -73,7 +73,7 @@ void ZmqServer::handleReceivedData(const char* buffer, const size_t size)
     std::string dbName;
     std::string tableName;
     std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> kcos;
-    BinarySerializer::deserializeBuffer(buffer, size, dbName, tableName, kcos);
+    deserializeBuffer(buffer, size, dbName, tableName, kcos);
 
     // find handler
     auto handler = findMessageHandler(dbName, tableName);

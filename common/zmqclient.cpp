@@ -119,37 +119,32 @@ void ZmqClient::sendMsg(
         const std::vector<KeyOpFieldsValuesTuple>& kcos,
         std::vector<char>& sendbuffer)
 {
-    int serializedlen = (int)BinarySerializer::serializeBuffer(
-                                                        sendbuffer.data(),
-                                                        sendbuffer.size(),
-                                                        dbName,
-                                                        tableName,
-                                                        kcos);
+    size_t serializedlen = serializeBuffer(sendbuffer.data(), sendbuffer.size(), dbName, tableName, kcos);
 
     if (serializedlen >= MQ_RESPONSE_MAX_COUNT)
     {
-        SWSS_LOG_THROW("ZmqClient sendMsg message was too big (buffer size %d bytes, got %d), reduce the message size, message DROPPED",
+        SWSS_LOG_THROW("ZmqClient sendMsg message was too big (buffer size %d bytes, got %zu), reduce the message size, message DROPPED",
                 MQ_RESPONSE_MAX_COUNT,
                 serializedlen);
     }
 
-    SWSS_LOG_DEBUG("sending: %d", serializedlen);
+    SWSS_LOG_DEBUG("sending: %zu", serializedlen);
     int zmq_err = 0;
-    int retry_delay = 10;
+    unsigned int retry_delay = 10;
     int rc = 0;
-    for (int i = 0; i <=  MQ_MAX_RETRY; ++i)
+    for (int i = 0; i <= MQ_MAX_RETRY; ++i)
     {
         {
             // ZMQ socket is not thread safe: http://api.zeromq.org/2-1:zmq
             std::lock_guard<std::mutex> lock(m_socketMutex);
 
-            // Use none block mode to use all bandwidth: http://api.zeromq.org/2-1%3Azmq-send
-            rc = zmq_send(m_socket, sendbuffer.data(), serializedlen, ZMQ_NOBLOCK);
+            // Use nonblocking mode to use all bandwidth: http://api.zeromq.org/2-1%3Azmq-send
+            rc = zmq_send(m_socket, sendbuffer.data(), serializedlen, ZMQ_DONTWAIT);
         }
 
         if (rc >= 0)
         {
-            SWSS_LOG_DEBUG("zmq sended %d bytes", serializedlen);
+            SWSS_LOG_DEBUG("zmq sent %zu bytes", serializedlen);
             return;
         }
 
