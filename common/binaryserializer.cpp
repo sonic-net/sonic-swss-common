@@ -1,8 +1,10 @@
 #include <cstring>
 
 #include "binaryserializer.h"
+#include "table.h"
 
 using namespace std;
+using namespace swss;
 
 template <class T> static inline T read_unaligned(const char *buffer) {
     T t;
@@ -56,9 +58,17 @@ class SerializerHelper {
 
 namespace swss {
 
-size_t serializeBuffer(char *buffer, size_t size, const std::string &dbName,
-                       const std::string &tableName,
-                       const std::vector<swss::KeyOpFieldsValuesTuple> &kcos) {
+BufferSlice serializeSharedBuffer(const std::string &dbName, const std::string &tableName,
+                                  const std::vector<KeyOpFieldsValuesTuple> &kcos) {
+    static thread_local vector<char> sharedBuffer;
+    sharedBuffer.resize(SERIALIZE_SHARED_BUFFER_SIZE);
+    size_t serializedLen =
+        serializeBuffer(sharedBuffer.data(), sharedBuffer.size(), dbName, tableName, kcos);
+    return {.data = sharedBuffer.data(), .len = serializedLen};
+}
+
+size_t serializeBuffer(char *buffer, size_t size, const string &dbName, const string &tableName,
+                       const vector<swss::KeyOpFieldsValuesTuple> &kcos) {
 
     auto tmpSerializer = SerializerHelper(buffer, size);
 
@@ -146,7 +156,7 @@ void deserializeBuffer(const char *buffer, const size_t size, std::string &dbNam
             op = (fvs_size == 0) ? DEL_COMMAND : SET_COMMAND;
             fvs.clear();
         }
-        // This is an attribut pair.
+        // This is an attribute pair.
         else {
             fvs.push_back(fv);
             --fvs_size;

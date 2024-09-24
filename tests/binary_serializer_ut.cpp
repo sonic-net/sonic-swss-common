@@ -1,4 +1,6 @@
 #include <iostream>
+#include <sstream>
+#include <iomanip>
 #include "gtest/gtest.h"
 
 #include "common/table.h"
@@ -27,6 +29,7 @@ TEST(BinarySerializer, serialize_deserialize)
     size_t serialized_len = serializeBuffer(buffer, sizeof(buffer), test_db, test_table, kcos);
     string serialized_str(buffer);
 
+    EXPECT_EQ(sizeof(size_t), 8); // the length test is only valid of sizeof(size_t) == 8
     EXPECT_EQ(serialized_len, 117);
 
     std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> kcos_ptrs;
@@ -43,6 +46,51 @@ TEST(BinarySerializer, serialize_deserialize)
     EXPECT_EQ(db_table, test_table);
     EXPECT_EQ(deserialized_kcos, kcos);
 }
+
+TEST(BinarySerializer, serialize_deserialize_sharedbuffer)
+{
+    string test_entry_key = "test_key";
+    string test_command = "SET";
+    string test_db = "test_db";
+    string test_table = "test_table";
+    string test_key = "key";
+    string test_value= "value";
+    string test_entry_key2 = "test_key_2";
+    string test_command2 = "DEL";
+
+    for (int i = 0; i < 100; i++) {
+        ostringstream oss;
+        oss << setw(3) << i;
+        string test_iteration = oss.str();
+
+        std::vector<FieldValueTuple> values;
+        values.push_back(std::make_pair(test_key, test_value));
+        std::vector<KeyOpFieldsValuesTuple> kcos = std::vector<KeyOpFieldsValuesTuple>{
+            KeyOpFieldsValuesTuple{test_entry_key, test_command, values},
+            KeyOpFieldsValuesTuple{test_entry_key2, test_command2, std::vector<FieldValueTuple>{}},
+            KeyOpFieldsValuesTuple{test_iteration, "SET", {{test_iteration, test_iteration}}}
+        };
+        BufferSlice slice = serializeSharedBuffer(test_db, test_table, kcos);
+
+        EXPECT_EQ(sizeof(size_t), 8); // the length test is only valid of sizeof(size_t) == 8
+        EXPECT_EQ(slice.len, 159);
+
+        std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> kcos_ptrs;
+        std::vector<KeyOpFieldsValuesTuple> deserialized_kcos;
+        string db_name;
+        string db_table;
+        deserializeBuffer(slice.data, slice.len, db_name, db_table, kcos_ptrs);
+        for (auto kco_ptr : kcos_ptrs)
+        {
+            deserialized_kcos.push_back(*kco_ptr);
+        }
+
+        EXPECT_EQ(db_name, test_db);
+        EXPECT_EQ(db_table, test_table);
+        EXPECT_EQ(deserialized_kcos, kcos);
+    }
+}
+
 
 TEST(BinarySerializer, serialize_overflow)
 {
