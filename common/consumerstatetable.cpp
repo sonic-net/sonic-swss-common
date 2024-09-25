@@ -43,25 +43,24 @@ void ConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const st
     // Use poped_count to calculate and resize vkco queue after pop finished
     size_t not_poped_count = POP_BATCH_SIZE;
     size_t poped_count = 0;
+    size_t current_poped_count = 0;
     vkco.clear();
     vkco.resize(not_poped_count);
     for(;;)
     {
-        if (not_poped_count <= SHA_POP_COMMAN_MAX_POP_SIZE)
-        {
-            poped_count += popsWithBatchSize(vkco, not_poped_count, poped_count);
+        current_poped_count = popsWithBatchSize(vkco, std::min(not_poped_count, SHA_POP_COMMAN_MAX_POP_SIZE), poped_count);
+        poped_count += current_poped_count;
+        not_poped_count -=current_poped_count;
 
-            // A call to resize with a smaller size does not invalidate any references to non-erased elements.
-            // https://en.cppreference.com/w/cpp/container/deque
-            vkco.resize(poped_count);
-            return;
-        }
-        else
+        if ((current_poped_count == 0) || (not_poped_count == 0))
         {
-            poped_count += popsWithBatchSize(vkco, SHA_POP_COMMAN_MAX_POP_SIZE, poped_count);
-            not_poped_count -= SHA_POP_COMMAN_MAX_POP_SIZE;
+            break;
         }
     }
+
+    // A call to resize with a smaller size does not invalidate any references to non-erased elements.
+    // https://en.cppreference.com/w/cpp/container/deque
+    vkco.resize(poped_count);
 }
 
 size_t ConsumerStateTable::popsWithBatchSize(std::deque<KeyOpFieldsValuesTuple> &vkco, size_t popBatchSize, size_t queueStartIndex)
