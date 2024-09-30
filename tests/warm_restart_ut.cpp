@@ -195,7 +195,7 @@ TEST(WarmRestart, set_get_WarmStartState)
 
         string state;
         stateWarmRestartTable.hget(testAppName, "state", state);
-        EXPECT_EQ(state, WarmStart::warmStartStateNameMap()->at(currState).c_str());
+        EXPECT_EQ(state, WarmStart::warmStartStateNameMap().at(currState).c_str());
 
         WarmStart::WarmStartState ret_state;
         WarmStart::getWarmStartState(testAppName, ret_state);

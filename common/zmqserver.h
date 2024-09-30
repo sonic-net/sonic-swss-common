@@ -31,6 +31,7 @@ public:
     static constexpr int DEFAULT_POP_BATCH_SIZE = 128;
 
     ZmqServer(const std::string& endpoint);
+    ZmqServer(const std::string& endpoint, const std::string& vrf);
     ~ZmqServer();
 
     void registerMessageHandler(
@@ -52,6 +53,8 @@ private:
     std::shared_ptr<std::thread> m_mqPollThread;
 
     std::string m_endpoint;
+
+    std::string m_vrf;
 
     std::map<std::string, std::map<std::string, ZmqMessageHandler*>> m_HandlerMap;
 };
