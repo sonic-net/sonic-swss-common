@@ -12,7 +12,13 @@ using namespace std;
 namespace swss {
 
 ZmqServer::ZmqServer(const std::string& endpoint)
-    : m_endpoint(endpoint)
+    : ZmqServer(endpoint, "")
+{
+}
+
+ZmqServer::ZmqServer(const std::string& endpoint, const std::string& vrf)
+    : m_endpoint(endpoint),
+    m_vrf(vrf)
 {
     m_buffer.resize(MQ_RESPONSE_MAX_COUNT);
     m_runThread = true;
@@ -91,6 +97,11 @@ void ZmqServer::mqPollThread()
     // Increase recv buffer for use all bandwidth:  http://api.zeromq.org/4-2:zmq-setsockopt
     int high_watermark = MQ_WATERMARK;
     zmq_setsockopt(socket, ZMQ_RCVHWM, &high_watermark, sizeof(high_watermark));
+
+    if (!m_vrf.empty())
+    {
+        zmq_setsockopt(socket, ZMQ_BINDTODEVICE, m_vrf.c_str(), m_vrf.length());
+    }
 
     int rc = zmq_bind(socket, m_endpoint.c_str());
     if (rc != 0)
