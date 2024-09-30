@@ -3,6 +3,8 @@
 #include <thread>
 #include <algorithm>
 #include <deque>
+#include <gmock/gmock.h>
+#include <system_error>
 #include "gtest/gtest.h"
 #include "common/dbconnector.h"
 #include "common/producertable.h"
@@ -20,6 +22,7 @@
 
 using namespace std;
 using namespace swss;
+using namespace testing;
 
 #define NUMBER_OF_THREADS   (64) // Spawning more than 256 threads causes libc++ to except
 #define NUMBER_OF_OPS     (1000)
@@ -1138,4 +1141,33 @@ TEST(Connector, hmset)
 
     // test empty multi hash
     db.hmset({});
+}
+
+TEST(Connector, connectFail)
+{
+    // connect to an ip which is not a redis server
+    EXPECT_THROW({
+        try
+        {
+            DBConnector db(0, "1.1.1.1", 6379, 1);
+        }
+        catch(const std::system_error& e)
+        {
+            EXPECT_THAT(e.what(), HasSubstr("Unable to connect to redis - "));
+            throw;
+        }
+    }, std::system_error);
+
+    // connect to an invalid unix socket address
+    EXPECT_THROW({
+        try
+        {
+            DBConnector db(0, "/tmp/invalid", 1);
+        }
+        catch(const std::system_error& e)
+        {
+            EXPECT_THAT(e.what(), HasSubstr("Unable to connect to redis (unix-socket) - "));
+            throw;
+        }
+    }, std::system_error);
 }
