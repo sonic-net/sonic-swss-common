@@ -19,8 +19,8 @@ const char *test_cfg_data = "{\
 
 TEST(events_common, get_config)
 {
-    EXPECT_EQ(string("tcp://127.0.0.1:5570"), get_config(string(XSUB_END_KEY)));
-    EXPECT_EQ(string("tcp://127.0.0.1:5572"), get_config(string(REQ_REP_END_KEY)));
+    EXPECT_EQ(string("tcp://240.127.1.1:5570"), get_config(string(XSUB_END_KEY)));
+    EXPECT_EQ(string("tcp://240.127.1.1:5572"), get_config(string(REQ_REP_END_KEY)));
     EXPECT_EQ(string("5"), get_config(string(STATS_UPD_SECS)));
 
     ofstream tfile;
@@ -38,7 +38,7 @@ TEST(events_common, get_config)
     EXPECT_EQ(100, get_config_data(CACHE_MAX_CNT, 100));
 
     read_init_config(NULL);
-    EXPECT_EQ(string("tcp://127.0.0.1:5570"), get_config(string(XSUB_END_KEY)));
+    EXPECT_EQ(string("tcp://240.127.1.1:5570"), get_config(string(XSUB_END_KEY)));
 }
 
 void
@@ -73,7 +73,7 @@ TEST(events_common, send_recv)
     }
 #endif
 
-    char *path = "tcp://127.0.0.1:5570";
+    char *path = "tcp://240.127.1.1:5570";
     void *zmq_ctx = zmq_ctx_new();
     void *sock_p0 = zmq_socket (zmq_ctx, ZMQ_PAIR);
     EXPECT_EQ(0, zmq_connect (sock_p0, path));
@@ -108,7 +108,7 @@ TEST(events_common, send_recv_control_character)
     }
 #endif
 
-    char *path = "tcp://127.0.0.1:5570";
+    char *path = "tcp://240.127.1.1:5570";
     void *zmq_ctx = zmq_ctx_new();
     void *sock_p0 = zmq_socket (zmq_ctx, ZMQ_PAIR);
     EXPECT_EQ(0, zmq_connect (sock_p0, path));
