@@ -127,7 +127,7 @@ typedef map<string, string> map_str_str_t;
  * Config that can be read from init_cfg
  */
 #define INIT_CFG_PATH "/etc/sonic/init_cfg.json"
-#define CFG_EVENTS_KEY "events"
+#define CFG_EVENTS_KEY "EVENTS"
 
 /* configurable entities' keys */
 /* zmq proxy's xsub & xpub end points */

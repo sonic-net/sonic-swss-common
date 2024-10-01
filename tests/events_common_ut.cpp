@@ -10,7 +10,7 @@
 using namespace std;
 
 const char *test_cfg_data = "{\
-\"events\" : {  \
+\"EVENTS\" : {  \
     \"xsub_path\": \"xsub_path\", \
     \"req_rep_path\": \"req_rep_path\" \
     }\
