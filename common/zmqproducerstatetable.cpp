@@ -182,4 +182,11 @@ size_t ZmqProducerStateTable::dbUpdaterQueueSize()
     return m_asyncDBUpdater->queueSize();
 }
 
+bool ZmqProducerStateTable::wait(std::string& dbName,
+              std::string& tableName,
+              std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos)
+{
+    return m_zmqClient.wait(dbName, tableName, kcos, m_sendbuffer);
+}
+
 }
