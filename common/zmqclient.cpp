@@ -197,4 +197,36 @@ void ZmqClient::sendMsg(
     throw system_error(make_error_code(errc::io_error), message);
 }
 
+bool ZmqClient::wait(std::string& dbName,
+                     std::string& tableName,
+                     std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos,
+                     std::vector<char>& buffer)
+{
+    SWSS_LOG_ENTER();
+    int rc;
+    for (int i = 0; true ; ++i)
+    {
+        rc = zmq_recv(m_socket, buffer.data(), buffer.size(), 0);
+        if (rc < 0)
+        {
+            if (zmq_errno() == EINTR && i <= MQ_MAX_RETRY)
+            {
+                continue;
+            }
+            SWSS_LOG_THROW("zmq_recv failed, zmqerrno: %d", zmq_errno());
+        }
+        if (rc >= (int)buffer.size())
+        {
+            SWSS_LOG_THROW(
+                "zmq_recv message was truncated (over %d bytes, received %d), increase buffer size, message DROPPED",
+                (int)buffer.size(), rc);
+        }
+        break;
+    }
+    buffer.at(rc) = 0; // make sure that we end string with zero before parse
+    kcos.clear();
+    BinarySerializer::deserializeBuffer(buffer.data(), buffer.size(), dbName, tableName, kcos);
+    return true;
+}
+
 }
