@@ -16,7 +16,7 @@ static event_service service_cl, service_svr;
 static int server_rd_code, server_ret;
 static event_serialized_lst_t server_rd_lst, server_wr_lst;
 
-const char *test_cfg_data = "{\
+const char *test_cfg_data_localhost = "{\
 \"events\" : {  \
     \"xsub_path\": \"127.0.0.1:5570\", \
     \"req_rep_path\": \"127.0.0.1:5572\" \
@@ -33,7 +33,7 @@ void serve_commands()
     ofstream tfile;
     const char *tfile_name = "/tmp/init_cfg.json";
     tfile.open (tfile_name);
-    tfile << test_cfg_data << "\n";
+    tfile << test_cfg_data_localhost << "\n";
     tfile.close();
 
     read_init_config(tfile_name);
