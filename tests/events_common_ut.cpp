@@ -73,7 +73,7 @@ TEST(events_common, send_recv)
     }
 #endif
 
-    char *path = "tcp://240.127.1.1:5570";
+    char *path = "tcp://127.0.0.1:5570";
     void *zmq_ctx = zmq_ctx_new();
     void *sock_p0 = zmq_socket (zmq_ctx, ZMQ_PAIR);
     EXPECT_EQ(0, zmq_connect (sock_p0, path));
@@ -108,7 +108,7 @@ TEST(events_common, send_recv_control_character)
     }
 #endif
 
-    char *path = "tcp://240.127.1.1:5570";
+    char *path = "tcp://127.0.0.1:5570";
     void *zmq_ctx = zmq_ctx_new();
     void *sock_p0 = zmq_socket (zmq_ctx, ZMQ_PAIR);
     EXPECT_EQ(0, zmq_connect (sock_p0, path));
