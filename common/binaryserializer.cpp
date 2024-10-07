@@ -57,6 +57,7 @@ class SerializerHelper {
 };
 
 namespace swss {
+namespace BinarySerializer {
 
 BufferSlice serializeSharedBuffer(const std::string &dbName, const std::string &tableName,
                                   const std::vector<KeyOpFieldsValuesTuple> &kcos) {
@@ -168,4 +169,5 @@ void deserializeBuffer(const char *buffer, const size_t size, std::string &dbNam
     }
 }
 
+} // namespace BinarySerializer
 } // namespace swss

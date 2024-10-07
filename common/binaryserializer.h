@@ -7,6 +7,7 @@
 #include "table.h"
 
 namespace swss {
+namespace BinarySerializer {
 
 struct BufferSlice {
     const char *data;
@@ -30,5 +31,6 @@ void deserializeBuffer(const char *buffer, const size_t size, std::string &dbNam
                        std::string &tableName,
                        std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> &kcos);
 
+} // namespace BinarySerializer
 } // namespace swss
 #endif

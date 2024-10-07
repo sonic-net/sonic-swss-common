@@ -119,7 +119,7 @@ void ZmqClient::sendMsg(
         const std::vector<KeyOpFieldsValuesTuple>& kcos,
         std::vector<char>& sendbuffer)
 {
-    size_t serializedlen = serializeBuffer(sendbuffer.data(), sendbuffer.size(), dbName, tableName, kcos);
+    size_t serializedlen = BinarySerializer::serializeBuffer(sendbuffer.data(), sendbuffer.size(), dbName, tableName, kcos);
 
     if (serializedlen >= MQ_RESPONSE_MAX_COUNT)
     {
