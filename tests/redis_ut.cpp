@@ -479,6 +479,15 @@ TEST(DBConnector, RedisClient)
     cout << "Done." << endl;
 }
 
+TEST(DBConnector, IncrBy)
+{
+    DBConnector db("TEST_DB", 0, true);
+    clearDB();
+    db.set("x", 0);
+    auto y = db.incrby("x", 10);
+    EXPECT_EQ(y, 10);
+}
+
 TEST(DBConnector, HmsetAndDel)
 {
     DBConnector db("TEST_DB", 0, true);

@@ -877,6 +877,14 @@ int64_t DBConnector::incr(const string &key)
     return r.getContext()->integer;
 }
 
+int64_t DBConnector::incrby(const string &key, int increment)
+{
+    RedisCommand sincr;
+    sincr.format("INCRBY %s %d", key.c_str(), increment);
+    RedisReply r(this, sincr, REDIS_REPLY_INTEGER);
+    return r.getContext()->integer;
+}
+
 int64_t DBConnector::decr(const string &key)
 {
     RedisCommand sdecr;
