@@ -36,8 +36,9 @@ int32_t SWSSZmqConsumerStateTable_getFd(SWSSZmqConsumerStateTable tbl) {
     SWSSTry(return numeric_cast<int32_t>(((ZmqConsumerStateTable *)tbl)->getFd()));
 }
 
-uint64_t SWSSZmqConsumerStateTable_readData(SWSSZmqConsumerStateTable tbl) {
-    SWSSTry(return numeric_cast<uint64_t>(((ZmqConsumerStateTable *)tbl)->readData()));
+SWSSSelectResult SWSSZmqConsumerStateTable_readData(SWSSZmqConsumerStateTable tbl,
+                                                    uint32_t timeout_ms) {
+    SWSSTry(return selectOne((ZmqConsumerStateTable *)tbl, timeout_ms));
 }
 
 // Returns 0 for false, 1 for true
@@ -55,7 +56,8 @@ uint8_t SWSSZmqConsumerStateTable_initializedWithData(SWSSZmqConsumerStateTable 
     SWSSTry(return ((ZmqConsumerStateTable *)tbl)->hasData() ? 1 : 0);
 }
 
-const struct SWSSDBConnectorOpaque *SWSSZmqConsumerStateTable_getDbConnector(SWSSZmqConsumerStateTable tbl) {
+const struct SWSSDBConnectorOpaque *
+SWSSZmqConsumerStateTable_getDbConnector(SWSSZmqConsumerStateTable tbl) {
     SWSSTry(return (const SWSSDBConnectorOpaque *)((ZmqConsumerStateTable *)tbl)->getDbConnector());
 }
 

@@ -29,6 +29,12 @@ typedef struct {
     const SWSSKeyOpFieldValues *data;
 } SWSSKeyOpFieldValuesArray;
 
+typedef enum {
+    SWSSSelectResult_DATA = 0,
+    SWSSSelectResult_TIMEOUT = 1,
+    SWSSSelectResult_SIGNAL = 2,
+} SWSSSelectResult;
+
 #ifdef __cplusplus
 }
 #endif
@@ -44,20 +50,48 @@ typedef struct {
 
 #include "../logger.h"
 #include "../rediscommand.h"
+#include "../select.h"
 
 using boost::numeric_cast;
+
+namespace swss {
+
+extern bool cApiTestingDisableAbort;
 
 // In the catch block, we must abort because passing an exception across an ffi boundary is
 // undefined behavior. It was also decided that no exceptions in swss-common are recoverable, so
 // there is no reason to convert exceptions into a returnable type.
 #define SWSSTry(...)                                                                               \
-    try {                                                                                          \
+    if (cApiTestingDisableAbort) {                                                                 \
         { __VA_ARGS__; }                                                                           \
-    } catch (std::exception & e) {                                                                 \
-        std::cerr << "Aborting due to exception: " << e.what() << std::endl;                       \
-        SWSS_LOG_ERROR("Aborting due to exception: %s", e.what());                                 \
-        std::abort();                                                                              \
+    } else {                                                                                       \
+        try {                                                                                      \
+            { __VA_ARGS__; }                                                                       \
+        } catch (std::exception & e) {                                                             \
+            std::cerr << "Aborting due to exception: " << e.what() << std::endl;                   \
+            SWSS_LOG_ERROR("Aborting due to exception: %s", e.what());                             \
+            std::abort();                                                                          \
+        }                                                                                          \
     }
+
+static inline SWSSSelectResult selectOne(swss::Selectable *s, uint32_t timeout_ms) {
+    Select select;
+    Selectable *sOut;
+    select.addSelectable(s);
+    int ret = select.select(&sOut, numeric_cast<int>(timeout_ms));
+    switch (ret) {
+    case Select::OBJECT:
+        return SWSSSelectResult_DATA;
+    case Select::ERROR:
+        throw std::system_error(errno, std::generic_category());
+    case Select::TIMEOUT:
+        return SWSSSelectResult_TIMEOUT;
+    case Select::SIGNALINT:
+        return SWSSSelectResult_SIGNAL;
+    default:
+        SWSS_LOG_THROW("impossible: unhandled Select::select() return value: %d", ret);
+    }
+}
 
 // malloc() with safe numeric casting of the size parameter
 template <class N> static inline void *mallocN(N size) {
@@ -140,6 +174,8 @@ takeKeyOpFieldValuesArray(const SWSSKeyOpFieldValuesArray &in) {
         out.push_back(takeKeyOpFieldValues(in.data[i]));
     return out;
 }
+
+} // namespace swss
 
 #endif
 #endif

@@ -16,10 +16,13 @@ typedef struct SWSSDBConnectorOpaque *SWSSDBConnector;
 
 // Pass 0 to timeout for infinity
 SWSSDBConnector SWSSDBConnector_new_tcp(int32_t dbId, const char *hostname, uint16_t port,
-                                        uint32_t timeout);
+                                        uint32_t timeout_ms);
 
 // Pass 0 to timeout for infinity
-SWSSDBConnector SWSSDBConnector_new_unix(int32_t dbId, const char *sock_path, uint32_t timeout);
+SWSSDBConnector SWSSDBConnector_new_unix(int32_t dbId, const char *sock_path, uint32_t timeout_ms);
+
+// Pass 0 to timeout for infinity
+SWSSDBConnector SWSSDBConnector_new_named(const char *dbName, uint32_t timeout_ms, uint8_t isTcpConn);
 
 void SWSSDBConnector_free(SWSSDBConnector db);
 
@@ -28,7 +31,7 @@ int8_t SWSSDBConnector_del(SWSSDBConnector db, const char *key);
 
 void SWSSDBConnector_set(SWSSDBConnector db, const char *key, const char *value);
 
-// Returns NULL if key doesn't exist
+// Returns NULL if key doesn't exist.
 // Result must be freed using free()
 char *SWSSDBConnector_get(SWSSDBConnector db, const char *key);
 
@@ -41,11 +44,11 @@ int8_t SWSSDBConnector_hdel(SWSSDBConnector db, const char *key, const char *fie
 void SWSSDBConnector_hset(SWSSDBConnector db, const char *key, const char *field,
                           const char *value);
 
-// Returns NULL if key or field doesn't exist
+// Returns NULL if key or field doesn't exist.
 // Result must be freed using free()
 char *SWSSDBConnector_hget(SWSSDBConnector db, const char *key, const char *field);
 
-// Returns an empty map when the key doesn't exist
+// Returns an empty map when the key doesn't exist.
 // Result array and all of its elements must be freed using free()
 SWSSFieldValueArray SWSSDBConnector_hgetall(SWSSDBConnector db, const char *key);
 

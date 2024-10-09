@@ -31,7 +31,10 @@ uint8_t SWSSSubscriberStateTable_hasCachedData(SWSSSubscriberStateTable tbl);
 // Returns 0 for false, 1 for true
 uint8_t SWSSSubscriberStateTable_initializedWithData(SWSSSubscriberStateTable tbl);
 
-void SWSSSubscriberStateTable_readData(SWSSSubscriberStateTable tbl);
+// Block until data is available to read or until a timeout elapses.
+// A timeout of 0 means the call will return immediately.
+SWSSSelectResult SWSSSubscriberStateTable_readData(SWSSSubscriberStateTable tbl,
+                                                   uint32_t timeout_ms);
 
 #ifdef __cplusplus
 }

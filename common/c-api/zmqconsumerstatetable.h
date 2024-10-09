@@ -26,7 +26,10 @@ SWSSKeyOpFieldValuesArray SWSSZmqConsumerStateTable_pops(SWSSZmqConsumerStateTab
 
 int32_t SWSSZmqConsumerStateTable_getFd(SWSSZmqConsumerStateTable tbl);
 
-uint64_t SWSSZmqConsumerStateTable_readData(SWSSZmqConsumerStateTable tbl);
+// Block until data is available to read or until a timeout elapses.
+// A timeout of 0 means the call will return immediately.
+SWSSSelectResult SWSSZmqConsumerStateTable_readData(SWSSZmqConsumerStateTable tbl,
+                                                    uint32_t timeout_ms);
 
 // Returns 0 for false, 1 for true
 uint8_t SWSSZmqConsumerStateTable_hasData(SWSSZmqConsumerStateTable tbl);
@@ -37,7 +40,8 @@ uint8_t SWSSZmqConsumerStateTable_hasCachedData(SWSSZmqConsumerStateTable tbl);
 // Returns 0 for false, 1 for true
 uint8_t SWSSZmqConsumerStateTable_initializedWithData(SWSSZmqConsumerStateTable tbl);
 
-const struct SWSSDBConnectorOpaque *SWSSZmqConsumerStateTable_getDbConnector(SWSSZmqConsumerStateTable tbl);
+const struct SWSSDBConnectorOpaque *
+SWSSZmqConsumerStateTable_getDbConnector(SWSSZmqConsumerStateTable tbl);
 
 uint64_t SWSSZmqConsumerStateTable_dbUpdaterQueueSize(SWSSZmqConsumerStateTable tbl);
 

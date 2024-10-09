@@ -25,6 +25,10 @@ SWSSDBConnector SWSSDBConnector_new_unix(int32_t dbId, const char *sock_path, ui
     SWSSTry(return (SWSSDBConnector) new DBConnector(dbId, string(sock_path), timeout));
 }
 
+SWSSDBConnector SWSSDBConnector_new_named(const char *dbName, uint32_t timeout_ms, uint8_t isTcpConn) {
+    SWSSTry(return (SWSSDBConnector) new DBConnector(string(dbName), timeout_ms, isTcpConn));
+}
+
 void SWSSDBConnector_free(SWSSDBConnector db) {
     delete (DBConnector *)db;
 }

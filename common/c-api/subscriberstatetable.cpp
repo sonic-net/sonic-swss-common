@@ -1,9 +1,9 @@
 #include <cstdlib>
 #include <cstring>
 #include <deque>
+#include <system_error>
 
 #include "../dbconnector.h"
-#include "../rediscommand.h"
 #include "../subscriberstatetable.h"
 #include "../table.h"
 #include "subscriberstatetable.h"
@@ -46,6 +46,7 @@ uint8_t SWSSSubscriberStateTable_initializedWithData(SWSSSubscriberStateTable tb
     SWSSTry(return ((SubscriberStateTable *)tbl)->initializedWithData() ? 1 : 0);
 }
 
-void SWSSSubscriberStateTable_readData(SWSSSubscriberStateTable tbl) {
-    SWSSTry(((SubscriberStateTable *)tbl)->readData());
+SWSSSelectResult SWSSSubscriberStateTable_readData(SWSSSubscriberStateTable tbl,
+                                                   uint32_t timeout_ms) {
+    SWSSTry(return selectOne((SubscriberStateTable *)tbl, timeout_ms));
 }
