@@ -24,8 +24,6 @@ void SWSSZmqConsumerStateTable_free(SWSSZmqConsumerStateTable tbl);
 // Result array and all of its members must be freed using free()
 SWSSKeyOpFieldValuesArray SWSSZmqConsumerStateTable_pops(SWSSZmqConsumerStateTable tbl);
 
-int32_t SWSSZmqConsumerStateTable_getFd(SWSSZmqConsumerStateTable tbl);
-
 // Block until data is available to read or until a timeout elapses.
 // A timeout of 0 means the call will return immediately.
 SWSSSelectResult SWSSZmqConsumerStateTable_readData(SWSSZmqConsumerStateTable tbl,
@@ -42,8 +40,6 @@ uint8_t SWSSZmqConsumerStateTable_initializedWithData(SWSSZmqConsumerStateTable 
 
 const struct SWSSDBConnectorOpaque *
 SWSSZmqConsumerStateTable_getDbConnector(SWSSZmqConsumerStateTable tbl);
-
-uint64_t SWSSZmqConsumerStateTable_dbUpdaterQueueSize(SWSSZmqConsumerStateTable tbl);
 
 #ifdef __cplusplus
 }
