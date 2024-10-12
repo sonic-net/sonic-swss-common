@@ -106,29 +106,37 @@ static void consumerWorker(int index)
 {
     string tableName = "UT_REDIS_THREAD_" + to_string(index);
     DBConnector db(TEST_DB, 0, true);
-    ConsumerStateTable c(&db, tableName);
+    ConsumerStateTable c(&db, tableName, NUMBER_OF_OPS);
     Select cs;
     Selectable *selectcs;
     int numberOfKeysSet = 0;
     int numberOfKeyDeleted = 0;
     int ret, i = 0;
-    KeyOpFieldsValuesTuple kco;
+    std::deque<KeyOpFieldsValuesTuple> entries;
 
     cs.addSelectable(&c);
-    while ((ret = cs.select(&selectcs)) == Select::OBJECT)
+    while (true)
     {
-        c.pop(kco);
-        if (kfvOp(kco) == "SET")
-        {
-            numberOfKeysSet++;
-            validateFields(kfvKey(kco), kfvFieldsValues(kco));
-        } else if (kfvOp(kco) == "DEL")
-        {
-            numberOfKeyDeleted++;
-        }
+        ret = cs.select(&selectcs);
+        c.pops(entries);
 
-        if ((i++ % 100) == 0)
-            cout << "-" << flush;
+        for (auto& kco: entries)
+        {
+            if (kfvOp(kco) == "SET")
+            {
+                numberOfKeysSet++;
+                validateFields(kfvKey(kco), kfvFieldsValues(kco));
+            } else if (kfvOp(kco) == "DEL")
+            {
+                numberOfKeyDeleted++;
+            }
+
+            if ((i++ % 100) == 0)
+                cout << "-" << flush;
+
+            if (numberOfKeyDeleted == NUMBER_OF_OPS)
+                break;
+        }
 
         if (numberOfKeyDeleted == NUMBER_OF_OPS)
             break;
