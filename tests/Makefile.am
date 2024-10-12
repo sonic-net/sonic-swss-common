@@ -42,6 +42,7 @@ tests_tests_SOURCES = tests/redis_ut.cpp                \
                       tests/binary_serializer_ut.cpp    \
                       tests/zmq_state_ut.cpp            \
                       tests/profileprovider_ut.cpp      \
+                      tests/performancetimer_ut.cpp     \
                       tests/main.cpp
 
 tests_tests_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_GTEST) $(LIBNL_CFLAGS)
