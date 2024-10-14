@@ -39,6 +39,9 @@ public:
                                 const std::string tableName,
                                 ZmqMessageHandler* handler);
 
+    void sendMsg(const std::string& dbName, const std::string& tableName,
+        const std::vector<swss::KeyOpFieldsValuesTuple>& values);
+
 private:
     void handleReceivedData(const char* buffer, const size_t size);
 
