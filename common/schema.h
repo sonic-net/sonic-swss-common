@@ -29,6 +29,7 @@ namespace swss {
 #define DPU_COUNTERS_DB     18
 #define EVENT_DB            19
 #define BMP_STATE_DB        20
+#define CHASSIS_COUNTERS_DB 21
 
 /***** APPLICATION DATABASE *****/
 
@@ -239,6 +240,8 @@ namespace swss {
 #define USER_WATERMARKS_TABLE          "USER_WATERMARKS"
 
 #define RATES_TABLE                         "RATES"
+
+#define CHASSIS_COUNTERS_VOQ           "COUNTERS_VOQ"
 
 /***** EVENTS COUNTER KEYS *****/
 #define COUNTERS_EVENTS_PUBLISHED           "published"
