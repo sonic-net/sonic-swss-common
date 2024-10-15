@@ -106,9 +106,10 @@ void ZmqServer::mqPollThread()
     int rc = zmq_bind(socket, m_endpoint.c_str());
     if (rc != 0)
     {
-        SWSS_LOG_THROW("zmq_bind failed on endpoint: %s, zmqerrno: %d",
+        SWSS_LOG_THROW("zmq_bind failed on endpoint: %s, zmqerrno: %d, message: %s",
                 m_endpoint.c_str(),
-                zmq_errno());
+                zmq_errno(),
+                strerror(zmq_errno()));
     }
 
     // zmq_poll will use less CPU
