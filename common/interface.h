@@ -6,28 +6,17 @@
 
 namespace swss {
 
-bool isInterfaceNameLenOk(const std::string &ifaceName)
-{
-    if (ifaceName.empty() || ifaceName.length() >= IFNAMSIZ)
-    {
-        SWSS_LOG_ERROR("Invalid interface name %s length, it must not exceed %d characters", ifaceName.c_str(), IFNAMSIZ);
-        return false;
-    }
-    return true;
-}
+const size_t IFACE_NAME_MAX_LEN = IFNAMSIZ - 1;
 
-size_t ifaceNameMaxLen()
+bool isInterfaceNameValid(const std::string &ifaceName)
 {
-    return IFNAMSIZ;
+    return !ifaceName.empty() && (ifaceName.length() < IFNAMSIZ);
 }
 
 #if defined(SWIG) && defined(SWIGPYTHON)
 %pythoncode %{
-    def validate_interface_name_length(iface_name):
-        return isInterfaceNameLenOk(iface_name)
-
-    def iface_name_max_length():
-        return ifaceNameMaxLen()
+    def is_interface_name_valid(iface_name):
+        return isInterfaceNameValid(iface_name)
 %}
 #endif
 
