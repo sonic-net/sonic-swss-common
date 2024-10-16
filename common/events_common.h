@@ -310,7 +310,15 @@ struct serialization
         more = 0;
         zmq_msg_init(&msg);
         int rc = zmq_msg_recv(&msg, sock, flag);
-        if (rc != -1) {
+        if (rc == 1) {
+            char control_character = *(char*)zmq_msg_data(&msg);
+            if (control_character == 0x01 || control_character == 0x00) {
+                SWSS_LOG_INFO("Received subscription/unsubscription message when XSUB connect to XPUB: %c", control_character);
+            } else {
+                SWSS_LOG_DEBUG("Received non subscription based control character: %c", control_character);
+            }
+            rc = 0;
+        } else if (rc != -1) {
             size_t more_size = sizeof (more);
 
             zmq_getsockopt (sock, ZMQ_RCVMORE, &more, &more_size);
@@ -318,8 +326,7 @@ struct serialization
             rc = zmsg_to_map(msg, data);
             RET_ON_ERR(rc == 0, "Failed to deserialize part rc=%d", rc);
             /* read more flag if message read fails to de-serialize */
-        }
-        else {
+        } else {
             /* override with zmq err */
             rc = zmq_errno();
             if (rc != 11) {
@@ -332,7 +339,7 @@ struct serialization
         return rc;
     }
 
-       
+
     template<typename DT>
     int
     zmq_send_part(void *sock, int flag, const DT &data)
