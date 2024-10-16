@@ -95,8 +95,19 @@ jobs:
       rm ../*.deb || true
       ./autogen.sh
       fakeroot debian/rules DEB_CONFIGURE_EXTRA_FLAGS='--enable-code-coverage' DEB_BUILD_PROFILES=nopython2 CFLAGS="" CXXFLAGS="--coverage -fprofile-abs-path" LDFLAGS="--coverage -fprofile-abs-path" binary
+      
+      sudo apt install -y tree
+      tree ../
+      
       mv ../*.deb .
     displayName: "Compile sonic swss common with coverage enabled"
+  - task: BinSkim@4
+    inputs:
+      InputType: 'Basic'
+      Function: 'analyze'
+      TargetPattern: 'guardianGlob'
+      AnalyzeTargetGlob: '../**/*.deb;'
+      AnalyzeVerbose: true
   - ${{ if eq(parameters.run_unit_test, true) }}:
     - script: |
         set -ex
