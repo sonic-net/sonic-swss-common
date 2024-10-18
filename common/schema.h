@@ -176,6 +176,7 @@ namespace swss {
 #define APP_DASH_PA_VALIDATION_TABLE_NAME   "DASH_PA_VALIDATION_TABLE"
 #define APP_DASH_ROUTING_APPLIANCE_TABLE_NAME "DASH_ROUTING_APPLIANCE_TABLE"
 
+#define APP_VRRP_TABLE_NAME                 "VRRP_TABLE"
 #define APP_PAC_PORT_TABLE_NAME               "PAC_PORT_TABLE"
 
 /***** TO BE REMOVED *****/
@@ -423,7 +424,8 @@ namespace swss {
 #define CFG_MCLAG_UNIQUE_IP_TABLE_NAME              "MCLAG_UNIQUE_IP"
 
 #define CFG_PORT_STORM_CONTROL_TABLE_NAME           "PORT_STORM_CONTROL"
-
+#define CFG_VRRP_TABLE_NAME                         "VRRP"
+#define CFG_VRRP6_TABLE_NAME                        "VRRP6"
 #define CFG_RATES_TABLE_NAME                        "RATES"
 
 #define CFG_FEATURE_TABLE_NAME                      "FEATURE"
