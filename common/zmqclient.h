@@ -13,6 +13,7 @@ class ZmqClient
 {
 public:
     ZmqClient(const std::string& endpoint);
+    ZmqClient(const std::string& endpoint, const std::string& vrf);
     ~ZmqClient();
 
     bool isConnected();
@@ -24,10 +25,11 @@ public:
                  const std::vector<KeyOpFieldsValuesTuple>& kcos,
                  std::vector<char>& sendbuffer);
 private:
-    void initialize(const std::string& endpoint);
-
+    void initialize(const std::string& endpoint, const std::string& vrf);
 
     std::string m_endpoint;
+
+    std::string m_vrf;
 
     void* m_context;
 
