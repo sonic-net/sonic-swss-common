@@ -12,6 +12,7 @@ namespace swss {
 class ZmqClient
 {
 public:
+
     ZmqClient(const std::string& endpoint);
     ZmqClient(const std::string& endpoint, const std::string& vrf);
     ~ZmqClient();
@@ -24,6 +25,15 @@ public:
                  const std::string& tableName,
                  const std::vector<KeyOpFieldsValuesTuple>& kcos,
                  std::vector<char>& sendbuffer);
+
+    bool wait(std::string& dbName,
+
+              std::string& tableName,
+
+              std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos,
+
+              std::vector<char>& buffer);
+
 private:
     void initialize(const std::string& endpoint, const std::string& vrf);
 

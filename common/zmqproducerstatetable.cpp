@@ -171,6 +171,18 @@ void ZmqProducerStateTable::send(const std::vector<KeyOpFieldsValuesTuple> &kcos
     }
 }
 
+bool ZmqProducerStateTable::wait(std::string& dbName,
+
+              std::string& tableName,
+
+              std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos)
+
+{
+
+    return m_zmqClient.wait(dbName, tableName, kcos, m_sendbuffer);
+
+}
+
 size_t ZmqProducerStateTable::dbUpdaterQueueSize()
 {
     if (m_asyncDBUpdater == nullptr)
