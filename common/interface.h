@@ -4,7 +4,8 @@
 #include <string>
 #include <net/if.h>
 
-namespace swss {
+namespace swss
+{
 
 const size_t IFACE_NAME_MAX_LEN = IFNAMSIZ - 1;
 
@@ -12,13 +13,6 @@ bool isInterfaceNameValid(const std::string &ifaceName)
 {
     return !ifaceName.empty() && (ifaceName.length() < IFNAMSIZ);
 }
-
-#if defined(SWIG) && defined(SWIGPYTHON)
-%pythoncode %{
-    def is_interface_name_valid(iface_name):
-        return isInterfaceNameValid(iface_name)
-%}
-#endif
 
 }
 
