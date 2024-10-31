@@ -5,7 +5,7 @@ using namespace swss;
 bool swss::cApiTestingDisableAbort = false;
 
 SWSSString SWSSString_new(const char *data, uint64_t length) {
-    SWSSTry(return makeString(std::string(data, length)));
+    SWSSTry(return makeString(std::string(data, numeric_cast<std::string::size_type>(length))));
 }
 
 SWSSString SWSSString_new_c_str(const char *c_str) {
