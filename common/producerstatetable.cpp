@@ -31,7 +31,7 @@ ProducerStateTable::ProducerStateTable(RedisPipeline *pipeline, const string &ta
     , m_tempViewActive(false)
     , m_pipe(pipeline)
 {
-    resetRedisScript();
+    reloadRedisScript();
 
     string luaClear =
         "redis.call('DEL', KEYS[1])\n"
@@ -54,10 +54,18 @@ ProducerStateTable::~ProducerStateTable()
     }
 }
 
-void ProducerStateTable::resetRedisScript()
+void ProducerStateTable::reloadRedisScript()
 {
-    if (m_flushPub && m_buffered)
+    // Set m_flushPub to remove publish from a single lua string and let pipeline do publish once per flush
+
+    // However, if m_buffered is false, follow the original one publish per lua design
+    // Hence we need to check both m_buffered and m_flushPub, and reload the redis script once setBuffered() changes m_buffered
+
+    /* 1. Inform the pipeline of what channel to publish, when flushPub feature is enabled */
+    if (m_buffered && m_flushPub)
         m_pipe->addChannel(getChannelName(m_pipe->getDbId()));
+
+    /* 2. Setup lua strings: determine whether to attach luaPub after each lua string */
 
     // num in luaSet and luaDel means number of elements that were added to the key set,
     // not including all the elements already present into the set.
@@ -105,6 +113,7 @@ void ProducerStateTable::resetRedisScript()
         luaBatchedDel += luaPub;
     }
 
+    /* 3. load redis script based on the lua string */
     m_shaSet = m_pipe->loadRedisScript(luaSet);
     m_shaDel = m_pipe->loadRedisScript(luaDel);
     m_shaBatchedSet = m_pipe->loadRedisScript(luaBatchedSet);
@@ -114,7 +123,7 @@ void ProducerStateTable::resetRedisScript()
 void ProducerStateTable::setBuffered(bool buffered)
 {
     m_buffered = buffered;
-    resetRedisScript();
+    reloadRedisScript();
 }
 
 void ProducerStateTable::set(const string &key, const vector<FieldValueTuple> &values,

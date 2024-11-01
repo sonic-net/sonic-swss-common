@@ -740,7 +740,9 @@ TEST(ConsumerStateTable, flushPub)
     string tableName = "UT_REDIS_THREAD_" + to_string(index);
     DBConnector db(TEST_DB, 0, true);
     RedisPipeline pipeline(&db);
-    ProducerStateTable p(&pipeline, tableName, true, true);
+    ProducerStateTable p(&pipeline, tableName, false, true);
+    p.setBuffered(true);
+
     string key = "TheKey";
     int maxNumOfFields = 2;
 

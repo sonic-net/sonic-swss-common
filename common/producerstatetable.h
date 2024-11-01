@@ -52,7 +52,7 @@ public:
 
     void apply_temp_view();
 private:
-    bool m_flushPub;
+    bool m_flushPub; // publish per piepeline flush intead of per redis script
     bool m_buffered;
     bool m_pipeowned;
     bool m_tempViewActive;
@@ -65,7 +65,7 @@ private:
     std::string m_shaApplyView;
     TableDump m_tempViewState;
 
-    void resetRedisScript();
+    void reloadRedisScript(); // redis script may change if m_buffered changes
 };
 
 }
