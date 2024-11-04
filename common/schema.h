@@ -481,6 +481,7 @@ namespace swss {
 #define STATE_ACL_STAGE_CAPABILITY_TABLE_NAME       "ACL_STAGE_CAPABILITY_TABLE"
 #define STATE_PBH_CAPABILITIES_TABLE_NAME           "PBH_CAPABILITIES"
 #define STATE_PORT_TABLE_NAME                       "PORT_TABLE"
+#define STATE_PORT_OPER_ERR_TABLE_NAME              "PORT_OPERR_TABLE"
 #define STATE_LAG_TABLE_NAME                        "LAG_TABLE"
 #define STATE_VLAN_TABLE_NAME                       "VLAN_TABLE"
 #define STATE_VLAN_MEMBER_TABLE_NAME                "VLAN_MEMBER_TABLE"
