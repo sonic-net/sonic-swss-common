@@ -17,7 +17,7 @@ all:
 	$(SWIG) $(SWIG_FLAG) -I/usr/include/swss/ swsscommon.i
 
 check:
-	sudo CGO_LDFLAGS="$(CGO_LDFLAGS)" CGO_CXXFLAGS="$(CGO_CXXFLAGS)" $(GO) build
+	$(GO) mod init goext
 	sudo CGO_LDFLAGS="$(CGO_LDFLAGS)" CGO_CXXFLAGS="$(CGO_CXXFLAGS)" $(GO) test
 
 clean:
