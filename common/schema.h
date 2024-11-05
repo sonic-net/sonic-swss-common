@@ -156,6 +156,7 @@ namespace swss {
 
 #define APP_SRV6_SID_LIST_TABLE_NAME        "SRV6_SID_LIST_TABLE"
 #define APP_SRV6_MY_SID_TABLE_NAME          "SRV6_MY_SID_TABLE"
+#define APP_PIC_CONTEXT_TABLE_NAME          "PIC_CONTEXT_TABLE"
 
 #define APP_DASH_VNET_TABLE_NAME            "DASH_VNET_TABLE"
 #define APP_DASH_QOS_TABLE_NAME             "DASH_QOS_TABLE"
@@ -478,6 +479,7 @@ namespace swss {
 #define STATE_ACL_STAGE_CAPABILITY_TABLE_NAME       "ACL_STAGE_CAPABILITY_TABLE"
 #define STATE_PBH_CAPABILITIES_TABLE_NAME           "PBH_CAPABILITIES"
 #define STATE_PORT_TABLE_NAME                       "PORT_TABLE"
+#define STATE_PORT_OPER_ERR_TABLE_NAME              "PORT_OPERR_TABLE"
 #define STATE_LAG_TABLE_NAME                        "LAG_TABLE"
 #define STATE_VLAN_TABLE_NAME                       "VLAN_TABLE"
 #define STATE_VLAN_MEMBER_TABLE_NAME                "VLAN_MEMBER_TABLE"
