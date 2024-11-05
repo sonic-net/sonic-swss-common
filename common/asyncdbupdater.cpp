@@ -71,7 +71,7 @@ void AsyncDBUpdater::dbUpdateThread()
             // Check if there still data in queue before exit
             if (!m_runThread)
             {
-                SWSS_LOG_DEBUG("dbUpdateThread for table:%s exit", m_tableName.c_str());
+                SWSS_LOG_NOTICE("dbUpdateThread for table: %s is exiting", m_tableName.c_str());
                 break;
             }
 
@@ -83,7 +83,7 @@ void AsyncDBUpdater::dbUpdateThread()
         {
             if (!m_runThread)
             {
-                SWSS_LOG_DEBUG("dbUpdateThread for table: %s still has %d records that need to be sent before exiting", m_tableName.c_str(), count);
+                SWSS_LOG_DEBUG("dbUpdateThread for table: %s still has %d records that need to be sent before exiting", m_tableName.c_str(), (int)count);
             }
         }
 
