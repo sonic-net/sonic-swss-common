@@ -32,3 +32,12 @@ SWSSKeyOpFieldValuesArray SWSSConsumerStateTable_pops(SWSSConsumerStateTable tbl
         return makeKeyOpFieldValuesArray(vkco);
     });
 }
+
+uint32_t SWSSConsumerStateTable_getFd(SWSSConsumerStateTable tbl) {
+    SWSSTry(return numeric_cast<uint32_t>(((ConsumerStateTable *)tbl)->getFd()));
+}
+
+SWSSSelectResult SWSSConsumerStateTable_readData(SWSSConsumerStateTable tbl, uint32_t timeout_ms,
+                                                 uint8_t interrupt_on_signal) {
+    SWSSTry(return selectOne((ConsumerStateTable *)tbl, timeout_ms, interrupt_on_signal));
+}
