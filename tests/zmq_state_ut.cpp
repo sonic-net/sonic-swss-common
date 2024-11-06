@@ -438,3 +438,26 @@ TEST(ZmqConsumerStateTableBatchBufferOverflow, test)
     }
     EXPECT_ANY_THROW(p.send(kcos));
 }
+
+TEST(ZmqProducerStateTableDeleteAfterSend, test)
+{
+    std::string testTableName = "ZMQ_PROD_DELETE_UT";
+    std::string pushEndpoint = "tcp://localhost:1234";
+    std::string pullEndpoint = "tcp://*:1234";
+    std::string testKey = "testKey";
+
+    ZmqServer server(pullEndpoint);
+
+    DBConnector db(TEST_DB, 0, true);
+    ZmqClient client(pushEndpoint);
+
+    auto *p = new ZmqProducerStateTable(&db, testTableName, client, true);
+    std::vector<FieldValueTuple> values;
+    p->set(testKey,values);
+    delete p;
+
+    Table table(&db, testTableName);
+    std::vector<std::string> keys;
+    table.getKeys(keys);
+    EXPECT_EQ(keys.front(), testKey);
+}
