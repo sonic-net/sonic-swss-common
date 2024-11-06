@@ -453,8 +453,12 @@ TEST(ZmqProducerStateTableDeleteAfterSend, test)
 
     auto *p = new ZmqProducerStateTable(&db, testTableName, client, true);
     std::vector<FieldValueTuple> values;
+    FieldValueTuple t("test", "test");
+    values.push_back(t);
     p->set(testKey,values);
     delete p;
+
+    sleep(1);
 
     Table table(&db, testTableName);
     std::vector<std::string> keys;
