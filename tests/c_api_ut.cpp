@@ -94,6 +94,8 @@ TEST(c_api, ConsumerProducerStateTables) {
     SWSSProducerStateTable pst = SWSSProducerStateTable_new(db, "mytable");
     SWSSConsumerStateTable cst = SWSSConsumerStateTable_new(db, "mytable", nullptr, nullptr);
 
+    SWSSConsumerStateTable_getFd(cst);
+
     SWSSKeyOpFieldValuesArray arr = SWSSConsumerStateTable_pops(cst);
     ASSERT_EQ(arr.len, 0);
     freeKeyOpFieldValuesArray(arr);
@@ -169,6 +171,8 @@ TEST(c_api, SubscriberStateTable) {
     SWSSDBConnector db = SWSSDBConnector_new_named("TEST_DB", 1000, true);
     SWSSSubscriberStateTable sst = SWSSSubscriberStateTable_new(db, "mytable", nullptr, nullptr);
 
+    SWSSSubscriberStateTable_getFd(sst);
+
     EXPECT_EQ(SWSSSubscriberStateTable_readData(sst, 300, true), SWSSSelectResult_TIMEOUT);
     SWSSKeyOpFieldValuesArray arr = SWSSSubscriberStateTable_pops(sst);
     EXPECT_EQ(arr.len, 0);
@@ -206,6 +210,8 @@ TEST(c_api, ZmqConsumerProducerStateTable) {
     SWSSZmqProducerStateTable pst = SWSSZmqProducerStateTable_new(db, "mytable", cli, false);
     SWSSZmqConsumerStateTable cst =
         SWSSZmqConsumerStateTable_new(db, "mytable", srv, nullptr, nullptr);
+
+    SWSSZmqConsumerStateTable_getFd(cst);
 
     ASSERT_EQ(SWSSZmqConsumerStateTable_getDbConnector(cst), db);
 
