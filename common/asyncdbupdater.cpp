@@ -62,7 +62,7 @@ void AsyncDBUpdater::dbUpdateThread()
     std::mutex cvMutex;
     std::unique_lock<std::mutex> cvLock(cvMutex);
 
-    while (m_runThread)
+    while (true)
     {
         size_t count;
         count = queueSize();
