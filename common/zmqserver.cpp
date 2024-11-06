@@ -18,7 +18,8 @@ ZmqServer::ZmqServer(const std::string& endpoint)
 
 ZmqServer::ZmqServer(const std::string& endpoint, const std::string& vrf)
     : m_endpoint(endpoint),
-    m_vrf(vrf)
+    m_vrf(vrf),
+    m_allowZmqPoll(true)
 {
     m_buffer.resize(MQ_RESPONSE_MAX_COUNT);
     m_runThread = true;
@@ -29,8 +30,14 @@ ZmqServer::ZmqServer(const std::string& endpoint, const std::string& vrf)
 
 ZmqServer::~ZmqServer()
 {
+    m_allowZmqPoll = true;
     m_runThread = false;
     m_mqPollThread->join();
+
+    zmq_close(m_socket);
+
+    zmq_ctx_destroy(m_context);
+
 }
 
 void ZmqServer::registerMessageHandler(
@@ -115,13 +122,15 @@ void ZmqServer::mqPollThread()
     // zmq_poll will use less CPU
     zmq_pollitem_t poll_item;
     poll_item.fd = 0;
-    poll_item.socket = socket;
+    poll_item.socket = m_socket;
     poll_item.events = ZMQ_POLLIN;
     poll_item.revents = 0;
 
     SWSS_LOG_NOTICE("bind to zmq endpoint: %s", m_endpoint.c_str());
     while (m_runThread)
     {
+        m_allowZmqPoll = false;
+
         // receive message
         rc = zmq_poll(&poll_item, 1, 1000);
         if (rc == 0 || !(poll_item.revents & ZMQ_POLLIN))
@@ -132,7 +141,7 @@ void ZmqServer::mqPollThread()
         }
 
         // receive message
-        rc = zmq_recv(socket, m_buffer.data(), MQ_RESPONSE_MAX_COUNT, ZMQ_DONTWAIT);
+        rc = zmq_recv(m_socket, m_buffer.data(), MQ_RESPONSE_MAX_COUNT, ZMQ_DONTWAIT);
         if (rc < 0)
         {
             int zmq_err = zmq_errno();
@@ -161,8 +170,8 @@ void ZmqServer::mqPollThread()
         handleReceivedData(m_buffer.data(), rc);
     }
 
-    zmq_close(socket);
-    zmq_ctx_destroy(context);
+    zmq_close(m_socket);
+    zmq_ctx_destroy(m_context);
 
     SWSS_LOG_NOTICE("mqPollThread end");
 }

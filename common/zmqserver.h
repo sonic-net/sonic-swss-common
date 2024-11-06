@@ -40,6 +40,7 @@ public:
                                 ZmqMessageHandler* handler);
 
 private:
+
     void handleReceivedData(const char* buffer, const size_t size);
 
     void mqPollThread();
@@ -55,6 +56,12 @@ private:
     std::string m_endpoint;
 
     std::string m_vrf;
+
+    void* m_context;
+
+    void* m_socket;
+
+    bool m_allowZmqPoll;
 
     std::map<std::string, std::map<std::string, ZmqMessageHandler*>> m_HandlerMap;
 };
