@@ -16,8 +16,13 @@ using namespace std;
 namespace swss {
 
 ZmqClient::ZmqClient(const std::string& endpoint)
+:ZmqClient(endpoint, "")
 {
-    initialize(endpoint);
+}
+
+ZmqClient::ZmqClient(const std::string& endpoint, const std::string& vrf)
+{
+    initialize(endpoint, vrf);
 }
 
 ZmqClient::~ZmqClient()
@@ -39,12 +44,13 @@ ZmqClient::~ZmqClient()
     }
 }
     
-void ZmqClient::initialize(const std::string& endpoint)
+void ZmqClient::initialize(const std::string& endpoint, const std::string& vrf)
 {
     m_connected = false;
     m_endpoint = endpoint;
     m_context = nullptr;
     m_socket = nullptr;
+    m_vrf = vrf;
 
     connect();
 }
@@ -88,6 +94,11 @@ void ZmqClient::connect()
     // Increase send buffer for use all bandwidth: http://api.zeromq.org/4-2:zmq-setsockopt
     int high_watermark = MQ_WATERMARK;
     zmq_setsockopt(m_socket, ZMQ_SNDHWM, &high_watermark, sizeof(high_watermark));
+
+    if (!m_vrf.empty())
+    {
+        zmq_setsockopt(m_socket, ZMQ_BINDTODEVICE, m_vrf.c_str(), m_vrf.length());
+    }
 
     SWSS_LOG_NOTICE("connect to zmq endpoint: %s", m_endpoint.c_str());
     int rc = zmq_connect(m_socket, m_endpoint.c_str());
