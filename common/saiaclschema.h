@@ -83,6 +83,10 @@ const MatchFieldSchema &MatchFieldSchemaByName(const std::string &match_field_na
 // Throws std::invalid_argument for unknown actions and actions without schemas.
 const ActionSchema &ActionSchemaByName(const std::string &action_name);
 
+// Allow further format differentiation based on a SAI object type.
+const ActionSchema& ActionSchemaByNameAndObjectType(
+    const std::string& action_name, const std::string& object_type);
+
 } // namespace acl
 } // namespace swss
 
