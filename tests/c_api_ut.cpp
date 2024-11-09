@@ -94,6 +94,8 @@ TEST(c_api, ConsumerProducerStateTables) {
     SWSSProducerStateTable pst = SWSSProducerStateTable_new(db, "mytable");
     SWSSConsumerStateTable cst = SWSSConsumerStateTable_new(db, "mytable", nullptr, nullptr);
 
+    SWSSConsumerStateTable_getFd(cst);
+
     SWSSKeyOpFieldValuesArray arr = SWSSConsumerStateTable_pops(cst);
     ASSERT_EQ(arr.len, 0);
     freeKeyOpFieldValuesArray(arr);
@@ -110,6 +112,7 @@ TEST(c_api, ConsumerProducerStateTables) {
     values.len = 1;
     SWSSProducerStateTable_set(pst, "mykey2", values);
 
+    ASSERT_EQ(SWSSConsumerStateTable_readData(cst, 300, true), SWSSSelectResult_DATA);
     arr = SWSSConsumerStateTable_pops(cst);
     vector<KeyOpFieldsValuesTuple> kfvs = takeKeyOpFieldValuesArray(arr);
     sortKfvs(kfvs);
@@ -131,7 +134,7 @@ TEST(c_api, ConsumerProducerStateTables) {
     ASSERT_EQ(fieldValues1.size(), 1);
     EXPECT_EQ(fieldValues1[0].first, "myfield3");
     EXPECT_EQ(fieldValues1[0].second, "myvalue3");
-
+  
     arr = SWSSConsumerStateTable_pops(cst);
     EXPECT_EQ(arr.len, 0);
     freeKeyOpFieldValuesArray(arr);
@@ -168,23 +171,20 @@ TEST(c_api, SubscriberStateTable) {
     SWSSDBConnector db = SWSSDBConnector_new_named("TEST_DB", 1000, true);
     SWSSSubscriberStateTable sst = SWSSSubscriberStateTable_new(db, "mytable", nullptr, nullptr);
 
-    EXPECT_EQ(SWSSSubscriberStateTable_readData(sst, 300), SWSSSelectResult_TIMEOUT);
-    EXPECT_FALSE(SWSSSubscriberStateTable_hasData(sst));
+    SWSSSubscriberStateTable_getFd(sst);
+
+    EXPECT_EQ(SWSSSubscriberStateTable_readData(sst, 300, true), SWSSSelectResult_TIMEOUT);
     SWSSKeyOpFieldValuesArray arr = SWSSSubscriberStateTable_pops(sst);
     EXPECT_EQ(arr.len, 0);
     freeKeyOpFieldValuesArray(arr);
 
     SWSSDBConnector_hset(db, "mytable:mykey", "myfield", "myvalue");
-    EXPECT_EQ(SWSSSubscriberStateTable_readData(sst, 300), SWSSSelectResult_DATA);
-    EXPECT_EQ(SWSSSubscriberStateTable_readData(sst, 300), SWSSSelectResult_TIMEOUT);
-    EXPECT_TRUE(SWSSSubscriberStateTable_hasData(sst));
-
+    ASSERT_EQ(SWSSSubscriberStateTable_readData(sst, 300, true), SWSSSelectResult_DATA);
     arr = SWSSSubscriberStateTable_pops(sst);
     vector<KeyOpFieldsValuesTuple> kfvs = takeKeyOpFieldValuesArray(arr);
     sortKfvs(kfvs);
     freeKeyOpFieldValuesArray(arr);
 
-    EXPECT_FALSE(SWSSSubscriberStateTable_hasData(sst));
     ASSERT_EQ(kfvs.size(), 1);
     EXPECT_EQ(kfvKey(kfvs[0]), "mykey");
     EXPECT_EQ(kfvOp(kfvs[0]), "SET");
@@ -211,11 +211,10 @@ TEST(c_api, ZmqConsumerProducerStateTable) {
     SWSSZmqConsumerStateTable cst =
         SWSSZmqConsumerStateTable_new(db, "mytable", srv, nullptr, nullptr);
 
+    SWSSZmqConsumerStateTable_getFd(cst);
+
     ASSERT_EQ(SWSSZmqConsumerStateTable_getDbConnector(cst), db);
 
-    EXPECT_FALSE(SWSSZmqConsumerStateTable_hasData(cst));
-    EXPECT_FALSE(SWSSZmqConsumerStateTable_hasCachedData(cst));
-    EXPECT_FALSE(SWSSZmqConsumerStateTable_initializedWithData(cst));
     SWSSKeyOpFieldValuesArray arr = SWSSZmqConsumerStateTable_pops(cst);
     ASSERT_EQ(arr.len, 0);
     freeKeyOpFieldValuesArray(arr);
@@ -247,13 +246,8 @@ TEST(c_api, ZmqConsumerProducerStateTable) {
         else
             SWSSZmqClient_sendMsg(cli, "TEST_DB", "mytable", &arr);
 
-        ASSERT_EQ(SWSSZmqConsumerStateTable_readData(cst, 500), SWSSSelectResult_DATA);
-        EXPECT_TRUE(SWSSZmqConsumerStateTable_hasData(cst));
-        EXPECT_TRUE(SWSSZmqConsumerStateTable_hasCachedData(cst));
+        ASSERT_EQ(SWSSZmqConsumerStateTable_readData(cst, 1500, true), SWSSSelectResult_DATA);
         arr = SWSSZmqConsumerStateTable_pops(cst);
-        EXPECT_FALSE(SWSSZmqConsumerStateTable_hasData(cst));
-        EXPECT_FALSE(SWSSZmqConsumerStateTable_hasCachedData(cst));
-        EXPECT_EQ(SWSSZmqConsumerStateTable_readData(cst, 500), SWSSSelectResult_TIMEOUT);
 
         vector<KeyOpFieldsValuesTuple> kfvs = takeKeyOpFieldValuesArray(arr);
         sortKfvs(kfvs);
@@ -276,7 +270,6 @@ TEST(c_api, ZmqConsumerProducerStateTable) {
         EXPECT_EQ(fieldValues1[0].first, "myfield3");
         EXPECT_EQ(fieldValues1[0].second, "myvalue3");
 
-        EXPECT_FALSE(SWSSZmqConsumerStateTable_hasData(cst));
         arr = SWSSZmqConsumerStateTable_pops(cst);
         ASSERT_EQ(arr.len, 0);
         freeKeyOpFieldValuesArray(arr);
@@ -291,13 +284,8 @@ TEST(c_api, ZmqConsumerProducerStateTable) {
         else
             SWSSZmqClient_sendMsg(cli, "TEST_DB", "mytable", &arr);
 
-        ASSERT_EQ(SWSSZmqConsumerStateTable_readData(cst, 500), SWSSSelectResult_DATA);
-        EXPECT_TRUE(SWSSZmqConsumerStateTable_hasData(cst));
-        EXPECT_TRUE(SWSSZmqConsumerStateTable_hasCachedData(cst));
+        ASSERT_EQ(SWSSZmqConsumerStateTable_readData(cst, 500, true), SWSSSelectResult_DATA);
         arr = SWSSZmqConsumerStateTable_pops(cst);
-        EXPECT_FALSE(SWSSZmqConsumerStateTable_hasData(cst));
-        EXPECT_FALSE(SWSSZmqConsumerStateTable_hasCachedData(cst));
-        EXPECT_EQ(SWSSZmqConsumerStateTable_readData(cst, 500), SWSSSelectResult_TIMEOUT);
 
         kfvs = takeKeyOpFieldValuesArray(arr);
         sortKfvs(kfvs);

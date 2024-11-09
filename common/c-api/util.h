@@ -29,9 +29,14 @@ typedef struct {
     const SWSSKeyOpFieldValues *data;
 } SWSSKeyOpFieldValuesArray;
 
+// FFI version of swss::Select::{OBJECT, TIMEOUT, SIGNALINT}.
+// swss::Select::ERROR is left out because errors are handled separately
 typedef enum {
+    // Data is available in the object
     SWSSSelectResult_DATA = 0,
+    // Timed out waiting for data
     SWSSSelectResult_TIMEOUT = 1,
+    // Waiting was interrupted by a signal
     SWSSSelectResult_SIGNAL = 2,
 } SWSSSelectResult;
 
@@ -74,11 +79,12 @@ extern bool cApiTestingDisableAbort;
         }                                                                                          \
     }
 
-static inline SWSSSelectResult selectOne(swss::Selectable *s, uint32_t timeout_ms) {
+static inline SWSSSelectResult selectOne(swss::Selectable *s, uint32_t timeout_ms,
+                                         uint8_t interrupt_on_signal) {
     Select select;
     Selectable *sOut;
     select.addSelectable(s);
-    int ret = select.select(&sOut, numeric_cast<int>(timeout_ms));
+    int ret = select.select(&sOut, numeric_cast<int>(timeout_ms), interrupt_on_signal);
     switch (ret) {
     case Select::OBJECT:
         return SWSSSelectResult_DATA;
