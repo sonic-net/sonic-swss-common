@@ -58,6 +58,7 @@
 #include "zmqproducerstatetable.h"
 #include <memory>
 #include <functional>
+#include "interface.h"
 %}
 
 %include <std_string.i>
@@ -282,6 +283,7 @@ T castSelectableObj(swss::Selectable *temp)
 %include "zmqserver.h"
 %include "zmqclient.h"
 %include "zmqconsumerstatetable.h"
+%include "interface.h"
 
 %extend swss::DBConnector {
     %template(hgetall) hgetall<std::map<std::string, std::string>>;
@@ -296,7 +298,7 @@ T castSelectableObj(swss::Selectable *temp)
 %include "table.h"
 #ifdef ENABLE_YANG_MODULES
 %include "decoratortable.h"
-#endif 
+#endif
 %clear std::vector<std::string> &keys;
 %clear std::vector<std::string> &ops;
 %clear std::vector<std::vector<std::pair<std::string, std::string>>> &fvss;
