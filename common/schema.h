@@ -460,6 +460,7 @@ namespace swss {
 
 #define CFG_TWAMP_SESSION_TABLE_NAME                "TWAMP_SESSION"
 #define CFG_BANNER_MESSAGE_TABLE_NAME               "BANNER_MESSAGE"
+#define CFG_LOGGING_TABLE_NAME                      "LOGGING"
 
 #define CFG_DHCP_TABLE                              "DHCP_RELAY"
 
