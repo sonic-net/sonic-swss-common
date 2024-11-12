@@ -3,6 +3,7 @@
 #include "util.h"
 #include "zmqconsumerstatetable.h"
 #include "zmqserver.h"
+#include <boost/numeric/conversion/cast.hpp>
 
 using namespace swss;
 using namespace std;
@@ -32,24 +33,14 @@ SWSSKeyOpFieldValuesArray SWSSZmqConsumerStateTable_pops(SWSSZmqConsumerStateTab
     });
 }
 
+uint32_t SWSSZmqConsumerStateTable_getFd(SWSSZmqConsumerStateTable tbl) {
+    SWSSTry(return numeric_cast<uint32_t>(((ZmqConsumerStateTable *)tbl)->getFd()));
+}
+
 SWSSSelectResult SWSSZmqConsumerStateTable_readData(SWSSZmqConsumerStateTable tbl,
-                                                    uint32_t timeout_ms) {
-    SWSSTry(return selectOne((ZmqConsumerStateTable *)tbl, timeout_ms));
-}
-
-// Returns 0 for false, 1 for true
-uint8_t SWSSZmqConsumerStateTable_hasData(SWSSZmqConsumerStateTable tbl) {
-    SWSSTry(return ((ZmqConsumerStateTable *)tbl)->hasData() ? 1 : 0);
-}
-
-// Returns 0 for false, 1 for true
-uint8_t SWSSZmqConsumerStateTable_hasCachedData(SWSSZmqConsumerStateTable tbl) {
-    SWSSTry(return ((ZmqConsumerStateTable *)tbl)->hasCachedData() ? 1 : 0);
-}
-
-// Returns 0 for false, 1 for true
-uint8_t SWSSZmqConsumerStateTable_initializedWithData(SWSSZmqConsumerStateTable tbl) {
-    SWSSTry(return ((ZmqConsumerStateTable *)tbl)->initializedWithData() ? 1 : 0);
+                                                    uint32_t timeout_ms,
+                                                    uint8_t interrupt_on_signal) {
+    SWSSTry(return selectOne((ZmqConsumerStateTable *)tbl, timeout_ms, interrupt_on_signal));
 }
 
 const struct SWSSDBConnectorOpaque *
