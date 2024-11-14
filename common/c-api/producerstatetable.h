@@ -22,11 +22,6 @@ void SWSSProducerStateTable_set(SWSSProducerStateTable tbl, const char *key, SWS
 
 void SWSSProducerStateTable_del(SWSSProducerStateTable tbl, const char *key);
 
-// Batched version of set() and del().
-// virtual void set(const std::vector<KeyOpFieldsValuesTuple>& values);
-
-// virtual void del(const std::vector<std::string>& keys);
-
 void SWSSProducerStateTable_flush(SWSSProducerStateTable tbl);
 
 int64_t SWSSProducerStateTable_count(SWSSProducerStateTable tbl);
