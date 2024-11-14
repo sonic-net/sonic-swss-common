@@ -1,3 +1,4 @@
+#include <boost/numeric/conversion/cast.hpp>
 #include <cstdlib>
 #include <cstring>
 #include <deque>
@@ -10,6 +11,7 @@
 
 using namespace swss;
 using namespace std;
+using boost::numeric_cast;
 
 SWSSConsumerStateTable SWSSConsumerStateTable_new(SWSSDBConnector db, const char *tableName,
                                                   const int32_t *p_popBatchSize,

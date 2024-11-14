@@ -1,3 +1,4 @@
+#include <boost/numeric/conversion/cast.hpp>
 #include "../zmqconsumerstatetable.h"
 #include "../table.h"
 #include "util.h"
@@ -7,6 +8,7 @@
 
 using namespace swss;
 using namespace std;
+using boost::numeric_cast;
 
 // Pass NULL for popBatchSize and/or pri to use the default values
 SWSSZmqConsumerStateTable SWSSZmqConsumerStateTable_new(SWSSDBConnector db, const char *tableName,

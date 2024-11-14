@@ -1,8 +1,11 @@
+#include <boost/numeric/conversion/cast.hpp>
+
 #include "zmqproducerstatetable.h"
 #include "../zmqproducerstatetable.h"
 
 using namespace std;
 using namespace swss;
+using boost::numeric_cast;
 
 SWSSZmqProducerStateTable SWSSZmqProducerStateTable_new(SWSSDBConnector db, const char *tableName,
                                                         SWSSZmqClient zmqc, uint8_t dbPersistence) {
