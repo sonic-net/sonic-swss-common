@@ -426,7 +426,7 @@ namespace swss {
 #define CFG_MCLAG_UNIQUE_IP_TABLE_NAME              "MCLAG_UNIQUE_IP"
 
 #define CFG_PORT_STORM_CONTROL_TABLE_NAME           "PORT_STORM_CONTROL"
-#define CFG_VRRP_TABLE_NAME                         "VRRP" 
+#define CFG_VRRP_TABLE_NAME                         "VRRP"
 #define CFG_VRRP6_TABLE_NAME                        "VRRP6"
 #define CFG_RATES_TABLE_NAME                        "RATES"
 
