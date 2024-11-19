@@ -117,6 +117,9 @@ namespace swss {
 #define APP_BFD_SESSION_TABLE_NAME          "BFD_SESSION_TABLE"
 
 
+#define APP_STP_MST_INST_TABLE_NAME         "STP_MST_INST_TABLE"
+#define APP_STP_MST_PORT_TABLE_NAME         "STP_MST_PORT_TABLE"
+
 #define APP_SAG_TABLE_NAME                  "SAG_TABLE"
 
 #define APP_FC_TO_NHG_INDEX_MAP_TABLE_NAME   "FC_TO_NHG_INDEX_MAP_TABLE"
@@ -423,6 +426,10 @@ namespace swss {
 #define CFG_STP_VLAN_TABLE_NAME                     "STP_VLAN"
 #define CFG_STP_VLAN_PORT_TABLE_NAME                "STP_VLAN_PORT"
 #define CFG_STP_PORT_TABLE_NAME                     "STP_PORT"
+
+#define CFG_STP_MST_TABLE_NAME                      "STP_MST"
+#define CFG_STP_MST_INST_TABLE_NAME                 "STP_MST_INST"
+#define CFG_STP_MST_PORT_TABLE_NAME                 "STP_MST_PORT"
 
 #define CFG_MCLAG_TABLE_NAME                        "MCLAG_DOMAIN"
 #define CFG_MCLAG_INTF_TABLE_NAME                   "MCLAG_INTERFACE"
