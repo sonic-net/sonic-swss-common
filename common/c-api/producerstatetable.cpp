@@ -25,7 +25,7 @@ void SWSSProducerStateTable_setBuffered(SWSSProducerStateTable tbl, uint8_t buff
 
 void SWSSProducerStateTable_set(SWSSProducerStateTable tbl, const char *key,
                                 SWSSFieldValueArray values) {
-    SWSSTry(((ProducerStateTable *)tbl)->set(string(key), takeFieldValueArray(values)));
+    SWSSTry(((ProducerStateTable *)tbl)->set(string(key), takeFieldValueArray(std::move(values))));
 }
 
 void SWSSProducerStateTable_del(SWSSProducerStateTable tbl, const char *key) {

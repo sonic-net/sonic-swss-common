@@ -29,11 +29,11 @@ void SWSSDBConnector_free(SWSSDBConnector db);
 // Returns 0 when key doesn't exist, 1 when key was deleted
 int8_t SWSSDBConnector_del(SWSSDBConnector db, const char *key);
 
-void SWSSDBConnector_set(SWSSDBConnector db, const char *key, const char *value);
+void SWSSDBConnector_set(SWSSDBConnector db, const char *key, SWSSStrRef value);
 
-// Returns NULL if key doesn't exist.
-// Result must be freed using free()
-char *SWSSDBConnector_get(SWSSDBConnector db, const char *key);
+// Returns NULL if key doesn't exist
+// Result must be freed using SWSSString_free()
+SWSSString SWSSDBConnector_get(SWSSDBConnector db, const char *key);
 
 // Returns 0 for false, 1 for true
 int8_t SWSSDBConnector_exists(SWSSDBConnector db, const char *key);
@@ -41,59 +41,22 @@ int8_t SWSSDBConnector_exists(SWSSDBConnector db, const char *key);
 // Returns 0 when key or field doesn't exist, 1 when field was deleted
 int8_t SWSSDBConnector_hdel(SWSSDBConnector db, const char *key, const char *field);
 
-void SWSSDBConnector_hset(SWSSDBConnector db, const char *key, const char *field,
-                          const char *value);
+void SWSSDBConnector_hset(SWSSDBConnector db, const char *key, const char *field, SWSSStrRef value);
 
-// Returns NULL if key or field doesn't exist.
-// Result must be freed using free()
-char *SWSSDBConnector_hget(SWSSDBConnector db, const char *key, const char *field);
+// Returns NULL if key or field doesn't exist
+// Result must be freed using SWSSString_free()
+SWSSString SWSSDBConnector_hget(SWSSDBConnector db, const char *key, const char *field);
 
-// Returns an empty map when the key doesn't exist.
-// Result array and all of its elements must be freed using free()
+// Returns an empty map when the key doesn't exist
+// Result array and all of its elements must be freed using appropriate free functions
 SWSSFieldValueArray SWSSDBConnector_hgetall(SWSSDBConnector db, const char *key);
 
 // Returns 0 when key or field doesn't exist, 1 when field exists
 int8_t SWSSDBConnector_hexists(SWSSDBConnector db, const char *key, const char *field);
 
-// std::vector<std::string> keys(const std::string &key);
-
-// std::pair<int, std::vector<std::string>> scan(int cursor = 0, const char
-// *match = "", uint32_t count = 10);
-
-// template<typename InputIterator>
-// void hmset(const std::string &key, InputIterator start, InputIterator stop);
-
-// void hmset(const std::unordered_map<std::string,
-// std::vector<std::pair<std::string, std::string>>>& multiHash);
-
-// std::shared_ptr<std::string> get(const std::string &key);
-
-// std::shared_ptr<std::string> hget(const std::string &key, const std::string
-// &field);
-
-// int64_t incr(const std::string &key);
-
-// int64_t decr(const std::string &key);
-
-// int64_t rpush(const std::string &list, const std::string &item);
-
-// std::shared_ptr<std::string> blpop(const std::string &list, int timeout);
-
-// void subscribe(const std::string &pattern);
-
-// void psubscribe(const std::string &pattern);
-
-// void punsubscribe(const std::string &pattern);
-
-// int64_t publish(const std::string &channel, const std::string &message);
-
-// void config_set(const std::string &key, const std::string &value);
-
 // Returns 1 on success, 0 on failure
 int8_t SWSSDBConnector_flushdb(SWSSDBConnector db);
 
-// std::map<std::string, std::map<std::string, std::map<std::string,
-// std::string>>> getall();
 #ifdef __cplusplus
 }
 #endif
