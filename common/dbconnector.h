@@ -213,11 +213,11 @@ public:
      */
     explicit DBConnector(const DBConnector &other);
     DBConnector(int dbId, const RedisContext &ctx);
-    DBConnector(int dbId, const std::string &hostname, int port, unsigned int timeout);
-    DBConnector(int dbId, const std::string &unixPath, unsigned int timeout);
-    DBConnector(const std::string &dbName, unsigned int timeout, bool isTcpConn = false);
-    DBConnector(const std::string &dbName, unsigned int timeout, bool isTcpConn, const std::string &netns);
-    DBConnector(const std::string &dbName, unsigned int timeout, bool isTcpConn, const SonicDBKey &key);
+    DBConnector(int dbId, const std::string &hostname, int port, unsigned int timeout_ms);
+    DBConnector(int dbId, const std::string &unixPath, unsigned int timeout_ms);
+    DBConnector(const std::string &dbName, unsigned int timeout_ms, bool isTcpConn = false);
+    DBConnector(const std::string &dbName, unsigned int timeout_ms, bool isTcpConn, const std::string &netns);
+    DBConnector(const std::string &dbName, unsigned int timeout_ms, bool isTcpConn, const SonicDBKey &key);
     DBConnector& operator=(const DBConnector&) = delete;
 
     int getDbId() const;
