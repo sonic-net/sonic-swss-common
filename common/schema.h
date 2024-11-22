@@ -427,7 +427,7 @@ namespace swss {
 #define CFG_STP_VLAN_PORT_TABLE_NAME                "STP_VLAN_PORT"
 #define CFG_STP_PORT_TABLE_NAME                     "STP_PORT"
 
-#define CFG_STP_MST_TABLE_NAME                      "STP_MST"
+#define CFG_STP_MST_GLOBAL_TABLE_NAME               "STP_MST"
 #define CFG_STP_MST_INST_TABLE_NAME                 "STP_MST_INST"
 #define CFG_STP_MST_PORT_TABLE_NAME                 "STP_MST_PORT"
 
