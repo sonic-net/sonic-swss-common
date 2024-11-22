@@ -328,5 +328,32 @@ const ActionSchema &ActionSchemaByName(const std::string &action_name)
     return lookup->second;
 }
 
+const ActionSchema& ActionSchemaByNameAndObjectType(
+    const std::string& action_name, const std::string& object_type) {
+  static const auto* const kRedirectObjectTypes =
+      new std::unordered_map<std::string, ActionSchema>({
+          {"SAI_OBJECT_TYPE_IPMC_GROUP",
+           {.format = Format::kHexString, .bitwidth = 16}},
+          {"SAI_OBJECT_TYPE_L2MC_GROUP",
+           {.format = Format::kHexString, .bitwidth = 16}},
+          // SAI_OBJECT_TYPE_BRIDGE_PORT
+          // SAI_OBJECT_TYPE_LAG
+          // SAI_OBJECT_TYPE_NEXT_HOP
+          // SAI_OBJECT_TYPE_NEXT_HOP_GROUP
+          // SAI_OBJECT_TYPE_PORT
+          // SAI_OBJECT_TYPE_SYSTEM_PORT
+      });
+
+  if (action_name == "SAI_ACL_ENTRY_ATTR_ACTION_REDIRECT") {
+    auto lookup = kRedirectObjectTypes->find(object_type);
+    if (lookup != kRedirectObjectTypes->end()) {
+      return lookup->second;
+    }
+  }
+  // If we haven't defined the object type, fall through to the default
+  // SAI_ACL_ENTRY_ATTR_ACTION_REDIRECT format.
+  return ActionSchemaByName(action_name);
+}
+
 } // namespace acl
 } // namespace swss

@@ -1,3 +1,4 @@
+#include <boost/numeric/conversion/cast.hpp>
 #include <cstdlib>
 #include <cstring>
 #include <deque>
@@ -11,6 +12,7 @@
 
 using namespace swss;
 using namespace std;
+using boost::numeric_cast;
 
 SWSSSubscriberStateTable SWSSSubscriberStateTable_new(SWSSDBConnector db, const char *tableName,
                                                       const int32_t *p_popBatchSize,
@@ -34,19 +36,12 @@ SWSSKeyOpFieldValuesArray SWSSSubscriberStateTable_pops(SWSSSubscriberStateTable
     });
 }
 
-uint8_t SWSSSubscriberStateTable_hasData(SWSSSubscriberStateTable tbl) {
-    SWSSTry(return ((SubscriberStateTable *)tbl)->hasData() ? 1 : 0);
-}
-
-uint8_t SWSSSubscriberStateTable_hasCachedData(SWSSSubscriberStateTable tbl) {
-    SWSSTry(return ((SubscriberStateTable *)tbl)->hasCachedData() ? 1 : 0);
-}
-
-uint8_t SWSSSubscriberStateTable_initializedWithData(SWSSSubscriberStateTable tbl) {
-    SWSSTry(return ((SubscriberStateTable *)tbl)->initializedWithData() ? 1 : 0);
+uint32_t SWSSSubscriberStateTable_getFd(SWSSSubscriberStateTable tbl) {
+    SWSSTry(return numeric_cast<uint32_t>(((SubscriberStateTable *)tbl)->getFd()));
 }
 
 SWSSSelectResult SWSSSubscriberStateTable_readData(SWSSSubscriberStateTable tbl,
-                                                   uint32_t timeout_ms) {
-    SWSSTry(return selectOne((SubscriberStateTable *)tbl, timeout_ms));
+                                                   uint32_t timeout_ms,
+                                                   uint8_t interrupt_on_signal) {
+    SWSSTry(return selectOne((SubscriberStateTable *)tbl, timeout_ms, interrupt_on_signal));
 }
