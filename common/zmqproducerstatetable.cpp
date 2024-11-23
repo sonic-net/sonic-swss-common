@@ -38,8 +38,6 @@ ZmqProducerStateTable::ZmqProducerStateTable(RedisPipeline *pipeline, const stri
 
 void ZmqProducerStateTable::initialize(DBConnector *db, const std::string &tableName, bool dbPersistence)
 {
-    m_sendbuffer.resize(MQ_RESPONSE_MAX_COUNT);
-    
     if (dbPersistence)
     {
         SWSS_LOG_DEBUG("Database persistence enabled, tableName: %s", tableName.c_str());
