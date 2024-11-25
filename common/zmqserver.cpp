@@ -33,11 +33,6 @@ ZmqServer::~ZmqServer()
     m_allowZmqPoll = true;
     m_runThread = false;
     m_mqPollThread->join();
-
-    zmq_close(m_socket);
-
-    zmq_ctx_destroy(m_context);
-
 }
 
 void ZmqServer::registerMessageHandler(
@@ -99,18 +94,18 @@ void ZmqServer::mqPollThread()
 
     // Producer/Consumer state table are n:1 mapping, so need use PUSH/PULL pattern http://api.zeromq.org/master:zmq-socket
     void* context = zmq_ctx_new();;
-    void* m_socket = zmq_socket(context, ZMQ_PULL);
+    void* socket = zmq_socket(context, ZMQ_PULL);
 
     // Increase recv buffer for use all bandwidth:  http://api.zeromq.org/4-2:zmq-setsockopt
     int high_watermark = MQ_WATERMARK;
-    zmq_setsockopt(m_socket, ZMQ_RCVHWM, &high_watermark, sizeof(high_watermark));
+    zmq_setsockopt(socket, ZMQ_RCVHWM, &high_watermark, sizeof(high_watermark));
 
     if (!m_vrf.empty())
     {
-        zmq_setsockopt(m_socket, ZMQ_BINDTODEVICE, m_vrf.c_str(), m_vrf.length());
+        zmq_setsockopt(socket, ZMQ_BINDTODEVICE, m_vrf.c_str(), m_vrf.length());
     }
 
-    int rc = zmq_bind(m_socket, m_endpoint.c_str());
+    int rc = zmq_bind(socket, m_endpoint.c_str());
     if (rc != 0)
     {
         SWSS_LOG_THROW("zmq_bind failed on endpoint: %s, zmqerrno: %d, message: %s",
@@ -122,7 +117,7 @@ void ZmqServer::mqPollThread()
     // zmq_poll will use less CPU
     zmq_pollitem_t poll_item;
     poll_item.fd = 0;
-    poll_item.socket = m_socket;
+    poll_item.socket = socket;
     poll_item.events = ZMQ_POLLIN;
     poll_item.revents = 0;
 
@@ -141,7 +136,7 @@ void ZmqServer::mqPollThread()
         }
 
         // receive message
-        rc = zmq_recv(m_socket, m_buffer.data(), MQ_RESPONSE_MAX_COUNT, ZMQ_DONTWAIT);
+        rc = zmq_recv(socket, m_buffer.data(), MQ_RESPONSE_MAX_COUNT, ZMQ_DONTWAIT);
         if (rc < 0)
         {
             int zmq_err = zmq_errno();
@@ -170,8 +165,8 @@ void ZmqServer::mqPollThread()
         handleReceivedData(m_buffer.data(), rc);
     }
 
-    zmq_close(m_socket);
-    zmq_ctx_destroy(m_context);
+    zmq_close(socket);
+    zmq_ctx_destroy(context);
 
     SWSS_LOG_NOTICE("mqPollThread end");
 }

@@ -23,16 +23,13 @@ public:
 
     void sendMsg(const std::string& dbName,
                  const std::string& tableName,
-                 const std::vector<KeyOpFieldsValuesTuple>& kcos,
-                 std::vector<char>& sendbuffer);
+                 const std::vector<KeyOpFieldsValuesTuple>& kcos);
 
     bool wait(std::string& dbName,
 
               std::string& tableName,
 
-              std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos,
-
-              std::vector<char>& buffer);
+              std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos);
 
 private:
     void initialize(const std::string& endpoint, const std::string& vrf);
@@ -48,6 +45,8 @@ private:
     bool m_connected;
 
     std::mutex m_socketMutex;
+    
+    std::vector<char> m_sendbuffer;
 };
 
 }
