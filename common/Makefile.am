@@ -68,7 +68,18 @@ common_libswsscommon_la_SOURCES = \
     common/zmqclient.cpp             \
     common/zmqserver.cpp             \
     common/asyncdbupdater.cpp        \
-    common/redis_table_waiter.cpp
+    common/redis_table_waiter.cpp    \
+    common/interface.h               \
+    common/c-api/util.cpp                  \
+    common/c-api/dbconnector.cpp           \
+    common/c-api/consumerstatetable.cpp    \
+    common/c-api/producerstatetable.cpp    \
+    common/c-api/subscriberstatetable.cpp  \
+    common/c-api/zmqclient.cpp             \
+    common/c-api/zmqserver.cpp             \
+    common/c-api/zmqconsumerstatetable.cpp \
+    common/c-api/zmqproducerstatetable.cpp \
+    common/performancetimer.cpp
 
 common_libswsscommon_la_CXXFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CFLAGS) $(CODE_COVERAGE_CXXFLAGS)
 common_libswsscommon_la_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CPPFLAGS) $(CODE_COVERAGE_CPPFLAGS)

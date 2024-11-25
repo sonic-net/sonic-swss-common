@@ -37,12 +37,8 @@ public:
     // Batched send that can include both SET and DEL requests.
     virtual void send(const std::vector<KeyOpFieldsValuesTuple> &kcos);
 
-    // This method should only be used if the ZmqClient enables one-to-one sync.
-
     virtual bool wait(std::string& dbName,
-
               std::string& tableName,
-
               std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos);
 
     size_t dbUpdaterQueueSize();
@@ -50,8 +46,6 @@ private:
     void initialize(DBConnector *db, const std::string &tableName, bool dbPersistence);
 
     ZmqClient& m_zmqClient;
-    
-    std::vector<char> m_sendbuffer;
 
     const std::string m_dbName;
     const std::string m_tableNameStr;

@@ -51,6 +51,7 @@ void ZmqClient::initialize(const std::string& endpoint, const std::string& vrf)
     m_context = nullptr;
     m_socket = nullptr;
     m_vrf = vrf;
+    m_sendbuffer.resize(MQ_RESPONSE_MAX_COUNT);
 
     connect();
 }
@@ -116,12 +117,11 @@ void ZmqClient::connect()
 void ZmqClient::sendMsg(
         const std::string& dbName,
         const std::string& tableName,
-        const std::vector<KeyOpFieldsValuesTuple>& kcos,
-        std::vector<char>& sendbuffer)
+        const std::vector<KeyOpFieldsValuesTuple>& kcos)
 {
     int serializedlen = (int)BinarySerializer::serializeBuffer(
-                                                        sendbuffer.data(),
-                                                        sendbuffer.size(),
+                                                        m_sendbuffer.data(),
+                                                        m_sendbuffer.size(),
                                                         dbName,
                                                         tableName,
                                                         kcos);
@@ -144,7 +144,7 @@ void ZmqClient::sendMsg(
             std::lock_guard<std::mutex> lock(m_socketMutex);
 
             // Use none block mode to use all bandwidth: http://api.zeromq.org/2-1%3Azmq-send
-            rc = zmq_send(m_socket, sendbuffer.data(), serializedlen, ZMQ_NOBLOCK);
+            rc = zmq_send(m_socket, m_sendbuffer.data(), serializedlen, ZMQ_NOBLOCK);
         }
 
         if (rc >= 0)
@@ -198,65 +198,34 @@ void ZmqClient::sendMsg(
 }
 
 bool ZmqClient::wait(std::string& dbName,
-
                      std::string& tableName,
-
-                     std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos,
-
-                     std::vector<char>& buffer)
-
+                     std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos)
 {
-
     SWSS_LOG_ENTER();
-
     int rc;
-
     for (int i = 0; true ; ++i)
-
     {
-
-        rc = zmq_recv(m_socket, buffer.data(), buffer.size(), 0);
-
+        rc = zmq_recv(m_socket, m_sendbuffer.data(), m_sendbuffer.size(), 0);
         if (rc < 0)
-
         {
-
             if (zmq_errno() == EINTR && i <= MQ_MAX_RETRY)
-
             {
-
                 continue;
-
             }
-
             SWSS_LOG_THROW("zmq_recv failed, zmqerrno: %d", zmq_errno());
-
         }
-
-        if (rc >= (int)buffer.size())
-
+        if (rc >= (int)m_sendbuffer.size())
         {
-
             SWSS_LOG_THROW(
-
                 "zmq_recv message was truncated (over %d bytes, received %d), increase buffer size, message DROPPED",
-
-                (int)buffer.size(), rc);
-
+                (int)m_sendbuffer.size(), rc);
         }
-
         break;
-
     }
-
-    buffer.at(rc) = 0; // make sure that we end string with zero before parse
-
+    m_sendbuffer.at(rc) = 0; // make sure that we end string with zero before parse
     kcos.clear();
-
-    BinarySerializer::deserializeBuffer(buffer.data(), buffer.size(), dbName, tableName, kcos);
-
+    BinarySerializer::deserializeBuffer(m_sendbuffer.data(), m_sendbuffer.size(), dbName, tableName, kcos);
     return true;
-
 }
 
 }
