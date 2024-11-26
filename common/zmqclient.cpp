@@ -51,6 +51,7 @@ void ZmqClient::initialize(const std::string& endpoint, const std::string& vrf)
     m_context = nullptr;
     m_socket = nullptr;
     m_vrf = vrf;
+    m_sendbuffer.resize(MQ_RESPONSE_MAX_COUNT);
 
     connect();
 }
@@ -116,12 +117,11 @@ void ZmqClient::connect()
 void ZmqClient::sendMsg(
         const std::string& dbName,
         const std::string& tableName,
-        const std::vector<KeyOpFieldsValuesTuple>& kcos,
-        std::vector<char>& sendbuffer)
+        const std::vector<KeyOpFieldsValuesTuple>& kcos)
 {
     int serializedlen = (int)BinarySerializer::serializeBuffer(
-                                                        sendbuffer.data(),
-                                                        sendbuffer.size(),
+                                                        m_sendbuffer.data(),
+                                                        m_sendbuffer.size(),
                                                         dbName,
                                                         tableName,
                                                         kcos);
@@ -144,7 +144,7 @@ void ZmqClient::sendMsg(
             std::lock_guard<std::mutex> lock(m_socketMutex);
 
             // Use none block mode to use all bandwidth: http://api.zeromq.org/2-1%3Azmq-send
-            rc = zmq_send(m_socket, sendbuffer.data(), serializedlen, ZMQ_NOBLOCK);
+            rc = zmq_send(m_socket, m_sendbuffer.data(), serializedlen, ZMQ_NOBLOCK);
         }
 
         if (rc >= 0)
