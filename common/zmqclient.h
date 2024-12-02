@@ -15,6 +15,7 @@ public:
 
     ZmqClient(const std::string& endpoint);
     ZmqClient(const std::string& endpoint, const std::string& vrf);
+//    ZmqClient(const std::string& endpoint, uint32_t waitTimeMs);
     ~ZmqClient();
 
     bool isConnected();
@@ -31,6 +32,7 @@ public:
 
 private:
     void initialize(const std::string& endpoint, const std::string& vrf);
+//    void initialize(const std::string& endpoint);
 
     std::string m_endpoint;
 
@@ -41,6 +43,8 @@ private:
     void* m_socket;
 
     bool m_connected;
+
+//    uint32_t m_waitTimeMs;
 
     std::mutex m_socketMutex;
     

@@ -16,14 +16,22 @@ using namespace std;
 namespace swss {
 
 ZmqClient::ZmqClient(const std::string& endpoint)
-:ZmqClient(endpoint, "")
+//:ZmqClient(endpoint, "")
 {
+    initialize(endpoint);
 }
 
 ZmqClient::ZmqClient(const std::string& endpoint, const std::string& vrf)
 {
     initialize(endpoint, vrf);
 }
+
+/*ZmqClient::ZmqClient(const std::string& endpoint, uint32_t waitTimeMs) :
+    m_waitTimeMs(waitTimeMs)
+{
+//    m_waitTimeMs = waitTimeMs;
+    initialize(endpoint);
+}*/
 
 ZmqClient::~ZmqClient()
 {
@@ -51,6 +59,17 @@ void ZmqClient::initialize(const std::string& endpoint, const std::string& vrf)
     m_context = nullptr;
     m_socket = nullptr;
     m_vrf = vrf;
+    m_sendbuffer.resize(MQ_RESPONSE_MAX_COUNT);
+
+    connect();
+}
+
+void ZmqClient::initialize(const std::string& endpoint)
+{
+    m_connected = false;
+    m_endpoint = endpoint;
+    m_context = nullptr;
+    m_socket = nullptr;
     m_sendbuffer.resize(MQ_RESPONSE_MAX_COUNT);
 
     connect();
@@ -137,7 +156,7 @@ void ZmqClient::sendMsg(
     int zmq_err = 0;
     int retry_delay = 10;
     int rc = 0;
-    for (int i = 0; i <=  MQ_MAX_RETRY; ++i)
+    for (int i = 0; i <= MQ_MAX_RETRY; ++i)
     {
         {
             // ZMQ socket is not thread safe: http://api.zeromq.org/2-1:zmq
@@ -202,8 +221,34 @@ bool ZmqClient::wait(std::string& dbName,
                      std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos)
 {
     SWSS_LOG_ENTER();
+
+/*    zmq_pollitem_t items [1] = { };
+    items[0].socket = m_socket;
+    items[0].events = ZMQ_POLLIN;
+
     int rc;
-    for (int i = 0; true ; ++i)
+    for (int i = 0; true; ++i)
+    {
+        SWSS_LOG_DEBUG("m_waitTimeMs is : %d", (int)m_waitTimeMs);
+        rc = zmq_poll(items, 1, (int)m_waitTimeMs);
+        if (rc == 0)
+        {
+            SWSS_LOG_ERROR("zmq_poll timed out");
+            return false;
+        }
+        if (rc > 0)
+        {
+            break;
+        }
+        if (zmq_errno() == EINTR && i <= MQ_MAX_RETRY)
+        {
+            continue;
+        }
+        SWSS_LOG_ERROR("zmq_poll failed, zmqerrno: %d", zmq_errno());
+    } */
+
+    int rc;
+    for (int i = 0; true; ++i)
     {
         rc = zmq_recv(m_socket, m_sendbuffer.data(), m_sendbuffer.size(), 0);
         if (rc < 0)
@@ -212,13 +257,15 @@ bool ZmqClient::wait(std::string& dbName,
             {
                 continue;
             }
-            SWSS_LOG_THROW("zmq_recv failed, zmqerrno: %d", zmq_errno());
+            SWSS_LOG_ERROR("zmq_recv failed, zmqerrno: %d", zmq_errno());
+            return false;
         }
         if (rc >= (int)m_sendbuffer.size())
         {
-            SWSS_LOG_THROW(
+            SWSS_LOG_ERROR(
                 "zmq_recv message was truncated (over %d bytes, received %d), increase buffer size, message DROPPED",
                 (int)m_sendbuffer.size(), rc);
+//            return false;
         }
         break;
     }

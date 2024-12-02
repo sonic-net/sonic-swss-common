@@ -171,4 +171,72 @@ void ZmqServer::mqPollThread()
     SWSS_LOG_NOTICE("mqPollThread end");
 }
 
+void ZmqServer::sendMsg(const std::string& dbName, const std::string& tableName,
+        const std::vector<swss::KeyOpFieldsValuesTuple>& values)
+{
+    int serializedlen = (int)BinarySerializer::serializeBuffer(
+                                                        m_buffer.data(),
+                                                        m_buffer.size(),
+                                                        dbName,
+                                                        tableName,
+                                                        values);
+    SWSS_LOG_DEBUG("sending: %d", serializedlen);
+    int zmq_err = 0;
+    int retry_delay = 10;
+    int rc = 0;
+    for (int i = 0; i <=  MQ_MAX_RETRY; ++i)
+    {
+        rc = zmq_send(m_socket, m_buffer.data(), serializedlen, 0);
+        SWSS_LOG_DEBUG("rc value is : %d", rc);
+        if (rc >= 0)
+        {
+            m_allowZmqPoll = true;
+            SWSS_LOG_DEBUG("zmq sent %d bytes", serializedlen);
+            return;
+        }
+        zmq_err = zmq_errno();
+        // sleep (2 ^ retry time) * 10 ms
+        retry_delay *= 2;
+	SWSS_LOG_DEBUG("zmq_err is : %d", zmq_err);
+
+        if (zmq_err == EINTR
+            || zmq_err== EFSM)
+        {
+            // EINTR: interrupted by signal
+            // EFSM: socket state not ready
+            //       For example when ZMQ socket still not receive reply message from last sended package.
+            //       There was state machine inside ZMQ socket, when the socket is not in ready to send state, this
+            //       error will happen.
+            // for more detail, please check: http://api.zeromq.org/2-1:zmq-send
+            SWSS_LOG_DEBUG("zmq send retry, endpoint: %s, error: %d", m_endpoint.c_str(), zmq_err);
+
+            retry_delay = 0;
+        }
+        else if (zmq_err == EAGAIN)
+        {
+            // EAGAIN: ZMQ is full to need try again
+            SWSS_LOG_WARN("zmq is full, will retry in %d ms, endpoint: %s, error: %d", retry_delay, m_endpoint.c_str(), zmq_err);
+        }
+        else if (zmq_err == ETERM)
+        {
+            auto message =  "zmq connection break, endpoint: " + m_endpoint + ", error: " + to_string(rc);
+            SWSS_LOG_ERROR("%s", message.c_str());
+            throw system_error(make_error_code(errc::connection_reset), message);
+        }
+        else
+        {
+            // for other error, send failed immediately.
+            auto message =  "zmq send failed, endpoint: " + m_endpoint + ", error: " + to_string(rc);
+            SWSS_LOG_ERROR("%s", message.c_str());
+//            throw system_error(make_error_code(errc::io_error), message);
+        }
+        usleep(retry_delay * 1000);
+    }
+
+    // failed after retry
+    auto message =  "zmq send failed, endpoint: " + m_endpoint + ", zmqerrno: " + to_string(zmq_err) + ":" + zmq_strerror(zmq_err) + ", msg length:" + to_string(serializedlen);
+    SWSS_LOG_ERROR("%s", message.c_str());
+    throw system_error(make_error_code(errc::io_error), message);
+}
+
 }
