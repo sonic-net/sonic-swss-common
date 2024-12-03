@@ -37,6 +37,8 @@ void NetDispatcher::unregisterMessageHandler(int nlmsg_type)
 
 void NetDispatcher::registerRawMessageHandler(int nlmsg_type, NetMsg *callback)
 {
+    MUTEX;
+
     if (m_rawhandlers.find(nlmsg_type) != m_rawhandlers.end())
         throw "Trying to registered on already registerd netlink message";
 
@@ -45,6 +47,8 @@ void NetDispatcher::registerRawMessageHandler(int nlmsg_type, NetMsg *callback)
 
 void NetDispatcher::unregisterRawMessageHandler(int nlmsg_type)
 {
+    MUTEX;
+
     auto it = m_rawhandlers.find(nlmsg_type);
 
     if (it == m_rawhandlers.end())
