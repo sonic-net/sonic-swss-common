@@ -24,12 +24,17 @@ namespace swss
             void registerMessageHandler(int nlmsg_type, NetMsg *callback);
 
             /*
-             * Register callback class according to message-type.
+             * Register Raw Msg callback class according to message-type.
              *
-             * Throw exception if
+             * Throw exception if callback is already registered
              */
             void registerRawMessageHandler(int nlmsg_type, NetMsg *callback);
 
+            /*
+             * Unregister Raw Msg callback class according to message-type.
+             *
+             * Throw exception if callback is not registered
+             */
             void unregisterRawMessageHandler(int nlmsg_type);
 
 
