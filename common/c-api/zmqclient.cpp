@@ -27,9 +27,7 @@ void SWSSZmqClient_sendMsg(SWSSZmqClient zmqc, const char *dbName, const char *t
                            SWSSKeyOpFieldValuesArray arr) {
     SWSSTry({
         vector<KeyOpFieldsValuesTuple> kcos = takeKeyOpFieldValuesArray(arr);
-        size_t bufSize = BinarySerializer::serializedSize(dbName, tableName, kcos);
-        vector<char> v(bufSize);
         ((ZmqClient *)zmqc)
-            ->sendMsg(string(dbName), string(tableName), kcos, v);
+            ->sendMsg(string(dbName), string(tableName), kcos);
     });
 }
