@@ -60,6 +60,37 @@ TEST(SaiAclSchemaTest, ActionSchemaByNameSucceeds)
                 AllOf(Field(&ActionSchema::format, Format::kHexString), Field(&ActionSchema::bitwidth, 12)));
 }
 
+TEST(SaiAclSchemaTest, ActionSchemaByNameAndObjectTypeSucceeds) {
+  EXPECT_THAT(
+      ActionSchemaByNameAndObjectType("SAI_ACL_ENTRY_ATTR_ACTION_REDIRECT",
+                                      "SAI_OBJECT_TYPE_IPMC_GROUP"),
+      AllOf(Field(&ActionSchema::format, Format::kHexString),
+            Field(&ActionSchema::bitwidth, 16)));
+  EXPECT_THAT(
+      ActionSchemaByNameAndObjectType("SAI_ACL_ENTRY_ATTR_ACTION_REDIRECT",
+                                      "SAI_OBJECT_TYPE_L2MC_GROUP"),
+      AllOf(Field(&ActionSchema::format, Format::kHexString),
+            Field(&ActionSchema::bitwidth, 16)));
+  EXPECT_THAT(
+      ActionSchemaByNameAndObjectType("SAI_ACL_ENTRY_ATTR_ACTION_REDIRECT",
+                                      "SAI_OBJECT_TYPE_NEXT_HOP"),
+      AllOf(Field(&ActionSchema::format, Format::kString),
+            Field(&ActionSchema::bitwidth, 0)));
+  EXPECT_THAT(ActionSchemaByNameAndObjectType(
+                  "SAI_ACL_ENTRY_ATTR_ACTION_REDIRECT", "SAI_OBJECT_TYPE_PORT"),
+              AllOf(Field(&ActionSchema::format, Format::kString),
+                    Field(&ActionSchema::bitwidth, 0)));
+}
+
+TEST(SaiAclSchemaTest,
+     ActionSchemaByNameAndObjectTypeWithNonRedirectActionSucceeds) {
+  EXPECT_THAT(
+      ActionSchemaByNameAndObjectType("SAI_ACL_ENTRY_ATTR_ACTION_DECREMENT_TTL",
+                                      "SAI_OBJECT_TYPE_UNKNOWN"),
+      AllOf(Field(&ActionSchema::format, Format::kHexString),
+            Field(&ActionSchema::bitwidth, 1)));
+}
+
 // Invalid Lookup Tests
 
 TEST(SaiAclSchemaTest, InvalidFormatNameThrowsException)
@@ -80,6 +111,11 @@ TEST(SaiAclSchemaTest, InvalidMatchFieldNameThrowsException)
 TEST(SaiAclSchemaTest, InvalidActionNameThrowsException)
 {
     EXPECT_THROW(ActionSchemaByName("Foo"), std::invalid_argument);
+}
+
+TEST(SaiAclSchemaTest, InvalidActionNameAndObjectTypeThrowsException) {
+  EXPECT_THROW(ActionSchemaByNameAndObjectType("Foo", "unknown"),
+               std::invalid_argument);
 }
 
 } // namespace

@@ -22,19 +22,17 @@ void SWSSSubscriberStateTable_free(SWSSSubscriberStateTable tbl);
 // Result array and all of its members must be freed using free()
 SWSSKeyOpFieldValuesArray SWSSSubscriberStateTable_pops(SWSSSubscriberStateTable tbl);
 
-// Returns 0 for false, 1 for true
-uint8_t SWSSSubscriberStateTable_hasData(SWSSSubscriberStateTable tbl);
-
-// Returns 0 for false, 1 for true
-uint8_t SWSSSubscriberStateTable_hasCachedData(SWSSSubscriberStateTable tbl);
-
-// Returns 0 for false, 1 for true
-uint8_t SWSSSubscriberStateTable_initializedWithData(SWSSSubscriberStateTable tbl);
+// Return the underlying fd for polling/selecting on.
+// Callers must NOT read/write on fd, it may only be used for epoll or similar.
+// After the fd becomes readable, SWSSSubscriberStateTable_readData must be used to
+// reset the fd and read data into internal data structures.
+uint32_t SWSSSubscriberStateTable_getFd(SWSSSubscriberStateTable tbl);
 
 // Block until data is available to read or until a timeout elapses.
 // A timeout of 0 means the call will return immediately.
 SWSSSelectResult SWSSSubscriberStateTable_readData(SWSSSubscriberStateTable tbl,
-                                                   uint32_t timeout_ms);
+                                                   uint32_t timeout_ms,
+                                                   uint8_t interrupt_on_sugnal);
 
 #ifdef __cplusplus
 }
