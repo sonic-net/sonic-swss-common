@@ -9,6 +9,7 @@
 #include <system_error>
 #include <zmq.h>
 #include "zmqclient.h"
+#include "zmqserver.h"
 #include "binaryserializer.h"
 
 using namespace std;
@@ -114,26 +115,9 @@ void ZmqClient::connect()
     m_connected = true;
 }
 
-void ZmqClient::sendMsg(
-        const std::string& dbName,
-        const std::string& tableName,
-        const std::vector<KeyOpFieldsValuesTuple>& kcos)
+void ZmqClient::sendRaw(const char* buffer, size_t size)
 {
-    int serializedlen = (int)BinarySerializer::serializeBuffer(
-                                                        m_sendbuffer.data(),
-                                                        m_sendbuffer.size(),
-                                                        dbName,
-                                                        tableName,
-                                                        kcos);
-
-    if (serializedlen >= MQ_RESPONSE_MAX_COUNT)
-    {
-        SWSS_LOG_THROW("ZmqClient sendMsg message was too big (buffer size %d bytes, got %d), reduce the message size, message DROPPED",
-                MQ_RESPONSE_MAX_COUNT,
-                serializedlen);
-    }
-
-    SWSS_LOG_DEBUG("sending: %d", serializedlen);
+    SWSS_LOG_DEBUG("sending: %zu", size);
     int zmq_err = 0;
     int retry_delay = 10;
     int rc = 0;
@@ -144,12 +128,12 @@ void ZmqClient::sendMsg(
             std::lock_guard<std::mutex> lock(m_socketMutex);
 
             // Use none block mode to use all bandwidth: http://api.zeromq.org/2-1%3Azmq-send
-            rc = zmq_send(m_socket, m_sendbuffer.data(), serializedlen, ZMQ_NOBLOCK);
+            rc = zmq_send(m_socket, buffer, size, ZMQ_NOBLOCK);
         }
 
         if (rc >= 0)
         {
-            SWSS_LOG_DEBUG("zmq sended %d bytes", serializedlen);
+            SWSS_LOG_DEBUG("zmq sended %zu bytes", size);
             return;
         }
 
@@ -192,9 +176,31 @@ void ZmqClient::sendMsg(
     }
 
     // failed after retry
-    auto message =  "zmq send failed, endpoint: " + m_endpoint + ", zmqerrno: " + to_string(zmq_err) + ":" + zmq_strerror(zmq_err) + ", msg length:" + to_string(serializedlen);
+    auto message =  "zmq send failed, endpoint: " + m_endpoint + ", zmqerrno: " + to_string(zmq_err) + ":" + zmq_strerror(zmq_err) + ", msg length:" + to_string(size);
     SWSS_LOG_ERROR("%s", message.c_str());
     throw system_error(make_error_code(errc::io_error), message);
+}
+
+void ZmqClient::sendMsg(
+        const std::string& dbName,
+        const std::string& tableName,
+        const std::vector<KeyOpFieldsValuesTuple>& kcos)
+{
+    int serializedlen = (int)BinarySerializer::serializeBuffer(
+                                                        m_sendbuffer.data(),
+                                                        m_sendbuffer.size(),
+                                                        dbName,
+                                                        tableName,
+                                                        kcos);
+
+    if (serializedlen >= MQ_RESPONSE_MAX_COUNT)
+    {
+        SWSS_LOG_THROW("ZmqClient sendMsg message was too big (buffer size %d bytes, got %d), reduce the message size, message DROPPED",
+                MQ_RESPONSE_MAX_COUNT,
+                serializedlen);
+    }
+
+    sendRaw(m_sendbuffer.data(), serializedlen);
 }
 
 }

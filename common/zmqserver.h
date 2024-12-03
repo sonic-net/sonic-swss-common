@@ -4,7 +4,10 @@
 #include <deque>
 #include <condition_variable>
 #include <vector>
+#include <memory>
+#include <atomic>
 #include "table.h"
+#include "zmqclient.h"
 
 #define MQ_RESPONSE_MAX_COUNT (16*1024*1024)
 #define MQ_SIZE 100
@@ -34,15 +37,22 @@ public:
     ZmqServer(const std::string& endpoint, const std::string& vrf);
     ~ZmqServer();
 
+    void enableProxyMode(const std::string& proxy_endpoint);
+
     void registerMessageHandler(
                                 const std::string dbName,
                                 const std::string tableName,
                                 ZmqMessageHandler* handler);
 
+    void unregisterMessageHandler(const std::string &dbName,
+                                  const std::string &tableName);
+
 private:
     void handleReceivedData(const char* buffer, const size_t size);
 
     void mqPollThread();
+
+    bool isProxyMode() const;
     
     ZmqMessageHandler* findMessageHandler(const std::string dbName, const std::string tableName);
 
@@ -55,6 +65,12 @@ private:
     std::string m_endpoint;
 
     std::string m_vrf;
+
+    std::atomic<bool> m_proxy_mode;
+
+    std::unique_ptr<ZmqClient> m_proxy_client;
+
+    std::mutex m_handlerMapMutext;
 
     std::map<std::string, std::map<std::string, ZmqMessageHandler*>> m_HandlerMap;
 };
