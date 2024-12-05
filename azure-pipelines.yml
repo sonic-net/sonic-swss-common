@@ -128,7 +128,7 @@ stages:
     parameters:
       arch: amd64
       sonic_slave: sonic-slave-${{ parameters.debian_version }}:$(BUILD_BRANCH)
-      artifact_name: sonic-swss-common
+      artifact_name: sonic-swss-common-${{ parameters.debian_version }}
       run_unit_test: true
       archive_gcov: true
       debian_version: ${{ parameters.debian_version }}
@@ -143,7 +143,7 @@ stages:
       timeout: 180
       pool: sonicbld-armhf
       sonic_slave: sonic-slave-${{ parameters.debian_version }}-armhf:$(BUILD_BRANCH)
-      artifact_name: sonic-swss-common.armhf
+      artifact_name: sonic-swss-common-${{ parameters.debian_version }}.armhf
       debian_version: ${{ parameters.debian_version }}
 
   - template: .azure-pipelines/build-template.yml
@@ -152,7 +152,7 @@ stages:
       timeout: 180
       pool: sonicbld-arm64
       sonic_slave: sonic-slave-${{ parameters.debian_version }}-arm64:$(BUILD_BRANCH)
-      artifact_name: sonic-swss-common.arm64
+      artifact_name: sonic-swss-common-${{ parameters.debian_version }}.arm64
       debian_version: ${{ parameters.debian_version }}
 
 - stage: BuildSairedis
