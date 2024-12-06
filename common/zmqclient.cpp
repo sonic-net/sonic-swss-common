@@ -202,7 +202,7 @@ void ZmqClient::sendMsg(
         else
         {
             // for other error, send failed immediately.
-            auto message =  "zmq send failed, endpoint: " + m_endpoint + ", error: " + to_string(rc);
+            auto message =  "cli: zmq send failed, endpoint: " + m_endpoint + ", error: " + to_string(rc);
             SWSS_LOG_ERROR("%s", message.c_str());
             throw system_error(make_error_code(errc::io_error), message);
         }
@@ -211,7 +211,7 @@ void ZmqClient::sendMsg(
     }
 
     // failed after retry
-    auto message =  "zmq send failed, endpoint: " + m_endpoint + ", zmqerrno: " + to_string(zmq_err) + ":" + zmq_strerror(zmq_err) + ", msg length:" + to_string(serializedlen);
+    auto message =  "cli: zmq send failed, endpoint: " + m_endpoint + ", zmqerrno: " + to_string(zmq_err) + ":" + zmq_strerror(zmq_err) + ", msg length:" + to_string(serializedlen);
     SWSS_LOG_ERROR("%s", message.c_str());
     throw system_error(make_error_code(errc::io_error), message);
 }
@@ -224,17 +224,24 @@ bool ZmqClient::wait(std::string& dbName,
 
 /*    zmq_pollitem_t items [1] = { };
     items[0].socket = m_socket;
-    items[0].events = ZMQ_POLLIN;
+    items[0].events = ZMQ_POLLIN; */
+
+    zmq_pollitem_t poll_item;
+    poll_item.fd = 0;
+    poll_item.socket = m_socket;
+    poll_item.events = ZMQ_POLLIN;
+    poll_item.revents = 0;
 
     int rc;
     for (int i = 0; true; ++i)
     {
-        SWSS_LOG_DEBUG("m_waitTimeMs is : %d", (int)m_waitTimeMs);
-        rc = zmq_poll(items, 1, (int)m_waitTimeMs);
+        rc = zmq_poll(&poll_item, 1, 1000);
+	SWSS_LOG_DEBUG("cli: rc value is : %d", rc);
         if (rc == 0)
         {
-            SWSS_LOG_ERROR("zmq_poll timed out");
+            SWSS_LOG_ERROR("zmq_poll timed out: zmqclient wait");
             return false;
+//            continue;
         }
         if (rc > 0)
         {
@@ -242,12 +249,12 @@ bool ZmqClient::wait(std::string& dbName,
         }
         if (zmq_errno() == EINTR && i <= MQ_MAX_RETRY)
         {
+            SWSS_LOG_DEBUG("Checking the 2nd if condition in zmq poll");
             continue;
         }
-        SWSS_LOG_ERROR("zmq_poll failed, zmqerrno: %d", zmq_errno());
-    } */
+        SWSS_LOG_ERROR("zmqclient wait : zmq_poll failed, zmqerrno: %d", zmq_errno());
+    } 
 
-    int rc;
     for (int i = 0; true; ++i)
     {
         rc = zmq_recv(m_socket, m_sendbuffer.data(), m_sendbuffer.size(), 0);
@@ -255,9 +262,10 @@ bool ZmqClient::wait(std::string& dbName,
         {
             if (zmq_errno() == EINTR && i <= MQ_MAX_RETRY)
             {
+            SWSS_LOG_DEBUG("Checking the 2nd if condition in zmq receive");
                 continue;
             }
-            SWSS_LOG_ERROR("zmq_recv failed, zmqerrno: %d", zmq_errno());
+            SWSS_LOG_ERROR("zmqclient wait : zmq_recv failed, zmqerrno: %d", zmq_errno());
             return false;
         }
         if (rc >= (int)m_sendbuffer.size())

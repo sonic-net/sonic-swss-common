@@ -32,7 +32,7 @@ public:
 
 private:
     void initialize(const std::string& endpoint, const std::string& vrf);
-//    void initialize(const std::string& endpoint);
+    void initialize(const std::string& endpoint);
 
     std::string m_endpoint;
 

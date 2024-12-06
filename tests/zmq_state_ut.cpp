@@ -508,14 +508,14 @@ static void zmqConsumerWorker(string tableName, string endpoint, bool dbPersiste
 static void ZmqWithResponse(bool producerPersistence)
 {
     std::string testTableName = "ZMQ_PROD_CONS_UT";
-    std::string db_Name = "TEST_DB";
+//    std::string db_Name = "TEST_DB";
     std::string pushEndpoint = "tcp://localhost:1234";
     std::string pullEndpoint = "tcp://*:1234";
     // start consumer first, SHM can only have 1 consumer per table.
     thread *consumerThread = new thread(zmqConsumerWorker, testTableName, pullEndpoint, !producerPersistence);
 
     // Wait for the consumer to be ready.
-    sleep(10);
+    sleep(1);
     DBConnector db(TEST_DB, 0, true);
     ZmqClient client(pushEndpoint);
     ZmqProducerStateTable p(&db, testTableName, client, true);
@@ -526,8 +526,8 @@ static void ZmqWithResponse(bool producerPersistence)
     for (int i = 0; i < 3; ++i)
     {
         p.send(kcos);
-//        ASSERT_TRUE(p.wait(dbName, tableName, kcos_p));
-        ASSERT_TRUE(p.wait(db_Name, testTableName, kcos_p));
+        ASSERT_TRUE(p.wait(dbName, tableName, kcos_p));
+//        ASSERT_TRUE(p.wait(db_Name, testTableName, kcos_p));
         EXPECT_EQ(dbName, TEST_DB);
         EXPECT_EQ(tableName, testTableName);
         ASSERT_EQ(kcos_p.size(), 1);
@@ -552,7 +552,7 @@ TEST(ZmqWithResponseClientError, test)
 {
     std::string testTableName = "ZMQ_PROD_CONS_UT";
     std::string pushEndpoint = "tcp://localhost:1234";
-    std::string new_dbName = "TEST_DB";
+//    std::string new_dbName = "TEST_DB";
     DBConnector db(TEST_DB, 0, true);
 //    ZmqClient client(pushEndpoint, 3000);
     ZmqClient client(pushEndpoint);
@@ -563,7 +563,7 @@ TEST(ZmqWithResponseClientError, test)
     std::string dbName, tableName;
     p.send(kcos);
     // Wait will timeout without server reply.
-//    EXPECT_FALSE(p.wait(dbName, tableName, kcos_p));
-    EXPECT_FALSE(p.wait(new_dbName, testTableName, kcos_p));
+    EXPECT_FALSE(p.wait(dbName, tableName, kcos_p));
+//    EXPECT_FALSE(p.wait(new_dbName, testTableName, kcos_p));
 }
 
