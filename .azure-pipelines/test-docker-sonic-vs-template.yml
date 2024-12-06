@@ -52,7 +52,7 @@ jobs:
 
   - script: |
       set -ex
-      sudo .azure-pipelines/build_and_install_module.sh
+      sudo sonic-swss-common/.azure-pipelines/build_and_install_module.sh
 
       sudo apt-get install -y libhiredis0.14 libyang0.16
       sudo dpkg -i $(Build.ArtifactStagingDirectory)/download/libprotobuf*_amd64.deb $(Build.ArtifactStagingDirectory)/download/libprotobuf-lite*_amd64.deb $(Build.ArtifactStagingDirectory)/download/python3-protobuf*_amd64.deb 
