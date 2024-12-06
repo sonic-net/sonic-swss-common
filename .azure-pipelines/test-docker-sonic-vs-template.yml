@@ -31,9 +31,9 @@ jobs:
     displayName: Set up sonic-swss branch
   - task: DownloadPipelineArtifact@2
     inputs:
-      artifact: ${{ parameters.docker_sonic_vs_name }}
+      artifact: docker-sonic-vs
       path: $(Build.ArtifactStagingDirectory)/download
-    displayName: "Download pre-stage built ${{ parameters.docker_sonic_vs_name }}"
+    displayName: "Download pre-stage built docker-sonic-vs"
   - task: DownloadPipelineArtifact@2
     inputs:
       artifact: sonic-swss-common.amd64.ubuntu20_04
