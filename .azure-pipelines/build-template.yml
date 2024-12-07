@@ -100,16 +100,6 @@ jobs:
   - ${{ if eq(parameters.run_unit_test, true) }}:
     - script: |
         set -ex
-        git clone https://github.com/gcovr/gcovr.git
-        cd gcovr/
-        git checkout 5.2
-        sudo pip3 install setuptools
-        sudo python3 setup.py install
-        cd ..
-        sudo rm -rf gcovr
-      displayName: "Install gcovr 5.2 (for --exclude-throw-branches support)"
-    - script: |
-        set -ex
         sudo pip install Pympler==0.8 pytest
         sudo apt-get install -y redis-server
         sudo sed -i 's/notify-keyspace-events ""/notify-keyspace-events AKE/' /etc/redis/redis.conf
@@ -142,9 +132,9 @@ jobs:
         set -ex
         # Install .NET CORE
         curl -sSL https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
-        sudo apt-add-repository https://packages.microsoft.com/debian/11/prod
+        sudo apt-add-repository https://packages.microsoft.com/debian/12/prod
         sudo apt-get update
-        sudo apt-get install -y dotnet-sdk-6.0
+        sudo apt-get install -y dotnet-sdk-8.0
       displayName: "Install .NET CORE"
     - task: PublishCodeCoverageResults@1
       inputs:
