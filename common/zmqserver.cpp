@@ -21,16 +21,42 @@ ZmqServer::ZmqServer(const std::string& endpoint, const std::string& vrf)
     m_vrf(vrf)
 {
     m_buffer.resize(MQ_RESPONSE_MAX_COUNT);
-    m_runThread = true;
-    m_mqPollThread = std::make_shared<std::thread>(&ZmqServer::mqPollThread, this);
+    connect();
 
     SWSS_LOG_DEBUG("ZmqServer ctor endpoint: %s", endpoint.c_str());
 }
 
 ZmqServer::~ZmqServer()
 {
+    close();
+}
+
+std::string ZmqServer::endpoint()
+{
+    return m_endpoint;
+}
+
+void ZmqServer::connect()
+{
+    if (m_mqPollThread)
+    {
+        return;
+    }
+
+    m_runThread = true;
+    m_mqPollThread = std::make_shared<std::thread>(&ZmqServer::mqPollThread, this);
+}
+
+void ZmqServer::close()
+{
+    if (!m_mqPollThread)
+    {
+        return;
+    }
+    
     m_runThread = false;
     m_mqPollThread->join();
+    m_mqPollThread = nullptr;
 }
 
 void ZmqServer::registerMessageHandler(
