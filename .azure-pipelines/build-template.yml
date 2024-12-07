@@ -35,7 +35,7 @@ parameters:
 
 - name: debian_version
   type: string
-  default: bullseye
+  default: bookworm
 
 jobs:
 - job:
