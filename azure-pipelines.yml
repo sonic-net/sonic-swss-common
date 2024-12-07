@@ -40,7 +40,7 @@ resources:
 parameters:
   - name: debian_version
     type: string
-    default: bullseye
+    default: bookworm
 variables:
   - name: BUILD_BRANCH
     ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
@@ -62,7 +62,7 @@ stages:
         sudo apt-get update
         sudo apt-get install -y make libtool m4 autoconf dh-exec debhelper cmake pkg-config nlohmann-json3-dev \
                          libhiredis-dev libnl-3-dev libnl-genl-3-dev libnl-route-3-dev libnl-nf-3-dev swig3.0 \
-                         libpython2.7-dev libboost-dev libboost-serialization-dev uuid-dev libzmq5 libzmq3-dev
+                         libpython2.7-dev libboost-dev libboost-serialization-dev uuid-dev libzmq3-dev
         sudo apt-get install -y sudo
         sudo apt-get install -y redis-server redis-tools
         sudo apt-get install -y python3-pip
@@ -88,11 +88,47 @@ stages:
       artifact: sonic-swss-common.amd64.ubuntu20_04
       displayName: "Archive swss common debian packages"
 
+  - job:
+    displayName: "amd64/ubuntu-22.04"
+    pool:
+      vmImage: 'ubuntu-22.04'
+
+    steps:
+    - script: |
+        sudo apt-get update
+        sudo apt-get install -y make libtool m4 autoconf dh-exec debhelper cmake pkg-config nlohmann-json3-dev \
+                         libhiredis-dev libnl-3-dev libnl-genl-3-dev libnl-route-3-dev libnl-nf-3-dev swig4.0 \
+                         libpython3-dev libboost-dev libboost-serialization-dev uuid-dev libzmq3-dev
+        sudo apt-get install -y sudo
+        sudo apt-get install -y redis-server redis-tools
+        sudo apt-get install -y python3-pip
+        sudo pip3 install pytest
+        sudo apt-get install -y python
+        sudo apt-get install cmake libgtest-dev libgmock-dev libyang-dev
+        cd /usr/src/gtest && sudo cmake . && sudo make
+        ARCH=$(dpkg --print-architecture)
+        set -x
+        sudo curl -fsSL -o /usr/local/bin/bazel \
+            https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-${ARCH}
+        sudo chmod 755 /usr/local/bin/bazel
+      displayName: "Install dependencies"
+    - script: |
+        ./autogen.sh
+        dpkg-buildpackage -rfakeroot -us -uc -Pnopython2 -b -j$(nproc) && cp ../*.deb .
+      displayName: "Compile sonic swss common"
+    - script: |
+        bazel build //...
+        bazel test //...
+      displayName: "Compile and test all Bazel targets"
+    - publish: $(System.DefaultWorkingDirectory)/
+      artifact: sonic-swss-common.amd64.ubuntu22_04
+      displayName: "Archive swss common debian packages"
+
   - template: .azure-pipelines/build-template.yml
     parameters:
       arch: amd64
       sonic_slave: sonic-slave-${{ parameters.debian_version }}:$(BUILD_BRANCH)
-      artifact_name: sonic-swss-common
+      artifact_name: sonic-swss-common-${{ parameters.debian_version }}
       run_unit_test: true
       archive_gcov: true
       debian_version: ${{ parameters.debian_version }}
@@ -107,7 +143,7 @@ stages:
       timeout: 180
       pool: sonicbld-armhf
       sonic_slave: sonic-slave-${{ parameters.debian_version }}-armhf:$(BUILD_BRANCH)
-      artifact_name: sonic-swss-common.armhf
+      artifact_name: sonic-swss-common-${{ parameters.debian_version }}.armhf
       debian_version: ${{ parameters.debian_version }}
 
   - template: .azure-pipelines/build-template.yml
@@ -116,36 +152,7 @@ stages:
       timeout: 180
       pool: sonicbld-arm64
       sonic_slave: sonic-slave-${{ parameters.debian_version }}-arm64:$(BUILD_BRANCH)
-      artifact_name: sonic-swss-common.arm64
-      debian_version: ${{ parameters.debian_version }}
-
-- stage: BuildBookworm
-  dependsOn: BuildArm
-  condition: succeeded('BuildArm')
-  jobs:
-  - template: .azure-pipelines/build-template.yml
-    parameters:
-      arch: amd64
-      sonic_slave: sonic-slave-bookworm:$(BUILD_BRANCH)
-      artifact_name: sonic-swss-common-bookworm
-      debian_version: ${{ parameters.debian_version }}
-
-  - template: .azure-pipelines/build-template.yml
-    parameters:
-      arch: armhf
-      timeout: 180
-      pool: sonicbld-armhf
-      sonic_slave: sonic-slave-bookworm-armhf:$(BUILD_BRANCH)
-      artifact_name: sonic-swss-common-bookworm.armhf
-      debian_version: ${{ parameters.debian_version }}
-
-  - template: .azure-pipelines/build-template.yml
-    parameters:
-      arch: arm64
-      timeout: 180
-      pool: sonicbld-arm64
-      sonic_slave: sonic-slave-bookworm-arm64:$(BUILD_BRANCH)
-      artifact_name: sonic-swss-common-bookworm.arm64
+      artifact_name: sonic-swss-common-${{ parameters.debian_version }}.arm64
       debian_version: ${{ parameters.debian_version }}
 
 - stage: BuildSairedis
@@ -156,8 +163,8 @@ stages:
     parameters:
       arch: amd64
       sonic_slave: sonic-slave-${{ parameters.debian_version }}:$(BUILD_BRANCH)
-      swss_common_artifact_name: sonic-swss-common
-      artifact_name: sonic-sairedis
+      swss_common_artifact_name: sonic-swss-common-${{ parameters.debian_version }}
+      artifact_name: sonic-sairedis-${{ parameters.debian_version }}
       syslog_artifact_name: sonic-sairedis.syslog
       debian_version: ${{ parameters.debian_version }}
 
@@ -169,9 +176,9 @@ stages:
     parameters:
       arch: amd64
       sonic_slave: sonic-slave-${{ parameters.debian_version }}:$(BUILD_BRANCH)
-      swss_common_artifact_name: sonic-swss-common
-      sairedis_artifact_name: sonic-sairedis
-      artifact_name: sonic-swss
+      swss_common_artifact_name: sonic-swss-common-${{ parameters.debian_version }}
+      sairedis_artifact_name: sonic-sairedis-${{ parameters.debian_version }}
+      artifact_name: sonic-swss-${{ parameters.debian_version }}
       debian_version: ${{ parameters.debian_version }}
 
 - stage: BuildDocker
@@ -180,9 +187,9 @@ stages:
   jobs:
   - template: .azure-pipelines/build-docker-sonic-vs-template.yml
     parameters:
-      swss_common_artifact_name: sonic-swss-common
-      sairedis_artifact_name: sonic-sairedis
-      swss_artifact_name: sonic-swss
+      swss_common_artifact_name: sonic-swss-common-${{ parameters.debian_version }}
+      sairedis_artifact_name: sonic-sairedis-${{ parameters.debian_version }}
+      swss_artifact_name: sonic-swss-${{ parameters.debian_version }}
       artifact_name: docker-sonic-vs
 
 - stage: Test

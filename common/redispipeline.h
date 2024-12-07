@@ -164,7 +164,7 @@ public:
             return;
 
         m_channels.insert(channel);
-        m_luaPub += "redis.call('PUBLISH', '" + channel + "', 'G');";
+        m_luaPub += "redis.call('PUBLISH', '" + channel + "', 'G')\n";
         m_shaPub = loadRedisScript(m_luaPub);
     }
 
