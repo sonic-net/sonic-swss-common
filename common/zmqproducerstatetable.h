@@ -37,6 +37,10 @@ public:
     // Batched send that can include both SET and DEL requests.
     virtual void send(const std::vector<KeyOpFieldsValuesTuple> &kcos);
 
+    virtual bool wait(std::string& dbName,
+              std::string& tableName,
+              std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos);
+
     size_t dbUpdaterQueueSize();
 private:
     void initialize(DBConnector *db, const std::string &tableName, bool dbPersistence);
