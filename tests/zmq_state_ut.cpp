@@ -465,3 +465,126 @@ TEST(ZmqProducerStateTableDeleteAfterSend, test)
     table.getKeys(keys);
     EXPECT_EQ(keys.front(), testKey);
 }
+
+static bool zmq_done = false;
+
+static void zmqConsumerWorker(string tableName, string endpoint, bool dbPersistence)
+{
+    cout << "DIV:: Function zmqConsumerWorker 473" << endl;
+    cout << "Consumer thread started: " << tableName << endl;
+    DBConnector db(TEST_DB, 0, true);
+    cout << "DIV:: Function zmqConsumerWorker 476" << endl;
+    ZmqServer server(endpoint);
+    cout << "DIV:: Function zmqConsumerWorker 478" << endl;
+    ZmqConsumerStateTable c(&db, tableName, server, 128, 0, dbPersistence);
+    cout << "DIV:: Function zmqConsumerWorker 480" << endl;
+    Select cs;
+    cs.addSelectable(&c);
+    //validate received data
+    Selectable *selectcs;
+    std::deque<KeyOpFieldsValuesTuple> vkco;
+    cout << "DIV:: Function zmqConsumerWorker 486" << endl;
+    int ret = 0;
+    while (!zmq_done)
+    {
+    cout << "DIV:: Function zmqConsumerWorker 490" << endl;
+        ret = cs.select(&selectcs, 10, true);
+        if (ret == Select::OBJECT)
+        {
+    cout << "DIV:: Function zmqConsumerWorker 494" << endl;
+            c.pops(vkco);
+            std::vector<swss::KeyOpFieldsValuesTuple> values;
+            values.push_back(KeyOpFieldsValuesTuple{"k", SET_COMMAND, vector<FieldValueTuple>{FieldValueTuple{"f", "v"}}});
+            server.sendMsg(TEST_DB, tableName, values);
+        }
+    }
+
+    allDataReceived = true;
+    if (dbPersistence)
+    {
+    cout << "DIV:: Function zmqConsumerWorker 505" << endl;
+        // wait all persist data write to redis
+        while (c.dbUpdaterQueueSize() > 0)
+        {
+            sleep(1);
+        }
+    }
+
+    cout << "Consumer thread ended: " << tableName << endl;
+}
+
+static void ZmqWithResponse(bool producerPersistence)
+{
+    std::string testTableName = "ZMQ_PROD_CONS_UT";
+//    std::string db_Name = "TEST_DB";
+    std::string pushEndpoint = "tcp://localhost:1234";
+    std::string pullEndpoint = "tcp://*:1234";
+    // start consumer first, SHM can only have 1 consumer per table.
+    thread *consumerThread = new thread(zmqConsumerWorker, testTableName, pullEndpoint, !producerPersistence);
+
+    cout << "DIV:: Function ZmqWithResponse ut 1 525" << endl;
+    // Wait for the consumer to be ready.
+    sleep(1);
+    DBConnector db(TEST_DB, 0, true);
+    cout << "DIV:: Function ZmqWithResponse ut 1 529" << endl;
+    ZmqClient client(pushEndpoint);
+    cout << "DIV:: Function ZmqWithResponse ut 1 531" << endl;
+    ZmqProducerStateTable p(&db, testTableName, client, true);
+    cout << "DIV:: Function ZmqWithResponse ut 1 533" << endl;
+    std::vector<KeyOpFieldsValuesTuple> kcos;
+    kcos.push_back(KeyOpFieldsValuesTuple{"k", SET_COMMAND, vector<FieldValueTuple>{FieldValueTuple{"f", "v"}}});
+    std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> kcos_p;
+    cout << "DIV:: Function ZmqWithResponse ut 1 537" << endl;
+    std::string dbName, tableName;
+    for (int i = 0; i < 3; ++i)
+    {
+    cout << "DIV:: Function ZmqWithResponse ut 1 541" << endl;
+        p.send(kcos);
+        ASSERT_TRUE(p.wait(dbName, tableName, kcos_p));
+    cout << "DIV:: Function ZmqWithResponse ut 1 544" << endl;
+/*        EXPECT_EQ(dbName, TEST_DB);
+        EXPECT_EQ(tableName, testTableName);
+        ASSERT_EQ(kcos_p.size(), 1);
+        EXPECT_EQ(kfvKey(*kcos_p[0]), "k");
+        EXPECT_EQ(kfvOp(*kcos_p[0]), SET_COMMAND);
+        std::vector<FieldValueTuple> cos = std::vector<FieldValueTuple>{FieldValueTuple{"f", "v"}};
+        EXPECT_EQ(kfvFieldsValues(*kcos_p[0]), cos); */
+    }
+
+    cout << "DIV:: Function ZmqWithResponse ut 1 554" << endl;
+    zmq_done = true;
+    consumerThread->join();
+    delete consumerThread;
+}
+
+TEST(ZmqWithResponse, test)
+{
+    // test with persist by consumer
+    ZmqWithResponse(false);
+}
+
+TEST(ZmqWithResponseClientError, test)
+{
+    std::string testTableName = "ZMQ_PROD_CONS_UT";
+    std::string pushEndpoint = "tcp://localhost:1234";
+//    std::string new_dbName = "TEST_DB";
+    cout << "DIV:: Function ZmqWithResponse ut 2 571" << endl;
+    DBConnector db(TEST_DB, 0, true);
+    cout << "DIV:: Function ZmqWithResponse ut 2 573" << endl;
+//    ZmqClient client(pushEndpoint, 3000);
+    ZmqClient client(pushEndpoint);
+    cout << "DIV:: Function ZmqWithResponse ut 2 576" << endl;
+    ZmqProducerStateTable p(&db, testTableName, client, true);
+    cout << "DIV:: Function ZmqWithResponse ut 2 578" << endl;
+    std::vector<KeyOpFieldsValuesTuple> kcos;
+    kcos.push_back(KeyOpFieldsValuesTuple{"k", SET_COMMAND, vector<FieldValueTuple>{}});
+    std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> kcos_p;
+    std::string dbName, tableName;
+    cout << "DIV:: Function ZmqWithResponse ut 2 583" << endl;
+    p.send(kcos);
+    // Wait will timeout without server reply.
+    EXPECT_FALSE(p.wait(dbName, tableName, kcos_p));
+    cout << "DIV:: Function ZmqWithResponse ut 2 587" << endl;
+//    EXPECT_FALSE(p.wait(new_dbName, testTableName, kcos_p));
+}
+
