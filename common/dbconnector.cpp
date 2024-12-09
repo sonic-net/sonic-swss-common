@@ -562,7 +562,7 @@ void RedisContext::initContext(const char *host, int port, const timeval *tv)
 
     if (m_conn->err)
         throw system_error(make_error_code(errc::address_not_available),
-                           "Unable to connect to redis");
+                           "Unable to connect to redis - " + std::string(m_conn->errstr) + "(" + std::to_string(m_conn->err) + ")");
 }
 
 void RedisContext::initContext(const char *path, const timeval *tv)
@@ -578,7 +578,7 @@ void RedisContext::initContext(const char *path, const timeval *tv)
 
     if (m_conn->err)
         throw system_error(make_error_code(errc::address_not_available),
-                           "Unable to connect to redis (unix-socket)");
+                           "Unable to connect to redis (unix-socket) - " + std::string(m_conn->errstr) + "(" + std::to_string(m_conn->err) + ")");
 }
 
 redisContext *RedisContext::getContext() const

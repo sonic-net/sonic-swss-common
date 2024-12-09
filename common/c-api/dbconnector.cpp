@@ -1,5 +1,6 @@
 #include <cstring>
 #include <string>
+#include <utility>
 
 #include "../dbconnector.h"
 #include "dbconnector.h"
@@ -37,14 +38,14 @@ int8_t SWSSDBConnector_del(SWSSDBConnector db, const char *key) {
     SWSSTry(return ((DBConnector *)db)->del(string(key)) ? 1 : 0);
 }
 
-void SWSSDBConnector_set(SWSSDBConnector db, const char *key, const char *value) {
-    SWSSTry(((DBConnector *)db)->set(string(key), string(value)));
+void SWSSDBConnector_set(SWSSDBConnector db, const char *key, SWSSStrRef value) {
+    SWSSTry(((DBConnector *)db)->set(string(key), takeStrRef(value)));
 }
 
-char *SWSSDBConnector_get(SWSSDBConnector db, const char *key) {
+SWSSString SWSSDBConnector_get(SWSSDBConnector db, const char *key) {
     SWSSTry({
         shared_ptr<string> s = ((DBConnector *)db)->get(string(key));
-        return s ? strdup(s->c_str()) : nullptr;
+        return s ? makeString(move(*s)) : nullptr;
     });
 }
 
@@ -57,21 +58,29 @@ int8_t SWSSDBConnector_hdel(SWSSDBConnector db, const char *key, const char *fie
 }
 
 void SWSSDBConnector_hset(SWSSDBConnector db, const char *key, const char *field,
-                          const char *value) {
-    SWSSTry(((DBConnector *)db)->hset(string(key), string(field), string(value)));
+                          SWSSStrRef value) {
+    SWSSTry(((DBConnector *)db)->hset(string(key), string(field), takeStrRef(value)));
 }
 
-char *SWSSDBConnector_hget(SWSSDBConnector db, const char *key, const char *field) {
+SWSSString SWSSDBConnector_hget(SWSSDBConnector db, const char *key, const char *field) {
     SWSSTry({
         shared_ptr<string> s = ((DBConnector *)db)->hget(string(key), string(field));
-        return s ? strdup(s->c_str()) : nullptr;
+        return s ? makeString(move(*s)) : nullptr;
     });
 }
 
 SWSSFieldValueArray SWSSDBConnector_hgetall(SWSSDBConnector db, const char *key) {
     SWSSTry({
-        auto map = ((DBConnector *)db)->hgetall(key);
-        return makeFieldValueArray(map);
+        auto map = ((DBConnector *)db)->hgetall(string(key));
+
+        // We can't move keys out of the map, we have to copy them, until C++17 map::extract so we
+        // copy them here into a vector to avoid needing an overload on makeFieldValueArray
+        vector<pair<string, string>> pairs;
+        pairs.reserve(map.size());
+        for (auto &pair : map)
+            pairs.push_back(make_pair(pair.first, move(pair.second)));
+
+        return makeFieldValueArray(std::move(pairs));
     });
 }
 

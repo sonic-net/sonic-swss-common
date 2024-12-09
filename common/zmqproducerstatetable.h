@@ -42,8 +42,6 @@ private:
     void initialize(DBConnector *db, const std::string &tableName, bool dbPersistence);
 
     ZmqClient& m_zmqClient;
-    
-    std::vector<char> m_sendbuffer;
 
     const std::string m_dbName;
     const std::string m_tableNameStr;
