@@ -17,6 +17,7 @@ swss::NotificationConsumer::NotificationConsumer(swss::DBConnector *db, const st
 {
     SWSS_LOG_ENTER();
 
+    m_queue = std::make_shared<std::queue<std::string>>();
     while (true)
     {
         try
@@ -105,12 +106,12 @@ uint64_t swss::NotificationConsumer::readData()
 
 bool swss::NotificationConsumer::hasData()
 {
-    return m_queue.size() > 0;
+    return m_queue->size() > 0;
 }
 
 bool swss::NotificationConsumer::hasCachedData()
 {
-    return m_queue.size() > 1;
+    return m_queue->size() > 1;
 }
 
 void swss::NotificationConsumer::processReply(redisReply *reply)
@@ -138,21 +139,34 @@ void swss::NotificationConsumer::processReply(redisReply *reply)
 
     SWSS_LOG_DEBUG("got message: %s", msg.c_str());
 
-    m_queue.push(msg);
+    m_queue->push(msg);
 }
 
 void swss::NotificationConsumer::pop(std::string &op, std::string &data, std::vector<FieldValueTuple> &values)
 {
     SWSS_LOG_ENTER();
 
-    if (m_queue.empty())
+    if (m_queue->empty())
     {
         SWSS_LOG_ERROR("notification queue is empty, can't pop");
         throw std::runtime_error("notification queue is empty, can't pop");
     }
 
-    std::string msg = m_queue.front();
-    m_queue.pop();
+    std::string msg = m_queue->front();
+    m_queue->pop();
+
+    if (m_queue->empty())
+    {
+        /***
+         * If there is a burst of notifications that causes the queue to grow in size,
+         * memory allocated by the queue will not be released even after the all items 
+         * have been popped.
+         * 
+         * Force the memory to be released by destroying existing queue and creating a new one.
+         */
+        m_queue = nullptr;
+        m_queue = std::make_shared<std::queue<std::string>>();
+    }
 
     values.clear();
     JSon::readJson(msg, values);
@@ -170,9 +184,9 @@ void swss::NotificationConsumer::pops(std::deque<KeyOpFieldsValuesTuple> &vkco)
     SWSS_LOG_ENTER();
 
     vkco.clear();
-    while(!m_queue.empty())
+    while(!m_queue->empty())
     {
-        while(!m_queue.empty())
+        while(!m_queue->empty())
         {
             std::string op;
             std::string data;
@@ -198,7 +212,7 @@ void swss::NotificationConsumer::pops(std::deque<KeyOpFieldsValuesTuple> &vkco)
 int swss::NotificationConsumer::peek()
 {
     SWSS_LOG_ENTER();
-    if (m_queue.empty())
+    if (m_queue->empty())
     {
         // Peek for more data in redis socket
         int rc = swss::peekRedisContext(m_subscribe->getContext());
@@ -209,5 +223,5 @@ int swss::NotificationConsumer::peek()
         readData();
     }
 
-    return m_queue.empty() ? 0 : 1;
+    return m_queue->empty() ? 0 : 1;
 }
