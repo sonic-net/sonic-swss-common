@@ -283,6 +283,8 @@ namespace swss {
 #define LUA_PLUGIN_TYPE                 "LUA_PLUGIN_TYPE"
 #define SAI_OBJECT_TYPE                 "SAI_OBJECT_TYPE"
 
+#define BULK_CHUNK_SIZE_FIELD               "BULK_CHUNK_SIZE"
+#define BULK_CHUNK_SIZE_PER_PREFIX_FIELD    "BULK_CHUNK_SIZE_PER_PREFIX"
 #define POLL_INTERVAL_FIELD                 "POLL_INTERVAL"
 #define STATS_MODE_FIELD                    "STATS_MODE"
 #define STATS_MODE_READ                     "STATS_MODE_READ"
