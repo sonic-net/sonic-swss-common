@@ -221,9 +221,7 @@ TEST(c_api, SubscriberStateTable) {
 TEST(c_api, ZmqConsumerProducerStateTable) {
     clearDB();
     SWSSStringManager sm;
-
     SWSSDBConnector db = SWSSDBConnector_new_named("TEST_DB", 1000, true);
-
     SWSSZmqServer srv = SWSSZmqServer_new("tcp://127.0.0.1:42312");
     SWSSZmqClient cli = SWSSZmqClient_new("tcp://127.0.0.1:42312");
     EXPECT_TRUE(SWSSZmqClient_isConnected(cli));
@@ -241,9 +239,11 @@ TEST(c_api, ZmqConsumerProducerStateTable) {
     ASSERT_EQ(arr.len, 0);
     freeKeyOpFieldValuesArray(arr);
 
+SWSS_LOG_DEBUG("print7");
     // On flag = 0, we use the ZmqProducerStateTable
     // On flag = 1, we use the ZmqClient directly
     for (int flag = 0; flag < 2; flag++) {
+SWSS_LOG_DEBUG("print7 for loop, flag set is : %d", flag);
         SWSSFieldValueTuple values_key1_data[2] = {{.field = "myfield1", .value = sm.makeString("myvalue1")},
                                                   {.field = "myfield2", .value = sm.makeString("myvalue2")}};
         SWSSFieldValueArray values_key1 = {
@@ -251,24 +251,58 @@ TEST(c_api, ZmqConsumerProducerStateTable) {
             .data = values_key1_data,
         };
 
+SWSS_LOG_DEBUG("print8");
         SWSSFieldValueTuple values_key2_data[1] = {{.field = "myfield3", .value = sm.makeString("myvalue3")}};
         SWSSFieldValueArray values_key2 = {
             .len = 1,
             .data = values_key2_data,
         };
 
+SWSS_LOG_DEBUG("print9");
         SWSSKeyOpFieldValues arr_data[2] = {
             {.key = "mykey1", .operation = SWSSKeyOperation_SET, .fieldValues = values_key1},
             {.key = "mykey2", .operation = SWSSKeyOperation_SET, .fieldValues = values_key2}};
         arr = {.len = 2, .data = arr_data};
 
+SWSS_LOG_DEBUG("print10");
         if (flag == 0)
             for (uint64_t i = 0; i < arr.len; i++)
+            {
+                SWSS_LOG_DEBUG("flag 0 case before calling SWSSZmqProducerStateTable_set, i: %ld", i);
                 SWSSZmqProducerStateTable_set(pst, arr.data[i].key, arr.data[i].fieldValues);
+            }
         else
+        {
+            SWSS_LOG_DEBUG("print10 else loop, flag is: %d", flag);
             SWSSZmqClient_sendMsg(cli, "TEST_DB", "mytable", arr);
+        }
 
+SWSS_LOG_DEBUG("print11");
         ASSERT_EQ(SWSSZmqConsumerStateTable_readData(cst, 1500, true), SWSSSelectResult_DATA);
+/*        int retry_cnt = 1;
+        vector<KeyOpFieldsValuesTuple> kfvs;
+        while (true)
+        {
+            arr = SWSSZmqConsumerStateTable_pops(cst);
+
+            SWSS_LOG_DEBUG("print12");
+            kfvs = takeKeyOpFieldValuesArray(arr);
+            SWSS_LOG_DEBUG("1 : kfvs.size() is: %ld", kfvs.size());
+            sortKfvs(kfvs);
+
+            SWSS_LOG_DEBUG("2 : kfvs.size() is: %ld", kfvs.size());
+            SWSS_LOG_DEBUG("print13");
+            if(kfvs.size() == 2 || retry_cnt == 3)
+                break;
+            retry_cnt++;
+            SWSS_LOG_DEBUG("Retry count is: %d, Before sleep()", retry_cnt);
+            usleep(1 * 1000);
+            SWSS_LOG_DEBUG("Retry count is: %d, After sleep()", retry_cnt);
+        } */
+
+        SWSS_LOG_DEBUG("Before sleep(2)");
+        sleep(2);
+        SWSS_LOG_DEBUG("After sleep(2)");
         arr = SWSSZmqConsumerStateTable_pops(cst);
 
         vector<KeyOpFieldsValuesTuple> kfvs = takeKeyOpFieldValuesArray(arr);
@@ -285,6 +319,7 @@ TEST(c_api, ZmqConsumerProducerStateTable) {
         EXPECT_EQ(fieldValues0[1].first, "myfield2");
         EXPECT_EQ(fieldValues0[1].second, "myvalue2");
 
+SWSS_LOG_DEBUG("print14");
         EXPECT_EQ(kfvKey(kfvs[1]), "mykey2");
         EXPECT_EQ(kfvOp(kfvs[1]), "SET");
         vector<pair<string, string>> &fieldValues1 = kfvFieldsValues(kfvs[1]);
@@ -306,13 +341,40 @@ TEST(c_api, ZmqConsumerProducerStateTable) {
         else
             SWSSZmqClient_sendMsg(cli, "TEST_DB", "mytable", arr);
 
+SWSS_LOG_DEBUG("print15");
         ASSERT_EQ(SWSSZmqConsumerStateTable_readData(cst, 500, true), SWSSSelectResult_DATA);
+
+/*        retry_cnt = 1;
+        while (true)
+        {
+            arr = SWSSZmqConsumerStateTable_pops(cst);
+
+            kfvs = takeKeyOpFieldValuesArray(arr);
+            SWSS_LOG_DEBUG("3 : kfvs.size() is: %ld", kfvs.size());
+            sortKfvs(kfvs);
+            SWSS_LOG_DEBUG("4 : kfvs.size() is: %ld", kfvs.size());
+            if(kfvs.size() == 2 || retry_cnt == 3)
+                break;
+            retry_cnt++;
+            SWSS_LOG_DEBUG("Retry count is: %d, Before sleep()", retry_cnt);
+            usleep(1 * 1000);
+            SWSS_LOG_DEBUG("Retry count is: %d, After sleep()", retry_cnt);
+        } */
+
+        SWSS_LOG_DEBUG("Before sleep(2)");
+        sleep(2);
+        SWSS_LOG_DEBUG("After sleep(2)");
         arr = SWSSZmqConsumerStateTable_pops(cst);
 
+SWSS_LOG_DEBUG("5 : kfvs.size() is: %ld", kfvs.size());
+SWSS_LOG_DEBUG("print16");
         kfvs = takeKeyOpFieldValuesArray(arr);
+SWSS_LOG_DEBUG("6 : kfvs.size() is: %ld", kfvs.size());
         sortKfvs(kfvs);
         freeKeyOpFieldValuesArray(arr);
 
+SWSS_LOG_DEBUG("7 : kfvs.size() is: %ld", kfvs.size());
+SWSS_LOG_DEBUG("print17");
         ASSERT_EQ(kfvs.size(), 2);
         EXPECT_EQ(kfvKey(kfvs[0]), "mykey3");
         EXPECT_EQ(kfvOp(kfvs[0]), "DEL");

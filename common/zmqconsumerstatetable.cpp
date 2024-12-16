@@ -41,6 +41,7 @@ ZmqConsumerStateTable::ZmqConsumerStateTable(DBConnector *db, const std::string 
 
 void ZmqConsumerStateTable::handleReceivedData(const std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> &kcos)
 {
+        SWSS_LOG_DEBUG("Entering ZmqConsumerStateTable::handleReceivedData");
     for (auto kco : kcos)
     {
         std::shared_ptr<KeyOpFieldsValuesTuple> clone = nullptr;
@@ -53,6 +54,7 @@ void ZmqConsumerStateTable::handleReceivedData(const std::vector<std::shared_ptr
         {
             std::lock_guard<std::mutex> lock(m_receivedQueueMutex);
             m_receivedOperationQueue.push(kco);
+SWSS_LOG_DEBUG("Called m_receivedOperationQueue.push in handleReceivedData()");
         }
 
         if (m_asyncDBUpdater != nullptr)
@@ -73,6 +75,7 @@ void ZmqConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const
 
         // For new data append to m_dataQueue during pops, will not be include in result.
         count = m_receivedOperationQueue.size();
+        SWSS_LOG_DEBUG("count value: %ld", count);
         if (!count)
         {
             return;
@@ -82,6 +85,7 @@ void ZmqConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const
     vkco.clear();
     for (size_t ie = 0; ie < count; ie++)
     {
+        SWSS_LOG_DEBUG("count inside for loop: %ld", count);
         auto& kco = *(m_receivedOperationQueue.front());
         vkco.push_back(std::move(kco));
 

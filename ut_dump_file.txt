@@ -1,0 +1,19 @@
+[
+{
+    "OP": "SET",
+    "UT_REDIS:test_key_1": {
+        "test_field_1": "test_value_1"
+    }
+},
+{
+    "OP": "SET",
+    "UT_REDIS:test_key_2": {
+        "test_field_1": "test_value_1",
+        "test_field_2": "test_value_2"
+    }
+},
+{
+    "OP": "DEL",
+    "UT_REDIS:test_key_1": {}
+}
+]

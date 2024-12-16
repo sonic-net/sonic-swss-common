@@ -18,7 +18,7 @@ namespace swss {
 ZmqClient::ZmqClient(const std::string& endpoint)
 :ZmqClient(endpoint, "")
 {
-//    initialize(endpoint);
+    initialize(endpoint);
 }
 
 ZmqClient::ZmqClient(const std::string& endpoint, const std::string& vrf)
@@ -29,7 +29,6 @@ ZmqClient::ZmqClient(const std::string& endpoint, const std::string& vrf)
 ZmqClient::ZmqClient(const std::string& endpoint, uint32_t waitTimeMs) :
     m_waitTimeMs(waitTimeMs)
 {
-//    m_waitTimeMs = waitTimeMs;
     initialize(endpoint);
 }
 
@@ -168,7 +167,9 @@ SWSS_LOG_ERROR("DIV:: Inside function client sendMsg");
             // Use none block mode to use all bandwidth: http://api.zeromq.org/2-1%3Azmq-send
         rc = zmq_send(m_socket, m_sendbuffer.data(), serializedlen, ZMQ_NOBLOCK);
         }
-
+//SWSS_LOG_DEBUG("Before Sleep() in client sendmsg");
+//       usleep(10 * 1000);
+//SWSS_LOG_DEBUG("After Sleep() in client sendmsg");
         if (rc >= 0)
         {
             SWSS_LOG_DEBUG("zmq sended %d bytes", serializedlen);
@@ -226,68 +227,7 @@ bool ZmqClient::wait(std::string& dbName,
 SWSS_LOG_ERROR("DIV:: Inside function wait");
     SWSS_LOG_ENTER();
 
-//    return false;
-
-    zmq_pollitem_t items [1] = { };
-    items[0].socket = m_socket;
-    items[0].events = ZMQ_POLLIN;
-
-/*    zmq_pollitem_t poll_item;
-    poll_item.fd = 0;
-    poll_item.socket = m_socket;
-    poll_item.events = ZMQ_POLLIN;
-    poll_item.revents = 0;*/
-
-    int rc;
-    for (int i = 0; true; ++i)
-    {
-//        rc = zmq_poll(&poll_item, 1, 1000);
-        rc = zmq_poll(items, 1, (int)m_waitTimeMs);
-	SWSS_LOG_DEBUG("cli: rc value is : %d", rc);
-        if (rc == 0)
-        {
-            SWSS_LOG_ERROR("zmq_poll timed out: zmqclient wait");
-            return false;
-//            continue;
-        }
-        if (rc > 0)
-        {
-            break;
-        }
-        if (zmq_errno() == EINTR && i <= MQ_MAX_RETRY)
-        {
-            SWSS_LOG_DEBUG("Checking the 2nd if condition in zmq poll");
-            continue;
-        }
-        SWSS_LOG_ERROR("zmqclient wait : zmq_poll failed, zmqerrno: %d", zmq_errno());
-    } 
-
-    for (int i = 0; true; ++i)
-    {
-        rc = zmq_recv(m_socket, m_sendbuffer.data(), m_sendbuffer.size(), ZMQ_DONTWAIT);
-        if (rc < 0)
-        {
-            if (zmq_errno() == EINTR && i <= MQ_MAX_RETRY)
-            {
-            SWSS_LOG_DEBUG("Checking the 2nd if condition in zmq receive");
-                continue;
-            }
-            SWSS_LOG_ERROR("zmqclient wait : zmq_recv failed, zmqerrno: %d", zmq_errno());
-            return false;
-        }
-        if (rc >= (int)m_sendbuffer.size())
-        {
-            SWSS_LOG_ERROR(
-                "zmq_recv message was truncated (over %d bytes, received %d), increase buffer size, message DROPPED",
-                (int)m_sendbuffer.size(), rc);
-//            return false;
-        }
-        break;
-    }
-    m_sendbuffer.at(rc) = 0; // make sure that we end string with zero before parse
     kcos.clear();
-    BinarySerializer::deserializeBuffer(m_sendbuffer.data(), m_sendbuffer.size(), dbName, tableName, kcos);
-    return true;
+    return false;
 }
-
 }

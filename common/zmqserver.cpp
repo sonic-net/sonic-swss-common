@@ -18,7 +18,6 @@ ZmqServer::ZmqServer(const std::string& endpoint)
 }
 
 ZmqServer::ZmqServer(const std::string& endpoint, bool zmr_test)
-//    : ZmqServer(endpoint, "")
 : m_endpoint(endpoint),
 m_allowZmqPoll(true)
 {
@@ -139,35 +138,6 @@ SWSS_LOG_ERROR("DIV:: Inside function mqPollThread");
     SWSS_LOG_ENTER();
     SWSS_LOG_NOTICE("mqPollThread begin");
 
-/*    // Producer/Consumer state table are n:1 mapping, so need use PUSH/PULL pattern http://api.zeromq.org/master:zmq-socket
-    void* context = zmq_ctx_new();
-    void* socket = zmq_socket(context, ZMQ_PULL);
-
-//divya
-
-    int ret_code = zmq_recv(socket, m_buffer.data(), MQ_RESPONSE_MAX_COUNT, ZMQ_DONTWAIT);
-    SWSS_LOG_DEBUG("mqPollThread:: ret_code value is : %d", ret_code);
-//divya
-
-    // Increase recv buffer for use all bandwidth:  http://api.zeromq.org/4-2:zmq-setsockopt
-    int high_watermark = MQ_WATERMARK;
-    zmq_setsockopt(socket, ZMQ_RCVHWM, &high_watermark, sizeof(high_watermark));
-
-    if (!m_vrf.empty())
-    {
-        zmq_setsockopt(socket, ZMQ_BINDTODEVICE, m_vrf.c_str(), m_vrf.length());
-    }
-
-    int rc = zmq_bind(socket, m_endpoint.c_str());
-    SWSS_LOG_DEBUG("115: mqPollThread:: rc value is : %d", rc);
-    if (rc != 0)
-    {
-        SWSS_LOG_THROW("zmq_bind failed on endpoint: %s, zmqerrno: %d, message: %s",
-                m_endpoint.c_str(),
-                zmq_errno(),
-                strerror(zmq_errno()));
-    }*/
-
     // zmq_poll will use less CPU
     zmq_pollitem_t poll_item;
     poll_item.fd = 0;
@@ -222,11 +192,9 @@ SWSS_LOG_ERROR("DIV:: Inside function mqPollThread");
 
         // deserialize and write to redis:
         handleReceivedData(m_buffer.data(), rc);
+//            SWSS_LOG_DEBUG("Before Sleep() in mqPollThread");
+//            usleep(10);
     }
-
-//    zmq_close(socket);
-//    zmq_ctx_destroy(context);
-
     SWSS_LOG_NOTICE("mqPollThread end");
 }
 
@@ -293,8 +261,7 @@ SWSS_LOG_ERROR("DIV:: Inside function server sendMsg");
             auto message =  "zmq send failed, endpoint: " + m_endpoint + ", error: " + to_string(rc);
             SWSS_LOG_ERROR("%s", message.c_str());
         SWSS_LOG_DEBUG("3. m_socket in server sendmsg() is: %p\n", m_socket);
-//            throw system_error(make_error_code(errc::io_error), message);
-//            SWSS_LOG_THROW("Else case message is: %s", message.c_str());
+            throw system_error(make_error_code(errc::io_error), message);
             return;
         }
         usleep(retry_delay * 1000);
@@ -303,9 +270,7 @@ SWSS_LOG_ERROR("DIV:: Inside function server sendMsg");
     // failed after retry
     auto message =  "zmq send failed, endpoint: " + m_endpoint + ", zmqerrno: " + to_string(zmq_err) + ":" + zmq_strerror(zmq_err) + ", msg length:" + to_string(serializedlen);
     SWSS_LOG_ERROR("%s", message.c_str());
-//    throw system_error(make_error_code(errc::io_error), message);
-//    SWSS_LOG_THROW("Last Error message is %s", message.c_str());
-//    return;
+    throw system_error(make_error_code(errc::io_error), message);
 }
 
 }
