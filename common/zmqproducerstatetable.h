@@ -40,9 +40,7 @@ public:
     // This method should only be used if the ZmqClient enables one-to-one sync.
 
     virtual bool wait(std::string& dbName,
-
               std::string& tableName,
-
               std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos);
 
     size_t dbUpdaterQueueSize();

@@ -170,7 +170,8 @@ bool ZmqProducerStateTable::wait(std::string& dbName,
               std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos)
 {
 SWSS_LOG_DEBUG("DIV:: Inside function ZmqProducerStateTable::wait");
-    return m_zmqClient.wait(dbName, tableName, kcos);
+//    return m_zmqClient.wait(m_dbName, m_tableNameStr, kcos);
+    return m_zmqClient.wait(kcos);
 }
 
 size_t ZmqProducerStateTable::dbUpdaterQueueSize()

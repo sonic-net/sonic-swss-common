@@ -574,7 +574,7 @@ static void ZmqWithResponse(bool producerPersistence)
 TEST(ZmqWithResponse, test)
 {
     // test with persist by consumer
-    ZmqWithResponse(true);
+    ZmqWithResponse(false);
 }
 
 TEST(ZmqWithResponseClientError, test)
