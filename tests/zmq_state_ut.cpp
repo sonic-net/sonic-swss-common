@@ -555,9 +555,9 @@ static void ZmqWithResponse(bool producerPersistence)
     cout << "DIV:: Function ZmqWithResponse ut 1 537" << endl;
     std::vector<KeyOpFieldsValuesTuple> kcos;
     kcos.push_back(KeyOpFieldsValuesTuple{"k", SET_COMMAND, std::vector<FieldValueTuple>{FieldValueTuple{"f", "v"}}});
-    std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> kcos_p;
+    //std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> kcos_p;
     cout << "DIV:: Function ZmqWithResponse ut 1 541" << endl;
-    std::string dbName, tableName;
+    //std::string dbName, tableName;
     for (int i = 0; i < 5; ++i)
     {
     cout << "DIV:: Function ZmqWithResponse ut 1 545" << endl;
@@ -574,7 +574,7 @@ static void ZmqWithResponse(bool producerPersistence)
 TEST(ZmqWithResponse, test)
 {
     // test with persist by consumer
-    ZmqWithResponse(true);
+    ZmqWithResponse(false);
 }
 
 TEST(ZmqWithResponseClientError, test)

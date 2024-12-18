@@ -18,6 +18,7 @@ class ZmqProducerStateTable : public ProducerStateTable
 public:
     ZmqProducerStateTable(DBConnector *db, const std::string &tableName, ZmqClient &zmqClient, bool dbPersistence = true);
     ZmqProducerStateTable(RedisPipeline *pipeline, const std::string &tableName, ZmqClient &zmqClient, bool buffered = false, bool dbPersistence = true);
+//    ~ZmqProducerStateTable() = default;
 
     /* Implements set() and del() commands using notification messages */
     virtual void set(const std::string &key,
