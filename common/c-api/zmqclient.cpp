@@ -25,6 +25,7 @@ void SWSSZmqClient_connect(SWSSZmqClient zmqc) {
 
 void SWSSZmqClient_sendMsg(SWSSZmqClient zmqc, const char *dbName, const char *tableName,
                            SWSSKeyOpFieldValuesArray arr) {
+    SWSS_LOG_DEBUG("Inside SWSSZmqClient_sendMsg");
     SWSSTry({
         vector<KeyOpFieldsValuesTuple> kcos = takeKeyOpFieldValuesArray(arr);
         ((ZmqClient *)zmqc)

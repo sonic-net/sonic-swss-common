@@ -202,6 +202,7 @@ template <class T> static inline T &getReference(std::shared_ptr<T> &t) {
 // T is anything that has a .size() method and which can be iterated over for
 // swss::KeyOpFieldValuesTuple, eg vector or deque
 template <class T> static inline SWSSKeyOpFieldValuesArray makeKeyOpFieldValuesArray(T &&in) {
+    SWSS_LOG_DEBUG("Entering makeKeyOpFieldValuesArray method");
     SWSSKeyOpFieldValues *data = new SWSSKeyOpFieldValues[in.size()];
 
     size_t i = 0;
@@ -211,6 +212,7 @@ template <class T> static inline SWSSKeyOpFieldValuesArray makeKeyOpFieldValuesA
     SWSSKeyOpFieldValuesArray out;
     out.len = (uint64_t)in.size();
     out.data = data;
+    SWSS_LOG_DEBUG("2::: out.len value is: %ld", out.len);
     return out;
 }
 
@@ -255,9 +257,11 @@ static inline std::vector<swss::KeyOpFieldsValuesTuple>
 takeKeyOpFieldValuesArray(SWSSKeyOpFieldValuesArray in) {
     std::vector<swss::KeyOpFieldsValuesTuple> out;
     for (uint64_t i = 0; i < in.len; i++) {
+        SWSS_LOG_DEBUG("i value is: %ld", i);
         SWSSKeyOpFieldValues kfv = in.data[i];
         out.push_back(takeKeyOpFieldValues(std::move(kfv)));
     }
+        SWSS_LOG_DEBUG("out.len value is: %ld", out.size());
     return out;
 }
 
