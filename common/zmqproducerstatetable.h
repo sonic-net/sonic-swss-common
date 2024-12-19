@@ -18,6 +18,7 @@ class ZmqProducerStateTable : public ProducerStateTable
 public:
     ZmqProducerStateTable(DBConnector *db, const std::string &tableName, ZmqClient &zmqClient, bool dbPersistence = true);
     ZmqProducerStateTable(RedisPipeline *pipeline, const std::string &tableName, ZmqClient &zmqClient, bool buffered = false, bool dbPersistence = true);
+//    ~ZmqProducerStateTable() = default;
 
     /* Implements set() and del() commands using notification messages */
     virtual void set(const std::string &key,
@@ -36,6 +37,14 @@ public:
 
     // Batched send that can include both SET and DEL requests.
     virtual void send(const std::vector<KeyOpFieldsValuesTuple> &kcos);
+
+    // This method should only be used if the ZmqClient enables one-to-one sync.
+
+    virtual bool wait(std::string& dbName,
+
+              std::string& tableName,
+
+              std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos);
 
     size_t dbUpdaterQueueSize();
 private:

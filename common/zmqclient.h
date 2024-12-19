@@ -12,8 +12,10 @@ namespace swss {
 class ZmqClient
 {
 public:
+
     ZmqClient(const std::string& endpoint);
     ZmqClient(const std::string& endpoint, const std::string& vrf);
+    ZmqClient(const std::string& endpoint, uint32_t waitTimeMs);
     ~ZmqClient();
 
     bool isConnected();
@@ -23,8 +25,14 @@ public:
     void sendMsg(const std::string& dbName,
                  const std::string& tableName,
                  const std::vector<KeyOpFieldsValuesTuple>& kcos);
+
+    bool wait(std::string& dbName,
+              std::string& tableName,
+              std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos);
+
 private:
     void initialize(const std::string& endpoint, const std::string& vrf);
+    void initialize(const std::string& endpoint);
 
     std::string m_endpoint;
 
@@ -36,9 +44,11 @@ private:
 
     bool m_connected;
 
+    uint32_t m_waitTimeMs;
+
     std::mutex m_socketMutex;
-    
-    std::vector<char> m_sendbuffer;
+
+    std::vector<char> m_sendbuffer;    
 };
 
 }

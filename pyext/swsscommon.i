@@ -76,6 +76,8 @@
 %template(FieldValuePair) std::pair<std::string, std::string>;
 %template(FieldValuePairs) std::vector<std::pair<std::string, std::string>>;
 %template(FieldValuePairsList) std::vector<std::vector<std::pair<std::string, std::string>>>;
+%template(KeyFieldValuePairs) std::pair<std::string, std::vector<std::pair<std::string, std::string>>>;
+%template(KeyFieldValuePairsList) std::vector<std::pair<std::string, std::vector<std::pair<std::string, std::string>>>>;
 %template(FieldValueMap) std::map<std::string, std::string>;
 %template(VectorString) std::vector<std::string>;
 %template(ScanResult) std::pair<int64_t, std::vector<std::string>>;
@@ -289,6 +291,22 @@ T castSelectableObj(swss::Selectable *temp)
     %template(hgetall) hgetall<std::map<std::string, std::string>>;
 }
 
+%inline %{
+std::vector<std::pair<std::string, std::vector<swss::FieldValueTuple>>> zmqWait(swss::ZmqProducerStateTable &p)
+{
+    std::vector<std::pair<std::string, std::vector<swss::FieldValueTuple>>>  ret;
+    std::string db_name;
+    std::string table_name;
+    std::vector<std::shared_ptr<swss::KeyOpFieldsValuesTuple>> kcos_ptr;
+    p.wait(db_name, table_name, kcos_ptr);
+    for (const auto kco : kcos_ptr)
+    {
+        ret.push_back(std::pair<std::string, std::vector<swss::FieldValueTuple>>{kfvKey(*kco), kfvFieldsValues(*kco)});
+    }
+    return ret;
+}
+%}
+
 %ignore swss::TableEntryPoppable::pops(std::deque<KeyOpFieldsValuesTuple> &, const std::string &);
 %apply std::vector<std::string>& OUTPUT {std::vector<std::string> &keys};
 %apply std::vector<std::string>& OUTPUT {std::vector<std::string> &ops};
@@ -331,6 +349,14 @@ T castSelectableObj(swss::Selectable *temp)
 %apply std::string& OUTPUT {std::string &op};
 %apply std::vector<std::pair<std::string, std::string>>& OUTPUT {std::vector<std::pair<std::string, std::string>> &fvs};
 %include "consumertablebase.h"
+%extend ZmqProducerStateTable {
+    // Wrap the wait method
+    bool wait(std::string& dbName,
+              std::string& tableName,
+              std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos) {
+        return self->wait(dbName, tableName, kcos);
+    }
+};
 %clear std::string &key;
 %clear std::string &op;
 %clear std::vector<std::pair<std::string, std::string>> &fvs;
