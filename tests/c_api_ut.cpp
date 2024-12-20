@@ -268,7 +268,7 @@ SWSS_LOG_DEBUG("print10");
         if (flag == 0)
             for (uint64_t i = 0; i < arr.len; i++)
             {
-                SWSS_LOG_DEBUG("flag 0 case before calling SWSSZmqProducerStateTable_set, i: %ld", i);
+//                SWSS_LOG_DEBUG("flag 0 case before calling SWSSZmqProducerStateTable_set, i: %ld", i);
                 SWSSZmqProducerStateTable_set(pst, arr.data[i].key, arr.data[i].fieldValues);
             }
         else
@@ -366,14 +366,14 @@ SWSS_LOG_DEBUG("print15");
         SWSS_LOG_DEBUG("After sleep(2)");
         arr = SWSSZmqConsumerStateTable_pops(cst);
 
-SWSS_LOG_DEBUG("5 : kfvs.size() is: %ld", kfvs.size());
+// SWSS_LOG_DEBUG("5 : kfvs.size() is: %ld", kfvs.size());
 SWSS_LOG_DEBUG("print16");
         kfvs = takeKeyOpFieldValuesArray(arr);
-SWSS_LOG_DEBUG("6 : kfvs.size() is: %ld", kfvs.size());
+// SWSS_LOG_DEBUG("6 : kfvs.size() is: %ld", kfvs.size());
         sortKfvs(kfvs);
         freeKeyOpFieldValuesArray(arr);
 
-SWSS_LOG_DEBUG("7 : kfvs.size() is: %ld", kfvs.size());
+// SWSS_LOG_DEBUG("7 : kfvs.size() is: %ld", kfvs.size());
 SWSS_LOG_DEBUG("print17");
         ASSERT_EQ(kfvs.size(), 2);
         EXPECT_EQ(kfvKey(kfvs[0]), "mykey3");

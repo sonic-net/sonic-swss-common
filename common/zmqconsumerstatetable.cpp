@@ -75,7 +75,7 @@ void ZmqConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const
 
         // For new data append to m_dataQueue during pops, will not be include in result.
         count = m_receivedOperationQueue.size();
-        SWSS_LOG_DEBUG("count value: %ld", count);
+        //SWSS_LOG_DEBUG("count value: %ld", count);
         if (!count)
         {
             return;
@@ -85,7 +85,7 @@ void ZmqConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const
     vkco.clear();
     for (size_t ie = 0; ie < count; ie++)
     {
-        SWSS_LOG_DEBUG("count inside for loop: %ld", count);
+        //SWSS_LOG_DEBUG("count inside for loop: %ld", count);
         auto& kco = *(m_receivedOperationQueue.front());
         vkco.push_back(std::move(kco));
 

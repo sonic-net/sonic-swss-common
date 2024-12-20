@@ -212,7 +212,7 @@ template <class T> static inline SWSSKeyOpFieldValuesArray makeKeyOpFieldValuesA
     SWSSKeyOpFieldValuesArray out;
     out.len = (uint64_t)in.size();
     out.data = data;
-    SWSS_LOG_DEBUG("2::: out.len value is: %ld", out.len);
+//    SWSS_LOG_DEBUG("2::: out.len value is: %ld", out.len);
     return out;
 }
 
@@ -257,11 +257,11 @@ static inline std::vector<swss::KeyOpFieldsValuesTuple>
 takeKeyOpFieldValuesArray(SWSSKeyOpFieldValuesArray in) {
     std::vector<swss::KeyOpFieldsValuesTuple> out;
     for (uint64_t i = 0; i < in.len; i++) {
-        SWSS_LOG_DEBUG("i value is: %ld", i);
+//        SWSS_LOG_DEBUG("i value is: %ld", i);
         SWSSKeyOpFieldValues kfv = in.data[i];
         out.push_back(takeKeyOpFieldValues(std::move(kfv)));
     }
-        SWSS_LOG_DEBUG("out.len value is: %ld", out.size());
+//        SWSS_LOG_DEBUG("out.len value is: %ld", out.size());
     return out;
 }
 
