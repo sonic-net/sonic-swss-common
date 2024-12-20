@@ -349,6 +349,14 @@ std::vector<std::pair<std::string, std::vector<swss::FieldValueTuple>>> zmqWait(
 %apply std::string& OUTPUT {std::string &op};
 %apply std::vector<std::pair<std::string, std::string>>& OUTPUT {std::vector<std::pair<std::string, std::string>> &fvs};
 %include "consumertablebase.h"
+%extend ZmqProducerStateTable {
+    // Wrap the wait method
+    bool wait(std::string& dbName,
+              std::string& tableName,
+              std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos) {
+        return self->wait(dbName, tableName, kcos);
+    }
+};
 %clear std::string &key;
 %clear std::string &op;
 %clear std::vector<std::pair<std::string, std::string>> &fvs;

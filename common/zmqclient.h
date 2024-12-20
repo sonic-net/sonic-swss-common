@@ -26,9 +26,9 @@ public:
                  const std::string& tableName,
                  const std::vector<KeyOpFieldsValuesTuple>& kcos);
 
-    bool wait(const std::string& dbName,
-              const std::string& tableName,
-              const std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos);
+    bool wait(std::string& dbName,
+              std::string& tableName,
+              std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos);
 
 private:
     void initialize(const std::string& endpoint, const std::string& vrf);
