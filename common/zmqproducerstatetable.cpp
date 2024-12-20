@@ -165,12 +165,11 @@ SWSS_LOG_DEBUG("DIV:: Inside function ZmqProducerStateTable::send");
     }
 }
 
-bool ZmqProducerStateTable::wait(std::string& dbName,
-              std::string& tableName,
-              std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos)
+bool ZmqProducerStateTable::wait(const std::string& dbName,
+              const std::string& tableName,
+              const std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos)
 {
 SWSS_LOG_DEBUG("DIV:: Inside function ZmqProducerStateTable::wait");
-
     return m_zmqClient.wait(dbName, tableName, kcos);
 }
 

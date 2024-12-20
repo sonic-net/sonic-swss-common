@@ -220,14 +220,13 @@ SWSS_LOG_ERROR("DIV:: Inside function client sendMsg");
     throw system_error(make_error_code(errc::io_error), message);
 }
 
-bool ZmqClient::wait(std::string& dbName,
-                     std::string& tableName,
-                     std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos)
+bool ZmqClient::wait(const std::string& dbName,
+                     const std::string& tableName,
+                     const std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos)
 {
 SWSS_LOG_ERROR("DIV:: Inside function wait");
     SWSS_LOG_ENTER();
 
-    kcos.clear();
     return false;
 }
 }
