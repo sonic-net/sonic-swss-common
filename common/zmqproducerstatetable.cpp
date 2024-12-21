@@ -148,6 +148,7 @@ void ZmqProducerStateTable::del(const std::vector<std::string> &keys)
 
 void ZmqProducerStateTable::send(const std::vector<KeyOpFieldsValuesTuple> &kcos)
 {
+SWSS_LOG_DEBUG("DIV:: Inside function ZmqProducerStateTable::send");
     m_zmqClient.sendMsg(
                         m_dbName,
                         m_tableNameStr,
@@ -162,6 +163,14 @@ void ZmqProducerStateTable::send(const std::vector<KeyOpFieldsValuesTuple> &kcos
             m_asyncDBUpdater->update(clone);
         }
     }
+}
+
+bool ZmqProducerStateTable::wait(const std::string& dbName,
+              const std::string& tableName,
+              const std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos)
+{
+SWSS_LOG_DEBUG("DIV:: Inside function ZmqProducerStateTable::wait");
+    return m_zmqClient.wait(dbName, tableName, kcos);
 }
 
 size_t ZmqProducerStateTable::dbUpdaterQueueSize()
