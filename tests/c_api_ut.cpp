@@ -322,11 +322,11 @@ TEST(c_api, ZmqConsumerProducerStateTable) {
         EXPECT_EQ(kfvFieldsValues(kfvs[1]).size(), 0);
     }
 
-    // Server must be freed first to safely release message handlers (ZmqConsumerStateTable)
-    SWSSZmqServer_free(srv);
-
+    // The message handlers (ZmqConsumerStateTable) must be freed first to safely unregister from the Server
     SWSSZmqProducerStateTable_free(pst);
     SWSSZmqConsumerStateTable_free(cst);
+
+    SWSSZmqServer_free(srv);
 
     SWSSZmqClient_free(cli);
 
