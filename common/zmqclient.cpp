@@ -18,7 +18,6 @@ namespace swss {
 ZmqClient::ZmqClient(const std::string& endpoint)
 :ZmqClient(endpoint, "")
 {
-    initialize(endpoint);
 }
 
 ZmqClient::ZmqClient(const std::string& endpoint, const std::string& vrf)
@@ -26,8 +25,8 @@ ZmqClient::ZmqClient(const std::string& endpoint, const std::string& vrf)
     initialize(endpoint, vrf);
 }
 
-ZmqClient::ZmqClient(const std::string& endpoint, uint32_t waitTimeMs) :
-    m_waitTimeMs(waitTimeMs)
+ZmqClient::ZmqClient(const std::string& endpoint, uint32_t waitTimeMs)
+: m_waitTimeMs(waitTimeMs)
 {
     initialize(endpoint);
 }
@@ -63,17 +62,6 @@ void ZmqClient::initialize(const std::string& endpoint, const std::string& vrf)
     connect();
 }
 
-void ZmqClient::initialize(const std::string& endpoint)
-{
-    m_connected = false;
-    m_endpoint = endpoint;
-    m_context = nullptr;
-    m_socket = nullptr;
-    m_sendbuffer.resize(MQ_RESPONSE_MAX_COUNT);
-
-    connect();
-}
-    
 bool ZmqClient::isConnected()
 {
     return m_connected;
@@ -81,7 +69,6 @@ bool ZmqClient::isConnected()
     
 void ZmqClient::connect()
 {
-SWSS_LOG_ERROR("DIV:: Inside function client connect");
     if (m_connected)
     {
         SWSS_LOG_DEBUG("Already connected to endpoint: %s", m_endpoint.c_str());
@@ -107,7 +94,6 @@ SWSS_LOG_ERROR("DIV:: Inside function client connect");
     m_context = zmq_ctx_new();
     m_socket = zmq_socket(m_context, ZMQ_PUSH);
     
-    SWSS_LOG_DEBUG("m_socket in client connect() is: %p\n", m_socket);
     // timeout all pending send package, so zmq will not block in dtor of this class: http://api.zeromq.org/master:zmq-setsockopt
     int linger = 0;
     zmq_setsockopt(m_socket, ZMQ_LINGER, &linger, sizeof(linger));
@@ -139,7 +125,6 @@ void ZmqClient::sendMsg(
         const std::string& tableName,
         const std::vector<KeyOpFieldsValuesTuple>& kcos)
 {
-SWSS_LOG_ERROR("DIV:: Inside function client sendMsg");
     int serializedlen = (int)BinarySerializer::serializeBuffer(
                                                         m_sendbuffer.data(),
                                                         m_sendbuffer.size(),
@@ -165,11 +150,8 @@ SWSS_LOG_ERROR("DIV:: Inside function client sendMsg");
             std::lock_guard<std::mutex> lock(m_socketMutex);
 
             // Use none block mode to use all bandwidth: http://api.zeromq.org/2-1%3Azmq-send
-        rc = zmq_send(m_socket, m_sendbuffer.data(), serializedlen, ZMQ_NOBLOCK);
+            rc = zmq_send(m_socket, m_sendbuffer.data(), serializedlen, ZMQ_NOBLOCK);
         }
-//SWSS_LOG_DEBUG("Before Sleep() in client sendmsg");
-//       usleep(10 * 1000);
-//SWSS_LOG_DEBUG("After Sleep() in client sendmsg");
         if (rc >= 0)
         {
             SWSS_LOG_DEBUG("zmq sended %d bytes", serializedlen);
@@ -187,7 +169,7 @@ SWSS_LOG_ERROR("DIV:: Inside function client sendMsg");
             //       For example when ZMQ socket still not receive reply message from last sended package.
             //       There was state machine inside ZMQ socket, when the socket is not in ready to send state, this error will happen.
             // for more detail, please check: http://api.zeromq.org/2-1:zmq-send
-            SWSS_LOG_WARN("zmq send retry, endpoint: %s, error: %d", m_endpoint.c_str(), zmq_err);
+            SWSS_LOG_DEBUG("zmq send retry, endpoint: %s, error: %d", m_endpoint.c_str(), zmq_err);
 
             retry_delay = 0;
         }
@@ -206,7 +188,7 @@ SWSS_LOG_ERROR("DIV:: Inside function client sendMsg");
         else
         {
             // for other error, send failed immediately.
-            auto message =  "cli: zmq send failed, endpoint: " + m_endpoint + ", error: " + to_string(rc);
+            auto message =  "zmq send failed, endpoint: " + m_endpoint + ", error: " + to_string(rc);
             SWSS_LOG_ERROR("%s", message.c_str());
             throw system_error(make_error_code(errc::io_error), message);
         }
@@ -215,16 +197,16 @@ SWSS_LOG_ERROR("DIV:: Inside function client sendMsg");
     }
 
     // failed after retry
-    auto message =  "cli: zmq send failed, endpoint: " + m_endpoint + ", zmqerrno: " + to_string(zmq_err) + ":" + zmq_strerror(zmq_err) + ", msg length:" + to_string(serializedlen);
+    auto message =  "zmq send failed, endpoint: " + m_endpoint + ", zmqerrno: " + to_string(zmq_err) + ":" + zmq_strerror(zmq_err) + ", msg length:" + to_string(serializedlen);
     SWSS_LOG_ERROR("%s", message.c_str());
     throw system_error(make_error_code(errc::io_error), message);
 }
 
+//TODO: To implement the wait() method later.
 bool ZmqClient::wait(const std::string& dbName,
                      const std::string& tableName,
                      const std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos)
 {
-SWSS_LOG_ERROR("DIV:: Inside function wait");
     SWSS_LOG_ENTER();
 
     return false;

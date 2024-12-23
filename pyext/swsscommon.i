@@ -76,8 +76,6 @@
 %template(FieldValuePair) std::pair<std::string, std::string>;
 %template(FieldValuePairs) std::vector<std::pair<std::string, std::string>>;
 %template(FieldValuePairsList) std::vector<std::vector<std::pair<std::string, std::string>>>;
-%template(KeyFieldValuePairs) std::pair<std::string, std::vector<std::pair<std::string, std::string>>>;
-%template(KeyFieldValuePairsList) std::vector<std::pair<std::string, std::vector<std::pair<std::string, std::string>>>>;
 %template(FieldValueMap) std::map<std::string, std::string>;
 %template(VectorString) std::vector<std::string>;
 %template(ScanResult) std::pair<int64_t, std::vector<std::string>>;
@@ -290,22 +288,6 @@ T castSelectableObj(swss::Selectable *temp)
 %extend swss::DBConnector {
     %template(hgetall) hgetall<std::map<std::string, std::string>>;
 }
-
-%inline %{
-std::vector<std::pair<std::string, std::vector<swss::FieldValueTuple>>> zmqWait(swss::ZmqProducerStateTable &p)
-{
-    std::vector<std::pair<std::string, std::vector<swss::FieldValueTuple>>>  ret;
-    std::string db_name;
-    std::string table_name;
-    std::vector<std::shared_ptr<swss::KeyOpFieldsValuesTuple>> kcos_ptr;
-    p.wait(db_name, table_name, kcos_ptr);
-    for (const auto kco : kcos_ptr)
-    {
-        ret.push_back(std::pair<std::string, std::vector<swss::FieldValueTuple>>{kfvKey(*kco), kfvFieldsValues(*kco)});
-    }
-    return ret;
-}
-%}
 
 %ignore swss::TableEntryPoppable::pops(std::deque<KeyOpFieldsValuesTuple> &, const std::string &);
 %apply std::vector<std::string>& OUTPUT {std::vector<std::string> &keys};

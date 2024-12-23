@@ -31,8 +31,7 @@ public:
               const std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos);
 
 private:
-    void initialize(const std::string& endpoint, const std::string& vrf);
-    void initialize(const std::string& endpoint);
+    void initialize(const std::string& endpoint, const std::string& vrf = "");
 
     std::string m_endpoint;
 
@@ -48,7 +47,7 @@ private:
 
     std::mutex m_socketMutex;
 
-    std::vector<char> m_sendbuffer;    
+    std::vector<char> m_sendbuffer;
 };
 
 }
