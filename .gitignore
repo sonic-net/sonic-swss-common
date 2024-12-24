@@ -57,6 +57,7 @@ stamp-h1
 **/.deps/
 **/.libs/
 **/Makefile
+aminclude_static.am
 
 # Executables #
 ###############
@@ -66,3 +67,7 @@ sonic-db-cli/sonic-db-cli
 
 # Bazel Build System #
 /bazel-*
+
+# Unit test generated files #
+#############################
+ut_dump_file.txt
