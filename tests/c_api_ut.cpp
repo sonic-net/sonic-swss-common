@@ -221,9 +221,7 @@ TEST(c_api, SubscriberStateTable) {
 TEST(c_api, ZmqConsumerProducerStateTable) {
     clearDB();
     SWSSStringManager sm;
-
     SWSSDBConnector db = SWSSDBConnector_new_named("TEST_DB", 1000, true);
-
     SWSSZmqServer srv = SWSSZmqServer_new("tcp://127.0.0.1:42312");
     SWSSZmqClient cli = SWSSZmqClient_new("tcp://127.0.0.1:42312");
     EXPECT_TRUE(SWSSZmqClient_isConnected(cli));
@@ -264,11 +262,16 @@ TEST(c_api, ZmqConsumerProducerStateTable) {
 
         if (flag == 0)
             for (uint64_t i = 0; i < arr.len; i++)
+            {
                 SWSSZmqProducerStateTable_set(pst, arr.data[i].key, arr.data[i].fieldValues);
+            }
         else
+        {
             SWSSZmqClient_sendMsg(cli, "TEST_DB", "mytable", arr);
+        }
 
         ASSERT_EQ(SWSSZmqConsumerStateTable_readData(cst, 1500, true), SWSSSelectResult_DATA);
+        sleep(2);
         arr = SWSSZmqConsumerStateTable_pops(cst);
 
         vector<KeyOpFieldsValuesTuple> kfvs = takeKeyOpFieldValuesArray(arr);
@@ -292,6 +295,7 @@ TEST(c_api, ZmqConsumerProducerStateTable) {
         EXPECT_EQ(fieldValues1[0].first, "myfield3");
         EXPECT_EQ(fieldValues1[0].second, "myvalue3");
 
+        sleep(2);
         arr = SWSSZmqConsumerStateTable_pops(cst);
         ASSERT_EQ(arr.len, 0);
         freeKeyOpFieldValuesArray(arr);
