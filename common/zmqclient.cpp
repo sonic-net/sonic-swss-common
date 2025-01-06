@@ -202,13 +202,11 @@ void ZmqClient::sendMsg(
     throw system_error(make_error_code(errc::io_error), message);
 }
 
-//TODO: To implement the wait() method later.
-bool ZmqClient::wait(const std::string& dbName,
-                     const std::string& tableName,
-                     const std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos)
-{
-    SWSS_LOG_ENTER();
-
-    return false;
+// TODO: To be implemented later, required for ZMQ_CLIENT & ZMQ_SERVER
+// socket types in response path.
+bool ZmqClient::wait(
+    const std::string &dbName, const std::string &tableName,
+    const std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> &kcos) {
+  return false;
 }
 }

@@ -127,7 +127,6 @@ void ZmqServer::mqPollThread()
     poll_item.revents = 0;
 
     SWSS_LOG_NOTICE("bind to zmq endpoint: %s", m_endpoint.c_str());
-    SWSS_LOG_DEBUG("m_runThread: %d", m_runThread);
     while (m_runThread)
     {
         // receive message
@@ -171,12 +170,11 @@ void ZmqServer::mqPollThread()
     SWSS_LOG_NOTICE("mqPollThread end");
 }
 
-//TODO: To implement the sendMsg() method later.
-void ZmqServer::sendMsg(const std::string& dbName, const std::string& tableName,
-        const std::vector<swss::KeyOpFieldsValuesTuple>& values)
-{
-
-    return;
+// TODO: To be implemented later, required for ZMQ_CLIENT & ZMQ_SERVER
+// socket types in response path.
+void ZmqServer::sendMsg(
+    const std::string &dbName, const std::string &tableName,
+    const std::vector<swss::KeyOpFieldsValuesTuple> &values) {
+  return;
 }
-
 }
