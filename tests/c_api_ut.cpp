@@ -129,8 +129,8 @@ TEST(c_api, Table) {
     SWSSTable_hset(tbl, "mykey", "myfield", sm.makeStrRef("myvalue"));
     keys = SWSSTable_getKeys(tbl);
     ASSERT_EQ(keys.len, 1);
-    EXPECT_STREQ(SWSSStrRef_c_str((SWSSStrRef)keys.data[0]), "mykey");
-    SWSSString_free(keys.data[0]);
+    EXPECT_STREQ(keys.data[0], "mykey");
+    free(keys.data[0]);
     SWSSStringArray_free(keys);
 
     ASSERT_TRUE(SWSSTable_hget(tbl, "mykey", "myfield", &ss));

@@ -61,9 +61,10 @@ typedef enum {
 } SWSSSelectResult;
 
 // FFI version of std::vector<std::string>
+// data strings should be freed with libc's free()
 typedef struct {
     uint64_t len;
-    SWSSString *data;
+    char **data;
 } SWSSStringArray;
 
 // data should not include a null terminator
@@ -226,11 +227,11 @@ template <class T> static inline SWSSKeyOpFieldValuesArray makeKeyOpFieldValuesA
 }
 
 static inline SWSSStringArray makeStringArray(std::vector<std::string> &&in) {
-    SWSSString *data = new SWSSString[in.size()];
+    char **data = new char*[in.size()];
 
     size_t i = 0;
     for (std::string &s : in)
-        data[i++] = makeString(std::move(s));
+        data[i++] = strdup(s.c_str());
 
     SWSSStringArray out;
     out.len = (uint64_t)in.size();
