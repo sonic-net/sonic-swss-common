@@ -5,6 +5,7 @@
 #include "common/c-api/dbconnector.h"
 #include "common/c-api/producerstatetable.h"
 #include "common/c-api/subscriberstatetable.h"
+#include "common/c-api/table.h"
 #include "common/c-api/util.h"
 #include "common/c-api/zmqclient.h"
 #include "common/c-api/zmqconsumerstatetable.h"
@@ -40,14 +41,18 @@ static void sortKfvs(vector<KeyOpFieldsValuesTuple> &kfvs) {
 
 #define free(x) std::free(const_cast<void *>(reinterpret_cast<const void *>(x)));
 
+static void freeFieldValuesArray(SWSSFieldValueArray arr) {
+    for (uint64_t i = 0; i < arr.len; i++) {
+        free(arr.data[i].field);
+        SWSSString_free(arr.data[i].value);
+    }
+    SWSSFieldValueArray_free(arr);
+}
+
 static void freeKeyOpFieldValuesArray(SWSSKeyOpFieldValuesArray arr) {
     for (uint64_t i = 0; i < arr.len; i++) {
         free(arr.data[i].key);
-        for (uint64_t j = 0; j < arr.data[i].fieldValues.len; j++) {
-            free(arr.data[i].fieldValues.data[j].field);
-            SWSSString_free(arr.data[i].fieldValues.data[j].value);
-        }
-        SWSSFieldValueArray_free(arr.data[i].fieldValues);
+        freeFieldValuesArray(arr.data[i].fieldValues);
     }
     SWSSKeyOpFieldValuesArray_free(arr);
 }
@@ -105,6 +110,57 @@ TEST(c_api, DBConnector) {
     SWSSDBConnector_free(db);
 }
 
+TEST(c_api, Table) {
+    clearDB();
+    SWSSStringManager sm;
+
+    SWSSDBConnector db = SWSSDBConnector_new_named("TEST_DB", 1000, true);
+    SWSSTable tbl = SWSSTable_new(db, "mytable");
+
+    SWSSFieldValueArray fvs;
+    SWSSString ss;
+    EXPECT_FALSE(SWSSTable_get(tbl, "mykey", &fvs));
+    EXPECT_FALSE(SWSSTable_hget(tbl, "mykey", "myfield", &ss));
+
+    SWSSStringArray keys = SWSSTable_getKeys(tbl);
+    EXPECT_EQ(keys.len, 0);
+    SWSSStringArray_free(keys);
+
+    SWSSTable_hset(tbl, "mykey", "myfield", sm.makeStrRef("myvalue"));
+    keys = SWSSTable_getKeys(tbl);
+    ASSERT_EQ(keys.len, 1);
+    EXPECT_STREQ(SWSSStrRef_c_str((SWSSStrRef)keys.data[0]), "mykey");
+    SWSSString_free(keys.data[0]);
+    SWSSStringArray_free(keys);
+
+    ASSERT_TRUE(SWSSTable_hget(tbl, "mykey", "myfield", &ss));
+    EXPECT_STREQ(SWSSStrRef_c_str((SWSSStrRef)ss), "myvalue");
+    SWSSString_free(ss);
+
+    SWSSTable_hdel(tbl, "mykey", "myfield");
+    EXPECT_FALSE(SWSSTable_hget(tbl, "mykey", "myfield", &ss));
+
+    SWSSFieldValueTuple data[2] = {{.field = "myfield1", .value = sm.makeString("myvalue1")},
+                                   {.field = "myfield2", .value = sm.makeString("myvalue2")}};
+    fvs.len = 2;
+    fvs.data = data;
+    SWSSTable_set(tbl, "mykey", fvs);
+
+    ASSERT_TRUE(SWSSTable_get(tbl, "mykey", &fvs));
+    EXPECT_EQ(fvs.len, 2);
+    EXPECT_STREQ(data[0].field, fvs.data[0].field);
+    EXPECT_STREQ(data[1].field, fvs.data[1].field);
+    freeFieldValuesArray(fvs);
+
+    SWSSTable_del(tbl, "mykey");
+    keys = SWSSTable_getKeys(tbl);
+    EXPECT_EQ(keys.len, 0);
+    SWSSStringArray_free(keys);
+
+    SWSSTable_free(tbl);
+    SWSSDBConnector_free(db);
+}
+
 TEST(c_api, ConsumerProducerStateTables) {
     clearDB();
     SWSSStringManager sm;
@@ -119,9 +175,8 @@ TEST(c_api, ConsumerProducerStateTables) {
     ASSERT_EQ(arr.len, 0);
     freeKeyOpFieldValuesArray(arr);
 
-    SWSSFieldValueTuple data[2] = {
-        {.field = "myfield1", .value = sm.makeString("myvalue1")},
-        {.field = "myfield2", .value = sm.makeString("myvalue2")}};
+    SWSSFieldValueTuple data[2] = {{.field = "myfield1", .value = sm.makeString("myvalue1")},
+                                   {.field = "myfield2", .value = sm.makeString("myvalue2")}};
     SWSSFieldValueArray values = {
         .len = 2,
         .data = data,
@@ -154,7 +209,7 @@ TEST(c_api, ConsumerProducerStateTables) {
     ASSERT_EQ(fieldValues1.size(), 1);
     EXPECT_EQ(fieldValues1[0].first, "myfield3");
     EXPECT_EQ(fieldValues1[0].second, "myvalue3");
-  
+
     arr = SWSSConsumerStateTable_pops(cst);
     EXPECT_EQ(arr.len, 0);
     freeKeyOpFieldValuesArray(arr);
@@ -244,14 +299,16 @@ TEST(c_api, ZmqConsumerProducerStateTable) {
     // On flag = 0, we use the ZmqProducerStateTable
     // On flag = 1, we use the ZmqClient directly
     for (int flag = 0; flag < 2; flag++) {
-        SWSSFieldValueTuple values_key1_data[2] = {{.field = "myfield1", .value = sm.makeString("myvalue1")},
-                                                  {.field = "myfield2", .value = sm.makeString("myvalue2")}};
+        SWSSFieldValueTuple values_key1_data[2] = {
+            {.field = "myfield1", .value = sm.makeString("myvalue1")},
+            {.field = "myfield2", .value = sm.makeString("myvalue2")}};
         SWSSFieldValueArray values_key1 = {
             .len = 2,
             .data = values_key1_data,
         };
 
-        SWSSFieldValueTuple values_key2_data[1] = {{.field = "myfield3", .value = sm.makeString("myvalue3")}};
+        SWSSFieldValueTuple values_key2_data[1] = {
+            {.field = "myfield3", .value = sm.makeString("myvalue3")}};
         SWSSFieldValueArray values_key2 = {
             .len = 1,
             .data = values_key2_data,
