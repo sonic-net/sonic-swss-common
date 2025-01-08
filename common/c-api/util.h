@@ -64,7 +64,7 @@ typedef enum {
 // data strings should be freed with libc's free()
 typedef struct {
     uint64_t len;
-    char **data;
+    const char **data;
 } SWSSStringArray;
 
 // data should not include a null terminator
@@ -227,7 +227,7 @@ template <class T> static inline SWSSKeyOpFieldValuesArray makeKeyOpFieldValuesA
 }
 
 static inline SWSSStringArray makeStringArray(std::vector<std::string> &&in) {
-    char **data = new char*[in.size()];
+    const char **data = new const char*[in.size()];
 
     size_t i = 0;
     for (std::string &s : in)
