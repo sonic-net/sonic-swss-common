@@ -167,6 +167,7 @@ void swss::NotificationConsumer::pop(std::string &op, std::string &data, std::ve
          * Force the memory to be released by destroying existing queue and creating a new one.
          */
         SWSS_LOG_INFO("Queue is empty, recreating");
+        m_queue.reset();
         m_queue = nullptr;
         m_queue = std::make_shared<std::queue<std::string>>();
     }
