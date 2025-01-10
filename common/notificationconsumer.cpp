@@ -17,6 +17,7 @@ swss::NotificationConsumer::NotificationConsumer(swss::DBConnector *db, const st
 {
     SWSS_LOG_ENTER();
 
+    SWSS_LOG_NOTICE("Creating notification consumer");
     m_queue = std::make_shared<std::queue<std::string>>();
     while (true)
     {
@@ -140,6 +141,7 @@ void swss::NotificationConsumer::processReply(redisReply *reply)
     SWSS_LOG_DEBUG("got message: %s", msg.c_str());
 
     m_queue->push(msg);
+    SWSS_LOG_INFO("got message: %s, queue size is %zu", msg.c_str(), m_queue->size());
 }
 
 void swss::NotificationConsumer::pop(std::string &op, std::string &data, std::vector<FieldValueTuple> &values)
@@ -164,6 +166,7 @@ void swss::NotificationConsumer::pop(std::string &op, std::string &data, std::ve
          * 
          * Force the memory to be released by destroying existing queue and creating a new one.
          */
+        SWSS_LOG_INFO("Queue is empty, recreating");
         m_queue = nullptr;
         m_queue = std::make_shared<std::queue<std::string>>();
     }
