@@ -80,33 +80,61 @@ TEST(c_api, DBConnector) {
     clearDB();
     SWSSStringManager sm;
 
-    EXPECT_THROW(SWSSDBConnector_new_named("does not exist", 0, true), out_of_range);
-    SWSSDBConnector db = SWSSDBConnector_new_named("TEST_DB", 1000, true);
-    EXPECT_EQ(SWSSDBConnector_get(db, "mykey"), nullptr);
-    EXPECT_FALSE(SWSSDBConnector_exists(db, "mykey"));
+    SWSSDBConnector db;
+    SWSSDBConnector_new_named("TEST_DB", 1000, true, &db);
+
+    SWSSString val;
+    SWSSDBConnector_get(db, "mykey", &val);
+    EXPECT_EQ(val, nullptr);
+
+    int8_t exists;
+    SWSSDBConnector_exists(db, "mykey", &exists);
+    EXPECT_FALSE(exists);
 
     SWSSDBConnector_set(db, "mykey", sm.makeStrRef("myval"));
-    SWSSString val = SWSSDBConnector_get(db, "mykey");
+    SWSSDBConnector_get(db, "mykey", &val);
     EXPECT_STREQ(SWSSStrRef_c_str((SWSSStrRef)val), "myval");
     SWSSString_free(val);
-    EXPECT_TRUE(SWSSDBConnector_exists(db, "mykey"));
-    EXPECT_TRUE(SWSSDBConnector_del(db, "mykey"));
-    EXPECT_FALSE(SWSSDBConnector_del(db, "mykey"));
 
-    EXPECT_FALSE(SWSSDBConnector_hget(db, "mykey", "myfield"));
-    EXPECT_FALSE(SWSSDBConnector_hexists(db, "mykey", "myfield"));
+    SWSSDBConnector_exists(db, "mykey", &exists);
+    EXPECT_TRUE(exists);
+
+    int8_t status;
+    SWSSDBConnector_del(db, "mykey", &status);
+    EXPECT_TRUE(status);
+
+    SWSSDBConnector_del(db, "mykey", &status);
+    EXPECT_FALSE(status);
+
+    SWSSDBConnector_hget(db, "mykey", "myfield", &val);
+    EXPECT_EQ(val, nullptr);
+
+    SWSSDBConnector_hexists(db, "mykey", "myfield", &exists);
+    EXPECT_FALSE(exists);
+
     SWSSDBConnector_hset(db, "mykey", "myfield", sm.makeStrRef("myval"));
-    val = SWSSDBConnector_hget(db, "mykey", "myfield");
+    SWSSDBConnector_hget(db, "mykey", "myfield", &val);
     EXPECT_STREQ(SWSSStrRef_c_str((SWSSStrRef)val), "myval");
     SWSSString_free(val);
 
-    EXPECT_TRUE(SWSSDBConnector_hexists(db, "mykey", "myfield"));
-    EXPECT_FALSE(SWSSDBConnector_hget(db, "mykey", "notmyfield"));
-    EXPECT_FALSE(SWSSDBConnector_hexists(db, "mykey", "notmyfield"));
-    EXPECT_TRUE(SWSSDBConnector_hdel(db, "mykey", "myfield"));
-    EXPECT_FALSE(SWSSDBConnector_hdel(db, "mykey", "myfield"));
+    SWSSDBConnector_hexists(db, "mykey", "myfield", &exists);
+    EXPECT_TRUE(exists);
 
-    EXPECT_TRUE(SWSSDBConnector_flushdb(db));
+    SWSSDBConnector_hget(db, "mykey", "notmyfield", &val);
+    EXPECT_EQ(val, nullptr);
+
+    SWSSDBConnector_hexists(db, "mykey", "notmyfield", &exists);
+    EXPECT_FALSE(exists);
+
+    SWSSDBConnector_hdel(db, "mykey", "myfield", &status);
+    EXPECT_TRUE(status);
+
+    SWSSDBConnector_hdel(db, "mykey", "myfield", &status);
+    EXPECT_FALSE(status);
+
+    SWSSDBConnector_flushdb(db, &status);
+    EXPECT_TRUE(status);
+
     SWSSDBConnector_free(db);
 }
 
