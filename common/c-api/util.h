@@ -121,40 +121,20 @@ void SWSSStringArray_free(SWSSStringArray arr);
 
 using boost::numeric_cast;
 
-namespace swss {
-
-extern bool cApiTestingDisableAbort;
-
-// In the catch block, we must abort because passing an exception across an ffi boundary is
-// undefined behavior. It was also decided that no exceptions in swss-common are recoverable, so
-// there is no reason to convert exceptions into a returnable type.
-#define SWSSTry(...)                                                                               \
-    if (swss::cApiTestingDisableAbort) {                                                           \
-        { __VA_ARGS__; }                                                                           \
-    } else {                                                                                       \
-        try {                                                                                      \
-            { __VA_ARGS__; }                                                                       \
-        } catch (std::exception & e) {                                                             \
-            std::cerr << "Aborting due to exception: " << e.what() << std::endl;                   \
-            SWSS_LOG_ERROR("Aborting due to exception: %s", e.what());                             \
-            std::abort();                                                                          \
-        }                                                                                          \
-    }
-
 static inline SWSSSelectResult selectOne(swss::Selectable *s, uint32_t timeout_ms,
                                          uint8_t interrupt_on_signal) {
-    Select select;
-    Selectable *sOut;
+    swss::Select select;
+    swss::Selectable *sOut;
     select.addSelectable(s);
     int ret = select.select(&sOut, numeric_cast<int>(timeout_ms), interrupt_on_signal);
     switch (ret) {
-    case Select::OBJECT:
+    case swss::Select::OBJECT:
         return SWSSSelectResult_DATA;
-    case Select::ERROR:
+    case swss::Select::ERROR:
         throw std::system_error(errno, std::generic_category());
-    case Select::TIMEOUT:
+    case swss::Select::TIMEOUT:
         return SWSSSelectResult_TIMEOUT;
-    case Select::SIGNALINT:
+    case swss::Select::SIGNALINT:
         return SWSSSelectResult_SIGNAL;
     default:
         SWSS_LOG_THROW("impossible: unhandled Select::select() return value: %d", ret);
@@ -285,8 +265,6 @@ takeKeyOpFieldValuesArray(SWSSKeyOpFieldValuesArray in) {
     }
     return out;
 }
-
-} // namespace swss
 
 #endif
 #endif

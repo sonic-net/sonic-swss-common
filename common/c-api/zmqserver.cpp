@@ -5,10 +5,10 @@
 using namespace swss;
 using namespace std;
 
-SWSSZmqServer SWSSZmqServer_new(const char *endpoint) {
-    SWSSTry(return (SWSSZmqServer) new ZmqServer(string(endpoint)));
+SWSSResult SWSSZmqServer_new(const char *endpoint, SWSSZmqServer *outZmqServer) {
+    SWSSTry(*outZmqServer = (SWSSZmqServer) new ZmqServer(string(endpoint)));
 }
 
-void SWSSZmqServer_free(SWSSZmqServer zmqs) {
+SWSSResult SWSSZmqServer_free(SWSSZmqServer zmqs) {
     SWSSTry(delete (ZmqServer *)zmqs);
 }

@@ -10,44 +10,45 @@
 using namespace swss;
 using namespace std;
 
-SWSSProducerStateTable SWSSProducerStateTable_new(SWSSDBConnector db, const char *tableName) {
-    SWSSTry(return (SWSSProducerStateTable) new ProducerStateTable((DBConnector *)db,
-                                                                   string(tableName)));
+SWSSResult SWSSProducerStateTable_new(SWSSDBConnector db, const char *tableName,
+                                      SWSSProducerStateTable *outTbl) {
+    SWSSTry(*outTbl = (SWSSProducerStateTable) new ProducerStateTable((DBConnector *)db,
+                                                                      string(tableName)));
 }
 
-void SWSSProducerStateTable_free(SWSSProducerStateTable tbl) {
+SWSSResult SWSSProducerStateTable_free(SWSSProducerStateTable tbl) {
     SWSSTry(delete ((ProducerStateTable *)tbl));
 }
 
-void SWSSProducerStateTable_setBuffered(SWSSProducerStateTable tbl, uint8_t buffered) {
-    SWSSTry(((ProducerStateTable *)tbl)->setBuffered((bool)buffered))
+SWSSResult SWSSProducerStateTable_setBuffered(SWSSProducerStateTable tbl, uint8_t buffered) {
+    SWSSTry(((ProducerStateTable *)tbl)->setBuffered((bool)buffered));
 }
 
-void SWSSProducerStateTable_set(SWSSProducerStateTable tbl, const char *key,
-                                SWSSFieldValueArray values) {
+SWSSResult SWSSProducerStateTable_set(SWSSProducerStateTable tbl, const char *key,
+                                      SWSSFieldValueArray values) {
     SWSSTry(((ProducerStateTable *)tbl)->set(string(key), takeFieldValueArray(std::move(values))));
 }
 
-void SWSSProducerStateTable_del(SWSSProducerStateTable tbl, const char *key) {
+SWSSResult SWSSProducerStateTable_del(SWSSProducerStateTable tbl, const char *key) {
     SWSSTry(((ProducerStateTable *)tbl)->del(string(key)));
 }
 
-void SWSSProducerStateTable_flush(SWSSProducerStateTable tbl) {
+SWSSResult SWSSProducerStateTable_flush(SWSSProducerStateTable tbl) {
     SWSSTry(((ProducerStateTable *)tbl)->flush());
 }
 
-int64_t SWSSProducerStateTable_count(SWSSProducerStateTable tbl) {
-    SWSSTry(return ((ProducerStateTable *)tbl)->count());
+SWSSResult SWSSProducerStateTable_count(SWSSProducerStateTable tbl, int64_t *outCount) {
+    SWSSTry(*outCount = ((ProducerStateTable *)tbl)->count());
 }
 
-void SWSSProducerStateTable_clear(SWSSProducerStateTable tbl) {
+SWSSResult SWSSProducerStateTable_clear(SWSSProducerStateTable tbl) {
     SWSSTry(((ProducerStateTable *)tbl)->clear());
 }
 
-void SWSSProducerStateTable_create_temp_view(SWSSProducerStateTable tbl) {
+SWSSResult SWSSProducerStateTable_create_temp_view(SWSSProducerStateTable tbl) {
     SWSSTry(((ProducerStateTable *)tbl)->create_temp_view());
 }
 
-void SWSSProducerStateTable_apply_temp_view(SWSSProducerStateTable tbl) {
+SWSSResult SWSSProducerStateTable_apply_temp_view(SWSSProducerStateTable tbl) {
     SWSSTry(((ProducerStateTable *)tbl)->apply_temp_view());
 }
