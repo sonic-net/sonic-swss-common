@@ -55,7 +55,7 @@ private:
     swss::DBConnector *m_db;
     swss::DBConnector *m_subscribe;
     std::string m_channel;
-    std::shared_ptr<std::queue<std::string>> m_queue;
+    std::queue<std::string> m_queue;
 };
 
 }

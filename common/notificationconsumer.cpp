@@ -18,8 +18,6 @@ swss::NotificationConsumer::NotificationConsumer(swss::DBConnector *db, const st
 {
     SWSS_LOG_ENTER();
 
-    SWSS_LOG_NOTICE("Creating notification consumer for %s", m_channel.c_str());
-    m_queue = std::make_shared<std::queue<std::string>>();
     while (true)
     {
         try
@@ -108,12 +106,12 @@ uint64_t swss::NotificationConsumer::readData()
 
 bool swss::NotificationConsumer::hasData()
 {
-    return m_queue->size() > 0;
+    return m_queue.size() > 0;
 }
 
 bool swss::NotificationConsumer::hasCachedData()
 {
-    return m_queue->size() > 1;
+    return m_queue.size() > 1;
 }
 
 void swss::NotificationConsumer::processReply(redisReply *reply)
@@ -141,24 +139,23 @@ void swss::NotificationConsumer::processReply(redisReply *reply)
 
     SWSS_LOG_DEBUG("got message: %s", msg.c_str());
 
-    m_queue->push(msg);
-    SWSS_LOG_INFO("%s queue size is %zu", m_channel.c_str(), m_queue->size());
+    m_queue.push(msg);
 }
 
 void swss::NotificationConsumer::pop(std::string &op, std::string &data, std::vector<FieldValueTuple> &values)
 {
     SWSS_LOG_ENTER();
 
-    if (m_queue->empty())
+    if (m_queue.empty())
     {
         SWSS_LOG_ERROR("notification queue is empty, can't pop");
         throw std::runtime_error("notification queue is empty, can't pop");
     }
 
-    std::string msg = m_queue->front();
-    m_queue->pop();
+    std::string msg = m_queue.front();
+    m_queue.pop();
 
-    if (m_queue->empty())
+    if (m_queue.empty())
     {
         /***
          * If there is a burst of notifications that causes the queue to grow in size,
@@ -167,19 +164,16 @@ void swss::NotificationConsumer::pop(std::string &op, std::string &data, std::ve
          * 
          * Force the memory to be released by destroying existing queue and creating a new one.
          */
-        SWSS_LOG_INFO("%s queue is empty, recreating", m_channel.c_str());
+        SWSS_LOG_DEBUG("%s queue is empty, calling malloc_trim()", m_channel.c_str());
         int rv = malloc_trim(0);
         if (rv == 1)
         {
-            SWSS_LOG_INFO("Memory released successfully");
+            SWSS_LOG_DEBUG("Memory released successfully");
         }
         else
         {
-            SWSS_LOG_INFO("No memory released by malloc_trim");
+            SWSS_LOG_DEBUG("No memory released by malloc_trim");
         }
-        m_queue.reset();
-        m_queue = nullptr;
-        m_queue = std::make_shared<std::queue<std::string>>();
     }
 
     values.clear();
@@ -198,9 +192,9 @@ void swss::NotificationConsumer::pops(std::deque<KeyOpFieldsValuesTuple> &vkco)
     SWSS_LOG_ENTER();
 
     vkco.clear();
-    while(!m_queue->empty())
+    while(!m_queue.empty())
     {
-        while(!m_queue->empty())
+        while(!m_queue.empty())
         {
             std::string op;
             std::string data;
@@ -226,7 +220,7 @@ void swss::NotificationConsumer::pops(std::deque<KeyOpFieldsValuesTuple> &vkco)
 int swss::NotificationConsumer::peek()
 {
     SWSS_LOG_ENTER();
-    if (m_queue->empty())
+    if (m_queue.empty())
     {
         // Peek for more data in redis socket
         int rc = swss::peekRedisContext(m_subscribe->getContext());
@@ -237,5 +231,5 @@ int swss::NotificationConsumer::peek()
         readData();
     }
 
-    return m_queue->empty() ? 0 : 1;
+    return m_queue.empty() ? 0 : 1;
 }
