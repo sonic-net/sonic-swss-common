@@ -164,7 +164,7 @@ void swss::NotificationConsumer::pop(std::string &op, std::string &data, std::ve
          * 
          * Force the memory to be released by destroying existing queue and creating a new one.
          */
-        SWSS_LOG_DEBUG("%s queue is empty, calling malloc_trim()", m_channel.c_str());
+        SWSS_LOG_INFO("%s queue is empty, calling malloc_trim()", m_channel.c_str());
         int rv = malloc_trim(0);
         if (rv == 1)
         {
