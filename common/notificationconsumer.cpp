@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <deque>
+#include <malloc.h>
 #include "redisapi.h"
 
 #define NOTIFICATION_SUBSCRIBE_TIMEOUT (1000)
@@ -167,6 +168,15 @@ void swss::NotificationConsumer::pop(std::string &op, std::string &data, std::ve
          * Force the memory to be released by destroying existing queue and creating a new one.
          */
         SWSS_LOG_INFO("%s queue is empty, recreating", m_channel.c_str());
+        int rv = malloc_trim(0);
+        if (rv == 1)
+        {
+            SWSS_LOG_INFO("Memory released successfully");
+        }
+        else
+        {
+            SWSS_LOG_INFO("No memory released by malloc_trim");
+        }
         m_queue.reset();
         m_queue = nullptr;
         m_queue = std::make_shared<std::queue<std::string>>();
