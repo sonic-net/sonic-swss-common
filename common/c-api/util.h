@@ -19,6 +19,7 @@ typedef struct SWSSStringOpaque *SWSSString;
 typedef struct SWSSStrRefOpaque *SWSSStrRef;
 
 // FFI version of swss::FieldValueTuple
+// field should be freed with libc's free()
 typedef struct {
     const char *field;
     SWSSString value;
@@ -59,6 +60,13 @@ typedef enum {
     SWSSSelectResult_SIGNAL = 2,
 } SWSSSelectResult;
 
+// FFI version of std::vector<std::string>
+// data strings should be freed with libc's free()
+typedef struct {
+    uint64_t len;
+    const char **data;
+} SWSSStringArray;
+
 // data should not include a null terminator
 SWSSString SWSSString_new(const char *data, uint64_t length);
 
@@ -84,6 +92,10 @@ void SWSSFieldValueArray_free(SWSSFieldValueArray arr);
 // kfvs.data may be null. This is not recursive - elements must be freed separately (for finer
 // grained control of ownership).
 void SWSSKeyOpFieldValuesArray_free(SWSSKeyOpFieldValuesArray kfvs);
+
+// arr.data may be null. This is not recursive - elements must be freed separately (for finer
+// grained control of ownership).
+void SWSSStringArray_free(SWSSStringArray arr);
 
 #ifdef __cplusplus
 }
@@ -209,6 +221,19 @@ template <class T> static inline SWSSKeyOpFieldValuesArray makeKeyOpFieldValuesA
         data[i++] = makeKeyOpFieldValues(std::move(getReference(kfv)));
 
     SWSSKeyOpFieldValuesArray out;
+    out.len = (uint64_t)in.size();
+    out.data = data;
+    return out;
+}
+
+static inline SWSSStringArray makeStringArray(std::vector<std::string> &&in) {
+    const char **data = new const char*[in.size()];
+
+    size_t i = 0;
+    for (std::string &s : in)
+        data[i++] = strdup(s.c_str());
+
+    SWSSStringArray out;
     out.len = (uint64_t)in.size();
     out.data = data;
     return out;
