@@ -31,3 +31,7 @@ void SWSSFieldValueArray_free(SWSSFieldValueArray arr) {
 void SWSSKeyOpFieldValuesArray_free(SWSSKeyOpFieldValuesArray kfvs) {
     SWSSTry(delete[] kfvs.data);
 }
+
+void SWSSStringArray_free(SWSSStringArray arr) {
+    SWSSTry(delete[] arr.data);
+}

@@ -492,7 +492,7 @@ static void zmqConsumerWorker(string tableName, string endpoint,
       std::vector<FieldValueTuple>{FieldValueTuple{"f", "v"}}});
 
   while (!zmq_done) {
-    sleep(10);
+    sleep(2);
     std::string recDbName, recTableName;
     std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> recKcos;
     std::vector<KeyOpFieldsValuesTuple> deserializedKcos;
@@ -544,7 +544,6 @@ static void ZmqWithResponse(bool producerPersistence)
     }
 
     zmq_done = true;
-    sleep(10); 
     consumerThread->join();
     delete consumerThread;
 }
