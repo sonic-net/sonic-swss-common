@@ -1,9 +1,12 @@
+#include <cstdio>
+#include <cstring>
 #include <unistd.h>
 #include <vector>
 
 #include "common/c-api/consumerstatetable.h"
 #include "common/c-api/dbconnector.h"
 #include "common/c-api/producerstatetable.h"
+#include "common/c-api/result.h"
 #include "common/c-api/subscriberstatetable.h"
 #include "common/c-api/table.h"
 #include "common/c-api/util.h"
@@ -59,9 +62,17 @@ static void freeKeyOpFieldValuesArray(SWSSKeyOpFieldValuesArray arr) {
 
 struct SWSSStringManager {
     vector<SWSSString> m_strings;
+    bool use_c_str = false;
 
     SWSSString makeString(const char *c_str) {
-        SWSSString s = SWSSString_new_c_str(c_str);
+        use_c_str = !use_c_str;
+
+        SWSSString s;
+        if (use_c_str) {
+            s = SWSSString_new_c_str(c_str);
+        } else {
+            s = SWSSString_new(c_str, strlen(c_str));
+        }
         m_strings.push_back(s);
         return s;
     }
@@ -450,4 +461,23 @@ TEST(c_api, ZmqConsumerProducerStateTable) {
     int8_t flushStatus;
     SWSSDBConnector_flushdb(db, &flushStatus);
     SWSSDBConnector_free(db);
+}
+
+TEST(c_api, exceptions) {
+    SWSSDBConnector db = nullptr;
+    SWSSResult result = SWSSDBConnector_new_tcp(0, "127.0.0.1", 1, 1000, &db);
+    ASSERT_EQ(db, nullptr);
+    ASSERT_NE(result.exception, SWSSException_None);
+    ASSERT_NE(result.location, nullptr);
+    ASSERT_NE(result.message, nullptr);
+
+    const char *cstr = SWSSStrRef_c_str((SWSSStrRef)result.location);
+    EXPECT_EQ(SWSSStrRef_length((SWSSStrRef)result.location), strlen(cstr));
+    printf("Exception location: %s\n", cstr);
+    cstr = SWSSStrRef_c_str((SWSSStrRef)result.message);
+    EXPECT_EQ(SWSSStrRef_length((SWSSStrRef)result.message), strlen(cstr));
+    printf("Exception message: %s\n", cstr);
+
+    SWSSString_free(result.location);
+    SWSSString_free(result.message);
 }
