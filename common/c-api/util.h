@@ -20,12 +20,14 @@ typedef struct SWSSStrRefOpaque *SWSSStrRef;
 
 // FFI version of swss::FieldValueTuple
 // field should be freed with libc's free()
+// value should be freed with SWSSString_free()
 typedef struct {
     const char *field;
     SWSSString value;
 } SWSSFieldValueTuple;
 
 // FFI version of std::vector<swss::FieldValueTuple>
+// data should be freed with SWSSFieldValueArray_free()
 typedef struct {
     uint64_t len;
     SWSSFieldValueTuple *data;
@@ -37,6 +39,8 @@ typedef enum {
 } SWSSKeyOperation;
 
 // FFI version of swss::KeyOpFieldValuesTuple
+// key should be freed with libc's free()
+// fieldValues should be freed with SWSSFieldValueArray_free()
 typedef struct {
     const char *key;
     SWSSKeyOperation operation;
@@ -44,6 +48,7 @@ typedef struct {
 } SWSSKeyOpFieldValues;
 
 // FFI version of std::vector<swss::KeyOpFieldValueTuple>
+// data should be freed with SWSSKeyOpFieldValuesArray_free()
 typedef struct {
     uint64_t len;
     SWSSKeyOpFieldValues *data;
@@ -61,7 +66,8 @@ typedef enum {
 } SWSSSelectResult;
 
 // FFI version of std::vector<std::string>
-// data strings should be freed with libc's free()
+// strings in data should be freed with libc's free()
+// data should be freed with SWSSStringArray_free()
 typedef struct {
     uint64_t len;
     const char **data;
