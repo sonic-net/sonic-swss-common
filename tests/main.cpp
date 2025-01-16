@@ -85,9 +85,6 @@ public:
         SonicDBConfig::initializeGlobalConfig(global_existing_file);
         cout<<"INIT: load global db config file, isInit = "<<SonicDBConfig::isGlobalInit()<<endl;
         EXPECT_TRUE(SonicDBConfig::isGlobalInit());
-
-        // Disable aborts for the c api so that EXPECT_THROW will work as intended
-        swss::cApiTestingDisableAbort = true;
     }
 };
 
