@@ -39,7 +39,13 @@ public:
                                 const std::string tableName,
                                 ZmqMessageHandler* handler);
 
+    void sendMsg(const std::string& dbName, const std::string& tableName,
+        const std::vector<swss::KeyOpFieldsValuesTuple>& values);
+
 private:
+
+    void connect();
+
     void handleReceivedData(const char* buffer, const size_t size);
 
     void mqPollThread();
@@ -55,6 +61,10 @@ private:
     std::string m_endpoint;
 
     std::string m_vrf;
+
+    void* m_context;
+
+    void* m_socket;
 
     std::map<std::string, std::map<std::string, ZmqMessageHandler*>> m_HandlerMap;
 };

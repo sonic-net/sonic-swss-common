@@ -3,6 +3,7 @@
 #include <thread>
 #include <algorithm>
 #include <deque>
+#include <zmq.hpp>
 #include "gtest/gtest.h"
 #include "common/dbconnector.h"
 #include "common/notificationconsumer.h"
@@ -14,6 +15,7 @@
 #include "common/zmqclient.h"
 #include "common/zmqproducerstatetable.h"
 #include "common/zmqconsumerstatetable.h"
+#include "common/binaryserializer.h"
 
 using namespace std;
 using namespace swss;
@@ -257,6 +259,9 @@ static void consumerWorker(string tableName, string endpoint, bool dbPersistence
         }
     }
 
+    // Wait for some time to write into the DB.
+    sleep(3);
+
     allDataReceived = true;
 
     if (dbPersistence)
@@ -287,6 +292,9 @@ static void testMethod(bool producerPersistence)
 
     // start consumer first, SHM can only have 1 consumer per table.
     thread *consumerThread = new thread(consumerWorker, testTableName, pullEndpoint, !producerPersistence);
+
+    // Wait for the consumer to start.
+    sleep(1);
 
     cout << "Starting " << NUMBER_OF_THREADS << " producers" << endl;
     /* Starting the producer before the producer */
@@ -350,6 +358,9 @@ static void testBatchMethod(bool producerPersistence)
 
     // start consumer first, SHM can only have 1 consumer per table.
     thread *consumerThread = new thread(consumerWorker, testTableName, pullEndpoint, !producerPersistence);
+
+    // Wait for the consumer to start.
+    sleep(1);
 
     cout << "Starting " << NUMBER_OF_THREADS << " producers" << endl;
     /* Starting the producer before the producer */
@@ -464,4 +475,97 @@ TEST(ZmqProducerStateTableDeleteAfterSend, test)
     std::vector<std::string> keys;
     table.getKeys(keys);
     EXPECT_EQ(keys.front(), testKey);
+}
+
+static bool zmq_done = false;
+
+static void zmqConsumerWorker(string tableName, string endpoint,
+                              bool dbPersistence) {
+  cout << "Consumer thread started: " << tableName << endl;
+  DBConnector db(TEST_DB, 0, true);
+  ZmqServer server(endpoint, "");
+  ZmqConsumerStateTable c(&db, tableName, server, 128, 0, dbPersistence);
+  // validate received data
+  std::vector<swss::KeyOpFieldsValuesTuple> values;
+  values.push_back(KeyOpFieldsValuesTuple{
+      "k", SET_COMMAND,
+      std::vector<FieldValueTuple>{FieldValueTuple{"f", "v"}}});
+
+  while (!zmq_done) {
+    sleep(2);
+    std::string recDbName, recTableName;
+    std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> recKcos;
+    std::vector<KeyOpFieldsValuesTuple> deserializedKcos;
+
+    BinarySerializer::deserializeBuffer(server.m_buffer.data(),
+                                        server.m_buffer.size(), recDbName,
+                                        recTableName, recKcos);
+
+    for (auto kcoPtr : recKcos)
+    {
+      deserializedKcos.push_back(*kcoPtr);
+    }
+    EXPECT_EQ(recDbName, TEST_DB);
+    EXPECT_EQ(recTableName, tableName);
+    EXPECT_EQ(deserializedKcos, values);
+    }
+
+    allDataReceived = true;
+    if (dbPersistence)
+    {
+        // wait all persist data write to redis
+        while (c.dbUpdaterQueueSize() > 0)
+        {
+            sleep(1);
+        }
+    }
+
+    zmq_done = true;
+    cout << "Consumer thread ended: " << tableName << endl;
+}
+
+static void ZmqWithResponse(bool producerPersistence)
+{
+    std::string testTableName = "ZMQ_PROD_CONS_UT";
+    std::string pushEndpoint = "tcp://localhost:1234";
+    std::string pullEndpoint = "tcp://*:1234";
+    // start consumer first, SHM can only have 1 consumer per table.
+    thread *consumerThread = new thread(zmqConsumerWorker, testTableName, pullEndpoint, !producerPersistence);
+
+    // Wait for the consumer to be ready.
+    sleep(1);
+    DBConnector db(TEST_DB, 0, true);
+    ZmqClient client(pushEndpoint, 3000);
+    ZmqProducerStateTable p(&db, testTableName, client, true);
+    std::vector<KeyOpFieldsValuesTuple> kcos;
+    kcos.push_back(KeyOpFieldsValuesTuple{"k", SET_COMMAND, std::vector<FieldValueTuple>{FieldValueTuple{"f", "v"}}});
+    for (int i = 0; i < 3; ++i) {
+      p.send(kcos);
+    }
+
+    zmq_done = true;
+    consumerThread->join();
+    delete consumerThread;
+}
+
+TEST(ZmqWithResponse, test)
+{
+    // test with persist by consumer
+    ZmqWithResponse(false);
+}
+
+TEST(ZmqWithResponseClientError, test)
+{
+    std::string testTableName = "ZMQ_PROD_CONS_UT";
+    std::string pushEndpoint = "tcp://localhost:1234";
+    DBConnector db(TEST_DB, 0, true);
+    ZmqClient client(pushEndpoint, 3000);
+    ZmqProducerStateTable p(&db, testTableName, client, true);
+    std::vector<KeyOpFieldsValuesTuple> kcos;
+    kcos.push_back(KeyOpFieldsValuesTuple{"k", SET_COMMAND, std::vector<FieldValueTuple>{}});
+    std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> kcosPtr;
+    std::string dbName, tableName;
+    p.send(kcos);
+    // Wait will timeout without server reply.
+    EXPECT_FALSE(p.wait(dbName, tableName, kcosPtr));
 }

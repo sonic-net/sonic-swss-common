@@ -1,18 +1,18 @@
-#include <stdlib.h>
-#include <tuple>
-#include <sstream>
-#include <utility>
+#include "zmqproducerstatetable.h"
+#include "binaryserializer.h"
+#include "redisapi.h"
+#include "redispipeline.h"
+#include "redisreply.h"
+#include "table.h"
+#include "zmqconsumerstatetable.h"
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <sstream>
+#include <stdlib.h>
+#include <tuple>
+#include <utility>
 #include <zmq.h>
-#include "redisreply.h"
-#include "table.h"
-#include "redisapi.h"
-#include "redispipeline.h"
-#include "zmqproducerstatetable.h"
-#include "zmqconsumerstatetable.h"
-#include "binaryserializer.h"
 
 using namespace std;
 
@@ -162,6 +162,13 @@ void ZmqProducerStateTable::send(const std::vector<KeyOpFieldsValuesTuple> &kcos
             m_asyncDBUpdater->update(clone);
         }
     }
+}
+
+bool ZmqProducerStateTable::wait(const std::string& dbName,
+              const std::string& tableName,
+              const std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos)
+{
+    return m_zmqClient.wait(dbName, tableName, kcos);
 }
 
 size_t ZmqProducerStateTable::dbUpdaterQueueSize()

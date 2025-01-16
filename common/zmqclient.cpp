@@ -25,6 +25,12 @@ ZmqClient::ZmqClient(const std::string& endpoint, const std::string& vrf)
     initialize(endpoint, vrf);
 }
 
+ZmqClient::ZmqClient(const std::string& endpoint, uint32_t waitTimeMs)
+: m_waitTimeMs(waitTimeMs)
+{
+    initialize(endpoint);
+}
+
 ZmqClient::~ZmqClient()
 {
     std::lock_guard<std::mutex> lock(m_socketMutex);
@@ -55,7 +61,7 @@ void ZmqClient::initialize(const std::string& endpoint, const std::string& vrf)
 
     connect();
 }
-    
+
 bool ZmqClient::isConnected()
 {
     return m_connected;
@@ -137,7 +143,7 @@ void ZmqClient::sendMsg(
     int zmq_err = 0;
     int retry_delay = 10;
     int rc = 0;
-    for (int i = 0; i <=  MQ_MAX_RETRY; ++i)
+    for (int i = 0; i <= MQ_MAX_RETRY; ++i)
     {
         {
             // ZMQ socket is not thread safe: http://api.zeromq.org/2-1:zmq
@@ -146,7 +152,6 @@ void ZmqClient::sendMsg(
             // Use none block mode to use all bandwidth: http://api.zeromq.org/2-1%3Azmq-send
             rc = zmq_send(m_socket, m_sendbuffer.data(), serializedlen, ZMQ_NOBLOCK);
         }
-
         if (rc >= 0)
         {
             SWSS_LOG_DEBUG("zmq sended %d bytes", serializedlen);
@@ -197,4 +202,11 @@ void ZmqClient::sendMsg(
     throw system_error(make_error_code(errc::io_error), message);
 }
 
+// TODO: To be implemented later, required for ZMQ_CLIENT & ZMQ_SERVER
+// socket types in response path.
+bool ZmqClient::wait(
+    const std::string &dbName, const std::string &tableName,
+    const std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> &kcos) {
+  return false;
+}
 }
