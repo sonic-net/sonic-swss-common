@@ -2,6 +2,7 @@
 #define SWSS_COMMON_C_API_CONSUMERSTATETABLE_H
 
 #include "dbconnector.h"
+#include "result.h"
 #include "util.h"
 
 #ifdef __cplusplus
@@ -12,25 +13,25 @@ extern "C" {
 
 typedef struct SWSSConsumerStateTableOpaque *SWSSConsumerStateTable;
 
-// Pass NULL for popBatchSize and/or pri to use the default values
-SWSSConsumerStateTable SWSSConsumerStateTable_new(SWSSDBConnector db, const char *tableName,
-                                                  const int32_t *popBatchSize, const int32_t *pri);
+SWSSResult SWSSConsumerStateTable_new(SWSSDBConnector db, const char *tableName,
+                                      const int32_t *popBatchSize, const int32_t *pri,
+                                      SWSSConsumerStateTable *outTbl);
 
-void SWSSConsumerStateTable_free(SWSSConsumerStateTable tbl);
+SWSSResult SWSSConsumerStateTable_free(SWSSConsumerStateTable tbl);
 
 // Result array and all of its members must be freed using free()
-SWSSKeyOpFieldValuesArray SWSSConsumerStateTable_pops(SWSSConsumerStateTable tbl);
+SWSSResult SWSSConsumerStateTable_pops(SWSSConsumerStateTable tbl, SWSSKeyOpFieldValuesArray *outArr);
 
-// Return the underlying fd for polling/selecting on.
-// Callers must NOT read/write on fd, it may only be used for epoll or similar.
+// Outputs the underlying fd for polling/selecting on.
+// Callers must NOT read/write on the fd, it may only be used for epoll or similar.
 // After the fd becomes readable, SWSSConsumerStateTable_readData must be used to
 // reset the fd and read data into internal data structures.
-uint32_t SWSSConsumerStateTable_getFd(SWSSConsumerStateTable tbl);
+SWSSResult SWSSConsumerStateTable_getFd(SWSSConsumerStateTable tbl, uint32_t *outFd);
 
 // Block until data is available to read or until a timeout elapses.
 // A timeout of 0 means the call will return immediately.
-SWSSSelectResult SWSSConsumerStateTable_readData(SWSSConsumerStateTable tbl, uint32_t timeout_ms,
-                                                 uint8_t interrupt_on_signal);
+SWSSResult SWSSConsumerStateTable_readData(SWSSConsumerStateTable tbl, uint32_t timeout_ms,
+                                           uint8_t interrupt_on_signal, SWSSSelectResult *outResult);
 
 #ifdef __cplusplus
 }

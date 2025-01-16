@@ -2,6 +2,7 @@
 #define SWSS_COMMON_C_API_ZMQPRODUCERSTATETABLE_H
 
 #include "dbconnector.h"
+#include "result.h"
 #include "util.h"
 #include "zmqclient.h"
 
@@ -13,17 +14,18 @@ extern "C" {
 
 typedef struct SWSSZmqProducerStateTableOpaque *SWSSZmqProducerStateTable;
 
-SWSSZmqProducerStateTable SWSSZmqProducerStateTable_new(SWSSDBConnector db, const char *tableName,
-                                                        SWSSZmqClient zmqc, uint8_t dbPersistence);
+SWSSResult SWSSZmqProducerStateTable_new(SWSSDBConnector db, const char *tableName,
+                                         SWSSZmqClient zmqc, uint8_t dbPersistence,
+                                         SWSSZmqProducerStateTable *outTbl);
 
-void SWSSZmqProducerStateTable_free(SWSSZmqProducerStateTable tbl);
+SWSSResult SWSSZmqProducerStateTable_free(SWSSZmqProducerStateTable tbl);
 
-void SWSSZmqProducerStateTable_set(SWSSZmqProducerStateTable tbl, const char *key,
-                                   SWSSFieldValueArray values);
+SWSSResult SWSSZmqProducerStateTable_set(SWSSZmqProducerStateTable tbl, const char *key,
+                                         SWSSFieldValueArray values);
 
-void SWSSZmqProducerStateTable_del(SWSSZmqProducerStateTable tbl, const char *key);
+SWSSResult SWSSZmqProducerStateTable_del(SWSSZmqProducerStateTable tbl, const char *key);
 
-uint64_t SWSSZmqProducerStateTable_dbUpdaterQueueSize(SWSSZmqProducerStateTable tbl);
+SWSSResult SWSSZmqProducerStateTable_dbUpdaterQueueSize(SWSSZmqProducerStateTable tbl, uint64_t *outSize);
 
 #ifdef __cplusplus
 }

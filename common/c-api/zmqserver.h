@@ -1,6 +1,7 @@
 #ifndef SWSS_COMMON_C_API_ZMQSERVER_H
 #define SWSS_COMMON_C_API_ZMQSERVER_H
 
+#include "result.h"
 #include "util.h"
 
 #ifdef __cplusplus
@@ -9,9 +10,9 @@ extern "C" {
 
 typedef struct SWSSZmqServerOpaque *SWSSZmqServer;
 
-SWSSZmqServer SWSSZmqServer_new(const char *endpoint);
+SWSSResult SWSSZmqServer_new(const char *endpoint, SWSSZmqServer *outZmqServer);
 
-void SWSSZmqServer_free(SWSSZmqServer zmqs);
+SWSSResult SWSSZmqServer_free(SWSSZmqServer zmqs);
 
 #ifdef __cplusplus
 }

@@ -20,12 +20,14 @@ typedef struct SWSSStrRefOpaque *SWSSStrRef;
 
 // FFI version of swss::FieldValueTuple
 // field should be freed with libc's free()
+// value should be freed with SWSSString_free()
 typedef struct {
     const char *field;
     SWSSString value;
 } SWSSFieldValueTuple;
 
 // FFI version of std::vector<swss::FieldValueTuple>
+// data should be freed with SWSSFieldValueArray_free()
 typedef struct {
     uint64_t len;
     SWSSFieldValueTuple *data;
@@ -37,6 +39,8 @@ typedef enum {
 } SWSSKeyOperation;
 
 // FFI version of swss::KeyOpFieldValuesTuple
+// key should be freed with libc's free()
+// fieldValues should be freed with SWSSFieldValueArray_free()
 typedef struct {
     const char *key;
     SWSSKeyOperation operation;
@@ -44,6 +48,7 @@ typedef struct {
 } SWSSKeyOpFieldValues;
 
 // FFI version of std::vector<swss::KeyOpFieldValueTuple>
+// data should be freed with SWSSKeyOpFieldValuesArray_free()
 typedef struct {
     uint64_t len;
     SWSSKeyOpFieldValues *data;
@@ -61,7 +66,8 @@ typedef enum {
 } SWSSSelectResult;
 
 // FFI version of std::vector<std::string>
-// data strings should be freed with libc's free()
+// strings in data should be freed with libc's free()
+// data should be freed with SWSSStringArray_free()
 typedef struct {
     uint64_t len;
     const char **data;
@@ -121,40 +127,20 @@ void SWSSStringArray_free(SWSSStringArray arr);
 
 using boost::numeric_cast;
 
-namespace swss {
-
-extern bool cApiTestingDisableAbort;
-
-// In the catch block, we must abort because passing an exception across an ffi boundary is
-// undefined behavior. It was also decided that no exceptions in swss-common are recoverable, so
-// there is no reason to convert exceptions into a returnable type.
-#define SWSSTry(...)                                                                               \
-    if (swss::cApiTestingDisableAbort) {                                                           \
-        { __VA_ARGS__; }                                                                           \
-    } else {                                                                                       \
-        try {                                                                                      \
-            { __VA_ARGS__; }                                                                       \
-        } catch (std::exception & e) {                                                             \
-            std::cerr << "Aborting due to exception: " << e.what() << std::endl;                   \
-            SWSS_LOG_ERROR("Aborting due to exception: %s", e.what());                             \
-            std::abort();                                                                          \
-        }                                                                                          \
-    }
-
 static inline SWSSSelectResult selectOne(swss::Selectable *s, uint32_t timeout_ms,
                                          uint8_t interrupt_on_signal) {
-    Select select;
-    Selectable *sOut;
+    swss::Select select;
+    swss::Selectable *sOut;
     select.addSelectable(s);
     int ret = select.select(&sOut, numeric_cast<int>(timeout_ms), interrupt_on_signal);
     switch (ret) {
-    case Select::OBJECT:
+    case swss::Select::OBJECT:
         return SWSSSelectResult_DATA;
-    case Select::ERROR:
+    case swss::Select::ERROR:
         throw std::system_error(errno, std::generic_category());
-    case Select::TIMEOUT:
+    case swss::Select::TIMEOUT:
         return SWSSSelectResult_TIMEOUT;
-    case Select::SIGNALINT:
+    case swss::Select::SIGNALINT:
         return SWSSSelectResult_SIGNAL;
     default:
         SWSS_LOG_THROW("impossible: unhandled Select::select() return value: %d", ret);
@@ -285,8 +271,6 @@ takeKeyOpFieldValuesArray(SWSSKeyOpFieldValuesArray in) {
     }
     return out;
 }
-
-} // namespace swss
 
 #endif
 #endif
