@@ -9,67 +9,66 @@
 using namespace swss;
 using namespace std;
 
-void SWSSSonicDBConfig_initialize(const char *path) {
+SWSSResult SWSSSonicDBConfig_initialize(const char *path) {
     SWSSTry(SonicDBConfig::initialize(path));
 }
 
-void SWSSSonicDBConfig_initializeGlobalConfig(const char *path) {
+SWSSResult SWSSSonicDBConfig_initializeGlobalConfig(const char *path) {
     SWSSTry(SonicDBConfig::initializeGlobalConfig(path));
 }
 
-SWSSDBConnector SWSSDBConnector_new_tcp(int32_t dbId, const char *hostname, uint16_t port,
-                                        uint32_t timeout) {
-    SWSSTry(return (SWSSDBConnector) new DBConnector(dbId, string(hostname), port, timeout));
+SWSSResult SWSSDBConnector_new_tcp(int32_t dbId, const char *hostname, uint16_t port,
+                                   uint32_t timeout, SWSSDBConnector *outDb) {
+    SWSSTry(*outDb = (SWSSDBConnector) new DBConnector(dbId, string(hostname), port, timeout));
 }
 
-SWSSDBConnector SWSSDBConnector_new_unix(int32_t dbId, const char *sock_path, uint32_t timeout) {
-    SWSSTry(return (SWSSDBConnector) new DBConnector(dbId, string(sock_path), timeout));
+SWSSResult SWSSDBConnector_new_unix(int32_t dbId, const char *sock_path, uint32_t timeout, SWSSDBConnector *outDb) {
+    SWSSTry(*outDb = (SWSSDBConnector) new DBConnector(dbId, string(sock_path), timeout));
 }
 
-SWSSDBConnector SWSSDBConnector_new_named(const char *dbName, uint32_t timeout_ms, uint8_t isTcpConn) {
-    SWSSTry(return (SWSSDBConnector) new DBConnector(string(dbName), timeout_ms, isTcpConn));
+SWSSResult SWSSDBConnector_new_named(const char *dbName, uint32_t timeout_ms, uint8_t isTcpConn, SWSSDBConnector *outDb) {
+    SWSSTry(*outDb = (SWSSDBConnector) new DBConnector(string(dbName), timeout_ms, isTcpConn));
 }
 
-void SWSSDBConnector_free(SWSSDBConnector db) {
-    delete (DBConnector *)db;
+SWSSResult SWSSDBConnector_free(SWSSDBConnector db) {
+    SWSSTry(delete (DBConnector *)db);
 }
 
-int8_t SWSSDBConnector_del(SWSSDBConnector db, const char *key) {
-    SWSSTry(return ((DBConnector *)db)->del(string(key)) ? 1 : 0);
+SWSSResult SWSSDBConnector_del(SWSSDBConnector db, const char *key, int8_t *outStatus) {
+    SWSSTry(*outStatus = ((DBConnector *)db)->del(string(key)) ? 1 : 0);
 }
 
-void SWSSDBConnector_set(SWSSDBConnector db, const char *key, SWSSStrRef value) {
+SWSSResult SWSSDBConnector_set(SWSSDBConnector db, const char *key, SWSSStrRef value) {
     SWSSTry(((DBConnector *)db)->set(string(key), takeStrRef(value)));
 }
 
-SWSSString SWSSDBConnector_get(SWSSDBConnector db, const char *key) {
+SWSSResult SWSSDBConnector_get(SWSSDBConnector db, const char *key, SWSSString *outValue) {
     SWSSTry({
         shared_ptr<string> s = ((DBConnector *)db)->get(string(key));
-        return s ? makeString(move(*s)) : nullptr;
+        *outValue = s ? makeString(move(*s)) : nullptr;
     });
 }
 
-int8_t SWSSDBConnector_exists(SWSSDBConnector db, const char *key) {
-    SWSSTry(return ((DBConnector *)db)->exists(string(key)) ? 1 : 0);
+SWSSResult SWSSDBConnector_exists(SWSSDBConnector db, const char *key, int8_t *outExists) {
+    SWSSTry(*outExists = ((DBConnector *)db)->exists(string(key)) ? 1 : 0);
 }
 
-int8_t SWSSDBConnector_hdel(SWSSDBConnector db, const char *key, const char *field) {
-    SWSSTry(return ((DBConnector *)db)->hdel(string(key), string(field)) ? 1 : 0);
+SWSSResult SWSSDBConnector_hdel(SWSSDBConnector db, const char *key, const char *field, int8_t *outResult) {
+    SWSSTry(*outResult = ((DBConnector *)db)->hdel(string(key), string(field)) ? 1 : 0);
 }
 
-void SWSSDBConnector_hset(SWSSDBConnector db, const char *key, const char *field,
-                          SWSSStrRef value) {
+SWSSResult SWSSDBConnector_hset(SWSSDBConnector db, const char *key, const char *field, SWSSStrRef value) {
     SWSSTry(((DBConnector *)db)->hset(string(key), string(field), takeStrRef(value)));
 }
 
-SWSSString SWSSDBConnector_hget(SWSSDBConnector db, const char *key, const char *field) {
+SWSSResult SWSSDBConnector_hget(SWSSDBConnector db, const char *key, const char *field, SWSSString *outValue) {
     SWSSTry({
         shared_ptr<string> s = ((DBConnector *)db)->hget(string(key), string(field));
-        return s ? makeString(move(*s)) : nullptr;
+        *outValue = s ? makeString(move(*s)) : nullptr;
     });
 }
 
-SWSSFieldValueArray SWSSDBConnector_hgetall(SWSSDBConnector db, const char *key) {
+SWSSResult SWSSDBConnector_hgetall(SWSSDBConnector db, const char *key, SWSSFieldValueArray *outArr) {
     SWSSTry({
         auto map = ((DBConnector *)db)->hgetall(string(key));
 
@@ -80,14 +79,14 @@ SWSSFieldValueArray SWSSDBConnector_hgetall(SWSSDBConnector db, const char *key)
         for (auto &pair : map)
             pairs.push_back(make_pair(pair.first, move(pair.second)));
 
-        return makeFieldValueArray(std::move(pairs));
+        *outArr = makeFieldValueArray(std::move(pairs));
     });
 }
 
-int8_t SWSSDBConnector_hexists(SWSSDBConnector db, const char *key, const char *field) {
-    SWSSTry(return ((DBConnector *)db)->hexists(string(key), string(field)) ? 1 : 0);
+SWSSResult SWSSDBConnector_hexists(SWSSDBConnector db, const char *key, const char *field, int8_t *outExists) {
+    SWSSTry(*outExists = ((DBConnector *)db)->hexists(string(key), string(field)) ? 1 : 0);
 }
 
-int8_t SWSSDBConnector_flushdb(SWSSDBConnector db) {
-    SWSSTry(return ((DBConnector *)db)->flushdb() ? 1 : 0);
+SWSSResult SWSSDBConnector_flushdb(SWSSDBConnector db, int8_t *outStatus) {
+    SWSSTry(*outStatus = ((DBConnector *)db)->flushdb() ? 1 : 0);
 }
