@@ -18,7 +18,6 @@
 #include "common/select.h"
 #include "common/subscriberstatetable.h"
 #include "gtest/gtest.h"
-#include "logger_ut.h"
 
 using namespace std;
 using namespace swss;
