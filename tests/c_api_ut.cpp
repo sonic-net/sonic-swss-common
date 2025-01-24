@@ -14,12 +14,18 @@
 #include "common/c-api/zmqconsumerstatetable.h"
 #include "common/c-api/zmqproducerstatetable.h"
 #include "common/c-api/zmqserver.h"
+#include "common/c-api/logger.h"
 #include "common/select.h"
 #include "common/subscriberstatetable.h"
 #include "gtest/gtest.h"
+#include "logger_ut.h"
 
 using namespace std;
 using namespace swss;
+
+static char LOG_LEVEL_FOR_TEST[32] = "";
+static char LOG_OUTPUT_FOR_TEST[32] = "";
+static const char* LOG_NAME_FOR_TEST = "test";
 
 static void clearDB() {
     DBConnector db("TEST_DB", 0, true);
@@ -86,6 +92,20 @@ struct SWSSStringManager {
             SWSSString_free(s);
     }
 };
+
+void logLevelNotify(const char* component, const char* prioStr)
+{
+    if (strcmp(component, LOG_NAME_FOR_TEST) != 0)
+        return;
+    strncpy(LOG_LEVEL_FOR_TEST, prioStr, sizeof(LOG_LEVEL_FOR_TEST)-1);
+}
+
+void logOutputNotify(const char* component, const char* outputStr)
+{
+    if (strcmp(component, LOG_NAME_FOR_TEST) != 0)
+        return;
+    strncpy(LOG_OUTPUT_FOR_TEST, outputStr, sizeof(LOG_OUTPUT_FOR_TEST)-1);
+}
 
 TEST(c_api, DBConnector) {
     clearDB();
@@ -480,4 +500,41 @@ TEST(c_api, exceptions) {
 
     SWSSString_free(result.location);
     SWSSString_free(result.message);
+}
+
+TEST(c_api, Logger) {
+    
+    clearDB();
+    SWSSStringManager sm;
+
+    SWSSDBConnector db;
+    SWSSFieldValueArray fvs;
+
+    SWSSDBConnector_new_named("CONFIG_DB", 1000, true, &db);
+
+    SWSSLogger_linkToDbWithOutput(LOG_NAME_FOR_TEST, logLevelNotify, "NOTICE", logOutputNotify, "SYSLOG");
+    Logger::restartLogger();
+
+    sleep(1);
+
+    cout << "Checking log level for " << LOG_NAME_FOR_TEST << endl;
+    EXPECT_STREQ(LOG_LEVEL_FOR_TEST, "NOTICE");
+    cout << "Checking log output for " << LOG_NAME_FOR_TEST << endl;
+    EXPECT_STREQ(LOG_OUTPUT_FOR_TEST, "SYSLOG");
+
+    cout << "Setting log level/output for " << LOG_NAME_FOR_TEST << endl;
+    SWSSTable tbl;
+    SWSSTable_new(db, "LOGGER", &tbl);
+    SWSSFieldValueTuple data[2] = {{.field = DAEMON_LOGLEVEL, .value = sm.makeString("DEBUG")},
+                                   {.field = DAEMON_LOGOUTPUT, .value = sm.makeString("STDOUT")}};
+    fvs.len = 2;
+    fvs.data = data;
+    SWSSTable_set(tbl, LOG_NAME_FOR_TEST, fvs);
+
+    sleep(1);
+
+    cout << "Checking log level for " << LOG_NAME_FOR_TEST << endl;
+    EXPECT_STREQ(LOG_LEVEL_FOR_TEST, "DEBUG");
+    cout << "Checking log output for " << LOG_NAME_FOR_TEST << endl;
+    EXPECT_STREQ(LOG_OUTPUT_FOR_TEST, "STDOUT");
 }
