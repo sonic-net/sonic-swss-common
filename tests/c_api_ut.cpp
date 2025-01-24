@@ -512,7 +512,7 @@ TEST(c_api, Logger) {
     SWSSDBConnector_new_named("CONFIG_DB", 1000, true, &db);
 
     SWSSLogger_linkToDbWithOutput(LOG_NAME_FOR_TEST, logLevelNotify, "NOTICE", logOutputNotify, "SYSLOG");
-    Logger::restartLogger();
+    SWSSLogger_restartLogger();
 
     sleep(1);
 
