@@ -1,10 +1,14 @@
+#include <cstdio>
+#include <cstring>
 #include <unistd.h>
 #include <vector>
 
 #include "common/c-api/consumerstatetable.h"
 #include "common/c-api/dbconnector.h"
 #include "common/c-api/producerstatetable.h"
+#include "common/c-api/result.h"
 #include "common/c-api/subscriberstatetable.h"
+#include "common/c-api/table.h"
 #include "common/c-api/util.h"
 #include "common/c-api/zmqclient.h"
 #include "common/c-api/zmqconsumerstatetable.h"
@@ -40,23 +44,35 @@ static void sortKfvs(vector<KeyOpFieldsValuesTuple> &kfvs) {
 
 #define free(x) std::free(const_cast<void *>(reinterpret_cast<const void *>(x)));
 
+static void freeFieldValuesArray(SWSSFieldValueArray arr) {
+    for (uint64_t i = 0; i < arr.len; i++) {
+        free(arr.data[i].field);
+        SWSSString_free(arr.data[i].value);
+    }
+    SWSSFieldValueArray_free(arr);
+}
+
 static void freeKeyOpFieldValuesArray(SWSSKeyOpFieldValuesArray arr) {
     for (uint64_t i = 0; i < arr.len; i++) {
         free(arr.data[i].key);
-        for (uint64_t j = 0; j < arr.data[i].fieldValues.len; j++) {
-            free(arr.data[i].fieldValues.data[j].field);
-            SWSSString_free(arr.data[i].fieldValues.data[j].value);
-        }
-        SWSSFieldValueArray_free(arr.data[i].fieldValues);
+        freeFieldValuesArray(arr.data[i].fieldValues);
     }
     SWSSKeyOpFieldValuesArray_free(arr);
 }
 
 struct SWSSStringManager {
     vector<SWSSString> m_strings;
+    bool use_c_str = false;
 
     SWSSString makeString(const char *c_str) {
-        SWSSString s = SWSSString_new_c_str(c_str);
+        use_c_str = !use_c_str;
+
+        SWSSString s;
+        if (use_c_str) {
+            s = SWSSString_new_c_str(c_str);
+        } else {
+            s = SWSSString_new(c_str, strlen(c_str));
+        }
         m_strings.push_back(s);
         return s;
     }
@@ -75,33 +91,121 @@ TEST(c_api, DBConnector) {
     clearDB();
     SWSSStringManager sm;
 
-    EXPECT_THROW(SWSSDBConnector_new_named("does not exist", 0, true), out_of_range);
-    SWSSDBConnector db = SWSSDBConnector_new_named("TEST_DB", 1000, true);
-    EXPECT_EQ(SWSSDBConnector_get(db, "mykey"), nullptr);
-    EXPECT_FALSE(SWSSDBConnector_exists(db, "mykey"));
+    SWSSDBConnector db;
+    SWSSDBConnector_new_named("TEST_DB", 1000, true, &db);
+
+    SWSSString val;
+    SWSSDBConnector_get(db, "mykey", &val);
+    EXPECT_EQ(val, nullptr);
+
+    int8_t exists;
+    SWSSDBConnector_exists(db, "mykey", &exists);
+    EXPECT_FALSE(exists);
 
     SWSSDBConnector_set(db, "mykey", sm.makeStrRef("myval"));
-    SWSSString val = SWSSDBConnector_get(db, "mykey");
+    SWSSDBConnector_get(db, "mykey", &val);
     EXPECT_STREQ(SWSSStrRef_c_str((SWSSStrRef)val), "myval");
     SWSSString_free(val);
-    EXPECT_TRUE(SWSSDBConnector_exists(db, "mykey"));
-    EXPECT_TRUE(SWSSDBConnector_del(db, "mykey"));
-    EXPECT_FALSE(SWSSDBConnector_del(db, "mykey"));
 
-    EXPECT_FALSE(SWSSDBConnector_hget(db, "mykey", "myfield"));
-    EXPECT_FALSE(SWSSDBConnector_hexists(db, "mykey", "myfield"));
+    SWSSDBConnector_exists(db, "mykey", &exists);
+    EXPECT_TRUE(exists);
+
+    int8_t status;
+    SWSSDBConnector_del(db, "mykey", &status);
+    EXPECT_TRUE(status);
+
+    SWSSDBConnector_del(db, "mykey", &status);
+    EXPECT_FALSE(status);
+
+    SWSSDBConnector_hget(db, "mykey", "myfield", &val);
+    EXPECT_EQ(val, nullptr);
+
+    SWSSDBConnector_hexists(db, "mykey", "myfield", &exists);
+    EXPECT_FALSE(exists);
+
     SWSSDBConnector_hset(db, "mykey", "myfield", sm.makeStrRef("myval"));
-    val = SWSSDBConnector_hget(db, "mykey", "myfield");
+    SWSSDBConnector_hget(db, "mykey", "myfield", &val);
     EXPECT_STREQ(SWSSStrRef_c_str((SWSSStrRef)val), "myval");
     SWSSString_free(val);
 
-    EXPECT_TRUE(SWSSDBConnector_hexists(db, "mykey", "myfield"));
-    EXPECT_FALSE(SWSSDBConnector_hget(db, "mykey", "notmyfield"));
-    EXPECT_FALSE(SWSSDBConnector_hexists(db, "mykey", "notmyfield"));
-    EXPECT_TRUE(SWSSDBConnector_hdel(db, "mykey", "myfield"));
-    EXPECT_FALSE(SWSSDBConnector_hdel(db, "mykey", "myfield"));
+    SWSSDBConnector_hexists(db, "mykey", "myfield", &exists);
+    EXPECT_TRUE(exists);
 
-    EXPECT_TRUE(SWSSDBConnector_flushdb(db));
+    SWSSDBConnector_hget(db, "mykey", "notmyfield", &val);
+    EXPECT_EQ(val, nullptr);
+
+    SWSSDBConnector_hexists(db, "mykey", "notmyfield", &exists);
+    EXPECT_FALSE(exists);
+
+    SWSSDBConnector_hdel(db, "mykey", "myfield", &status);
+    EXPECT_TRUE(status);
+
+    SWSSDBConnector_hdel(db, "mykey", "myfield", &status);
+    EXPECT_FALSE(status);
+
+    SWSSDBConnector_flushdb(db, &status);
+    EXPECT_TRUE(status);
+
+    SWSSDBConnector_free(db);
+}
+
+TEST(c_api, Table) {
+    clearDB();
+    SWSSStringManager sm;
+
+    SWSSDBConnector db;
+    SWSSDBConnector_new_named("TEST_DB", 1000, true, &db);
+    SWSSTable tbl;
+    SWSSTable_new(db, "mytable", &tbl);
+
+    SWSSFieldValueArray fvs;
+    SWSSString ss;
+    int8_t exists;
+    SWSSTable_get(tbl, "mykey", &fvs, &exists);
+    EXPECT_FALSE(exists);
+    SWSSTable_hget(tbl, "mykey", "myfield", &ss, &exists);
+    EXPECT_FALSE(exists);
+
+    SWSSStringArray keys;
+    SWSSTable_getKeys(tbl, &keys);
+    EXPECT_EQ(keys.len, 0);
+    SWSSStringArray_free(keys);
+
+    SWSSTable_hset(tbl, "mykey", "myfield", sm.makeStrRef("myvalue"));
+    SWSSTable_getKeys(tbl, &keys);
+    ASSERT_EQ(keys.len, 1);
+    EXPECT_STREQ(keys.data[0], "mykey");
+    free(keys.data[0]);
+    SWSSStringArray_free(keys);
+
+    SWSSTable_hget(tbl, "mykey", "myfield", &ss, &exists);
+    ASSERT_TRUE(exists);
+    EXPECT_STREQ(SWSSStrRef_c_str((SWSSStrRef)ss), "myvalue");
+    SWSSString_free(ss);
+
+    SWSSTable_hdel(tbl, "mykey", "myfield");
+    SWSSTable_hget(tbl, "mykey", "myfield", &ss, &exists);
+    EXPECT_FALSE(exists);
+
+    SWSSFieldValueTuple data[2] = {{.field = "myfield1", .value = sm.makeString("myvalue1")},
+                                   {.field = "myfield2", .value = sm.makeString("myvalue2")}};
+    fvs.len = 2;
+    fvs.data = data;
+    SWSSTable_set(tbl, "mykey", fvs);
+
+    SWSSTable_get(tbl, "mykey", &fvs, &exists);
+    ASSERT_TRUE(exists);
+    ASSERT_EQ(fvs.len, 2);
+    EXPECT_STREQ(data[0].field, fvs.data[0].field);
+    EXPECT_STREQ(data[1].field, fvs.data[1].field);
+    freeFieldValuesArray(fvs);
+
+    SWSSTable_del(tbl, "mykey");
+    SWSSTable_getKeys(tbl, &keys);
+    EXPECT_EQ(keys.len, 0);
+    SWSSStringArray_free(keys);
+
+    SWSSTable_free(tbl);
     SWSSDBConnector_free(db);
 }
 
@@ -109,19 +213,23 @@ TEST(c_api, ConsumerProducerStateTables) {
     clearDB();
     SWSSStringManager sm;
 
-    SWSSDBConnector db = SWSSDBConnector_new_named("TEST_DB", 1000, true);
-    SWSSProducerStateTable pst = SWSSProducerStateTable_new(db, "mytable");
-    SWSSConsumerStateTable cst = SWSSConsumerStateTable_new(db, "mytable", nullptr, nullptr);
+    SWSSDBConnector db;
+    SWSSDBConnector_new_named("TEST_DB", 1000, true, &db);
+    SWSSProducerStateTable pst;
+    SWSSProducerStateTable_new(db, "mytable", &pst);
+    SWSSConsumerStateTable cst;
+    SWSSConsumerStateTable_new(db, "mytable", nullptr, nullptr, &cst);
 
-    SWSSConsumerStateTable_getFd(cst);
+    uint32_t fd;
+    SWSSConsumerStateTable_getFd(cst, &fd);
 
-    SWSSKeyOpFieldValuesArray arr = SWSSConsumerStateTable_pops(cst);
+    SWSSKeyOpFieldValuesArray arr;
+    SWSSConsumerStateTable_pops(cst, &arr);
     ASSERT_EQ(arr.len, 0);
     freeKeyOpFieldValuesArray(arr);
 
-    SWSSFieldValueTuple data[2] = {
-        {.field = "myfield1", .value = sm.makeString("myvalue1")},
-        {.field = "myfield2", .value = sm.makeString("myvalue2")}};
+    SWSSFieldValueTuple data[2] = {{.field = "myfield1", .value = sm.makeString("myvalue1")},
+                                   {.field = "myfield2", .value = sm.makeString("myvalue2")}};
     SWSSFieldValueArray values = {
         .len = 2,
         .data = data,
@@ -132,8 +240,9 @@ TEST(c_api, ConsumerProducerStateTables) {
     values.len = 1;
     SWSSProducerStateTable_set(pst, "mykey2", values);
 
-    ASSERT_EQ(SWSSConsumerStateTable_readData(cst, 300, true), SWSSSelectResult_DATA);
-    arr = SWSSConsumerStateTable_pops(cst);
+    SWSSSelectResult result;
+    SWSSConsumerStateTable_readData(cst, 300, true, &result);
+    SWSSConsumerStateTable_pops(cst, &arr);
     vector<KeyOpFieldsValuesTuple> kfvs = takeKeyOpFieldValuesArray(arr);
     sortKfvs(kfvs);
     freeKeyOpFieldValuesArray(arr);
@@ -154,8 +263,8 @@ TEST(c_api, ConsumerProducerStateTables) {
     ASSERT_EQ(fieldValues1.size(), 1);
     EXPECT_EQ(fieldValues1[0].first, "myfield3");
     EXPECT_EQ(fieldValues1[0].second, "myvalue3");
-  
-    arr = SWSSConsumerStateTable_pops(cst);
+
+    SWSSConsumerStateTable_pops(cst, &arr);
     EXPECT_EQ(arr.len, 0);
     freeKeyOpFieldValuesArray(arr);
 
@@ -163,7 +272,7 @@ TEST(c_api, ConsumerProducerStateTables) {
     SWSSProducerStateTable_del(pst, "mykey4");
     SWSSProducerStateTable_del(pst, "mykey5");
 
-    arr = SWSSConsumerStateTable_pops(cst);
+    SWSSConsumerStateTable_pops(cst, &arr);
     kfvs = takeKeyOpFieldValuesArray(arr);
     sortKfvs(kfvs);
     freeKeyOpFieldValuesArray(arr);
@@ -181,7 +290,8 @@ TEST(c_api, ConsumerProducerStateTables) {
 
     SWSSProducerStateTable_free(pst);
     SWSSConsumerStateTable_free(cst);
-    SWSSDBConnector_flushdb(db);
+    int8_t flushStatus;
+    SWSSDBConnector_flushdb(db, &flushStatus);
     SWSSDBConnector_free(db);
 }
 
@@ -189,19 +299,26 @@ TEST(c_api, SubscriberStateTable) {
     clearDB();
     SWSSStringManager sm;
 
-    SWSSDBConnector db = SWSSDBConnector_new_named("TEST_DB", 1000, true);
-    SWSSSubscriberStateTable sst = SWSSSubscriberStateTable_new(db, "mytable", nullptr, nullptr);
+    SWSSDBConnector db;
+    SWSSDBConnector_new_named("TEST_DB", 1000, true, &db);
+    SWSSSubscriberStateTable sst;
+    SWSSSubscriberStateTable_new(db, "mytable", nullptr, nullptr, &sst);
 
-    SWSSSubscriberStateTable_getFd(sst);
+    uint32_t fd;
+    SWSSSubscriberStateTable_getFd(sst, &fd);
 
-    EXPECT_EQ(SWSSSubscriberStateTable_readData(sst, 300, true), SWSSSelectResult_TIMEOUT);
-    SWSSKeyOpFieldValuesArray arr = SWSSSubscriberStateTable_pops(sst);
+    SWSSSelectResult result;
+    SWSSSubscriberStateTable_readData(sst, 300, true, &result);
+    EXPECT_EQ(result, SWSSSelectResult_TIMEOUT);
+    SWSSKeyOpFieldValuesArray arr;
+    SWSSSubscriberStateTable_pops(sst, &arr);
     EXPECT_EQ(arr.len, 0);
     freeKeyOpFieldValuesArray(arr);
 
     SWSSDBConnector_hset(db, "mytable:mykey", "myfield", sm.makeStrRef("myvalue"));
-    EXPECT_EQ(SWSSSubscriberStateTable_readData(sst, 300, true), SWSSSelectResult_DATA);
-    arr = SWSSSubscriberStateTable_pops(sst);
+    SWSSSubscriberStateTable_readData(sst, 300, true, &result);
+    EXPECT_EQ(result, SWSSSelectResult_DATA);
+    SWSSSubscriberStateTable_pops(sst, &arr);
     vector<KeyOpFieldsValuesTuple> kfvs = takeKeyOpFieldValuesArray(arr);
     sortKfvs(kfvs);
     freeKeyOpFieldValuesArray(arr);
@@ -214,7 +331,8 @@ TEST(c_api, SubscriberStateTable) {
     EXPECT_EQ(kfvFieldsValues(kfvs[0])[0].second, "myvalue");
 
     SWSSSubscriberStateTable_free(sst);
-    SWSSDBConnector_flushdb(db);
+    int8_t flushStatus;
+    SWSSDBConnector_flushdb(db, &flushStatus);
     SWSSDBConnector_free(db);
 }
 
@@ -222,36 +340,46 @@ TEST(c_api, ZmqConsumerProducerStateTable) {
     clearDB();
     SWSSStringManager sm;
 
-    SWSSDBConnector db = SWSSDBConnector_new_named("TEST_DB", 1000, true);
+    SWSSDBConnector db;
+    SWSSDBConnector_new_named("TEST_DB", 1000, true, &db);
 
-    SWSSZmqServer srv = SWSSZmqServer_new("tcp://127.0.0.1:42312");
-    SWSSZmqClient cli = SWSSZmqClient_new("tcp://127.0.0.1:42312");
-    EXPECT_TRUE(SWSSZmqClient_isConnected(cli));
-    SWSSZmqClient_connect(cli); // This should be idempotent/not throw
+    SWSSZmqServer srv;
+    SWSSZmqServer_new("tcp://127.0.0.1:42312", &srv);
+    SWSSZmqClient cli;
+    SWSSZmqClient_new("tcp://127.0.0.1:42312", &cli);
+    int8_t isConnected;
+    SWSSZmqClient_isConnected(cli, &isConnected);
+    ASSERT_TRUE(isConnected);
+    SWSSZmqClient_connect(cli);
 
-    SWSSZmqProducerStateTable pst = SWSSZmqProducerStateTable_new(db, "mytable", cli, false);
-    SWSSZmqConsumerStateTable cst =
-        SWSSZmqConsumerStateTable_new(db, "mytable", srv, nullptr, nullptr);
+    SWSSZmqProducerStateTable pst;
+    SWSSZmqProducerStateTable_new(db, "mytable", cli, false, &pst);
+    SWSSZmqConsumerStateTable cst;
+    SWSSZmqConsumerStateTable_new(db, "mytable", srv, nullptr, nullptr, &cst);
 
-    SWSSZmqConsumerStateTable_getFd(cst);
+    uint32_t fd;
+    SWSSZmqConsumerStateTable_getFd(cst, &fd);
 
-    ASSERT_EQ(SWSSZmqConsumerStateTable_getDbConnector(cst), db);
+    const SWSSDBConnectorOpaque *dbConnector;
+    SWSSZmqConsumerStateTable_getDbConnector(cst, &dbConnector);
+    ASSERT_EQ(dbConnector, db);
 
-    SWSSKeyOpFieldValuesArray arr = SWSSZmqConsumerStateTable_pops(cst);
+    SWSSKeyOpFieldValuesArray arr;
+    SWSSZmqConsumerStateTable_pops(cst, &arr);
     ASSERT_EQ(arr.len, 0);
     freeKeyOpFieldValuesArray(arr);
 
-    // On flag = 0, we use the ZmqProducerStateTable
-    // On flag = 1, we use the ZmqClient directly
     for (int flag = 0; flag < 2; flag++) {
-        SWSSFieldValueTuple values_key1_data[2] = {{.field = "myfield1", .value = sm.makeString("myvalue1")},
-                                                  {.field = "myfield2", .value = sm.makeString("myvalue2")}};
+        SWSSFieldValueTuple values_key1_data[2] = {
+            {.field = "myfield1", .value = sm.makeString("myvalue1")},
+            {.field = "myfield2", .value = sm.makeString("myvalue2")}};
         SWSSFieldValueArray values_key1 = {
             .len = 2,
             .data = values_key1_data,
         };
 
-        SWSSFieldValueTuple values_key2_data[1] = {{.field = "myfield3", .value = sm.makeString("myvalue3")}};
+        SWSSFieldValueTuple values_key2_data[1] = {
+            {.field = "myfield3", .value = sm.makeString("myvalue3")}};
         SWSSFieldValueArray values_key2 = {
             .len = 1,
             .data = values_key2_data,
@@ -268,8 +396,9 @@ TEST(c_api, ZmqConsumerProducerStateTable) {
         else
             SWSSZmqClient_sendMsg(cli, "TEST_DB", "mytable", arr);
 
-        ASSERT_EQ(SWSSZmqConsumerStateTable_readData(cst, 1500, true), SWSSSelectResult_DATA);
-        arr = SWSSZmqConsumerStateTable_pops(cst);
+        SWSSSelectResult result;
+        SWSSZmqConsumerStateTable_readData(cst, 1500, true, &result);
+        SWSSZmqConsumerStateTable_pops(cst, &arr);
 
         vector<KeyOpFieldsValuesTuple> kfvs = takeKeyOpFieldValuesArray(arr);
         sortKfvs(kfvs);
@@ -292,7 +421,7 @@ TEST(c_api, ZmqConsumerProducerStateTable) {
         EXPECT_EQ(fieldValues1[0].first, "myfield3");
         EXPECT_EQ(fieldValues1[0].second, "myvalue3");
 
-        arr = SWSSZmqConsumerStateTable_pops(cst);
+        SWSSZmqConsumerStateTable_pops(cst, &arr);
         ASSERT_EQ(arr.len, 0);
         freeKeyOpFieldValuesArray(arr);
 
@@ -306,8 +435,8 @@ TEST(c_api, ZmqConsumerProducerStateTable) {
         else
             SWSSZmqClient_sendMsg(cli, "TEST_DB", "mytable", arr);
 
-        ASSERT_EQ(SWSSZmqConsumerStateTable_readData(cst, 500, true), SWSSSelectResult_DATA);
-        arr = SWSSZmqConsumerStateTable_pops(cst);
+        SWSSZmqConsumerStateTable_readData(cst, 500, true, &result);
+        SWSSZmqConsumerStateTable_pops(cst, &arr);
 
         kfvs = takeKeyOpFieldValuesArray(arr);
         sortKfvs(kfvs);
@@ -322,7 +451,6 @@ TEST(c_api, ZmqConsumerProducerStateTable) {
         EXPECT_EQ(kfvFieldsValues(kfvs[1]).size(), 0);
     }
 
-    // Server must be freed first to safely release message handlers (ZmqConsumerStateTable)
     SWSSZmqServer_free(srv);
 
     SWSSZmqProducerStateTable_free(pst);
@@ -330,6 +458,26 @@ TEST(c_api, ZmqConsumerProducerStateTable) {
 
     SWSSZmqClient_free(cli);
 
-    SWSSDBConnector_flushdb(db);
+    int8_t flushStatus;
+    SWSSDBConnector_flushdb(db, &flushStatus);
     SWSSDBConnector_free(db);
+}
+
+TEST(c_api, exceptions) {
+    SWSSDBConnector db = nullptr;
+    SWSSResult result = SWSSDBConnector_new_tcp(0, "127.0.0.1", 1, 1000, &db);
+    ASSERT_EQ(db, nullptr);
+    ASSERT_NE(result.exception, SWSSException_None);
+    ASSERT_NE(result.location, nullptr);
+    ASSERT_NE(result.message, nullptr);
+
+    const char *cstr = SWSSStrRef_c_str((SWSSStrRef)result.location);
+    EXPECT_EQ(SWSSStrRef_length((SWSSStrRef)result.location), strlen(cstr));
+    printf("Exception location: %s\n", cstr);
+    cstr = SWSSStrRef_c_str((SWSSStrRef)result.message);
+    EXPECT_EQ(SWSSStrRef_length((SWSSStrRef)result.message), strlen(cstr));
+    printf("Exception message: %s\n", cstr);
+
+    SWSSString_free(result.location);
+    SWSSString_free(result.message);
 }

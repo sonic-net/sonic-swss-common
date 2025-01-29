@@ -79,6 +79,7 @@ common_libswsscommon_la_SOURCES = \
     common/c-api/zmqserver.cpp             \
     common/c-api/zmqconsumerstatetable.cpp \
     common/c-api/zmqproducerstatetable.cpp \
+    common/c-api/table.cpp                 \
     common/performancetimer.cpp
 
 common_libswsscommon_la_CXXFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CFLAGS) $(CODE_COVERAGE_CXXFLAGS)
