@@ -34,6 +34,12 @@ public:
     ZmqServer(const std::string& endpoint, const std::string& vrf);
     ~ZmqServer();
 
+    std::string endpoint();
+
+    void connect();
+
+    void close();
+
     void registerMessageHandler(
                                 const std::string dbName,
                                 const std::string tableName,
