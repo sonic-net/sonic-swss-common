@@ -79,6 +79,7 @@ for i = n, 1, -3 do
        op == 'flush' or
        op == 'flushresponse' or
        op == 'get' or
+       op == 'bulkget' or
        op == 'getresponse' or
        op == 'notify' or
        op == 'get_stats' or
