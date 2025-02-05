@@ -1,7 +1,6 @@
 #ifndef __BINARY_SERIALIZER__
 #define __BINARY_SERIALIZER__
 
-#include "common/armhelper.h"
 #include "common/rediscommand.h"
 #include "common/table.h"
 
@@ -10,6 +9,16 @@
 using namespace std;
 
 namespace swss {
+
+template <class T> static inline T read_unaligned(const char *buffer) {
+    T t;
+    std::memcpy(&t, buffer, sizeof(T));
+    return t;
+}
+
+template <class T> static inline void write_unaligned(char *buffer, T t) {
+    std::memcpy(buffer, &t, sizeof(T));
+}
 
 class BinarySerializer {
 public:
@@ -34,7 +43,7 @@ public:
     }
 
     static size_t serializeBuffer(
-        const char* buffer,
+        char* buffer,
         const size_t size,
         const std::string& dbName,
         const std::string& tableName,
@@ -75,46 +84,30 @@ public:
         const size_t size,
         std::vector<swss::FieldValueTuple>& values)
     {
-        WARNINGS_NO_CAST_ALIGN;
-        auto pkvp_count = (const size_t*)buffer;
-        WARNINGS_RESET;
-
-        size_t kvp_count = *pkvp_count;
+        size_t kvp_count = read_unaligned<size_t>(buffer);
         auto tmp_buffer = buffer + sizeof(size_t);
         while (kvp_count > 0)
         {
             kvp_count--;
 
             // read key and value from buffer
-            WARNINGS_NO_CAST_ALIGN;
-            auto pkeylen = (const size_t*)tmp_buffer;
-            WARNINGS_RESET;
-
+            size_t keylen = read_unaligned<size_t>(tmp_buffer);
             tmp_buffer += sizeof(size_t);
-            if ((size_t)(tmp_buffer - buffer + *pkeylen)  > size)
-            {
-                SWSS_LOG_THROW("serialized key data was truncated, key length: %zu, increase buffer size: %zu",
-                                                                                            *pkeylen,
-                                                                                            size);
+            if (((size_t)(tmp_buffer - buffer) + keylen) > size) {
+                SWSS_LOG_THROW("serialized key data was truncated, key length: %zu, increase buffer size: %zu", keylen, size);
             }
 
-            auto pkey = string(tmp_buffer, *pkeylen);
-            tmp_buffer += *pkeylen;
+            auto pkey = string(tmp_buffer, keylen);
+            tmp_buffer += keylen;
 
-            WARNINGS_NO_CAST_ALIGN;
-            auto pvallen = (const size_t*)tmp_buffer;
-            WARNINGS_RESET;
-
+            size_t vallen = read_unaligned<size_t>(tmp_buffer);
             tmp_buffer += sizeof(size_t);
-            if ((size_t)(tmp_buffer - buffer + *pvallen)  > size)
-            {
-                SWSS_LOG_THROW("serialized value data was truncated,, value length: %zu increase buffer size: %zu",
-                                                                                            *pvallen,
-                                                                                            size);
+            if ((size_t)(tmp_buffer - buffer) + vallen > size) {
+                SWSS_LOG_THROW("serialized value data was truncated, value length: %zu, increase buffer size: %zu", vallen, size);
             }
             
-            auto pval = string(tmp_buffer, *pvallen);
-            tmp_buffer += *pvallen;
+            auto pval = string(tmp_buffer, vallen);
+            tmp_buffer += vallen;
 
             values.push_back(std::make_pair(pkey, pval));
         }
@@ -171,12 +164,12 @@ public:
     }
 
 private:
-    const char* m_buffer;
+    char* m_buffer;
     const size_t m_buffer_size;
     char* m_current_position;
     size_t m_kvp_count;
 
-    BinarySerializer(const char* buffer, const size_t size)
+    BinarySerializer(char* buffer, const size_t size)
         : m_buffer(buffer), m_buffer_size(size)
     {
         resetSerializer();
@@ -184,7 +177,7 @@ private:
 
     void resetSerializer()
     {
-        m_current_position = const_cast<char*>(m_buffer) + sizeof(size_t);
+        m_current_position = m_buffer + sizeof(size_t);
         m_kvp_count = 0;
     }
 
@@ -200,32 +193,22 @@ private:
     size_t finalize()
     {
         // set key value pair count to message
-        WARNINGS_NO_CAST_ALIGN;
-        size_t* pkvp_count = (size_t*)const_cast<char*>(m_buffer);
-        WARNINGS_RESET;
-
-        *pkvp_count = m_kvp_count;
+        write_unaligned(m_buffer, m_kvp_count);
 
         // return size
-        return m_current_position - m_buffer;
+        return (size_t)(m_current_position - m_buffer);
     }
 
     void setData(const char* data, size_t datalen)
     {
-        if ((size_t)(m_current_position - m_buffer + datalen + sizeof(size_t)) > m_buffer_size)
+        if ((size_t)(m_current_position - m_buffer) + datalen + sizeof(size_t) > m_buffer_size)
         {
-            SWSS_LOG_THROW("There are not enough buffer for binary serializer to serialize,\n"
+            SWSS_LOG_THROW("There is not enough buffer for binary serializer to serialize,\n"
                            "  key count: %zu, data length %zu, buffer size: %zu",
-                                                m_kvp_count,
-                                                datalen,
-                                                m_buffer_size);
+                           m_kvp_count, datalen, m_buffer_size);
         }
 
-        WARNINGS_NO_CAST_ALIGN;
-        size_t* pdatalen = (size_t*)m_current_position;
-        WARNINGS_RESET;
-
-        *pdatalen = datalen;
+        write_unaligned(m_current_position, datalen);
         m_current_position += sizeof(size_t);
 
         memcpy(m_current_position, data, datalen);
