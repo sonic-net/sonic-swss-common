@@ -19,12 +19,15 @@ typedef struct SWSSStringOpaque *SWSSString;
 typedef struct SWSSStrRefOpaque *SWSSStrRef;
 
 // FFI version of swss::FieldValueTuple
+// field should be freed with libc's free()
+// value should be freed with SWSSString_free()
 typedef struct {
     const char *field;
     SWSSString value;
 } SWSSFieldValueTuple;
 
 // FFI version of std::vector<swss::FieldValueTuple>
+// data should be freed with SWSSFieldValueArray_free()
 typedef struct {
     uint64_t len;
     SWSSFieldValueTuple *data;
@@ -36,6 +39,8 @@ typedef enum {
 } SWSSKeyOperation;
 
 // FFI version of swss::KeyOpFieldValuesTuple
+// key should be freed with libc's free()
+// fieldValues should be freed with SWSSFieldValueArray_free()
 typedef struct {
     const char *key;
     SWSSKeyOperation operation;
@@ -43,6 +48,7 @@ typedef struct {
 } SWSSKeyOpFieldValues;
 
 // FFI version of std::vector<swss::KeyOpFieldValueTuple>
+// data should be freed with SWSSKeyOpFieldValuesArray_free()
 typedef struct {
     uint64_t len;
     SWSSKeyOpFieldValues *data;
@@ -58,6 +64,14 @@ typedef enum {
     // Waiting was interrupted by a signal
     SWSSSelectResult_SIGNAL = 2,
 } SWSSSelectResult;
+
+// FFI version of std::vector<std::string>
+// strings in data should be freed with libc's free()
+// data should be freed with SWSSStringArray_free()
+typedef struct {
+    uint64_t len;
+    const char **data;
+} SWSSStringArray;
 
 // data should not include a null terminator
 SWSSString SWSSString_new(const char *data, uint64_t length);
@@ -85,6 +99,10 @@ void SWSSFieldValueArray_free(SWSSFieldValueArray arr);
 // grained control of ownership).
 void SWSSKeyOpFieldValuesArray_free(SWSSKeyOpFieldValuesArray kfvs);
 
+// arr.data may be null. This is not recursive - elements must be freed separately (for finer
+// grained control of ownership).
+void SWSSStringArray_free(SWSSStringArray arr);
+
 #ifdef __cplusplus
 }
 #endif
@@ -109,40 +127,20 @@ void SWSSKeyOpFieldValuesArray_free(SWSSKeyOpFieldValuesArray kfvs);
 
 using boost::numeric_cast;
 
-namespace swss {
-
-extern bool cApiTestingDisableAbort;
-
-// In the catch block, we must abort because passing an exception across an ffi boundary is
-// undefined behavior. It was also decided that no exceptions in swss-common are recoverable, so
-// there is no reason to convert exceptions into a returnable type.
-#define SWSSTry(...)                                                                               \
-    if (swss::cApiTestingDisableAbort) {                                                           \
-        { __VA_ARGS__; }                                                                           \
-    } else {                                                                                       \
-        try {                                                                                      \
-            { __VA_ARGS__; }                                                                       \
-        } catch (std::exception & e) {                                                             \
-            std::cerr << "Aborting due to exception: " << e.what() << std::endl;                   \
-            SWSS_LOG_ERROR("Aborting due to exception: %s", e.what());                             \
-            std::abort();                                                                          \
-        }                                                                                          \
-    }
-
 static inline SWSSSelectResult selectOne(swss::Selectable *s, uint32_t timeout_ms,
                                          uint8_t interrupt_on_signal) {
-    Select select;
-    Selectable *sOut;
+    swss::Select select;
+    swss::Selectable *sOut;
     select.addSelectable(s);
     int ret = select.select(&sOut, numeric_cast<int>(timeout_ms), interrupt_on_signal);
     switch (ret) {
-    case Select::OBJECT:
+    case swss::Select::OBJECT:
         return SWSSSelectResult_DATA;
-    case Select::ERROR:
+    case swss::Select::ERROR:
         throw std::system_error(errno, std::generic_category());
-    case Select::TIMEOUT:
+    case swss::Select::TIMEOUT:
         return SWSSSelectResult_TIMEOUT;
-    case Select::SIGNALINT:
+    case swss::Select::SIGNALINT:
         return SWSSSelectResult_SIGNAL;
     default:
         SWSS_LOG_THROW("impossible: unhandled Select::select() return value: %d", ret);
@@ -214,6 +212,19 @@ template <class T> static inline SWSSKeyOpFieldValuesArray makeKeyOpFieldValuesA
     return out;
 }
 
+static inline SWSSStringArray makeStringArray(std::vector<std::string> &&in) {
+    const char **data = new const char*[in.size()];
+
+    size_t i = 0;
+    for (std::string &s : in)
+        data[i++] = strdup(s.c_str());
+
+    SWSSStringArray out;
+    out.len = (uint64_t)in.size();
+    out.data = data;
+    return out;
+}
+
 static inline std::string takeString(SWSSString s) {
     return std::string(std::move(*((std::string *)s)));
 }
@@ -260,8 +271,6 @@ takeKeyOpFieldValuesArray(SWSSKeyOpFieldValuesArray in) {
     }
     return out;
 }
-
-} // namespace swss
 
 #endif
 #endif
