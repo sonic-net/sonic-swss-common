@@ -30,6 +30,7 @@ AsyncDBUpdater::~AsyncDBUpdater()
     // notify db update thread exit
     m_dbUpdateDataNotifyCv.notify_all();
     m_dbUpdateThread->join();
+    SWSS_LOG_DEBUG("AsyncDBUpdater dtor tableName: %s", m_tableName.c_str());
 }
 
 void AsyncDBUpdater::update(std::shared_ptr<KeyOpFieldsValuesTuple> pkco)
@@ -61,15 +62,29 @@ void AsyncDBUpdater::dbUpdateThread()
     std::mutex cvMutex;
     std::unique_lock<std::mutex> cvLock(cvMutex);
 
-    while (m_runThread)
+    while (true)
     {
         size_t count;
         count = queueSize();
         if (count == 0)
         {
+            // Check if there still data in queue before exit
+            if (!m_runThread)
+            {
+                SWSS_LOG_NOTICE("dbUpdateThread for table: %s is exiting", m_tableName.c_str());
+                break;
+            }
+
             // when queue is empty, wait notification, when data come, continue to check queue size again
             m_dbUpdateDataNotifyCv.wait(cvLock);
             continue;
+        }
+        else
+        {
+            if (!m_runThread)
+            {
+                SWSS_LOG_DEBUG("dbUpdateThread for table: %s still has %d records that need to be sent before exiting", m_tableName.c_str(), (int)count);
+            }
         }
 
         for (size_t ie = 0; ie < count; ie++)

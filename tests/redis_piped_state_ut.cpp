@@ -730,3 +730,59 @@ TEST(ConsumerStateTable, async_multitable)
 
     cout << endl << "Done." << endl;
 }
+
+TEST(ConsumerStateTable, flushPub)
+{
+    clearDB();
+
+    /* Prepare producer */
+    int index = 0;
+    string tableName = "UT_REDIS_THREAD_" + to_string(index);
+    DBConnector db(TEST_DB, 0, true);
+    RedisPipeline pipeline(&db);
+    ProducerStateTable p(&pipeline, tableName, false, true);
+    p.setBuffered(true);
+
+    string key = "TheKey";
+    int maxNumOfFields = 2;
+
+    /* Set operation */
+    {
+        vector<FieldValueTuple> fields;
+        for (int j = 0; j < maxNumOfFields; j++)
+        {
+            FieldValueTuple t(field(j), value(j));
+            fields.push_back(t);
+        }
+        p.set(key, fields);
+    }
+
+    /* Del operation */
+    p.del(key);
+    p.flush();
+
+    /* Prepare consumer */
+    ConsumerStateTable c(&db, tableName);
+    Select cs;
+    Selectable *selectcs;
+    cs.addSelectable(&c);
+
+    /* First pop operation */
+    {
+        int ret = cs.select(&selectcs);
+        EXPECT_EQ(ret, Select::OBJECT);
+        KeyOpFieldsValuesTuple kco;
+        c.pop(kco);
+        EXPECT_EQ(kfvKey(kco), key);
+        EXPECT_EQ(kfvOp(kco), "DEL");
+
+        auto fvs = kfvFieldsValues(kco);
+        EXPECT_EQ(fvs.size(), 0U);
+    }
+
+    /* Second select operation */
+    {
+        int ret = cs.select(&selectcs, 1000);
+        EXPECT_EQ(ret, Select::TIMEOUT);
+    }
+}

@@ -562,7 +562,7 @@ void RedisContext::initContext(const char *host, int port, const timeval *tv)
 
     if (m_conn->err)
         throw system_error(make_error_code(errc::address_not_available),
-                           "Unable to connect to redis");
+                           "Unable to connect to redis - " + std::string(m_conn->errstr) + "(" + std::to_string(m_conn->err) + ")");
 }
 
 void RedisContext::initContext(const char *path, const timeval *tv)
@@ -578,7 +578,7 @@ void RedisContext::initContext(const char *path, const timeval *tv)
 
     if (m_conn->err)
         throw system_error(make_error_code(errc::address_not_available),
-                           "Unable to connect to redis (unix-socket)");
+                           "Unable to connect to redis (unix-socket) - " + std::string(m_conn->errstr) + "(" + std::to_string(m_conn->err) + ")");
 }
 
 redisContext *RedisContext::getContext() const
@@ -645,39 +645,46 @@ DBConnector::DBConnector(int dbId, const RedisContext& ctx)
     select(this);
 }
 
+static struct timeval ms_to_timeval(unsigned int ms) {
+    return {
+        .tv_sec = (time_t)ms / 1000,
+        .tv_usec = ((suseconds_t)ms % 1000) * 1000
+    };
+}
+
 DBConnector::DBConnector(int dbId, const string& hostname, int port,
-                         unsigned int timeout)
+                         unsigned int timeout_ms)
     : m_dbId(dbId)
 {
-    struct timeval tv = {0, (suseconds_t)timeout * 1000};
-    struct timeval *ptv = timeout ? &tv : NULL;
+    struct timeval tv = ms_to_timeval(timeout_ms);
+    struct timeval *ptv = timeout_ms ? &tv : NULL;
     initContext(hostname.c_str(), port, ptv);
 
     select(this);
 }
 
-DBConnector::DBConnector(int dbId, const string& unixPath, unsigned int timeout)
+DBConnector::DBConnector(int dbId, const string& unixPath, unsigned int timeout_ms)
     : m_dbId(dbId)
 {
-    struct timeval tv = {0, (suseconds_t)timeout * 1000};
-    struct timeval *ptv = timeout ? &tv : NULL;
+    struct timeval tv = ms_to_timeval(timeout_ms);
+    struct timeval *ptv = timeout_ms ? &tv : NULL;
     initContext(unixPath.c_str(), ptv);
 
     select(this);
 }
 
-DBConnector::DBConnector(const string& dbName, unsigned int timeout, bool isTcpConn, const string& netns)
-    : DBConnector(dbName, timeout, isTcpConn, SonicDBKey(netns))
+DBConnector::DBConnector(const string& dbName, unsigned int timeout_ms, bool isTcpConn, const string& netns)
+    : DBConnector(dbName, timeout_ms, isTcpConn, SonicDBKey(netns))
 {
 }
 
-DBConnector::DBConnector(const string& dbName, unsigned int timeout, bool isTcpConn, const SonicDBKey &key)
+DBConnector::DBConnector(const string& dbName, unsigned int timeout_ms, bool isTcpConn, const SonicDBKey &key)
     : m_dbId(SonicDBConfig::getDbId(dbName, key))
     , m_dbName(dbName)
     , m_key(key)
 {
-    struct timeval tv = {0, (suseconds_t)timeout * 1000};
-    struct timeval *ptv = timeout ? &tv : NULL;
+    struct timeval tv = ms_to_timeval(timeout_ms);
+    struct timeval *ptv = timeout_ms ? &tv : NULL;
     if (isTcpConn)
     {
         initContext(SonicDBConfig::getDbHostname(dbName, m_key).c_str(), SonicDBConfig::getDbPort(dbName, m_key), ptv);
@@ -690,8 +697,8 @@ DBConnector::DBConnector(const string& dbName, unsigned int timeout, bool isTcpC
     select(this);
 }
 
-DBConnector::DBConnector(const string& dbName, unsigned int timeout, bool isTcpConn)
-    : DBConnector(dbName, timeout, isTcpConn, SonicDBKey())
+DBConnector::DBConnector(const string& dbName, unsigned int timeout_ms, bool isTcpConn)
+    : DBConnector(dbName, timeout_ms, isTcpConn, SonicDBKey())
 {
     // Empty constructor
 }

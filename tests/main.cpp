@@ -1,5 +1,6 @@
 #include "gtest/gtest.h"
 #include "common/dbconnector.h"
+#include "common/c-api/util.h"
 #include <iostream>
 
 using namespace std;
