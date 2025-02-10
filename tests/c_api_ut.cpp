@@ -414,6 +414,7 @@ TEST(c_api, ZmqConsumerProducerStateTable) {
                 SWSSZmqProducerStateTable_set(pst, arr.data[i].key, arr.data[i].fieldValues);
         else
             SWSSZmqClient_sendMsg(cli, "TEST_DB", "mytable", arr);
+        sleep(2);
 
         SWSSSelectResult result;
         SWSSZmqConsumerStateTable_readData(cst, 1500, true, &result);
@@ -453,6 +454,7 @@ TEST(c_api, ZmqConsumerProducerStateTable) {
                 SWSSZmqProducerStateTable_del(pst, arr.data[i].key);
         else
             SWSSZmqClient_sendMsg(cli, "TEST_DB", "mytable", arr);
+        sleep(2);
 
         SWSSZmqConsumerStateTable_readData(cst, 500, true, &result);
         SWSSZmqConsumerStateTable_pops(cst, &arr);
