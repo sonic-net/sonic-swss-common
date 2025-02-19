@@ -60,6 +60,8 @@ jobs:
     clean: true
   - script: |
       set -ex
+
+      pre_run_buildinfo
       sudo apt-get update
       sudo apt-get install -qq -y \
         libhiredis-dev \
