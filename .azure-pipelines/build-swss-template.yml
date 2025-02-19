@@ -59,6 +59,7 @@ jobs:
     displayName: Set up sonic-swss branch
   - script: |
       set -ex
+      pre_run_buildinfo
       sudo apt-get update
       sudo apt-get install -y libhiredis0.14 libhiredis-dev
       sudo apt-get install -y libzmq5 libzmq3-dev
