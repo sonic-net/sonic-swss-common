@@ -1,9 +1,9 @@
-# C API
+# swss-common C API
 
-This directory contains the swss-common C API. The C API is an incomplete,
+This directory contains the swss-common C API. The C API is an in-progress,
 hand-written C wrapper around functions in swss-common. Functionality is
 added as needed. It is designed to be understandable without incurring major
-performance penalties. It was primarily written to support Rust code using
+performance penalties. It was initially written to support Rust code using
 swss-common ([here](https://github.com/sonic-net/sonic-dash-ha/tree/master/crates/swss-common)), 
 but it can be used to create bindings to any language that can call C functions.
 
@@ -20,6 +20,7 @@ pointer, no value is written to the output pointer. It is invalid to use the
 returned value in this case.
 
 Example:
+
 ```c
 SWSSDBConnector db_connector;
 SWSSResult res = SWSSDBConnector_new_named("APPL_DB", 5000, 0, &db_connector);
