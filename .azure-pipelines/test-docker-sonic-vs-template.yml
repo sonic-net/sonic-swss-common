@@ -15,7 +15,7 @@ jobs:
   displayName: vstest
   timeoutInMinutes: ${{ parameters.timeout }}
 
-  pool: sonictest
+  pool: xiaweitest
 
   steps:
   - checkout: self
