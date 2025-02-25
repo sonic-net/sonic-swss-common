@@ -74,7 +74,7 @@ TEST(STRINGUTILITY, join)
 
 TEST(STRINGUTILITY, hex_to_binary)
 {
-    std::array<std::uint8_t, 5> a;
+    std::array<std::uint8_t, 5> a = {0};
 
     EXPECT_TRUE(swss::hex_to_binary("01020aff05", a.data(), a.size()));
     EXPECT_EQ(a, (std::array<std::uint8_t, 5>{0x1, 0x2, 0x0a, 0xff, 0x5}));
