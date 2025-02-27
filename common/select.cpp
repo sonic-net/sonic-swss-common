@@ -45,6 +45,7 @@ void Select::addSelectable(Selectable *selectable)
 
     if (selectable->initializedWithData())
     {
+        selectable->updateEarliestEventTime();
         m_ready.insert(selectable);
     }
 
@@ -69,6 +70,7 @@ void Select::removeSelectable(Selectable *selectable)
 
     m_objects.erase(fd);
     m_ready.erase(selectable);
+    selectable->resetEarliestEventTime();
 
     int res = ::epoll_ctl(m_epoll_fd, EPOLL_CTL_DEL, fd, NULL);
     if (res == -1)
@@ -130,6 +132,7 @@ int Select::poll_descriptors(Selectable **c, unsigned int timeout, bool interrup
             SWSS_LOG_ERROR("readData error: %s", ex.what());
             return Select::ERROR;
         }
+        sel->updateEarliestEventTime();
         m_ready.insert(sel);
     }
 
@@ -138,12 +141,9 @@ int Select::poll_descriptors(Selectable **c, unsigned int timeout, bool interrup
         auto sel = *m_ready.begin();
 
         m_ready.erase(sel);
-        // we must update clock only when the selector out of the m_ready
-        // otherwise we break invariant of the m_ready
-        sel->updateLastUsedTime();
-
         if (!sel->hasData())
         {
+            sel->resetEarliestEventTime();
             continue;
         }
 
@@ -153,6 +153,10 @@ int Select::poll_descriptors(Selectable **c, unsigned int timeout, bool interrup
         {
             // reinsert Selectable back to the m_ready set, when there're more messages in the cache
             m_ready.insert(sel);
+        }
+        else
+        {
+            sel->resetEarliestEventTime();
         }
 
         sel->updateAfterRead();
