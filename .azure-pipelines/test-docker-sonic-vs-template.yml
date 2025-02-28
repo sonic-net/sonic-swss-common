@@ -17,6 +17,7 @@ jobs:
 
   pool: test-os-upgrade
 
+
   steps:
   - checkout: self
     clean: true
