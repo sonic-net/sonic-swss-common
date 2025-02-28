@@ -15,7 +15,7 @@ jobs:
   displayName: vstest
   timeoutInMinutes: ${{ parameters.timeout }}
 
-  pool: xiaweitest
+  pool: test-os-upgrade
 
   steps:
   - checkout: self
