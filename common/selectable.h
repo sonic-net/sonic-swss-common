@@ -9,13 +9,13 @@
 
 namespace swss {
 
-static std::chrono::time_point<std::chrono::steady_clock> g_max_event_time = std::chrono::time_point<std::chrono::steady_clock>::max();
+using SelectableTimeType = std::chrono::time_point<std::chrono::steady_clock>;
 
 class Selectable
 {
 public:
     Selectable(int pri = 0) : m_priority(pri),
-                              m_earliest_event_time(g_max_event_time) {}
+                              m_earliest_event_time(SelectableTimeType::max()) {}
 
     virtual ~Selectable() = default;
 
@@ -74,7 +74,7 @@ private:
 
     void updateEarliestEventTime()
     {
-        if (m_earliest_event_time != g_max_event_time)
+        if (m_earliest_event_time != SelectableTimeType::max())
         {
             return;
         }
@@ -84,12 +84,12 @@ private:
 
     void resetEarliestEventTime()
     {
-        m_earliest_event_time = g_max_event_time;
+        m_earliest_event_time = SelectableTimeType::max();
     }
 
     int m_priority; // defines priority of Selectable inside Select
                     // higher value is higher priority
-    std::chrono::time_point<std::chrono::steady_clock> m_earliest_event_time;
+    SelectableTimeType m_earliest_event_time;
 };
 
 }
