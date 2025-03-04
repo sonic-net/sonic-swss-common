@@ -21,6 +21,10 @@ public:
         RECONCILED,
         WSDISABLED,
         WSUNKNOWN,
+        FROZEN,
+        QUIESCENT,
+        CHECKPOINTED,
+        FAILED,
     };
 
     enum DataCheckState
