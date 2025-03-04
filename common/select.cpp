@@ -69,8 +69,8 @@ void Select::removeSelectable(Selectable *selectable)
     const int fd = selectable->getFd();
 
     m_objects.erase(fd);
-    m_ready.erase(selectable);
     selectable->resetEarliestEventTime();
+    m_ready.erase(selectable);
 
     int res = ::epoll_ctl(m_epoll_fd, EPOLL_CTL_DEL, fd, NULL);
     if (res == -1)
