@@ -1,4 +1,3 @@
-
 lib_LTLIBRARIES += common/libswsscommon.la
 
 dist_swss_DATA = \
@@ -16,6 +15,18 @@ swssdir = $(datadir)/swss
 swsscommondir = /var/run/redis/sonic-db
 
 bin_PROGRAMS += common/swssloglevel
+
+# Add gen_cfg_schema.py to distribution
+EXTRA_DIST = gen_cfg_schema.py
+
+# Generate cfg_schema.h before building the library
+BUILT_SOURCES = common/cfg_schema.h
+
+common/cfg_schema.h:
+	$(PYTHON) $(srcdir)/gen_cfg_schema.py -o $@
+
+# Install cfg_schema.h with other headers
+#nobase_include_HEADERS = common/cfg_schema.h
 
 common_libswsscommon_la_SOURCES = \
     common/events_common.cpp         \
