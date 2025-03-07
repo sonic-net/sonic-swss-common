@@ -22,3 +22,13 @@ include tests/Makefile.am
 
 
 ACLOCAL_AMFLAGS = -I m4
+
+# Add to BUILT_SOURCES to ensure it's built first
+BUILT_SOURCES = common/cfg_schema.h
+
+# Add rule to generate the header file
+common/cfg_schema.h: gen_cfg_schema.py
+	$(AM_V_GEN)python $(srcdir)/gen_cfg_schema.py -o $@
+
+# Make sure the header is cleaned up
+CLEANFILES += common/cfg_schema.h
