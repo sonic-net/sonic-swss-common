@@ -22,11 +22,12 @@ EXTRA_DIST = gen_cfg_schema.py
 # Generate cfg_schema.h before building the library
 BUILT_SOURCES = common/cfg_schema.h
 
-common/cfg_schema.h:
-	$(PYTHON) $(srcdir)/gen_cfg_schema.py -o $@
+# Rule to generate cfg_schema.h and make it depend on gen_cfg_schema.py
+common/cfg_schema.h: $(srcdir)/gen_cfg_schema.py
+	$(AM_V_GEN)$(PYTHON) $< -o $@
 
-# Install cfg_schema.h with other headers
-#nobase_include_HEADERS = common/cfg_schema.h
+# Make sure the header is cleaned up
+CLEANFILES += common/cfg_schema.h
 
 common_libswsscommon_la_SOURCES = \
     common/events_common.cpp         \

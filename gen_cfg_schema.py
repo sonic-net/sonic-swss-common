@@ -48,7 +48,7 @@ def main():
     yang_dir = args.dir
     sy = sonic_yang.SonicYang(yang_dir)
     sy.loadYangModel()
-    keys = sy.confDbYangMap.keys()
+    keys = [k for k, v in sy.confDbYangMap.items() if "container" in v]
     write_cfg_schema(keys, args.output)
 
 if __name__ == "__main__":
