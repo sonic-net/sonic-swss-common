@@ -189,7 +189,6 @@ namespace swss {
 #define APP_ARS_PROFILE_TABLE_NAME            "ARS_PROFILE_TABLE"
 #define APP_ARS_INTERFACE_TABLE_NAME          "ARS_INTERFACE_TABLE"
 #define APP_ARS_NEXTHOP_GROUP_TABLE_NAME      "ARS_NEXTHOP_GROUP_TABLE"
-#define APP_ARS_PORTCHANNEL_TABLE_NAME        "ARS_PORTCHANNEL_TABLE"
 
 /***** TO BE REMOVED *****/
 
@@ -291,8 +290,6 @@ namespace swss {
 #define ACL_COUNTER_ATTR_ID_LIST          "ACL_COUNTER_ATTR_ID_LIST"
 #define FLOW_COUNTER_ID_LIST              "FLOW_COUNTER_ID_LIST"
 #define POLICER_COUNTER_ID_LIST           "POLICER_COUNTER_ID_LIST"
-#define ARS_LAG_COUNTER_ID_LIST           "ARS_LAG_COUNTER_ID_LIST"
-#define ARS_NEXTHOP_GROUP_COUNTER_ID_LIST "ARS_NEXTHOP_GROUP_COUNTER_ID_LIST"
 
 #define PLUGIN_TABLE                      "PLUGIN_TABLE"
 #define LUA_PLUGIN_TYPE                   "LUA_PLUGIN_TYPE"
@@ -458,7 +455,6 @@ namespace swss {
 #define CFG_ARS_PROFILE                             "ARS_PROFILE"
 #define CFG_ARS_INTERFACE                           "ARS_INTERFACE"
 #define CFG_ARS_NEXTHOP_GROUP                       "ARS_NEXTHOP_GROUP"
-#define CFG_ARS_PORTCHANNEL                         "ARS_PORTCHANNEL"
 
 #define CFG_FG_NHG                                  "FG_NHG"
 #define CFG_FG_NHG_PREFIX                           "FG_NHG_PREFIX"
@@ -646,10 +642,10 @@ namespace swss {
 #define BMP_STATE_BGP_RIB_OUT_TABLE              "BGP_RIB_OUT_TABLE"
 
 /* ARS */
-#define STATE_ARS_PROFILE_TABLE_NAME            "ARS_PROFILE"
-#define STATE_ARS_INTERFACE_TABLE_NAME          "ARS_INTERFACE"
-#define STATE_ARS_NEXTHOP_GROUP_TABLE_NAME      "ARS_NEXTHOP_GROUP"
-#define STATE_ARS_LAG_TABLE_NAME                "ARS_LAG"
+#define STATE_ARS_PROFILE_TABLE_NAME            "ARS_PROFILE_TABLE"
+#define STATE_ARS_INTERFACE_TABLE_NAME          "ARS_INTERFACE_TABLE"
+#define STATE_ARS_NEXTHOP_GROUP_TABLE_NAME      "ARS_NEXTHOP_GROUP_TABLE"
+#define STATE_ARS_CAPABILITY_TABLE_NAME         "ARS_CAPABILITY_TABLE"
 
 
 #ifdef __cplusplus
