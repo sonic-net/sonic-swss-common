@@ -15,7 +15,7 @@ class Selectable
 {
 public:
     Selectable(int pri = 0) : m_priority(pri),
-                              m_earliest_event_time(SelectableTimeType::max()) {}
+                              m_earliest_event_time(std::chrono::steady_clock::now()) {}
 
     virtual ~Selectable() = default;
 
