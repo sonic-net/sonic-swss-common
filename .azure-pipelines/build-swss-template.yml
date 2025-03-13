@@ -58,17 +58,13 @@ jobs:
       git status
     displayName: Set up sonic-swss branch
   - script: |
-      set -ex
       sudo apt-get update
-      sudo apt-get install -y libhiredis0.14 libhiredis-dev
-      sudo apt-get install -y libzmq5 libzmq3-dev
-      sudo apt-get install -qq -y \
-          libhiredis-dev \
-          swig4.0
-      sudo apt-get install -y libdbus-1-3
-      sudo apt-get install -y libteam-dev \
-          libteam5 \
-          libteamdctl0
+      sudo apt-get install -y \
+        libhiredis-dev \
+        libzmq3-dev \
+        swig4.0 \
+        libdbus-1-dev \
+        libteam-dev
     displayName: "Install dependencies"
   - task: DownloadPipelineArtifact@2
     inputs:
@@ -101,15 +97,15 @@ jobs:
       path: $(Build.ArtifactStagingDirectory)/download
       artifact: common-lib
       patterns: |
-        target/debs/${{ parameters.debian_version }}/libnl-3*.deb
-        target/debs/${{ parameters.debian_version }}/libnl-genl*.deb
-        target/debs/${{ parameters.debian_version }}/libnl-route*.deb
-        target/debs/${{ parameters.debian_version }}/libnl-nf*.deb
-        target/debs/${{ parameters.debian_version }}/libyang-*.deb
+        target/debs/${{ parameters.debian_version }}/libnl-3-200_*.deb
+        target/debs/${{ parameters.debian_version }}/libnl-3-dev_*.deb
+        target/debs/${{ parameters.debian_version }}/libnl-genl-3-200_*.deb
+        target/debs/${{ parameters.debian_version }}/libnl-genl-3-dev_*.deb
+        target/debs/${{ parameters.debian_version }}/libnl-route-3-200_*.deb
+        target/debs/${{ parameters.debian_version }}/libnl-route-3-dev_*.deb
+        target/debs/${{ parameters.debian_version }}/libnl-nf-3-200_*.deb
+        target/debs/${{ parameters.debian_version }}/libnl-nf-3-dev_*.deb
         target/debs/${{ parameters.debian_version }}/libyang_*.deb
-        target/debs/${{ parameters.debian_version }}/libprotobuf*.deb
-        target/debs/${{ parameters.debian_version }}/libprotoc*.deb
-        target/debs/${{ parameters.debian_version }}/protobuf-compiler*.deb
     displayName: "Download common libs"
   - task: DownloadPipelineArtifact@2
     inputs:
