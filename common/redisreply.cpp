@@ -70,8 +70,17 @@ inline void guard(FUNC func, const char* command)
     catch (const system_error& ex)
     {
         // Combine more error message and throw again
-        string errmsg = "RedisReply catches system_error: command: " + string(command) + ", reason: " + ex.what();
-        SWSS_LOG_ERROR("%s", errmsg.c_str());
+        string reason = ex.what();
+        string errmsg = "RedisReply catches system_error: command: " + string(command) + ", reason: " + reason;
+        if (reason.find("LOADING Redis is loading the dataset in memory") != string::npos)
+        {
+            // The command will fail when Redis is loading the dataset.
+            SWSS_LOG_WARN("%s", errmsg.c_str());
+        }
+        else
+        {
+            SWSS_LOG_ERROR("%s", errmsg.c_str());
+        }
         throw system_error(ex.code(), errmsg.c_str());
     }
 }
