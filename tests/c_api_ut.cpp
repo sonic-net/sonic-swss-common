@@ -126,6 +126,14 @@ TEST(c_api, DBConnector) {
     EXPECT_STREQ(SWSSStrRef_c_str((SWSSStrRef)val), "myval");
     SWSSString_free(val);
 
+    // test new_keyed - empty containerName and netns should be identical to new_named
+    SWSSDBConnector db2;
+    SWSSDBConnector_new_keyed("TEST_DB", 1000, true, "", "", &db2);
+    SWSSDBConnector_get(db, "mykey", &val);
+    EXPECT_STREQ(SWSSStrRef_c_str((SWSSStrRef)val), "myval");
+    SWSSString_free(val);
+    SWSSDBConnector_free(db2);
+
     SWSSDBConnector_exists(db, "mykey", &exists);
     EXPECT_TRUE(exists);
 
