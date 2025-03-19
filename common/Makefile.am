@@ -23,11 +23,15 @@ EXTRA_DIST = gen_cfg_schema.py
 BUILT_SOURCES = common/cfg_schema.h
 
 # Rule to generate cfg_schema.h and make it depend on gen_cfg_schema.py
-common/cfg_schema.h: $(srcdir)/gen_cfg_schema.py
-	$(AM_V_GEN)$(PYTHON) $< -o $@
+#common/cfg_schema.h: $(srcdir)/gen_cfg_schema.py
+#	$(AM_V_GEN)$(PYTHON) $< -o $@
 
-# Make sure the header is cleaned up
-CLEANFILES += common/cfg_schema.h
+common/cfg_schema.h: FORCE
+	$(AM_V_GEN)$(PYTHON) $(srcdir)/gen_cfg_schema.py -o $@
+
+# FORCE target to ensure cfg_schema.h is always regenerated
+.PHONY: FORCE
+FORCE:
 
 common_libswsscommon_la_SOURCES = \
     common/events_common.cpp         \
