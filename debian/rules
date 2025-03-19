@@ -39,17 +39,6 @@ endif
 %:
 	dh $@
 
-# Install Python dependencies before building
-override_dh_auto_build:
-	# Check if required variables are set
-	@if [ -z "$(WHEELS_ROOT_DIR)" ] || [ -z "$(PYTHON_WHEELS_PATH)" ]; then \
-		echo "Error: WHEELS_ROOT_DIR and PYTHON_WHEELS_PATH must be set"; \
-		exit 1; \
-	fi
-	# Find and install required Python packages from wheels using absolute path
-	python3 -m pip install $(shell find $(WHEELS_ROOT_DIR)/$(PYTHON_WHEELS_PATH) -name "sonic_yang_mgmt*.whl") $(shell find $(WHEELS_ROOT_DIR)/$(PYTHON_WHEELS_PATH) -name "sonic_yang_models*.whl")
-	dh_auto_build
-
 # dh_make generated override targets
 # This is example for Cmake (See https://bugs.debian.org/641051 )
 override_dh_auto_configure:
