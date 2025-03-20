@@ -128,7 +128,7 @@ inline void guard(FUNC func, const char* command)
         // Combine more error message and throw again
         std::string reason = ex.what();
         std::string errmsg = "RedisReply catches system_error: command: " + std::string(command) + ", reason: " + reason;
-        if (reason.find("LOADING Redis is loading the dataset in memory") != std::string::npos)
+        if (reason.rfind("LOADING ", 0) == 0)
         {
             // The command will fail when Redis is loading the dataset.
             SWSS_LOG_WARN("%s", errmsg.c_str());
