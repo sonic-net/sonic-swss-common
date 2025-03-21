@@ -16,15 +16,8 @@ swsscommondir = /var/run/redis/sonic-db
 
 bin_PROGRAMS += common/swssloglevel
 
-# Add gen_cfg_schema.py to distribution
-EXTRA_DIST = gen_cfg_schema.py
-
 # Generate cfg_schema.h before building the library
 BUILT_SOURCES = common/cfg_schema.h
-
-# Rule to generate cfg_schema.h and make it depend on gen_cfg_schema.py
-#common/cfg_schema.h: $(srcdir)/gen_cfg_schema.py
-#	$(AM_V_GEN)$(PYTHON) $< -o $@
 
 common/cfg_schema.h: FORCE
 	$(AM_V_GEN)$(PYTHON) $(srcdir)/gen_cfg_schema.py -o $@
