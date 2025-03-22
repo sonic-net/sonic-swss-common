@@ -26,6 +26,10 @@ SWSSResult SWSSDBConnector_new_unix(int32_t dbId, const char *sock_path, uint32_
 // Pass 0 to timeout for infinity
 SWSSResult SWSSDBConnector_new_named(const char *dbName, uint32_t timeout_ms, uint8_t isTcpConn, SWSSDBConnector *outDb);
 
+// Pass 0 to timeout for infinity
+SWSSResult SWSSDBConnector_new_keyed(const char *dbName, uint32_t timeout_ms, uint8_t isTcpConn,
+                                     const char *containerName, const char *netns, SWSSDBConnector *outDb);
+
 SWSSResult SWSSDBConnector_free(SWSSDBConnector db);
 
 // Outputs 0 when key doesn't exist, 1 when key was deleted
