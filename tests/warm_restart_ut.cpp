@@ -136,8 +136,6 @@ TEST(WarmRestart, checkWarmStart_and_State)
     EXPECT_FALSE(system_enabled);
 }
 
-
-
 TEST(WarmRestart, getWarmStartTimer)
 {
     DBConnector configDb("CONFIG_DB", 0, true);
@@ -158,6 +156,49 @@ TEST(WarmRestart, getWarmStartTimer)
     timer = WarmStart::getWarmStartTimer(testAppName, testDockerName);
 
     EXPECT_EQ(timer, 5000u);
+}
+
+TEST(WarmRestart, set_get_WarmStartState)
+{
+    DBConnector stateDb("STATE_DB", 0, true);
+    Table stateWarmRestartTable(&stateDb, STATE_WARM_RESTART_TABLE_NAME);
+    Table stateWarmRestartEnableTable(&stateDb, STATE_WARM_RESTART_ENABLE_TABLE_NAME);
+
+    DBConnector configDb("CONFIG_DB", 0, true);
+    Table cfgWarmRestartTable(&configDb, CFG_WARM_RESTART_TABLE_NAME);
+
+    //Clean up warm restart state for testAppName and warm restart config for testDockerName
+    stateWarmRestartTable.del(testAppName);
+    cfgWarmRestartTable.del(testDockerName);
+
+    //Initialize WarmStart class for TestApp
+    WarmStart::initialize(testAppName, testDockerName, 0, true);
+
+    WarmStart::WarmStartState warmStartStates[] =
+        {
+            WarmStart::INITIALIZED,
+            WarmStart::RESTORED,
+            WarmStart::REPLAYED,
+            WarmStart::RECONCILED,
+            WarmStart::WSDISABLED,
+            WarmStart::WSUNKNOWN,
+            WarmStart::FROZEN,
+            WarmStart::QUIESCENT,
+            WarmStart::CHECKPOINTED,
+            WarmStart::FAILED,
+        };
+
+    for (const auto &currState : warmStartStates) {
+        WarmStart::setWarmStartState(testAppName, currState);
+
+        string state;
+        stateWarmRestartTable.hget(testAppName, "state", state);
+        EXPECT_EQ(state, WarmStart::warmStartStateNameMap.at(currState).c_str());
+
+        WarmStart::WarmStartState ret_state;
+        WarmStart::getWarmStartState(testAppName, ret_state);
+        EXPECT_EQ(ret_state, currState);
+    }
 }
 
 TEST(WarmRestart, set_get_DataCheckState)
