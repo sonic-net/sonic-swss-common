@@ -8,7 +8,11 @@ COPY ["debs", "/debs"]
 # Remove existing packages first before installing the new/current packages. This is to overcome limitations with
 # Docker's diff detection mechanism, where only the file size and the modification timestamp (which will remain the
 # same, even though contents have changed) are checked between the previous and current layer.
-RUN dpkg --purge libswsscommon python3-swsscommon sonic-db-cli libsaimetadata libsairedis libsaivs syncd-vs swss sonic-eventd libdashapi
+#
+# Note: --force-depends has been added here to ignore dependency issues that will come up when uninstalling these
+# packages because the framework deb package depends on libswsscommon. This means (theoretically) that if there is
+# an API-breaking change in swsscommon, it won't get noticed or tested here.
+RUN dpkg --purge --force-depends libswsscommon python3-swsscommon sonic-db-cli libsaimetadata libsairedis libsaivs syncd-vs swss sonic-eventd libdashapi
 
 RUN apt-get update
 
