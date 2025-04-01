@@ -68,8 +68,7 @@ stages:
         sudo apt-get install -y python3-pip
         sudo pip3 install pytest
         sudo apt-get install -y python
-        sudo apt-get install cmake libgtest-dev libgmock-dev libyang-dev
-        sudo apt-get install -y python3-yang libyang-cpp
+        sudo apt-get install cmake libgtest-dev libgmock-dev libyang-dev libyang-cpp python3-yang
         cd /usr/src/gtest && sudo cmake . && sudo make
         ARCH=$(dpkg --print-architecture)
         set -x
@@ -105,8 +104,7 @@ stages:
         sudo apt-get install -y python3-pip
         sudo pip3 install pytest
         sudo apt-get install -y python
-        sudo apt-get install cmake libgtest-dev libgmock-dev libyang-dev
-        sudo apt-get install -y python3-yang libyang-cpp
+        sudo apt-get install cmake libgtest-dev libgmock-dev libyang-dev libyang-cpp python3-yang
         cd /usr/src/gtest && sudo cmake . && sudo make
         ARCH=$(dpkg --print-architecture)
         set -x
