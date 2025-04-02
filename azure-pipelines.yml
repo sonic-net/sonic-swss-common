@@ -76,6 +76,13 @@ stages:
             https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-${ARCH}
         sudo chmod 755 /usr/local/bin/bazel
       displayName: "Install dependencies"
+    - script: |
+        echo "deb http://archive.ubuntu.com/ubuntu jammy main" | sudo tee /etc/apt/sources.list.d/jammy.list
+        sudo apt-get update
+        sudo apt-get install -y libc6 -t jammy
+        sudo rm /etc/apt/sources.list.d/jammy.list
+        sudo apt-get update
+      displayName: "Upgrade libyang prerequisite libc from ubuntu22"
     - task: DownloadPipelineArtifact@2
       inputs:
         source: specific
