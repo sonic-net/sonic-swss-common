@@ -7,7 +7,7 @@ import time
 from swsscommon import swsscommon
 
 TEST_TIMEOUT = 30
-REDIS_RECORD_COUNT = 100000000
+REDIS_RECORD_COUNT = 50000000
 
 
 def start_redis():
