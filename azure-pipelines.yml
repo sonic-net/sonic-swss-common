@@ -119,6 +119,7 @@ stages:
     - script: |
         set -ex
         sudo pip3 install $(find ./download -name *.whl)
+        sudo pip3 install yang
       workingDirectory: $(Build.ArtifactStagingDirectory)
       displayName: "Install yang wheel from common lib"
     - script: |
