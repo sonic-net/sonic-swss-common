@@ -96,18 +96,15 @@ jobs:
     inputs:
       source: specific
       project: build
-      pipeline: Azure.sonic-buildimage.common_libs
+      pipeline: 142
+      artifact: sonic-buildimage.vs
       runVersion: 'latestFromBranch'
       runBranch: 'refs/heads/$(BUILD_BRANCH)'
       path: $(Build.ArtifactStagingDirectory)/download
-      ${{ if eq(parameters.arch, 'amd64') }}:
-        artifact: common-lib
-      ${{ else }}:
-        artifact: common-lib.${{ parameters.arch }}
       patterns: |
         target/python-wheels/${{ parameters.debian_version }}/sonic_yang_mgmt-1.0-py3-none-any.whl
         target/python-wheels/${{ parameters.debian_version }}/sonic_yang_models-1.0-py3-none-any.whl
-    displayName: "Download yang wheel from ${{ parameters.arch }} common lib"
+    displayName: "Download yang wheel from latest sonic-buildimage build"
   - script: |
       set -ex
       sudo pip3 install $(find ./download -name *.whl)
