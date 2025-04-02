@@ -92,6 +92,27 @@ jobs:
       sudo dpkg -i $(find ./download -name *.deb)
     workingDirectory: $(Build.ArtifactStagingDirectory)
     displayName: "Install libyang from common lib"
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      source: specific
+      project: build
+      pipeline: Azure.sonic-buildimage.common_libs
+      runVersion: 'latestFromBranch'
+      runBranch: 'refs/heads/$(BUILD_BRANCH)'
+      path: $(Build.ArtifactStagingDirectory)/download
+      ${{ if eq(parameters.arch, 'amd64') }}:
+        artifact: common-lib
+      ${{ else }}:
+        artifact: common-lib.${{ parameters.arch }}
+      patterns: |
+        target/python-wheels/${{ parameters.debian_version }}/sonic_yang_mgmt-1.0-py3-none-any.whl
+        target/python-wheels/${{ parameters.debian_version }}/sonic_yang_models-1.0-py3-none-any.whl
+    displayName: "Download yang wheel from ${{ parameters.arch }} common lib"
+  - script: |
+      set -ex
+      sudo pip3 install $(find ./download -name *.whl)
+    workingDirectory: $(Build.ArtifactStagingDirectory)
+    displayName: "Install yang wheel from common lib"
   - script: |
       set -ex
       rm ../*.deb || true
