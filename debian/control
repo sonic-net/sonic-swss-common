@@ -2,7 +2,7 @@ Source: sonic
 Maintainer: Shuotian Cheng <shuche@microsoft.com>
 Section: net
 Priority: optional
-Build-Depends: dh-exec (>=0.3), debhelper (>= 12), autotools-dev, libboost-dev | libboost1.71-dev, libhiredis-dev, libgtest-dev, libgmock-dev, swig, nlohmann-json3-dev, python3-yang, libyang-cpp0.16
+Build-Depends: dh-exec (>=0.3), debhelper (>= 12), autotools-dev, libboost-dev | libboost1.71-dev, libhiredis-dev, libgtest-dev, libgmock-dev, swig, nlohmann-json3-dev, python3-yang, libyang-cpp
 Standards-Version: 1.0.0
 
 Package: libswsscommon
