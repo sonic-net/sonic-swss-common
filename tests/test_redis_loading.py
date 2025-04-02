@@ -7,7 +7,7 @@ import time
 from swsscommon import swsscommon
 
 TEST_TIMEOUT = 30
-REDIS_RECORD_COUNT = 3000000
+REDIS_RECORD_COUNT = 5000000
 
 def start_redis():
     process = subprocess.Popen("sudo service redis-server start", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
