@@ -119,7 +119,11 @@ stages:
     - script: |
         set -ex
         sudo pip3 install $(find ./download -name *.whl)
-        sudo pip3 install yang
+        sudo apt install wget -y
+        wget http://archive.ubuntu.com/ubuntu/pool/main/g/gcc-12/libstdc++6_12.3.0-1ubuntu1~22.04_amd64.deb
+        wget http://archive.ubuntu.com/ubuntu/pool/main/g/gcc-12/gcc-12-base_12.3.0-1ubuntu1~22.04_amd64.deb
+        sudo dpkg -i gcc-12-base_12.3.0-1ubuntu1~22.04_amd64.deb
+        sudo dpkg -i libstdc++6_12.3.0-1ubuntu1~22.04_amd64.deb
       workingDirectory: $(Build.ArtifactStagingDirectory)
       displayName: "Install yang wheel from common lib"
     - script: |
