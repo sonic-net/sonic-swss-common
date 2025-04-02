@@ -179,9 +179,8 @@ stages:
       displayName: "Install yang deb from common lib"
     - script: |
         ./autogen.sh
-        # Use --enable-skip-cfg-schema to skip cfg_schema.h generation
-        ./configure --enable-skip-cfg-schema
-        dpkg-buildpackage -rfakeroot -us -uc -Pnopython2 -b -j$(nproc) && cp ../*.deb .
+        # Use skipcfgschema build profile to skip cfg_schema.h generation
+        dpkg-buildpackage -rfakeroot -us -uc -Pnopython2,skipcfgschema -b -j$(nproc) && cp ../*.deb .
       displayName: "Compile sonic swss common"
     - script: |
         bazel build //...
