@@ -77,6 +77,43 @@ stages:
             https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-${ARCH}
         sudo chmod 755 /usr/local/bin/bazel
       displayName: "Install dependencies"
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        source: specific
+        project: build
+        pipeline: Azure.sonic-buildimage.common_libs
+        runVersion: 'latestFromBranch'
+        runBranch: 'refs/heads/$(BUILD_BRANCH)'
+        path: $(Build.ArtifactStagingDirectory)/download
+        artifact: common-lib
+        patterns: |
+          target/debs/${{ parameters.debian_version }}/libyang_*.deb
+          target/debs/${{ parameters.debian_version }}/libyang-cpp_*.deb
+          target/debs/${{ parameters.debian_version }}/python3-yang_*.deb
+      displayName: "Download yang deb from amd64 common lib"
+    - script: |
+        set -ex
+        sudo dpkg -i $(find ./download -name *.deb)
+      workingDirectory: $(Build.ArtifactStagingDirectory)
+      displayName: "Install yang deb from common lib"
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        source: specific
+        project: build
+        pipeline: 142
+        artifact: sonic-buildimage.vs
+        runVersion: 'latestFromBranch'
+        runBranch: 'refs/heads/$(BUILD_BRANCH)'
+        path: $(Build.ArtifactStagingDirectory)/download
+        patterns: |
+          target/python-wheels/${{ parameters.debian_version }}/sonic_yang_mgmt-1.0-py3-none-any.whl
+          target/python-wheels/${{ parameters.debian_version }}/sonic_yang_models-1.0-py3-none-any.whl
+      displayName: "Download yang wheel from latest sonic-buildimage build"
+    - script: |
+        set -ex
+        sudo pip3 install $(find ./download -name *.whl)
+      workingDirectory: $(Build.ArtifactStagingDirectory)
+      displayName: "Install yang wheel from common lib"
     - script: |
         ./autogen.sh
         dpkg-buildpackage -rfakeroot -us -uc -b -j$(nproc) && cp ../*.deb .
@@ -105,7 +142,7 @@ stages:
         sudo apt-get install -y python3-pip
         sudo pip3 install pytest
         sudo apt-get install -y python
-        sudo apt-get install cmake libgtest-dev libgmock-dev libyang-dev libyang-cpp python3-yang
+        sudo apt-get install cmake libgtest-dev libgmock-dev libyang-dev
         cd /usr/src/gtest && sudo cmake . && sudo make
         ARCH=$(dpkg --print-architecture)
         set -x
