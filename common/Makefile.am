@@ -26,7 +26,7 @@ common/cfg_schema.h: FORCE
 	@touch $@
 else
 common/cfg_schema.h: FORCE
-	$(AM_V_GEN)$(PYTHON) $(srcdir)/gen_cfg_schema.py -o $@
+	$(AM_V_GEN)$(PYTHON3) $(srcdir)/gen_cfg_schema.py -o $@
 endif
 
 # FORCE target to ensure cfg_schema.h is always regenerated
