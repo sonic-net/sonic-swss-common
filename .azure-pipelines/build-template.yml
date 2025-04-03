@@ -67,7 +67,8 @@ jobs:
         libnl-genl-3-dev \
         libnl-route-3-dev \
         libnl-nf-3-dev \
-        swig
+        swig \
+        cpulimit
     displayName: "Install dependencies"
   - task: DownloadPipelineArtifact@2
     inputs:
