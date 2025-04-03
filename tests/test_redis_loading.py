@@ -11,11 +11,13 @@ REDIS_RECORD_COUNT = 1000000
 
 
 def start_redis():
-    # limit redis using 5% CPU because to increase redis loading time on fast environment
-    os.system(r"sudo cpulimit --limit 5 -- /usr/bin/redis-server  /etc/redis/redis.conf")
+    # limit redis using 1% CPU because to increase redis loading time on fast environment
+    print("start redis with CPU limit")
+    os.system(r"sudo cpulimit --limit 1 -- /usr/bin/redis-server  /etc/redis/redis.conf")
 
 
 def stop_redis():
+    print("stop redis with CPU limit")
     os.system("sudo pkill redis-server")
 
 
@@ -30,6 +32,7 @@ def wait_redis_ready():
 
 
 def generate_redis_dump():
+    print("generate redis dump")
     # generate a large redis dataset to reproduce LOADING exception
     db = swsscommon.SonicV2Connector(use_unix_socket_path=True)
     db.connect("TEST_DB")
@@ -52,6 +55,7 @@ def loading_dataset():
 
     wait_redis_ready()
 
+    print("stop redis service")
     os.system("sudo service redis-server stop")
 
     # start redis server in a thread, so test can run during redis loading data
@@ -64,11 +68,13 @@ def loading_dataset():
     stop_redis()
 
     # cleanup and restore redis service
+    print("start redis service")
     os.system("sudo service redis-server start")
 
     # wait for redis load dataset finish
     wait_redis_ready()
 
+    print("cleanup redis data")
     os.system("redis-cli FLUSHALL")
     os.system("redis-cli save")
 
