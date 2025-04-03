@@ -1,7 +1,6 @@
 import os
 import pytest
 import re
-import subprocess
 import threading
 import time
 from swsscommon import swsscommon
@@ -10,21 +9,10 @@ TEST_TIMEOUT = 30
 REDIS_RECORD_COUNT = 1000000
 
 
-def start_redis():
-    # limit redis using 1% CPU because to increase redis loading time on fast environment
-    print("start redis with CPU limit")
-    os.system(r"sudo cpulimit --limit 1 -- /usr/bin/redis-server  /etc/redis/redis.conf")
-
-
-def stop_redis():
-    print("stop redis with CPU limit")
-    os.system("sudo pkill redis-server")
-
-
 def wait_redis_ready():
     end_time = time.time() + TEST_TIMEOUT
     while time.time() < end_time:
-        result = subprocess.getoutput("redis-cli ping")
+        result = os.popen(r'redis-cli ping').read()
         print("ping result: {}".format(result))
         if "PONG" in result:
             break
@@ -42,48 +30,22 @@ def generate_redis_dump():
         db.set("TEST_DB", "record:{}".format(id), "field", "value{}".format(id))
 
     # create dump file
-    os.system("redis-cli save")
+    os.popen(r"redis-cli save")
 
 
-@pytest.fixture
-def loading_dataset():
-    wait_redis_ready()
+def test_redis_loading_exception(capfd):
+    os.popen(r"redis-cli FLUSHALL")
 
-    os.system("redis-cli FLUSHALL")
-    os.system("redis-cli save")
     generate_redis_dump()
 
-    wait_redis_ready()
+    print("restart redis service")
+    os.popen(r"sudo service redis-server restart")
 
-    print("stop redis service")
-    os.system("sudo service redis-server stop")
-
-    # start redis server in a thread, so test can run during redis loading data
-    thread = threading.Thread(target=start_redis)
-    thread.start()
-
-    yield
-
-    thread.join()
-    stop_redis()
-
-    # cleanup and restore redis service
-    print("start redis service")
-    os.system("sudo service redis-server start")
-
-    # wait for redis load dataset finish
-    wait_redis_ready()
-
-    print("cleanup redis data")
-    os.system("redis-cli FLUSHALL")
-    os.system("redis-cli save")
-
-
-def test_redis_loading_exception(loading_dataset, capfd):
     # write swss log to stderr, so capfd can capture it
     swsscommon.Logger.swssOutputNotify("", "STDERR")
     swsscommon.Logger.setMinPrio(swsscommon.Logger.SWSS_NOTICE)
 
+    print("Start test read")
     end_time = time.time() + TEST_TIMEOUT
     loading_exception = False
     while time.time() < end_time:
@@ -95,13 +57,23 @@ def test_redis_loading_exception(loading_dataset, capfd):
             if "LOADING" in error:
                 loading_exception = True
                 break
+    print("End test read")
 
+    # wait for redis load dataset finish
+    wait_redis_ready()
+
+    print("cleanup redis data")
+    os.popen(r"redis-cli FLUSHALL")
+    os.popen(r"redis-cli save")
+    print("end loading_dataset")
+
+    print("end test_redis_loading_exception")
     assert loading_exception, "LOADING exception does not happen"
 
-    pattern = r'.*WARN.*, reason: LOADING Redis is loading the dataset in memory.*'
+    expected = 'WARN:- guard: RedisReply catches system_error: command: *2\\r\\n$4\\r\\nKEYS\\r\\n$4\\r\\ntest\\r\\n, reason: LOADING Redis is loading the dataset in memory'
     captured_log = capfd.readouterr().err
 
     with capfd.disabled():
         print("captured syslog: {}".format(captured_log))
 
-    assert re.match(pattern, captured_log)
+    assert expected in captured_log
