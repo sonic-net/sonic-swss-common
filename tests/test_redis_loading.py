@@ -7,13 +7,16 @@ import time
 from swsscommon import swsscommon
 
 TEST_TIMEOUT = 30
-REDIS_RECORD_COUNT = 30000000
+REDIS_RECORD_COUNT = 1000000
 
 
 def start_redis():
-    process = subprocess.Popen("sudo service redis-server start", shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
-    stdout, stderr = process.communicate()
-    print("start redis result: stdout={} stderr={}".format(stdout.decode(), stderr.decode()))
+    # limit redis using 5% CPU because to increase redis loading time on fast environment
+    os.system(r"sudo cpulimit --limit 5 -- /usr/bin/redis-server  /etc/redis/redis.conf")
+
+
+def stop_redis():
+    os.system("sudo pkill redis-server")
 
 
 def wait_redis_ready():
@@ -26,10 +29,7 @@ def wait_redis_ready():
         time.sleep(1)
 
 
-@pytest.fixture
-def loading_dataset():
-    wait_redis_ready()
-
+def generate_redis_dump():
     # generate a large redis dataset to reproduce LOADING exception
     db = swsscommon.SonicV2Connector(use_unix_socket_path=True)
     db.connect("TEST_DB")
@@ -41,23 +41,36 @@ def loading_dataset():
     # create dump file
     os.system("redis-cli save")
 
+
+@pytest.fixture
+def loading_dataset():
+    wait_redis_ready()
+
+    os.system("redis-cli FLUSHALL")
+    os.system("redis-cli save")
+    generate_redis_dump()
+
     wait_redis_ready()
 
     os.system("sudo service redis-server stop")
 
-    # start redis server in a thread to reload dataset
+    # start redis server in a thread, so test can run during redis loading data
     thread = threading.Thread(target=start_redis)
     thread.start()
 
     yield
 
     thread.join()
+    stop_redis()
+
+    # cleanup and restore redis service
+    os.system("sudo service redis-server start")
 
     # wait for redis load dataset finish
     wait_redis_ready()
 
-    # cleanup
     os.system("redis-cli FLUSHALL")
+    os.system("redis-cli save")
 
 
 def test_redis_loading_exception(loading_dataset, capfd):
