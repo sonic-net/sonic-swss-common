@@ -20,11 +20,6 @@ DOPACKAGES = $(shell dh_listpackages)
 
 CONFIGURE_ARGS = --disable-static
 
-# Skip cfg_schema.h generation when skipcfgschema profile is used
-ifneq (,$(filter skipcfgschema,$(DEB_BUILD_PROFILES)))
-CONFIGURE_ARGS += --enable-skip-cfg-schema
-endif
-
 # For Debian jessie, stretch, and buster, and Ubuntu bionic and focal, build
 # Python 2 bindings. This is controlled by the build profile being used.
 ifneq (,$(filter python-swsscommon,$(DOPACKAGES)))

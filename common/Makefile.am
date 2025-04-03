@@ -19,15 +19,8 @@ bin_PROGRAMS += common/swssloglevel
 # Generate cfg_schema.h before building the library
 BUILT_SOURCES = common/cfg_schema.h
 
-# Check for SKIP_CFG_SCHEMA flag that can be set with --enable-skip-cfg-schema
-if SKIP_CFG_SCHEMA
-common/cfg_schema.h: FORCE
-	@echo "Skipping cfg_schema.h generation due to SKIP_CFG_SCHEMA flag"
-	@touch $@
-else
 common/cfg_schema.h: FORCE
 	$(AM_V_GEN)$(PYTHON3) $(srcdir)/gen_cfg_schema.py -o $@
-endif
 
 # FORCE target to ensure cfg_schema.h is always regenerated
 .PHONY: FORCE

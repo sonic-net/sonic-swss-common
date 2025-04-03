@@ -44,17 +44,9 @@ AC_ARG_ENABLE(yangmodules,
 	no)  yangmodules=false ;;
 	*) AC_MSG_ERROR(bad value ${enableval} for --enable-yangmodules) ;;
 esac],[yangmodules=true])
-AC_ARG_ENABLE(skip-cfg-schema,
-[  --enable-skip-cfg-schema   Skip generation of cfg_schema.h file],
-[case "${enableval}" in
-	yes) skip_cfg_schema=true ;;
-	no)  skip_cfg_schema=false ;;
-	*) AC_MSG_ERROR(bad value ${enableval} for --enable-skip-cfg-schema) ;;
-esac],[skip_cfg_schema=false])
 AM_CONDITIONAL(DEBUG, test x$debug = xtrue)
 AM_CONDITIONAL(PYTHON2, test x$python2 = xtrue)
 AM_CONDITIONAL(YANGMODS, test x$yangmodules = xtrue)
-AM_CONDITIONAL(SKIP_CFG_SCHEMA, test x$skip_cfg_schema = xtrue)
 if test x$CONFIGURED_ARCH = xarmhf && test x$CROSS_BUILD_ENVIRON = xy; then
 	AM_CONDITIONAL(ARCH64, false)
 else
