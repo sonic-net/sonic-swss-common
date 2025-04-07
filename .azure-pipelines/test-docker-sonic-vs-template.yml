@@ -54,17 +54,17 @@ jobs:
       path: $(Build.ArtifactStagingDirectory)/download
     displayName: "Download sonic buildimage ubuntu20.04 deb packages"
   - task: DownloadPipelineArtifact@2
-      inputs:
-        source: specific
-        project: build
-        pipeline: Azure.sonic-buildimage.common_libs
-        runVersion: 'latestFromBranch'
-        runBranch: 'refs/heads/$(BUILD_BRANCH)'
-        path: $(Build.ArtifactStagingDirectory)/download
-        artifact: common-lib
-        patterns: |
-          target/debs/${{ parameters.debian_version }}/libyang_*.deb
-      displayName: "Download yang deb from amd64 common lib"
+    inputs:
+      source: specific
+      project: build
+      pipeline: Azure.sonic-buildimage.common_libs
+      runVersion: 'latestFromBranch'
+      runBranch: 'refs/heads/$(BUILD_BRANCH)'
+      path: $(Build.ArtifactStagingDirectory)/download
+      artifact: common-lib
+      patterns: |
+        target/debs/${{ parameters.debian_version }}/libyang_*.deb
+    displayName: "Download yang deb from amd64 common lib"
 
   - script: |
       set -ex
