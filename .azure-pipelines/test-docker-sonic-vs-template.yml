@@ -56,7 +56,7 @@ jobs:
   - script: |
       echo "deb http://archive.ubuntu.com/ubuntu jammy main" | sudo tee /etc/apt/sources.list.d/jammy.list
       sudo apt-get update
-      sudo apt-get install -y libc6 -t jammy
+      sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" libc6 -t jammy
       sudo rm /etc/apt/sources.list.d/jammy.list
       sudo apt-get update
     displayName: "Upgrade libyang prerequisite libc from ubuntu22"
