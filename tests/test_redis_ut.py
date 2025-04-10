@@ -360,6 +360,8 @@ def test_DBInterface():
         db = SonicV2Connector(use_unix_socket_path=True, namespace='', decode_responses=True)
         db = SonicV2Connector(use_unix_socket_path=False, decode_responses=True)
         db = SonicV2Connector(host="127.0.0.1", decode_responses=True)
+        db = SonicV2Connector()
+        db.connect_host(db_name="TEST_DB", host='127.0.0.1')
     except:
         assert False, 'Unexpected exception raised'
 
