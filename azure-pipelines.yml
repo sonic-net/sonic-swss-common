@@ -68,7 +68,7 @@ stages:
         sudo apt-get install -y python3-pip
         sudo pip3 install pytest
         sudo apt-get install -y python
-        sudo apt-get install cmake libgtest-dev libgmock-dev libyang-dev
+        sudo apt-get install cmake libgtest-dev libgmock-dev
         cd /usr/src/gtest && sudo cmake . && sudo make
         ARCH=$(dpkg --print-architecture)
         set -x
@@ -76,6 +76,56 @@ stages:
             https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-${ARCH}
         sudo chmod 755 /usr/local/bin/bazel
       displayName: "Install dependencies"
+    - script: |
+        echo "deb http://archive.ubuntu.com/ubuntu jammy main" | sudo tee /etc/apt/sources.list.d/jammy.list
+        sudo apt-get update
+        sudo apt-get install -y libc6 -t jammy
+        sudo rm /etc/apt/sources.list.d/jammy.list
+        sudo apt-get update
+      displayName: "Upgrade libyang prerequisite libc from ubuntu22"
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        source: specific
+        project: build
+        pipeline: Azure.sonic-buildimage.common_libs
+        runVersion: 'latestFromBranch'
+        runBranch: 'refs/heads/$(BUILD_BRANCH)'
+        path: $(Build.ArtifactStagingDirectory)/download
+        artifact: common-lib
+        patterns: |
+          target/debs/${{ parameters.debian_version }}/libyang_*.deb
+          target/debs/${{ parameters.debian_version }}/libyang-*.deb
+          target/debs/${{ parameters.debian_version }}/libyang-cpp_*.deb
+          target/debs/${{ parameters.debian_version }}/python3-yang_*.deb
+      displayName: "Download yang deb from amd64 common lib"
+    - script: |
+        set -ex
+        sudo dpkg -i $(find ./download -name *.deb)
+      workingDirectory: $(Build.ArtifactStagingDirectory)
+      displayName: "Install yang deb from common lib"
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        source: specific
+        project: build
+        pipeline: 142
+        artifact: sonic-buildimage.vs
+        runVersion: 'latestFromBranch'
+        runBranch: 'refs/heads/$(BUILD_BRANCH)'
+        path: $(Build.ArtifactStagingDirectory)/download
+        patterns: |
+          target/python-wheels/${{ parameters.debian_version }}/sonic_yang_mgmt-1.0-py3-none-any.whl
+          target/python-wheels/${{ parameters.debian_version }}/sonic_yang_models-1.0-py3-none-any.whl
+      displayName: "Download yang wheel from latest sonic-buildimage build"
+    - script: |
+        set -ex
+        sudo pip3 install $(find ./download -name *.whl)
+        sudo apt install wget -y
+        wget http://archive.ubuntu.com/ubuntu/pool/main/g/gcc-12/libstdc++6_12.3.0-1ubuntu1~22.04_amd64.deb
+        wget http://archive.ubuntu.com/ubuntu/pool/main/g/gcc-12/gcc-12-base_12.3.0-1ubuntu1~22.04_amd64.deb
+        sudo dpkg -i gcc-12-base_12.3.0-1ubuntu1~22.04_amd64.deb
+        sudo dpkg -i libstdc++6_12.3.0-1ubuntu1~22.04_amd64.deb
+      workingDirectory: $(Build.ArtifactStagingDirectory)
+      displayName: "Install yang wheel from common lib"
     - script: |
         ./autogen.sh
         dpkg-buildpackage -rfakeroot -us -uc -b -j$(nproc) && cp ../*.deb .
@@ -104,7 +154,7 @@ stages:
         sudo apt-get install -y python3-pip
         sudo pip3 install pytest
         sudo apt-get install -y python
-        sudo apt-get install cmake libgtest-dev libgmock-dev libyang-dev
+        sudo apt-get install cmake libgtest-dev libgmock-dev
         cd /usr/src/gtest && sudo cmake . && sudo make
         ARCH=$(dpkg --print-architecture)
         set -x
@@ -112,6 +162,44 @@ stages:
             https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-${ARCH}
         sudo chmod 755 /usr/local/bin/bazel
       displayName: "Install dependencies"
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        source: specific
+        project: build
+        pipeline: Azure.sonic-buildimage.common_libs
+        runVersion: 'latestFromBranch'
+        runBranch: 'refs/heads/$(BUILD_BRANCH)'
+        path: $(Build.ArtifactStagingDirectory)/download
+        artifact: common-lib
+        patterns: |
+          target/debs/${{ parameters.debian_version }}/libyang_*.deb
+          target/debs/${{ parameters.debian_version }}/libyang-*.deb
+          target/debs/${{ parameters.debian_version }}/libyang-cpp_*.deb
+          target/debs/${{ parameters.debian_version }}/python3-yang_*.deb
+      displayName: "Download yang deb from amd64 common lib"
+    - script: |
+        set -ex
+        sudo dpkg -i $(find ./download -name *.deb)
+      workingDirectory: $(Build.ArtifactStagingDirectory)
+      displayName: "Install yang deb from common lib"
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        source: specific
+        project: build
+        pipeline: 142
+        artifact: sonic-buildimage.vs
+        runVersion: 'latestFromBranch'
+        runBranch: 'refs/heads/$(BUILD_BRANCH)'
+        path: $(Build.ArtifactStagingDirectory)/download
+        patterns: |
+          target/python-wheels/${{ parameters.debian_version }}/sonic_yang_mgmt-1.0-py3-none-any.whl
+          target/python-wheels/${{ parameters.debian_version }}/sonic_yang_models-1.0-py3-none-any.whl
+      displayName: "Download yang wheel from latest sonic-buildimage build"
+    - script: |
+        set -ex
+        sudo pip3 install $(find ./download -name *.whl)
+      workingDirectory: $(Build.ArtifactStagingDirectory)
+      displayName: "Install yang wheel from common lib"
     - script: |
         ./autogen.sh
         dpkg-buildpackage -rfakeroot -us -uc -Pnopython2 -b -j$(nproc) && cp ../*.deb .
