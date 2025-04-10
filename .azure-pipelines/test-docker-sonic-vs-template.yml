@@ -53,6 +53,13 @@ jobs:
       runBranch: 'refs/heads/${{ parameters.sonic_buildimage_ubuntu20_04 }}'
       path: $(Build.ArtifactStagingDirectory)/download
     displayName: "Download sonic buildimage ubuntu20.04 deb packages"
+  - script: |
+      echo "deb http://archive.ubuntu.com/ubuntu jammy main" | sudo tee /etc/apt/sources.list.d/jammy.list
+      sudo apt-get update
+      sudo apt-get install -y libc6 -t jammy
+      sudo rm /etc/apt/sources.list.d/jammy.list
+      sudo apt-get update
+    displayName: "Upgrade libyang prerequisite libc from ubuntu22"
   - task: DownloadPipelineArtifact@2
     inputs:
       source: specific
@@ -65,13 +72,6 @@ jobs:
       patterns: |
         target/debs/${{ parameters.debian_version }}/libyang_*.deb
     displayName: "Download yang deb from amd64 common lib"
-  - script: |
-      echo "deb http://archive.ubuntu.com/ubuntu jammy main" | sudo tee /etc/apt/sources.list.d/jammy.list
-      sudo apt-get update
-      sudo apt-get install -y libc6 -t jammy
-      sudo rm /etc/apt/sources.list.d/jammy.list
-      sudo apt-get update
-    displayName: "Upgrade libyang prerequisite libc from ubuntu22"
 
   - script: |
       set -ex
