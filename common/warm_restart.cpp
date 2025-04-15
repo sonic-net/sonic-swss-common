@@ -13,7 +13,11 @@ const WarmStart::WarmStartStateNameMap WarmStart::warmStartStateNameMap =
     {REPLAYED,      "replayed"},
     {RECONCILED,    "reconciled"},
     {WSDISABLED,    "disabled"},
-    {WSUNKNOWN,     "unknown"}
+    {WSUNKNOWN,     "unknown"},
+    {FROZEN,        "frozen"},
+    {QUIESCENT,     "quiescent"},
+    {CHECKPOINTED,  "checkpointed"},
+    {FAILED,        "failed"}
 };
 
 const WarmStart::DataCheckStateNameMap WarmStart::dataCheckStateNameMap =
