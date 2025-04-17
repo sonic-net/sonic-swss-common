@@ -18,6 +18,8 @@ public:
 
     void connect(const std::string& db_name, bool retry_on = true);
 
+    void connect_host(const std::string& db_name, const std::string& host, bool retry_on = true);
+
     void close(const std::string& db_name);
 
     void close();
