@@ -68,8 +68,7 @@ jobs:
             autoconf-archive \
             uuid-dev \
             libjansson-dev \
-            nlohmann-json3-dev \
-            python
+            nlohmann-json3-dev
 
     - if: matrix.language == 'cpp'
       name: build-swss-common
