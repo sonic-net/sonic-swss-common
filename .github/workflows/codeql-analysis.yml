@@ -54,11 +54,11 @@ jobs:
             libzmq3-dev \
             libzmq5 \
             swig3.0 \
-            libpython2.7-dev \
+            libpython3-dev \
             libgtest-dev \
             libgmock-dev \
-            libboost1.71-dev \
-            libboost-serialization1.71-dev \
+            libboost-dev \
+            libboost-serialization-dev \
             dh-exec \
             doxygen \
             cdbs \
@@ -76,7 +76,7 @@ jobs:
       run: |
         set -x
         ./autogen.sh
-        fakeroot dpkg-buildpackage -us -uc -b
+        dpkg-buildpackage -rfakeroot -us -uc -b -Pnoyangmod,nopython2 -j$(nproc)
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v2.1.29
