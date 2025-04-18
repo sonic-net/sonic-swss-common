@@ -144,6 +144,7 @@ stages:
         sudo pip3 install pytest
         sudo apt-get install -y python
         sudo apt-get install cmake libgtest-dev libgmock-dev libyang-dev
+
         cd /usr/src/gtest && sudo cmake . && sudo make
         ARCH=$(dpkg --print-architecture)
         set -x
