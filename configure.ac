@@ -44,9 +44,17 @@ AC_ARG_ENABLE(yangmodules,
 	no)  yangmodules=false ;;
 	*) AC_MSG_ERROR(bad value ${enableval} for --enable-yangmodules) ;;
 esac],[yangmodules=true])
+AC_ARG_ENABLE(pregenerated-schema,
+[  --enable-pregenerated-schema    Use pre-generated schema file],
+[case "${enableval}" in
+	yes) pregenerated_schema=true ;;
+	no)  pregenerated_schema=false ;;
+	*) AC_MSG_ERROR(bad value ${enableval} for --enable-pregenerated-schema) ;;
+esac],[pregenerated_schema=true])
 AM_CONDITIONAL(DEBUG, test x$debug = xtrue)
 AM_CONDITIONAL(PYTHON2, test x$python2 = xtrue)
 AM_CONDITIONAL(YANGMODS, test x$yangmodules = xtrue)
+AM_CONDITIONAL(USE_PREGENERATED_SCHEMA, test x$pregenerated_schema = xtrue)
 if test x$CONFIGURED_ARCH = xarmhf && test x$CROSS_BUILD_ENVIRON = xy; then
 	AM_CONDITIONAL(ARCH64, false)
 else

@@ -19,8 +19,22 @@ bin_PROGRAMS += common/swssloglevel
 # Generate cfg_schema.h before building the library
 BUILT_SOURCES = common/cfg_schema.h
 
+# Choose between pre-generated schema and dynamically generated schema
+if USE_PREGENERATED_SCHEMA
+# Use pre-generated schema file (for environments without proper dependencies)
+common/cfg_schema.h: FORCE
+	@if [ -f $(srcdir)/common/cfg_schema.h.pregenerated ]; then \
+		echo "Using pre-generated schema file"; \
+		cp $(srcdir)/common/cfg_schema.h.pregenerated $@; \
+	else \
+		echo "ERROR: Pre-generated schema file not found but USE_PREGENERATED_SCHEMA is enabled"; \
+		exit 1; \
+	fi
+else
+# Generate schema dynamically (default behavior)
 common/cfg_schema.h: FORCE
 	$(AM_V_GEN)$(PYTHON) $(srcdir)/gen_cfg_schema.py -o $@
+endif
 
 # FORCE target to ensure cfg_schema.h is always regenerated
 .PHONY: FORCE
