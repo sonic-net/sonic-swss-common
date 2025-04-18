@@ -78,11 +78,6 @@ stages:
         sudo chmod 755 /usr/local/bin/bazel
       displayName: "Install dependencies"
     - script: |
-        set -ex
-        sudo pip3 install $(find ./download -name *.whl)
-      workingDirectory: $(Build.ArtifactStagingDirectory)
-      displayName: "Install yang wheel from common lib"
-    - script: |
         ./autogen.sh
         dpkg-buildpackage -rfakeroot -us -uc -b -j$(nproc) && cp ../*.deb .
       displayName: "Compile sonic swss common"
