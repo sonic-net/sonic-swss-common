@@ -114,7 +114,7 @@ jobs:
       set -ex
       rm ../*.deb || true
       ./autogen.sh
-      fakeroot debian/rules DEB_CONFIGURE_EXTRA_FLAGS='--enable-code-coverage' DEB_BUILD_PROFILES=nopython2 CFLAGS="" CXXFLAGS="--coverage -fprofile-abs-path" LDFLAGS="--coverage -fprofile-abs-path" binary
+      fakeroot debian/rules DEB_CONFIGURE_EXTRA_FLAGS='--enable-code-coverage --disable-pregenerated-schema' DEB_BUILD_PROFILES=nopython2 CFLAGS="" CXXFLAGS="--coverage -fprofile-abs-path" LDFLAGS="--coverage -fprofile-abs-path" binary
       mv ../*.deb .
     displayName: "Compile sonic swss common with coverage enabled"
   - ${{ if eq(parameters.run_unit_test, true) }}:
