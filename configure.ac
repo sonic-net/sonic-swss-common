@@ -50,7 +50,7 @@ AC_ARG_ENABLE(pregenerated-schema,
 	yes) pregenerated_schema=true ;;
 	no)  pregenerated_schema=false ;;
 	*) AC_MSG_ERROR(bad value ${enableval} for --enable-pregenerated-schema) ;;
-esac],[pregenerated_schema=true])
+esac],[pregenerated_schema=false])
 AM_CONDITIONAL(DEBUG, test x$debug = xtrue)
 AM_CONDITIONAL(PYTHON2, test x$python2 = xtrue)
 AM_CONDITIONAL(YANGMODS, test x$yangmodules = xtrue)
