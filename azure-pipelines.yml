@@ -79,7 +79,7 @@ stages:
       displayName: "Install dependencies"
     - script: |
         ./autogen.sh
-        dpkg-buildpackage -rfakeroot -us -uc -b -j$(nproc) && cp ../*.deb .
+        dpkg-buildpackage -rfakeroot -us -uc -b -j$(nproc) DEB_CONFIGURE_EXTRA_FLAGS='--enable-pregenerated-schema' && cp ../*.deb .
       displayName: "Compile sonic swss common"
     - script: |
         bazel build //...
@@ -116,7 +116,7 @@ stages:
       displayName: "Install dependencies"
     - script: |
         ./autogen.sh
-        dpkg-buildpackage -rfakeroot -us -uc -Pnopython2 -b -j$(nproc) && cp ../*.deb .
+        dpkg-buildpackage -rfakeroot -us -uc -Pnopython2 -b -j$(nproc) DEB_CONFIGURE_EXTRA_FLAGS='--enable-pregenerated-schema' && cp ../*.deb .
       displayName: "Compile sonic swss common"
     - script: |
         bazel build //...
