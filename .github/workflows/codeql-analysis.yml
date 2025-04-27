@@ -7,7 +7,7 @@ on:
     branches:
       - 'master'
       - '202[0-9][0-9][0-9]'
-  pull_request_target:
+  pull_request:
     branches:
       - 'master'
       - '202[0-9][0-9][0-9]'
@@ -16,7 +16,7 @@ on:
 jobs:
   analyze:
     name: Analyze
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     permissions:
       actions: read
       contents: read
@@ -54,11 +54,11 @@ jobs:
             libzmq3-dev \
             libzmq5 \
             swig3.0 \
-            libpython2.7-dev \
+            libpython3-dev \
             libgtest-dev \
             libgmock-dev \
-            libboost1.71-dev \
-            libboost-serialization1.71-dev \
+            libboost-dev \
+            libboost-serialization-dev \
             dh-exec \
             doxygen \
             cdbs \
@@ -68,15 +68,14 @@ jobs:
             autoconf-archive \
             uuid-dev \
             libjansson-dev \
-            nlohmann-json3-dev \
-            python
+            nlohmann-json3-dev
 
     - if: matrix.language == 'cpp'
       name: build-swss-common
       run: |
         set -x
         ./autogen.sh
-        fakeroot dpkg-buildpackage -us -uc -b
+        dpkg-buildpackage -rfakeroot -us -uc -b -Pnoyangmod,nopython2 -j$(nproc)
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v2.1.29
