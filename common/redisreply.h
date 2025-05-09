@@ -4,6 +4,8 @@
 #include <hiredis/hiredis.h>
 #include <string>
 #include <stdexcept>
+#include <system_error>
+#include "logger.h"
 #include "rediscommand.h"
 
 namespace swss {
@@ -113,6 +115,32 @@ private:
 
     redisReply *m_reply;
 };
+
+template <typename FUNC>
+inline void guard(FUNC func, const char* command)
+{
+    try
+    {
+        func();
+    }
+    catch (const std::system_error& ex)
+    {
+        // Combine more error message and throw again
+        std::string reason = ex.what();
+        std::string errmsg = "RedisReply catches system_error: command: " + std::string(command) + ", reason: " + reason;
+        // C++ does not have a startswith function. To ensure the search begins at the start of the string 'reason', pass pos = 0
+        if (reason.rfind("LOADING ", 0) == 0)
+        {
+            // The command will fail when Redis is loading the dataset.
+            SWSS_LOG_WARN("%s", errmsg.c_str());
+        }
+        else
+        {
+            SWSS_LOG_ERROR("%s", errmsg.c_str());
+        }
+        throw std::system_error(ex.code(), errmsg.c_str());
+    }
+}
 
 }
 #endif
