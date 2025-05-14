@@ -1,9 +1,11 @@
 #include <iostream>
 #include <fstream>
 #include <map>
+#include <set>
+#include <algorithm>
 #include "gtest/gtest.h"
 #include "common/dbconnector.h"
-#include "common/json.hpp"
+#include <nlohmann/json.hpp>
 #include "common/table.h"
 
 using namespace std;
@@ -14,9 +16,11 @@ extern string global_existing_file;
 
 TEST(DBConnector, multi_ns_test)
 {
-    std::string local_file, dir_name, ns_name;
-    vector<string> namespaces;
+    std::string local_file, dir_name;
+    set<string> namespaces;
     vector<string> ns_names;
+    vector<SonicDBKey> dbkeys;
+    vector<SonicDBKey> target_dbkeys;
 
     // load global config file again, should throw exception with init already done
     try
@@ -57,18 +61,25 @@ TEST(DBConnector, multi_ns_test)
 
         for (auto& element : g["INCLUDES"])
         {
+            swss::SonicDBKey key;
             local_file.append(dir_name);
             local_file.append(element["include"]);
 
-            if(element["namespace"].empty())
+            if(!element["namespace"].empty())
             {
-                ns_name = EMPTY_NAMESPACE;
+                key.netns = element["namespace"];
             }
-            else
+            if (!element["container_name"].empty())
             {
-                ns_name = element["namespace"];
+                key.containerName = element["container_name"];
             }
-            namespaces.push_back(ns_name);
+            namespaces.insert(key.netns);
+            target_dbkeys.push_back(key);
+
+            if (!element["container_name"].empty())
+            {
+                key.containerName = element["container_name"];
+            }
 
             // parse config file
             ifstream i(local_file);
@@ -93,17 +104,34 @@ TEST(DBConnector, multi_ns_test)
                    string instName = it.value().at("instance");
                    int dbId = it.value().at("id");
                    cout<<"testing "<<dbName<<endl;
-                   cout<<ns_name<<"#"<<dbId<<dbName<<"#"<<m_inst_info[instName].unixSocketPath<<"#"<<m_inst_info[instName].hostname<<"#"<<m_inst_info[instName].port<<endl;
-                   // dbInst info matches between get api and context in json file
-                   EXPECT_EQ(instName, SonicDBConfig::getDbInst(dbName, ns_name));
-                   // dbId info matches between get api and context in json file
-                   EXPECT_EQ(dbId, SonicDBConfig::getDbId(dbName, ns_name));
-                   // socket info matches between get api and context in json file
-                   EXPECT_EQ(m_inst_info[instName].unixSocketPath, SonicDBConfig::getDbSock(dbName, ns_name));
-                   // hostname info matches between get api and context in json file
-                   EXPECT_EQ(m_inst_info[instName].hostname, SonicDBConfig::getDbHostname(dbName, ns_name));
-                   // port info matches between get api and context in json file
-                   EXPECT_EQ(m_inst_info[instName].port, SonicDBConfig::getDbPort(dbName, ns_name));
+                   cout<<key.netns<<"#"<<dbId<<dbName<<"#"<<m_inst_info[instName].unixSocketPath<<"#"<<m_inst_info[instName].hostname<<"#"<<m_inst_info[instName].port<<endl;
+                   if (key.containerName.empty())
+                   {
+                        // Test for original namespace only API
+                        // dbInst info matches between get api and context in json file
+                        EXPECT_EQ(instName, SonicDBConfig::getDbInst(dbName, key.netns));
+                        // dbId info matches between get api and context in json file
+                        EXPECT_EQ(dbId, SonicDBConfig::getDbId(dbName, key.netns));
+                        // socket info matches between get api and context in json file
+                        EXPECT_EQ(m_inst_info[instName].unixSocketPath, SonicDBConfig::getDbSock(dbName, key.netns));
+                        // hostname info matches between get api and context in json file
+                        EXPECT_EQ(m_inst_info[instName].hostname, SonicDBConfig::getDbHostname(dbName, key.netns));
+                        // port info matches between get api and context in json file
+                        EXPECT_EQ(m_inst_info[instName].port, SonicDBConfig::getDbPort(dbName, key.netns));
+                   }
+                   else
+                   {
+                        // dbInst info matches between get api and context in json file
+                        EXPECT_EQ(instName, SonicDBConfig::getDbInst(dbName, key));
+                        // dbId info matches between get api and context in json file
+                        EXPECT_EQ(dbId, SonicDBConfig::getDbId(dbName, key));
+                        // socket info matches between get api and context in json file
+                        EXPECT_EQ(m_inst_info[instName].unixSocketPath, SonicDBConfig::getDbSock(dbName, key));
+                        // hostname info matches between get api and context in json file
+                        EXPECT_EQ(m_inst_info[instName].hostname, SonicDBConfig::getDbHostname(dbName, key));
+                        // port info matches between get api and context in json file
+                        EXPECT_EQ(m_inst_info[instName].port, SonicDBConfig::getDbPort(dbName, key));
+                   }
                 }
             }
              local_file.clear();
@@ -112,10 +140,21 @@ TEST(DBConnector, multi_ns_test)
 
     // Get the namespaces from the database_global.json file and compare with the list we created here.
     ns_names = SonicDBConfig::getNamespaces();
-    sort (namespaces.begin(), namespaces.end());
     sort (ns_names.begin(), ns_names.end());
     EXPECT_EQ(ns_names.size(), namespaces.size());
-    EXPECT_TRUE(namespaces == ns_names);
+    EXPECT_TRUE(std::equal(namespaces.begin(), namespaces.end(), ns_names.begin()));
+
+    dbkeys = SonicDBConfig::getDbKeys();
+    EXPECT_EQ(dbkeys.size(), target_dbkeys.size());
+    for (auto &key : target_dbkeys)
+    {
+        cout<< "target key " << key.toString() <<endl;
+    }
+    for (auto &key : dbkeys)
+    {
+        cout<< "Check key " << key.toString() <<endl;
+        EXPECT_TRUE(std::find(target_dbkeys.begin(), target_dbkeys.end(), key) != target_dbkeys.end());
+    }
 }
 
 void clearNetnsDB()

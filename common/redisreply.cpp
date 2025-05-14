@@ -4,7 +4,6 @@
 #include <vector>
 #include <iostream>
 #include <sstream>
-#include <system_error>
 #include <functional>
 #include <boost/algorithm/string.hpp>
 
@@ -59,22 +58,6 @@ static set<string> g_strToBoolCommands = {
                         "UNWATCH",
                         "SET"
                         };
-
-template <typename FUNC>
-inline void guard(FUNC func, const char* command)
-{
-    try
-    {
-        func();
-    }
-    catch (const system_error& ex)
-    {
-        // Combine more error message and throw again
-        string errmsg = "RedisReply catches system_error: command: " + string(command) + ", reason: " + ex.what();
-        SWSS_LOG_ERROR("%s", errmsg.c_str());
-        throw system_error(ex.code(), errmsg.c_str());
-    }
-}
 
 RedisReply::RedisReply(RedisContext *ctx, const RedisCommand& command)
 {

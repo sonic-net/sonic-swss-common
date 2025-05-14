@@ -1,18 +1,18 @@
-#include <stdlib.h>
-#include <tuple>
-#include <sstream>
-#include <utility>
+#include "zmqproducerstatetable.h"
+#include "binaryserializer.h"
+#include "redisapi.h"
+#include "redispipeline.h"
+#include "redisreply.h"
+#include "table.h"
+#include "zmqconsumerstatetable.h"
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <sstream>
+#include <stdlib.h>
+#include <tuple>
+#include <utility>
 #include <zmq.h>
-#include "redisreply.h"
-#include "table.h"
-#include "redisapi.h"
-#include "redispipeline.h"
-#include "zmqproducerstatetable.h"
-#include "zmqconsumerstatetable.h"
-#include "binaryserializer.h"
 
 using namespace std;
 
@@ -38,8 +38,6 @@ ZmqProducerStateTable::ZmqProducerStateTable(RedisPipeline *pipeline, const stri
 
 void ZmqProducerStateTable::initialize(DBConnector *db, const std::string &tableName, bool dbPersistence)
 {
-    m_sendbuffer.resize(MQ_RESPONSE_MAX_COUNT);
-    
     if (dbPersistence)
     {
         SWSS_LOG_DEBUG("Database persistence enabled, tableName: %s", tableName.c_str());
@@ -64,8 +62,7 @@ void ZmqProducerStateTable::set(
     m_zmqClient.sendMsg(
                         m_dbName,
                         m_tableNameStr,
-                        kcos,
-                        m_sendbuffer);
+                        kcos);
 
     if (m_asyncDBUpdater != nullptr)
     {
@@ -93,8 +90,7 @@ void ZmqProducerStateTable::del(
     m_zmqClient.sendMsg(
                         m_dbName,
                         m_tableNameStr,
-                        kcos,
-                        m_sendbuffer);
+                        kcos);
 
     if (m_asyncDBUpdater != nullptr)
     {
@@ -112,8 +108,7 @@ void ZmqProducerStateTable::set(const std::vector<KeyOpFieldsValuesTuple> &value
     m_zmqClient.sendMsg(
                         m_dbName,
                         m_tableNameStr,
-                        values,
-                        m_sendbuffer);
+                        values);
     
     if (m_asyncDBUpdater != nullptr)
     {
@@ -136,8 +131,7 @@ void ZmqProducerStateTable::del(const std::vector<std::string> &keys)
     m_zmqClient.sendMsg(
                         m_dbName,
                         m_tableNameStr,
-                        kcos,
-                        m_sendbuffer);
+                        kcos);
     
     if (m_asyncDBUpdater != nullptr)
     {
@@ -157,8 +151,7 @@ void ZmqProducerStateTable::send(const std::vector<KeyOpFieldsValuesTuple> &kcos
     m_zmqClient.sendMsg(
                         m_dbName,
                         m_tableNameStr,
-                        kcos,
-                        m_sendbuffer);
+                        kcos);
     
     if (m_asyncDBUpdater != nullptr)
     {
@@ -169,6 +162,13 @@ void ZmqProducerStateTable::send(const std::vector<KeyOpFieldsValuesTuple> &kcos
             m_asyncDBUpdater->update(clone);
         }
     }
+}
+
+bool ZmqProducerStateTable::wait(const std::string& dbName,
+              const std::string& tableName,
+              const std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos)
+{
+    return m_zmqClient.wait(dbName, tableName, kcos);
 }
 
 size_t ZmqProducerStateTable::dbUpdaterQueueSize()

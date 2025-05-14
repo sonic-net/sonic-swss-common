@@ -53,6 +53,18 @@ jobs:
     inputs:
       source: specific
       project: build
+      pipeline: sonic-net.sonic-dash-api
+      artifact: sonic-dash-api
+      runVersion: 'latestFromBranch'
+      runBranch: 'refs/heads/$(BUILD_BRANCH)'
+      path: $(Build.ArtifactStagingDirectory)/download
+      patterns: |
+        libdashapi*.deb
+    displayName: "Download dash api"
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      source: specific
+      project: build
       pipeline: Azure.sonic-buildimage.official.vs
       artifact: sonic-buildimage.vs
       runVersion: 'latestFromBranch'

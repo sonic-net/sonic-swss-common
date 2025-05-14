@@ -365,7 +365,7 @@ EventSubscriber::init(bool use_cache, int recv_timeout,
         RET_ON_ERR(rc == 0, "Fails to set option rc=%d", rc);
     }
     else {
-        for (const auto e: *subs_sources) {
+        for (const auto &e: *subs_sources) {
             rc = zmq_setsockopt(sock, ZMQ_SUBSCRIBE, e.c_str(), e.size());
             RET_ON_ERR(rc == 0, "Fails to set option rc=%d", rc);
         }
@@ -400,14 +400,14 @@ EventSubscriber::prune_track()
     map<time_t, vector<runtime_id_t> > lst;
 
     /* Sort entries by last touched time */
-    for(const auto e: m_track) {
+    for(const auto &e: m_track) {
         lst[e.second.epoch_secs].push_back(e.first);
     }
 
     /* By default it walks from lowest value / earliest timestamp */
     map<time_t, vector<runtime_id_t> >::const_iterator itc = lst.begin();
     for(; (itc != lst.end()) && (m_track.size() > MAX_PUBLISHERS_COUNT); ++itc) {
-        for (const auto r: itc->second) {
+        for (const auto &r: itc->second) {
             m_track.erase(r);
         }
     }

@@ -1,4 +1,4 @@
-#include "common/json.hpp"
+#include <nlohmann/json.hpp>
 #include "common/producertable.h"
 #include "gtest/gtest.h"
 

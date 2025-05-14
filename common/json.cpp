@@ -5,7 +5,7 @@
 #include <limits>
 
 #include "common/json.h"
-#include "common/json.hpp"
+#include <nlohmann/json.hpp>
 
 using namespace std;
 

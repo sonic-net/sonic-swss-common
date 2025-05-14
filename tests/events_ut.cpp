@@ -5,7 +5,7 @@
 #include <deque>
 #include <regex>
 #include <chrono>
-#include "common/json.hpp"
+#include <nlohmann/json.hpp>
 #include "gtest/gtest.h"
 #include "common/events_common.h"
 #include "common/events.h"
@@ -137,7 +137,7 @@ parse_read_evt(string &source, internal_event_t &evt,
     EXPECT_FALSE(source.empty());
     EXPECT_EQ(4, evt.size());
 
-    for (const auto e: evt) {
+    for (const auto &e: evt) {
         if (e.first == EVENT_STR_DATA) {
             EXPECT_EQ(0, convert_from_json(e.second, key, params));
             // cout << "EVENT_STR_DATA: " << e.second << "\n";

@@ -2,7 +2,7 @@
 #include <fstream>
 #include "gtest/gtest.h"
 #include "common/dbconnector.h"
-#include "common/json.hpp"
+#include <nlohmann/json.hpp>
 #include <unordered_map>
 
 using namespace std;

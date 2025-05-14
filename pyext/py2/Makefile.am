@@ -6,6 +6,11 @@ pyext_py2__swsscommon_la_CPPFLAGS = -std=c++11 -Icommon -I/usr/include/python$(P
 pyext_py2__swsscommon_la_LDFLAGS = -module -Wl,-z,now
 pyext_py2__swsscommon_la_LIBADD = common/libswsscommon.la -lpython$(PYTHON_VERSION)
 
+if YANGMODS
+SWIG_FLAG += -DENABLE_YANG_MODULES
+pyext_py2__swsscommon_la_CPPFLAGS += -DENABLE_YANG_MODULES
+endif
+
 pyext/py2/swsscommon_wrap.cpp: $(SWIG_SOURCES)
 	$(SWIG) $(SWIG_FLAG) -Icommon -o $@ $<
 
