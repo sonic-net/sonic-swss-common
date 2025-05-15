@@ -3,8 +3,8 @@
 #include <thread>
 #include <algorithm>
 #include <deque>
-#include <gmock/gmock.h>
 #include <system_error>
+#include <gmock/gmock.h>
 #include "gtest/gtest.h"
 #include "common/dbconnector.h"
 #include "common/producertable.h"
@@ -12,6 +12,7 @@
 #include "common/notificationconsumer.h"
 #include "common/notificationproducer.h"
 #include "common/redisclient.h"
+#include "common/redisreply.h"
 #include "common/select.h"
 #include "common/selectableevent.h"
 #include "common/selectabletimer.h"
@@ -1167,6 +1168,35 @@ TEST(Connector, connectFail)
         catch(const std::system_error& e)
         {
             EXPECT_THAT(e.what(), HasSubstr("Unable to connect to redis (unix-socket) - "));
+            throw;
+        }
+    }, std::system_error);
+}
+
+TEST(Redisreply, guard)
+{
+    // Improve test coverage for guard() method.
+    string command = "test";
+    EXPECT_THROW({
+        try
+        {
+            guard([&]{throw system_error(make_error_code(errc::io_error), "LOADING Redis is loading the dataset in memory");}, command.c_str());
+        }
+        catch(const std::system_error& e)
+        {
+            EXPECT_THAT(e.what(), HasSubstr("LOADING Redis is loading the dataset in memory"));
+            throw;
+        }
+    }, std::system_error);
+
+    EXPECT_THROW({
+        try
+        {
+            guard([&]{throw system_error(make_error_code(errc::io_error), "Command failed");}, command.c_str());
+        }
+        catch(const std::system_error& e)
+        {
+            EXPECT_THAT(e.what(), HasSubstr("Command failed"));
             throw;
         }
     }, std::system_error);
