@@ -54,6 +54,7 @@ stages:
   jobs:
   - job:
     displayName: "amd64/ubuntu-20.04"
+    condition: false
     pool:
       vmImage: 'ubuntu-20.04'
 
@@ -125,6 +126,7 @@ stages:
       displayName: "Archive swss common debian packages"
 
   - template: .azure-pipelines/build-template.yml
+    condition: false
     parameters:
       arch: amd64
       sonic_slave: sonic-slave-${{ parameters.debian_version }}:$(BUILD_BRANCH)
