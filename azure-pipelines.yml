@@ -133,7 +133,6 @@ stages:
       run_unit_test: true
       archive_gcov: true
       debian_version: ${{ parameters.debian_version }}
-    condition: false
 
 - stage: BuildArm
   dependsOn: Build
