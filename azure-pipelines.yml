@@ -126,7 +126,6 @@ stages:
       displayName: "Archive swss common debian packages"
 
   - template: .azure-pipelines/build-template.yml
-    condition: false
     parameters:
       arch: amd64
       sonic_slave: sonic-slave-${{ parameters.debian_version }}:$(BUILD_BRANCH)
@@ -134,6 +133,7 @@ stages:
       run_unit_test: true
       archive_gcov: true
       debian_version: ${{ parameters.debian_version }}
+    condition: false
 
 - stage: BuildArm
   dependsOn: Build
