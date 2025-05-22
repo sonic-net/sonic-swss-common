@@ -20,16 +20,15 @@
 #include "schema.h"
 #include "dbconnector.h"
 #include "dbinterface.h"
-#include "defaultvalueprovider.h"
 #include "sonicv2connector.h"
 #include "pubsub.h"
 #include "select.h"
 #include "selectable.h"
 #include "rediscommand.h"
 #include "table.h"
-#include "decoratortable.h"
 #include "countertable.h"
 #include "redispipeline.h"
+#include "redisreply.h"
 #include "redisselect.h"
 #include "redistran.h"
 #include "producerstatetable.h"
@@ -39,7 +38,11 @@
 #include "profileprovider.h"
 #include "consumertable.h"
 #include "subscriberstatetable.h"
+#ifdef ENABLE_YANG_MODULES
+#include "decoratortable.h"
+#include "defaultvalueprovider.h"
 #include "decoratorsubscriberstatetable.h"
+#endif
 #include "notificationconsumer.h"
 #include "notificationproducer.h"
 #include "warm_restart.h"
@@ -53,6 +56,9 @@
 #include "zmqclient.h"
 #include "zmqconsumerstatetable.h"
 #include "zmqproducerstatetable.h"
+#include <memory>
+#include <functional>
+#include "interface.h"
 %}
 
 %include <std_string.i>
@@ -77,6 +83,7 @@
 %template(GetConfigResult) std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>;
 %template(GetInstanceListResult) std::map<std::string, swss::RedisInstInfo>;
 %template(KeyOpFieldsValuesQueue) std::deque<std::tuple<std::string, std::string, std::vector<std::pair<std::string, std::string>>>>;
+%template(VectorSonicDbKey) std::vector<swss::SonicDBKey>;
 
 #ifdef SWIGPYTHON
 %exception {
@@ -152,31 +159,36 @@
     SWIG_Python_AppendOutput($result, temp);
 }
 
-%typemap(in, fragment="SWIG_AsPtr_std_string")
+%typemap(in, fragment="SWIG_AsVal_std_string")
     const std::vector<std::pair< std::string,std::string >,std::allocator< std::pair< std::string,std::string > > > &
         (std::vector< std::pair< std::string,std::string >,std::allocator< std::pair< std::string,std::string > > > temp,
         int res) {
     res = SWIG_OK;
     for (int i = 0; i < PySequence_Length($input); ++i) {
         temp.push_back(std::pair< std::string,std::string >());
-        PyObject *item = PySequence_GetItem($input, i);
-        if (!PyTuple_Check(item) || PyTuple_Size(item) != 2) {
+        std::unique_ptr<PyObject, std::function<void(PyObject *)> > item(
+            PySequence_GetItem($input, i), 
+            [](PyObject *ptr){
+                Py_DECREF(ptr);
+            });
+        if (!PyTuple_Check(item.get()) || PyTuple_Size(item.get()) != 2) {
             SWIG_fail;
         }
-        PyObject *key = PyTuple_GetItem(item, 0);
-        PyObject *value = PyTuple_GetItem(item, 1);
-        std::string *ptr = (std::string *)0;
+        PyObject *key = PyTuple_GetItem(item.get(), 0);
+        PyObject *value = PyTuple_GetItem(item.get(), 1);
+        std::string str;
+
         if (PyBytes_Check(key)) {
             temp.back().first.assign(PyBytes_AsString(key), PyBytes_Size(key));
-        } else if (SWIG_AsPtr_std_string(key, &ptr)) {
-            temp.back().first = *ptr;
+        } else if (SWIG_AsVal_std_string(key, &str) != SWIG_ERROR) {
+            temp.back().first = str;
         } else {
             SWIG_fail;
         }
         if (PyBytes_Check(value)) {
             temp.back().second.assign(PyBytes_AsString(value), PyBytes_Size(value));
-        } else if (SWIG_AsPtr_std_string(value, &ptr)) {
-            temp.back().second = *ptr;
+        } else if (SWIG_AsVal_std_string(value, &str) != SWIG_ERROR) {
+            temp.back().second = str;
         } else {
             SWIG_fail;
         }
@@ -187,13 +199,17 @@
 %typemap(typecheck) const std::vector< std::pair< std::string,std::string >,std::allocator< std::pair< std::string,std::string > > > &{
     $1 = 1;
     for (int i = 0; i < PySequence_Length($input); ++i) {
-        PyObject *item = PySequence_GetItem($input, i);
-        if (!PyTuple_Check(item) || PyTuple_Size(item) != 2) {
+        std::unique_ptr<PyObject, std::function<void(PyObject *)> > item(
+            PySequence_GetItem($input, i), 
+            [](PyObject *ptr){
+                Py_DECREF(ptr);
+            });
+        if (!PyTuple_Check(item.get()) || PyTuple_Size(item.get()) != 2) {
             $1 = 0;
             break;
         }
-        PyObject *key = PyTuple_GetItem(item, 0);
-        PyObject *value = PyTuple_GetItem(item, 1);
+        PyObject *key = PyTuple_GetItem(item.get(), 0);
+        PyObject *value = PyTuple_GetItem(item.get(), 1);
         if (!PyBytes_Check(key)
             && !PyUnicode_Check(key)
             && !PyString_Check(key)
@@ -250,7 +266,9 @@ T castSelectableObj(swss::Selectable *temp)
 
 %include "schema.h"
 %include "dbconnector.h"
+#ifdef ENABLE_YANG_MODULES
 %include "defaultvalueprovider.h"
+#endif
 %include "sonicv2connector.h"
 %include "pubsub.h"
 %include "profileprovider.h"
@@ -258,12 +276,14 @@ T castSelectableObj(swss::Selectable *temp)
 %include "select.h"
 %include "rediscommand.h"
 %include "redispipeline.h"
+%include "redisreply.h"
 %include "redisselect.h"
 %include "redistran.h"
 %include "configdb.h"
 %include "zmqserver.h"
 %include "zmqclient.h"
 %include "zmqconsumerstatetable.h"
+%include "interface.h"
 
 %extend swss::DBConnector {
     %template(hgetall) hgetall<std::map<std::string, std::string>>;
@@ -276,7 +296,9 @@ T castSelectableObj(swss::Selectable *temp)
 %apply std::vector<std::pair<std::string, std::string>>& OUTPUT {std::vector<std::pair<std::string, std::string>> &ovalues};
 %apply std::string& OUTPUT {std::string &value};
 %include "table.h"
+#ifdef ENABLE_YANG_MODULES
 %include "decoratortable.h"
+#endif
 %clear std::vector<std::string> &keys;
 %clear std::vector<std::string> &ops;
 %clear std::vector<std::vector<std::pair<std::string, std::string>>> &fvss;
@@ -316,7 +338,9 @@ T castSelectableObj(swss::Selectable *temp)
 %include "consumertable.h"
 %include "consumerstatetable.h"
 %include "subscriberstatetable.h"
+#ifdef ENABLE_YANG_MODULES
 %include "decoratorsubscriberstatetable.h"
+#endif
 
 %apply std::string& OUTPUT {std::string &op};
 %apply std::string& OUTPUT {std::string &data};

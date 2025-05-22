@@ -37,6 +37,22 @@ protected:
     std::string m_db_name;
 };
 
+#if defined(SWIG) && defined(SWIGGO)
+%insert(go_wrapper) %{
+
+type ConfigDBConnector struct {
+    ConfigDBConnector_Native
+}
+
+func NewConfigDBConnector(a ...interface{}) *ConfigDBConnector {
+    return &ConfigDBConnector{
+        NewConfigDBConnector_Native(a...),
+    }
+}
+%}
+#endif
+
+
 #if defined(SWIG) && defined(SWIGPYTHON)
 %pythoncode %{
     ## Note: diamond inheritance, reusing functions in both classes
@@ -58,6 +74,13 @@ protected:
             ## Note: callback is difficult to implement by SWIG C++, so keep in python
             self.handlers = {}
             self.fire_init_data = {}
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_value, exc_tb):
+            self.close()
+            pass
 
         @property
         def KEY_SEPARATOR(self):
@@ -247,6 +270,12 @@ protected:
                     entry = self.raw_to_typed(entry)
                     ret.setdefault(table_name, {})[self.deserialize_key(row)] = entry
             return ret
+
+%}
+#endif
+
+#if defined(SWIG) && defined(SWIGPYTHON) && defined(ENABLE_YANG_MODULES)
+%pythoncode %{
 
     class YangDefaultDecorator(object):
         def __init__(self, config_db_connector):
