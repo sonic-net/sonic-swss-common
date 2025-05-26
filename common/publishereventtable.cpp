@@ -2,11 +2,12 @@
 #include "publishereventtable.h"
 #include "rediscommand.h"
 #include "schema.h"
+#include "table.h"
 
 using namespace std;
 using namespace swss;
 
-string buildJsonWithKey(const FieldValueTuple fvHead, const vector<FieldValueTuple> &fv)
+string buildJsonWithKey(const FieldValueTuple &fvHead, const vector<FieldValueTuple> &fv)
 {
     nlohmann::json j = nlohmann::json::array();
     j.push_back(fvField(fvHead));
@@ -50,7 +51,7 @@ void PublisherEventTable::set(const string &key, const vector<FieldValueTuple> &
     m_pipe->push(cmd, REDIS_REPLY_INTEGER);
 
 
-    FieldValueTuple opdata(op, key);
+    FieldValueTuple opdata(SET_COMMAND, key);
     std::string msg = buildJsonWithKey(opdata, values);
 
     SWSS_LOG_DEBUG("channel %s, publish: %s", m_channel.c_str(), msg.c_str());
@@ -71,7 +72,7 @@ void PublisherEventTable::del(const string &key, const string& op, const string&
     del_key.format("DEL %s", getKeyName(key).c_str());
     m_pipe->push(del_key, REDIS_REPLY_INTEGER);
 
-    FieldValueTuple opdata(op, key);
+    FieldValueTuple opdata(DEL_COMMAND, key);
     std::string msg = buildJsonWithKey(opdata, {});
 
     SWSS_LOG_DEBUG("channel %s, publish: %s", m_channel.c_str(), msg.c_str());

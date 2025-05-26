@@ -224,6 +224,59 @@ TEST(SubscriberStateTable, set)
     }
 }
 
+TEST(SubscribeEventTable, set)
+{
+    clearDB();
+
+    /* Prepare producer */
+    int index = 0;
+    DBConnector db("TEST_DB", 0, true);
+    PublisherEventTable p(&db, testTableName);
+    string key = "TheKey";
+    int maxNumOfFields = 2;
+
+    /* Prepare subscriber */
+    SubscriberEventTable c(&db, testTableName);
+    Select cs;
+    Selectable *selectcs;
+    cs.addSelectable(&c);
+
+    /* Set operation */
+    {
+        vector<FieldValueTuple> fields;
+        for (int j = 0; j < maxNumOfFields; j++)
+        {
+            FieldValueTuple t(field(index, j), value(index, j));
+            fields.push_back(t);
+        }
+        p.set(key, fields);
+    }
+
+    /* Pop operation */
+    {
+        int ret = cs.select(&selectcs);
+        EXPECT_EQ(ret, Select::OBJECT);
+        KeyOpFieldsValuesTuple kco;
+        c.pop(kco);
+        EXPECT_EQ(kfvKey(kco), key);
+        EXPECT_EQ(kfvOp(kco), "SET");
+
+        auto fvs = kfvFieldsValues(kco);
+        EXPECT_EQ(fvs.size(), (unsigned int)(maxNumOfFields));
+
+        map<string, string> mm;
+        for (auto fv: fvs)
+        {
+            mm[fvField(fv)] = fvValue(fv);
+        }
+
+        for (int j = 0; j < maxNumOfFields; j++)
+        {
+            EXPECT_EQ(mm[field(index, j)], value(index, j));
+        }
+    }
+}
+
 TEST(SubscriberStateTable, set2_pop1_set1_pop1)
 {
     clearDB();

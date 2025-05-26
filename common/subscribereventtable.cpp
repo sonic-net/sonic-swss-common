@@ -1,19 +1,52 @@
-#include "subscribereventtable.h"
 #include <string>
 #include <deque>
 #include <limits>
 #include <hiredis/hiredis.h>
+#include "json.h"
 #include "dbconnector.h"
+#include "rediscommand.h"
 #include "table.h"
 #include "selectable.h"
 #include "redisselect.h"
 #include "redisapi.h"
 #include "tokenize.h"
 #include "subscriberstatetable.h"
+#include "subscribereventtable.h"
 
 using namespace std;
 
 namespace swss {
+
+// TODO: reuse
+#define REDIS_PUBLISH_MESSAGE_ELEMNTS (3)
+#define REDIS_PUBLISH_MESSAGE_INDEX (2)
+string processReply(redisReply *reply)
+{
+    SWSS_LOG_ENTER();
+
+    if (reply->type != REDIS_REPLY_ARRAY)
+    {
+        // SWSS_LOG_ERROR("expected ARRAY redis reply on channel %s, got: %d", m_channel.c_str(), reply->type);
+
+        throw std::runtime_error("getRedisReply operation failed");
+    }
+
+    if (reply->elements != REDIS_PUBLISH_MESSAGE_ELEMNTS)
+    {
+        // SWSS_LOG_ERROR("expected %d elements in redis reply on channel %s, got: %zu",
+        //                REDIS_PUBLISH_MESSAGE_ELEMNTS,
+        //                m_channel.c_str(),
+        //                reply->elements);
+
+        throw std::runtime_error("getRedisReply operation failed");
+    }
+
+    std::string msg = std::string(reply->element[REDIS_PUBLISH_MESSAGE_INDEX]->str);
+
+    SWSS_LOG_DEBUG("got message: %s", msg.c_str());
+
+    return msg;
+}
 
 SubscriberEventTable::SubscriberEventTable(DBConnector *db, const string &tableName, int popBatchSize, int pri)
     : ConsumerTableBase(db, tableName, popBatchSize, pri), m_table(db, tableName)
@@ -106,54 +139,17 @@ void SubscriberEventTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, const strin
     {
 
         KeyOpFieldsValuesTuple kco;
-        /* if the Key-space notification is empty, try next one. */
-        auto message = event->getReply<RedisMessage>();
-        if (message.type.empty())
-        {
-            continue;
-        }
+        auto &values = kfvFieldsValues(kco);
+        string msg = processReply(event.get()->getContext());
 
-        /* The second element should be the original pattern matched */
-        auto ctx = event->getContext()->element[1];
-        if (message.pattern != m_channel)
-        {
-            SWSS_LOG_ERROR("invalid pattern %s returned for pmessage of %s", message.pattern.c_str(), m_channel.c_str());
-            continue;
-        }
+        JSon::readJson(msg, values);
 
-        string msg = message.channel;
-        size_t pos = msg.find(':');
-        if (pos == msg.npos)
-        {
-            SWSS_LOG_ERROR("invalid format %s returned for pmessage of %s", msg.c_str(), m_channel.c_str());
-            continue;
-        }
+        FieldValueTuple fvHead = values.at(0);
 
-        string table_entry = msg.substr(pos + 1);
-        pos = table_entry.find(m_table.getTableNameSeparator());
-        if (pos == table_entry.npos)
-        {
-            SWSS_LOG_ERROR("invalid key %s returned for pmessage of %s", ctx->str, m_channel.c_str());
-            continue;
-        }
-        string key = table_entry.substr(pos + 1);
+        kfvOp(kco) = fvField(fvHead);
+        kfvKey(kco) = fvValue(fvHead);
 
-        string op = message.data;
-        if ("del" == op)
-        {
-            kfvKey(kco) = key;
-            kfvOp(kco) = DEL_COMMAND;
-        }
-        else
-        {
-            if (!m_table.get(key, kfvFieldsValues(kco)))
-            {
-                SWSS_LOG_NOTICE("Miss table key %s, possibly outdated", table_entry.c_str());
-                continue;
-            }
-            kfvKey(kco) = key;
-            kfvOp(kco) = SET_COMMAND;
-        }
+        values.erase(values.begin());
 
         vkco.push_back(kco);
     }
