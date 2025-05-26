@@ -94,6 +94,23 @@ def test_SubscriberStateTable():
     assert len(cfvs) == 1
     assert cfvs[0] == ('a', 'b')
 
+def test_SubscriberEventTable():
+    db = swsscommon.DBConnector("CONFIG_DB", 0, True)
+    db.flushdb()
+    t = swsscommon.PublisherEventTable(db, "TestEventTable");
+    cst = swsscommon.SubscriberEventTable(db, "TestEventTable")
+    sel = swsscommon.Select()
+    sel.addSelectable(cst)
+    fvs = swsscommon.FieldValuePairs([('a','b')])
+    t.set("aaa", fvs)
+    (state, c) = sel.select()
+    assert state == swsscommon.Select.OBJECT
+    (key, op, cfvs) = cst.pop()
+    assert key == "aaa"
+    assert op == "SET"
+    assert len(cfvs) == 1
+    assert cfvs[0] == ('a', 'b')
+
 def thread_test_func():
     print("Start thread: thread_test_func")
     time.sleep(2)
