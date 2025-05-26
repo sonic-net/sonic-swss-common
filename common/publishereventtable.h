@@ -24,7 +24,10 @@ public:
                      const std::vector<FieldValueTuple> &values, 
                      const std::string &op,
                      const std::string &prefix,
-                     const int64_t &ttl) = 0;
+                     const int64_t &ttl)
+    {
+        throw std::runtime_error("set with ttl is not supported in PublisherEventTable");
+    }
 
     /* Delete an entry in the table */
     virtual void del(const std::string &key,
@@ -35,13 +38,20 @@ public:
     virtual void hdel(const std::string &key,
                       const std::string &field,
                       const std::string &op = "",
-                      const std::string &prefix = EMPTY_PREFIX) = 0;
+                      const std::string &prefix = EMPTY_PREFIX)
+    {
+        throw std::runtime_error("hdel is not supported in PublisherEventTable");
+    }
 
     virtual void hset(const std::string &key,
                           const std::string &field,
                           const std::string &value,
                           const std::string &op = "",
-                          const std::string &prefix = EMPTY_PREFIX) = 0;
+                          const std::string &prefix = EMPTY_PREFIX)
+    {
+        throw std::runtime_error("hset is not supported in PublisherEventTable");
+    }
+
     /* Read a value from the DB directly */
     /* Returns false if the key doesn't exists */
     // virtual bool get(const std::string &key, std::vector<FieldValueTuple> &ovalues);

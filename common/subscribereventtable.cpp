@@ -18,11 +18,9 @@ namespace swss {
 SubscriberEventTable::SubscriberEventTable(DBConnector *db, const string &tableName, int popBatchSize, int pri)
     : ConsumerTableBase(db, tableName, popBatchSize, pri), m_table(db, tableName)
 {
-    m_keyspace = "__keyspace@";
+    m_channel = getChannelName();
 
-    m_keyspace += to_string(db->getDbId()) + "__:" + tableName + m_table.getTableNameSeparator() + "*";
-
-    subscribe(m_db, m_keyspace);
+    subscribe(m_db, m_channel);
 
     vector<string> keys;
     m_table.getKeys(keys);
@@ -117,9 +115,9 @@ void SubscriberEventTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, const strin
 
         /* The second element should be the original pattern matched */
         auto ctx = event->getContext()->element[1];
-        if (message.pattern != m_keyspace)
+        if (message.pattern != m_channel)
         {
-            SWSS_LOG_ERROR("invalid pattern %s returned for pmessage of %s", message.pattern.c_str(), m_keyspace.c_str());
+            SWSS_LOG_ERROR("invalid pattern %s returned for pmessage of %s", message.pattern.c_str(), m_channel.c_str());
             continue;
         }
 
@@ -127,7 +125,7 @@ void SubscriberEventTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, const strin
         size_t pos = msg.find(':');
         if (pos == msg.npos)
         {
-            SWSS_LOG_ERROR("invalid format %s returned for pmessage of %s", msg.c_str(), m_keyspace.c_str());
+            SWSS_LOG_ERROR("invalid format %s returned for pmessage of %s", msg.c_str(), m_channel.c_str());
             continue;
         }
 
@@ -135,7 +133,7 @@ void SubscriberEventTable::pops(deque<KeyOpFieldsValuesTuple> &vkco, const strin
         pos = table_entry.find(m_table.getTableNameSeparator());
         if (pos == table_entry.npos)
         {
-            SWSS_LOG_ERROR("invalid key %s returned for pmessage of %s", ctx->str, m_keyspace.c_str());
+            SWSS_LOG_ERROR("invalid key %s returned for pmessage of %s", ctx->str, m_channel.c_str());
             continue;
         }
         string key = table_entry.substr(pos + 1);

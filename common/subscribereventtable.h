@@ -25,7 +25,7 @@ private:
     /* Pop keyspace event from event buffer. Caller should free resources. */
     std::shared_ptr<RedisReply> popEventBuffer();
 
-    std::string m_keyspace;
+    std::string m_channel;
 
     std::deque<std::shared_ptr<RedisReply>> m_event_buffer;
     Table m_table;

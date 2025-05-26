@@ -8,6 +8,8 @@
 #include "common/selectableevent.h"
 #include "common/table.h"
 #include "common/subscriberstatetable.h"
+#include "common/publishereventtable.h"
+#include "common/subscribereventtable.h"
 
 using namespace std;
 using namespace swss;
