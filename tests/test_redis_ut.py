@@ -111,6 +111,33 @@ def test_SubscriberEventTable():
     assert len(cfvs) == 1
     assert cfvs[0] == ('a', 'b')
 
+    # Set one field twice and then pop twice. First pop should return the first set field/value, second pop should return the second field/value
+    fvs = swsscommon.FieldValuePairs([('c','b0')])
+    t.set("aaa", fvs)
+    fvs = swsscommon.FieldValuePairs([('c','b1')])
+    t.set("aaa", fvs)
+    (state, c) = sel.select()
+    assert state == swsscommon.Select.OBJECT
+    (key, op, cfvs) = cst.pop()
+    assert key == "aaa"
+    assert op == "SET"
+    for fv in cfvs:
+        if fv[0] == 'c':
+            assert fv[1] == 'b0'
+            break
+    else:
+        assert False, "Field 'c' not found in the final field/values"
+    (key, op, cfvs) = cst.pop()
+    assert key == "aaa"
+    assert op == "SET"
+    for fv in cfvs:
+        print(fv)
+        if fv[0] == 'c':
+            assert fv[1] == 'b1'
+            break
+    else:
+        assert False, "Field 'c' not found in the final field/values"
+
 def test_PublisherEventTable_SubscriberStateTable():
     db = swsscommon.DBConnector("CONFIG_DB", 0, True)
     db.flushdb()
