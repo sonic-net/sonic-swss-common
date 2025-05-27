@@ -84,6 +84,8 @@ def test_SubscriberStateTable():
     sel = swsscommon.Select()
     cst = swsscommon.SubscriberStateTable(db, "testsst")
     sel.addSelectable(cst)
+
+    # Set one field and pop
     fvs = swsscommon.FieldValuePairs([('a','b')])
     t.set("aaa", fvs)
     (state, c) = sel.select()
@@ -93,6 +95,34 @@ def test_SubscriberStateTable():
     assert op == "SET"
     assert len(cfvs) == 1
     assert cfvs[0] == ('a', 'b')
+
+    # Set one field twice and then pop twice. First pop should return the final field/values, second pop should return the same final field/values
+    fvs = swsscommon.FieldValuePairs([('c','b0')])
+    t.set("aaa", fvs)
+    fvs = swsscommon.FieldValuePairs([('c','b1')])
+    t.set("aaa", fvs)
+    (state, c) = sel.select()
+    assert state == swsscommon.Select.OBJECT
+    (key, op, cfvs) = cst.pop()
+    assert key == "aaa"
+    assert op == "SET"
+    for fv in cfvs:
+        if fv[0] == 'c':
+            assert fv[1] == 'b1'
+            break
+    else:
+        assert False, "Field 'c' not found in the final field/values"
+    (key, op, cfvs) = cst.pop()
+    assert key == "aaa"
+    assert op == "SET"
+    for fv in cfvs:
+        print(fv)
+        if fv[0] == 'c':
+            assert fv[1] == 'b1'
+            break
+    else:
+        assert False, "Field 'c' not found in the final field/values"
+
 
 def test_SubscriberEventTable():
     db = swsscommon.DBConnector("CONFIG_DB", 0, True)
