@@ -91,8 +91,8 @@ uint64_t SubscriberEventTable::readData()
 
     /* Try to read data from redis cacher.
      * If data exists put it to event buffer.
-     * NOTE: Keyspace event is not persistent and it won't
-     * be possible to read it second time. If it is not stared in
+     * NOTE: channel event is not persistent and it won't
+     * be possible to read it second time. If it is not stored in
      * the buffer it will be lost. */
 
     reply = nullptr;

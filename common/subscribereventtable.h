@@ -12,7 +12,7 @@ public:
     /* Get all available events from pub/sub channel */
     void pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const std::string &prefix = EMPTY_PREFIX);
 
-    /* Read keyspace event from redis */
+    /* Read event from redis channel*/
     uint64_t readData() override;
     bool hasData() override;
     bool hasCachedData() override;
@@ -22,7 +22,7 @@ public:
     }
 
 private:
-    /* Pop keyspace event from event buffer. Caller should free resources. */
+    /* Pop event from event buffer. Caller should free resources. */
     std::shared_ptr<RedisReply> popEventBuffer();
 
     std::string m_channel;
