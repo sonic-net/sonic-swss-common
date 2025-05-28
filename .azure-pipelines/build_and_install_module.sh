@@ -3,7 +3,7 @@
 # build and install team/vrf driver
 #
 
-set -e
+set -ex
 
 source /etc/os-release
 
