@@ -6,7 +6,7 @@
 
 namespace swss {
 
-class PublisherEventTable : public Table { // public TableBase, public TableEntryEnumerable {
+class PublisherEventTable : public Table {
 public:
     PublisherEventTable(const DBConnector *db, const std::string &tableName);
     PublisherEventTable(RedisPipeline *pipeline, const std::string &tableName, bool buffered);
