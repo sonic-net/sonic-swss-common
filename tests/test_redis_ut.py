@@ -171,7 +171,7 @@ def test_SubscriberEventTable():
 def test_PublisherEventTable_SubscriberStateTable():
     db = swsscommon.DBConnector("CONFIG_DB", 0, True)
     db.flushdb()
-    t = swsscommon.PublisherEventTable(db, "TestPublisherTable");
+    t = swsscommon.PublisherEventTable(db, "TestPublisherTable")
     cst = swsscommon.SubscriberStateTable(db, "TestPublisherTable")
     sel = swsscommon.Select()
     sel.addSelectable(cst)
