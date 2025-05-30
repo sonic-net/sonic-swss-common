@@ -235,6 +235,14 @@ TEST(SubscribeEventTable, set)
     string key = "TheKey";
     int maxNumOfFields = 2;
 
+    /* Set operation before any subscriber is created */
+    {
+        vector<FieldValueTuple> fields;
+        FieldValueTuple t("before_subscriber", "long_ago");
+        fields.push_back(t);
+        p.set(key, fields);
+    }
+
     /* Prepare subscriber */
     SubscriberEventTable c(&db, testTableName);
     Select cs;
@@ -262,6 +270,17 @@ TEST(SubscribeEventTable, set)
         EXPECT_EQ(kfvOp(kco), "SET");
 
         auto fvs = kfvFieldsValues(kco);
+        EXPECT_EQ(fvs.size(), 1);
+        EXPECT_EQ(fvs[0].first, "before_subscriber");
+        EXPECT_EQ(fvs[0].second, "long_ago");
+
+        ret = cs.select(&selectcs);
+        EXPECT_EQ(ret, Select::OBJECT);
+        c.pop(kco);
+        EXPECT_EQ(kfvKey(kco), key);
+        EXPECT_EQ(kfvOp(kco), "SET");
+
+        fvs = kfvFieldsValues(kco);
         EXPECT_EQ(fvs.size(), (unsigned int)(maxNumOfFields));
 
         map<string, string> mm;
