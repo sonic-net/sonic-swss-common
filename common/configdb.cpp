@@ -4,6 +4,7 @@
 #include "configdb.h"
 #include "pubsub.h"
 #include "converter.h"
+#include "table.h"
 
 using namespace std;
 using namespace swss;
@@ -103,14 +104,21 @@ void ConfigDBConnector_Native::set_entry(string table, string key, const map<str
 void ConfigDBConnector_Native::mod_entry(string table, string key, const map<string, string>& data)
 {
     auto& client = get_redis_client(m_db_name);
-    string _hash = to_upper(table) + m_table_name_separator + key;
+    Table tab(&client, to_upper(table));
     if (data.empty())
     {
-        client.del(_hash);
+        tab.del(key);
     }
     else
     {
-        client.hmset(_hash, data.begin(), data.end());
+        // Convert map<string, string> to vector<FieldValueTuple>
+        std::vector<FieldValueTuple> values;
+        values.reserve(data.size());
+        for (const auto& kv : data)
+        {
+            values.emplace_back(kv.first, kv.second);
+        }
+        tab.set(key, values);
     }
 }
 
