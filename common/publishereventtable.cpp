@@ -86,3 +86,24 @@ void PublisherEventTable::del(const string &key, const string& op, const string&
         m_pipe->flush();
     }
 }
+
+void PublisherEventTable::hdel(const string &key, const string &field, const string& op, const string& /*prefix*/)
+{
+    RedisCommand hdel_cmd;
+    hdel_cmd.format("HDEL %s %s", getKeyName(key).c_str(), field.c_str());
+    m_pipe->push(hdel_cmd, REDIS_REPLY_INTEGER);
+
+    FieldValueTuple opdata(HDEL_COMMAND, key);
+    std::string msg = buildJsonWithKey(opdata, {FieldValueTuple(field, "")});
+
+    SWSS_LOG_DEBUG("channel %s, publish: %s", m_channel.c_str(), msg.c_str());
+
+    RedisCommand command;
+    command.format("PUBLISH %s %s", m_channel.c_str(), msg.c_str());
+    m_pipe->push(command, REDIS_REPLY_INTEGER);
+
+    if (!m_buffered)
+    {
+        m_pipe->flush();
+    }
+}

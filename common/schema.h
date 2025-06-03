@@ -628,6 +628,7 @@ namespace swss {
 
 #define SET_COMMAND "SET"
 #define DEL_COMMAND "DEL"
+#define HDEL_COMMAND "HDEL"
 #define EMPTY_PREFIX ""
 
 #define CFG_DTEL_TABLE_NAME					"DTEL"

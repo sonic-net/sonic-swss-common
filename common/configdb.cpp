@@ -5,6 +5,7 @@
 #include "pubsub.h"
 #include "converter.h"
 #include "table.h"
+#include "publishereventtable.h"
 
 using namespace std;
 using namespace swss;
@@ -73,22 +74,31 @@ void ConfigDBConnector_Native::connect(bool wait_for_init, bool retry_on)
 void ConfigDBConnector_Native::set_entry(string table, string key, const map<string, string>& data)
 {
     auto& client = get_redis_client(m_db_name);
+    Table tab(&client, to_upper(table));
+    // PublisherEventTable tab(&client, to_upper(table));
     string _hash = to_upper(table) + m_table_name_separator + key;
     if (data.empty())
     {
-        client.del(_hash);
+        tab.del(key);
     }
     else
     {
         auto original = get_entry(table, key);
-        client.hmset(_hash, data.begin(), data.end());
+        // Convert map<string, string> to vector<FieldValueTuple>
+        std::vector<FieldValueTuple> values;
+        values.reserve(data.size());
+        for (const auto& kv : data)
+        {
+            values.emplace_back(kv.first, kv.second);
+        }
+        tab.set(key, values);
         for (auto& it: original)
         {
             auto& k = it.first;
             bool found = data.find(k) != data.end();
             if (!found)
             {
-                client.hdel(_hash, k);
+                tab.hdel(key, k);
             }
         }
     }
@@ -105,6 +115,7 @@ void ConfigDBConnector_Native::mod_entry(string table, string key, const map<str
 {
     auto& client = get_redis_client(m_db_name);
     Table tab(&client, to_upper(table));
+    // PublisherEventTable tab(&client, to_upper(table));
     if (data.empty())
     {
         tab.del(key);
@@ -204,11 +215,13 @@ map<string, map<string, string>> ConfigDBConnector_Native::get_table(string tabl
 void ConfigDBConnector_Native::delete_table(string table)
 {
     auto& client = get_redis_client(m_db_name);
-    string pattern = to_upper(table) + m_table_name_separator + "*";
-    const auto& keys = client.keys(pattern);
+    Table tab(&client, to_upper(table));
+    // PublisherEventTable tab(&client, to_upper(table));
+    vector<string> keys;
+    tab.getKeys(keys);
     for (auto& key: keys)
     {
-        client.del(key);
+        tab.del(key);
     }
 }
 

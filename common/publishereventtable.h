@@ -34,14 +34,10 @@ public:
                      const std::string &op = "",
                      const std::string &prefix = EMPTY_PREFIX);
 
-    // explicitly disable the virtual function
     virtual void hdel(const std::string &key,
                       const std::string &field,
                       const std::string &op = "",
-                      const std::string &prefix = EMPTY_PREFIX)
-    {
-        throw std::runtime_error("hdel is not supported in PublisherEventTable");
-    }
+                      const std::string &prefix = EMPTY_PREFIX);
 
     virtual void hset(const std::string &key,
                           const std::string &field,
