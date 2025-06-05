@@ -240,6 +240,7 @@ namespace swss {
 #define COUNTERS_TWAMP_SESSION_NAME_MAP     "COUNTERS_TWAMP_SESSION_NAME_MAP"
 #define COUNTERS_SRV6_NAME_MAP              "COUNTERS_SRV6_NAME_MAP"
 
+#define COUNTERS_DHCPV4_TABLE           "COUNTERS_DHCPV4"
 #define COUNTERS_NAT_TABLE              "COUNTERS_NAT"
 #define COUNTERS_NAPT_TABLE             "COUNTERS_NAPT"
 #define COUNTERS_TWICE_NAT_TABLE        "COUNTERS_TWICE_NAT"
@@ -481,6 +482,7 @@ namespace swss {
 #define CFG_LOGGING_TABLE_NAME                      "LOGGING"
 
 #define CFG_DHCP_TABLE                              "DHCP_RELAY"
+#define CFG_DHCPV4_TABLE                            "DHCPV4_RELAY"
 #define CFG_DPU_TABLE                               "DPU_TABLE"
 
 #define CFG_DASH_HA_GLOBAL_CONFIG_TABLE_NAME        "DASH_HA_GLOBAL_CONFIG"
