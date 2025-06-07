@@ -51,7 +51,7 @@ string processReply(redisReply *reply)
 SubscriberEventTable::SubscriberEventTable(DBConnector *db, const string &tableName, int popBatchSize, int pri)
     : ConsumerTableBase(db, tableName, popBatchSize, pri), m_table(db, tableName)
 {
-    m_channel = getChannelName();
+    m_channel = getChannelName(m_db->getDbId());
 
     subscribe(m_db, m_channel);
 

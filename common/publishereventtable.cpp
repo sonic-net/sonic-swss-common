@@ -26,13 +26,13 @@ string buildJsonWithKey(const FieldValueTuple &fvHead, const vector<FieldValueTu
 PublisherEventTable::PublisherEventTable(const DBConnector *db, const std::string &tableName)
     : Table(db, tableName)
 {
-    m_channel = getChannelName();
+    m_channel = getChannelName(m_pipe->getDbId());
 }
 
 PublisherEventTable::PublisherEventTable(RedisPipeline *pipeline, const std::string &tableName, bool buffered)
     : Table(pipeline, tableName, buffered)
 {
-    m_channel = getChannelName();
+    m_channel = getChannelName(m_pipe->getDbId());
 }
 
 PublisherEventTable::~PublisherEventTable()
