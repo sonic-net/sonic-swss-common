@@ -1,7 +1,9 @@
 #include <boost/algorithm/string.hpp>
 #include <map>
+#include <memory>
 #include <vector>
 #include "configdb.h"
+#include "dbconnector.h"
 #include "pubsub.h"
 #include "converter.h"
 #include "table.h"
@@ -21,6 +23,7 @@ void ConfigDBConnector_Native::db_connect(string db_name, bool wait_for_init, bo
 {
     m_db_name = db_name;
     m_key_separator = m_table_name_separator = get_db_separator(db_name);
+    m_event_tables = SonicDBConfig::getEventTables(m_db_name);
     SonicV2Connector_Native::connect(m_db_name, retry_on);
 
     if (wait_for_init)
@@ -64,6 +67,19 @@ void ConfigDBConnector_Native::connect(bool wait_for_init, bool retry_on)
     db_connect("CONFIG_DB", wait_for_init, retry_on);
 }
 
+shared_ptr<Table> ConfigDBConnector_Native::getTableWriter(const string &table_name)
+{
+    auto& client = get_redis_client(m_db_name);
+    if (m_event_tables.find(to_upper(table_name)) != m_event_tables.end())
+    {
+        return make_shared<PublisherEventTable>(&client, to_upper(table_name));
+    }
+    else
+    {
+        return make_shared<Table>(&client, to_upper(table_name));
+    }
+}
+
 // Write a table entry to config db.
 //    Remove extra fields in the db which are not in the data.
 // Args:
@@ -73,13 +89,11 @@ void ConfigDBConnector_Native::connect(bool wait_for_init, bool retry_on)
 //           Pass {} as data will delete the entry.
 void ConfigDBConnector_Native::set_entry(string table, string key, const map<string, string>& data)
 {
-    auto& client = get_redis_client(m_db_name);
-    Table tab(&client, to_upper(table));
-    // PublisherEventTable tab(&client, to_upper(table));
+    auto table_writer = getTableWriter(table);
     string _hash = to_upper(table) + m_table_name_separator + key;
     if (data.empty())
     {
-        tab.del(key);
+        table_writer->del(key);
     }
     else
     {
@@ -91,14 +105,14 @@ void ConfigDBConnector_Native::set_entry(string table, string key, const map<str
         {
             values.emplace_back(kv.first, kv.second);
         }
-        tab.set(key, values);
+        table_writer->set(key, values);
         for (auto& it: original)
         {
             auto& k = it.first;
             bool found = data.find(k) != data.end();
             if (!found)
             {
-                tab.hdel(key, k);
+                table_writer->hdel(key, k);
             }
         }
     }
@@ -113,12 +127,10 @@ void ConfigDBConnector_Native::set_entry(string table, string key, const map<str
 //           Pass None as data will delete the entry.
 void ConfigDBConnector_Native::mod_entry(string table, string key, const map<string, string>& data)
 {
-    auto& client = get_redis_client(m_db_name);
-    Table tab(&client, to_upper(table));
-    // PublisherEventTable tab(&client, to_upper(table));
+    auto table_writer = getTableWriter(table);
     if (data.empty())
     {
-        tab.del(key);
+        table_writer->del(key);
     }
     else
     {
@@ -129,7 +141,7 @@ void ConfigDBConnector_Native::mod_entry(string table, string key, const map<str
         {
             values.emplace_back(kv.first, kv.second);
         }
-        tab.set(key, values);
+        table_writer->set(key, values);
     }
 }
 
@@ -214,14 +226,12 @@ map<string, map<string, string>> ConfigDBConnector_Native::get_table(string tabl
 //     table: Table name.
 void ConfigDBConnector_Native::delete_table(string table)
 {
-    auto& client = get_redis_client(m_db_name);
-    Table tab(&client, to_upper(table));
-    // PublisherEventTable tab(&client, to_upper(table));
+    auto table_writer = getTableWriter(table);
     vector<string> keys;
-    tab.getKeys(keys);
+    table_writer->getKeys(keys);
     for (auto& key: keys)
     {
-        tab.del(key);
+        table_writer->del(key);
     }
 }
 

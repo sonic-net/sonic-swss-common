@@ -228,6 +228,14 @@ TEST(SubscribeEventTable, set)
 {
     clearDB();
 
+    // Test for event_tables
+    set<string> eventTables = SonicDBConfig::getEventTables("CONFIG_DB");
+    EXPECT_EQ(eventTables.size(), 1);
+    // for (auto &table: eventTables)
+    // {
+    //     cout << "Event table: " << table << endl;
+    // }
+
     /* Prepare producer */
     int index = 0;
     DBConnector db("TEST_DB", 0, true);
