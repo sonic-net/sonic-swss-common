@@ -21,6 +21,10 @@ public:
         RECONCILED,
         WSDISABLED,
         WSUNKNOWN,
+        FROZEN,
+        QUIESCENT,
+        CHECKPOINTED,
+        FAILED,
     };
 
     enum DataCheckState
@@ -37,10 +41,10 @@ public:
     };
 
     typedef std::map<WarmStartState, std::string>  WarmStartStateNameMap;
-    static const WarmStartStateNameMap warmStartStateNameMap;
+    static const WarmStartStateNameMap* warmStartStateNameMap();
 
     typedef std::map<DataCheckState, std::string>  DataCheckStateNameMap;
-    static const DataCheckStateNameMap dataCheckStateNameMap;
+    static const DataCheckStateNameMap* dataCheckStateNameMap();
 
     static WarmStart &getInstance(void);
 
