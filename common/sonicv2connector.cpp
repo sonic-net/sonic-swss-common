@@ -29,6 +29,13 @@ void SonicV2Connector_Native::connect(const std::string& db_name, bool retry_on)
     m_dbintf.connect(db_id, db_name, retry_on);
 }
 
+void SonicV2Connector_Native::connect_host(const std::string& db_name, const std::string& host, bool retry_on)
+{
+    m_dbintf.set_redis_kwargs("", host, get_db_port(db_name));
+    int db_id = get_dbid(db_name);
+    m_dbintf.connect(db_id, db_name, retry_on);
+}
+
 void SonicV2Connector_Native::close(const std::string& db_name)
 {
     m_dbintf.close(db_name);
