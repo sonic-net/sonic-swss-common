@@ -612,3 +612,72 @@ TEST(ZmqServerLazzyBind, test)
     EXPECT_EQ(received, 1);
 }
 
+TEST(ZmqConsumerStateTablePopSize, test)
+{
+    std::string testTableName = "ZMQ_BATCH_SIZE_UT";
+    std::string pushEndpoint = "tcp://localhost:1235";
+    std::string pullEndpoint = "tcp://*:1235";
+    int popCount = 0;
+    vector<int> expectedSizes = {40, 40, 40, 30};
+    vector<int> recvdSizes;
+
+    // Start consumer first
+    thread *consumerThread = new thread([&]() {
+        cout << "Consumer thread started" << endl;
+        DBConnector db(TEST_DB, 0, true);
+        ZmqServer server(pullEndpoint);
+        Selectable* c = new ZmqConsumerStateTable(&db, testTableName, server, 40, 0, false);
+        Select cs;
+        cs.addSelectable(c);
+
+        Selectable *selectcs;
+        std::deque<KeyOpFieldsValuesTuple> vkco;
+
+        const auto timeout = std::chrono::seconds(15);
+        auto startTime = std::chrono::steady_clock::now();
+
+        while (popCount < 4 && (std::chrono::steady_clock::now() - startTime < timeout))
+        {
+            cout << "Entering select" << endl;
+            if (cs.select(&selectcs, 1000, true) == Select::OBJECT)
+            {
+                ((ZmqConsumerStateTable*)c)->pops(vkco);
+                cout << "pops: " << vkco.size() << endl;
+                recvdSizes.push_back((int)vkco.size());
+                popCount++;
+                vkco.clear();
+            }
+        }
+        delete c;
+    });
+
+    // Wait for consumer to start
+    sleep(1);
+
+    // Producer sends 150 elements
+    DBConnector db(TEST_DB, 0, true);
+    ZmqClient client(pushEndpoint, 3000);
+    ZmqProducerStateTable p(&db, testTableName, client, false);
+
+    std::vector<KeyOpFieldsValuesTuple> kcos;
+    for (int i = 0; i < 150; i++)
+    {
+        kcos.push_back(KeyOpFieldsValuesTuple{
+            "key_" + to_string(i),
+            SET_COMMAND,
+            std::vector<FieldValueTuple>{FieldValueTuple{"field", "value"}}
+        });
+    }
+    p.send(kcos);
+    cout << "Producer sent " << kcos.size() << " elements" << endl;
+
+    consumerThread->join();
+    delete consumerThread;
+
+    cout << "Consumer thread joined" << endl;
+    EXPECT_EQ(popCount, 4) << "popCount: " << popCount << ", expected: 4";
+    for (int i = 0; i < popCount; i++)
+    {
+        EXPECT_EQ(recvdSizes[i], expectedSizes[i]) << "recvdSizes[" << i << "]: " << recvdSizes[i] << ", expected: " << expectedSizes[i];
+    }
+}

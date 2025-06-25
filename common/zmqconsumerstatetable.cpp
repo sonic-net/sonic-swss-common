@@ -22,6 +22,7 @@ ZmqConsumerStateTable::ZmqConsumerStateTable(DBConnector *db, const std::string 
     , TableBase(tableName, TableBase::getTableSeparator(db->getDbId()))
     , m_db(db)
     , m_zmqServer(zmqServer)
+    , m_popBatchSize((size_t)popBatchSize)
 {
     if (dbPersistence)
     {
@@ -80,7 +81,7 @@ void ZmqConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const
     }
 
     vkco.clear();
-    for (size_t ie = 0; ie < count; ie++)
+    for (size_t ie = 0; ie < min(count, m_popBatchSize); ie++)
     {
         auto& kco = *(m_receivedOperationQueue.front());
         vkco.push_back(std::move(kco));
@@ -89,6 +90,12 @@ void ZmqConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const
             std::lock_guard<std::mutex> lock(m_receivedQueueMutex);
             m_receivedOperationQueue.pop();
         }
+    }
+
+    if (count > m_popBatchSize)
+    {
+        // Notify epoll to wake up and continue to pop.
+        m_selectableEvent.notify();
     }
 }
 
