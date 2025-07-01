@@ -13,7 +13,7 @@
 #define MQ_WATERMARK 10000
 
 /***** ZMQ PORT *****/
-static const int ORCH_ZMQ_PORT = 8020;
+static const int ORCH_ZMQ_PORT = 8100;
 
 namespace swss {
 
