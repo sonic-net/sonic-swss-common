@@ -18,6 +18,7 @@
 #define SWIG_PYTHON_2_UNICODE
 
 #include "schema.h"
+#include "cfg_schema.h"  // Explicitly include cfg_schema.h to ensure all macros are available
 #include "dbconnector.h"
 #include "dbinterface.h"
 #include "sonicv2connector.h"
@@ -265,6 +266,7 @@ T castSelectableObj(swss::Selectable *temp)
 %newobject swss::DBConnector::newConnector;
 
 %include "schema.h"
+%include "cfg_schema.h"
 %include "dbconnector.h"
 #ifdef ENABLE_YANG_MODULES
 %include "defaultvalueprovider.h"

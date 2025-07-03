@@ -79,7 +79,7 @@ stages:
       displayName: "Install dependencies"
     - script: |
         ./autogen.sh
-        dpkg-buildpackage -rfakeroot -us -uc -b -j$(nproc) && cp ../*.deb .
+        DEB_CONFIGURE_EXTRA_FLAGS='--enable-pregenerated-schema' dpkg-buildpackage -rfakeroot -us -uc -b -j$(nproc) && cp ../*.deb .
       displayName: "Compile sonic swss common"
     - script: |
         bazel build //...
@@ -106,6 +106,7 @@ stages:
         sudo pip3 install pytest
         sudo apt-get install -y python
         sudo apt-get install cmake libgtest-dev libgmock-dev libyang-dev
+
         cd /usr/src/gtest && sudo cmake . && sudo make
         ARCH=$(dpkg --print-architecture)
         set -x
@@ -115,7 +116,7 @@ stages:
       displayName: "Install dependencies"
     - script: |
         ./autogen.sh
-        dpkg-buildpackage -rfakeroot -us -uc -Pnopython2 -b -j$(nproc) && cp ../*.deb .
+        DEB_CONFIGURE_EXTRA_FLAGS='--enable-pregenerated-schema' dpkg-buildpackage -rfakeroot -us -uc -Pnopython2 -b -j$(nproc) && cp ../*.deb .
       displayName: "Compile sonic swss common"
     - script: |
         bazel build //...
