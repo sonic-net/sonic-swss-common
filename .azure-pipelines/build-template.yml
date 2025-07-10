@@ -50,7 +50,7 @@ jobs:
     ${{ if ne(parameters.pool, 'default') }}:
       name: ${{ parameters.pool }}
     ${{ else }}:
-      vmImage: 'ubuntu-20.04'
+      vmImage: 'ubuntu-22.04'
 
   container:
     image: sonicdev-microsoft.azurecr.io:443/${{ parameters.sonic_slave }}
@@ -82,8 +82,8 @@ jobs:
       ${{ else }}:
         artifact: common-lib.${{ parameters.arch }}
       patterns: |
-        target/debs/${{ parameters.debian_version }}/libyang-*.deb
-        target/debs/${{ parameters.debian_version }}/libyang_*.deb
+        target/debs/${{ parameters.debian_version }}/libyang-*_1.0*.deb
+        target/debs/${{ parameters.debian_version }}/libyang_1.0*.deb
     displayName: "Download libyang from ${{ parameters.arch }} common lib"
   - script: |
       set -ex
