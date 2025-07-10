@@ -19,9 +19,26 @@ bin_PROGRAMS += common/swssloglevel
 # Generate cfg_schema.h before building the library
 BUILT_SOURCES = common/cfg_schema.h
 
-# Generate schema dynamically
+if YANGMODS
+# Generate schema dynamically when yang modules are enabled
 common/cfg_schema.h: FORCE
 	$(AM_V_GEN)$(PYTHON) $(srcdir)/gen_cfg_schema.py -o $@
+else
+# Generate minimal static schema when yang modules are disabled
+common/cfg_schema.h: FORCE
+	$(AM_V_GEN)echo '#ifndef CFG_SCHEMA_H' > $@; \
+	echo '#define CFG_SCHEMA_H' >> $@; \
+	echo '' >> $@; \
+	echo '// Minimal cfg_schema.h generated when YANG modules are disabled' >> $@; \
+	echo '#ifdef __cplusplus' >> $@; \
+	echo 'namespace swss {' >> $@; \
+	echo '#endif' >> $@; \
+	echo '' >> $@; \
+	echo '#ifdef __cplusplus' >> $@; \
+	echo '}' >> $@; \
+	echo '#endif' >> $@; \
+	echo '#endif' >> $@
+endif
 
 # FORCE target to ensure cfg_schema.h is always regenerated
 .PHONY: FORCE
