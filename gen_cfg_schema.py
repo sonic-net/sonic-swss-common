@@ -1,10 +1,5 @@
 import argparse
-
-try:
-    import sonic_yang
-    SONIC_YANG_AVAILABLE = True
-except ImportError:
-    SONIC_YANG_AVAILABLE = False
+import sonic_yang
 
 YANG_MODELS_DIR = "/usr/local/yang-models"
 DEFAULT_OUTPUT_FILE = "common/cfg_schema.h"
