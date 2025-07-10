@@ -75,7 +75,7 @@ jobs:
       run: |
         set -x
         ./autogen.sh
-        DEB_CONFIGURE_EXTRA_FLAGS='--enable-pregenerated-schema' dpkg-buildpackage -rfakeroot -us -uc -b -Pnoyangmod,nopython2 -j$(nproc)
+        dpkg-buildpackage -rfakeroot -us -uc -b -Pnoyangmod,nopython2 -j$(nproc)
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v2.1.29

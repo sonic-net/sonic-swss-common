@@ -366,6 +366,7 @@ after libswsscommon deb make.
 #define CFG_CHASSIS_MODULE_TABLE                    "CHASSIS_MODULE"
 #define CFG_TWAMP_SESSION_TABLE_NAME                "TWAMP_SESSION"
 #define CFG_LOGGING_TABLE_NAME                      "LOGGING"
+#define CFG_LOGGER_TABLE_NAME                       "LOGGER"
 #define CFG_DASH_HA_GLOBAL_CONFIG_TABLE_NAME        "DASH_HA_GLOBAL_CONFIG"
 #define CFG_DHCP_TABLE                              "DHCP_RELAY"
 #define CFG_DPU_TABLE                               "DPU_TABLE"
