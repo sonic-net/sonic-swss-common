@@ -6,7 +6,7 @@ using namespace swss;
 using namespace std;
 
 SWSSResult SWSSZmqServer_new(const char *endpoint, SWSSZmqServer *outZmqServer) {
-    SWSSTry(*outZmqServer = (SWSSZmqServer) new ZmqServer(string(endpoint)));
+  SWSSTry(*outZmqServer = (SWSSZmqServer) new ZmqServer(string(endpoint), 0));
 }
 
 SWSSResult SWSSZmqServer_free(SWSSZmqServer zmqs) {
