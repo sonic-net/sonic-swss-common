@@ -483,31 +483,25 @@ static void zmqConsumerWorker(string tableName, string endpoint,
                               bool dbPersistence) {
   cout << "Consumer thread started: " << tableName << endl;
   DBConnector db(TEST_DB, 0, true);
-  ZmqServer server(endpoint, "");
+  ZmqServer server(endpoint, "", true);
   ZmqConsumerStateTable c(&db, tableName, server, 128, 0, dbPersistence);
-  // validate received data
-  std::vector<swss::KeyOpFieldsValuesTuple> values;
-  values.push_back(KeyOpFieldsValuesTuple{
-      "k", SET_COMMAND,
-      std::vector<FieldValueTuple>{FieldValueTuple{"f", "v"}}});
+    Select cs;
+    cs.addSelectable(&c);
 
-  while (!zmq_done) {
-    sleep(2);
-    std::string recDbName, recTableName;
-    std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> recKcos;
-    std::vector<KeyOpFieldsValuesTuple> deserializedKcos;
+    //validate received data
+    Selectable *selectcs;
+    std::deque<KeyOpFieldsValuesTuple> vkco;
+    int ret = 0;
 
-    BinarySerializer::deserializeBuffer(server.m_buffer.data(),
-                                        server.m_buffer.size(), recDbName,
-                                        recTableName, recKcos);
-
-    for (auto kcoPtr : recKcos)
-    {
-      deserializedKcos.push_back(*kcoPtr);
-    }
-    EXPECT_EQ(recDbName, TEST_DB);
-    EXPECT_EQ(recTableName, tableName);
-    EXPECT_EQ(deserializedKcos, values);
+    while (!zmq_done) {
+        ret = cs.select(&selectcs, 10, true);
+        if (ret == Select::OBJECT)
+        {
+            c.pops(vkco);
+            std::vector<swss::KeyOpFieldsValuesTuple> values;
+            values.push_back(KeyOpFieldsValuesTuple{"k", SET_COMMAND, std::vector<FieldValueTuple>{FieldValueTuple{"f", "v"}}});
+            server.sendMsg(TEST_DB, tableName, values);
+        }
     }
 
     allDataReceived = true;
@@ -520,7 +514,6 @@ static void zmqConsumerWorker(string tableName, string endpoint,
         }
     }
 
-    zmq_done = true;
     cout << "Consumer thread ended: " << tableName << endl;
 }
 
@@ -539,8 +532,19 @@ static void ZmqWithResponse(bool producerPersistence)
     ZmqProducerStateTable p(&db, testTableName, client, true);
     std::vector<KeyOpFieldsValuesTuple> kcos;
     kcos.push_back(KeyOpFieldsValuesTuple{"k", SET_COMMAND, std::vector<FieldValueTuple>{FieldValueTuple{"f", "v"}}});
+    std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> kcos_p;
+
+    std::string dbName, tableName;
     for (int i = 0; i < 3; ++i) {
       p.send(kcos);
+        ASSERT_TRUE(p.wait(dbName, tableName, kcos_p));
+        EXPECT_EQ(dbName, TEST_DB);
+        EXPECT_EQ(tableName, testTableName);
+        ASSERT_EQ(kcos_p.size(), 1);
+        EXPECT_EQ(kfvKey(*kcos_p[0]), "k");
+        EXPECT_EQ(kfvOp(*kcos_p[0]), SET_COMMAND);
+        std::vector<FieldValueTuple> cos = std::vector<FieldValueTuple>{FieldValueTuple{"f", "v"}};
+        EXPECT_EQ(kfvFieldsValues(*kcos_p[0]), cos);
     }
 
     zmq_done = true;
@@ -568,4 +572,20 @@ TEST(ZmqWithResponseClientError, test)
     p.send(kcos);
     // Wait will timeout without server reply.
     EXPECT_FALSE(p.wait(dbName, tableName, kcosPtr));
+    EXPECT_THROW(p.send(kcos), std::system_error);
+}
+
+TEST(ZmqOneToOneSyncServerError, test)
+{
+    std::string testTableName = "ZMQ_PROD_CONS_UT";
+    std::string pullEndpoint = "tcp://*:1234";
+
+    DBConnector db(TEST_DB, 0, true);
+    ZmqServer server(pullEndpoint, "", true);
+    ZmqConsumerStateTable c(&db, testTableName, server);
+
+    std::vector<swss::KeyOpFieldsValuesTuple> values;
+    values.push_back(KeyOpFieldsValuesTuple{"k", SET_COMMAND, std::vector<FieldValueTuple>{FieldValueTuple{"f", "v"}}});
+    // Send will return error without client request.
+    EXPECT_THROW(server.sendMsg(TEST_DB, testTableName, values), std::system_error);
 }
