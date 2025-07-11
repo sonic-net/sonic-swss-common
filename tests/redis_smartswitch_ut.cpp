@@ -14,6 +14,11 @@ using namespace swss;
 using namespace boost;
 using json = nlohmann::json;
 
+struct file_deleter {
+    void operator()(FILE* f) const {
+        pclose(f);
+    }
+};
 
 static void TestDPUDatabase(DBConnector &db)
 {
@@ -36,7 +41,7 @@ static void TestDPUDatabase(DBConnector &db)
     const std::string dbname = db.getDbName();
     std::string command = str(
         fmt % SonicDBConfig::getDbId(dbname, key) % SonicDBConfig::getDbPort(dbname, key) % SonicDBConfig::getDbHostname(dbname, key));
-    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(command.c_str(), "r"), pclose);
+    std::unique_ptr<FILE, file_deleter> pipe(popen(command.c_str(), "r"));
     ASSERT_TRUE(pipe);
     char buffer[128] = {0};
     EXPECT_TRUE(fgets(buffer, sizeof(buffer), pipe.get()));
