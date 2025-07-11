@@ -38,9 +38,9 @@ public:
     virtual void send(const std::vector<KeyOpFieldsValuesTuple> &kcos);
 
     // To wait for the response from the peer.
-    virtual bool wait(const std::string& dbName,
-              const std::string& tableName,
-              const std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos);
+    virtual bool wait(std::string& dbName,
+                      std::string& tableName,
+                      std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos);
 
     size_t dbUpdaterQueueSize();
 private:
