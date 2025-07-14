@@ -45,7 +45,7 @@ struct SonicDBKey
      * In our design, we allow multiple containers to share a same namespace.
      * So, this combination of container name and namespace is used to uniquely identify a DB instance.
      * If the namespace is empty, it means the DB instance is running in the default(host) namespace.
-     * If the container name is empty, it for adapting the old design that only one DB instance is 
+     * If the container name is empty, it for adapting the old design that only one DB instance is
      * running in a namespace.
      */
     std::string containerName;
@@ -157,7 +157,8 @@ private:
     static void parseDatabaseConfig(const std::string &file,
                                     std::map<std::string, RedisInstInfo> &inst_entry,
                                     std::unordered_map<std::string, SonicDBInfo> &db_entry,
-                                    std::unordered_map<int, std::string> &separator_entry);
+                                    std::unordered_map<int, std::string> &separator_entry,
+                                    bool ignore_nonexistent = false);
     static RedisInstInfo& getRedisInfo(const std::string &dbName, const SonicDBKey &key);
     static SonicDBInfo& getDbInfo(const std::string &dbName, const SonicDBKey &key);
 };

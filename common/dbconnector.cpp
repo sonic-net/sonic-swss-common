@@ -22,7 +22,8 @@ using namespace swss;
 void SonicDBConfig::parseDatabaseConfig(const string &file,
                     std::map<std::string, RedisInstInfo> &inst_entry,
                     std::unordered_map<std::string, SonicDBInfo> &db_entry,
-                    std::unordered_map<int, std::string> &separator_entry)
+                    std::unordered_map<int, std::string> &separator_entry,
+                    bool ignore_nonexistent)
 {
     ifstream i(file);
     if (i.good())
@@ -70,8 +71,13 @@ void SonicDBConfig::parseDatabaseConfig(const string &file,
     }
     else
     {
-        SWSS_LOG_ERROR("Sonic database config file doesn't exist at %s\n", file.c_str());
-        throw runtime_error("Sonic database config file doesn't exist at " + file);
+        if (ignore_nonexistent)
+        {
+            SWSS_LOG_INFO("Sonic database config file doesn't exist at %s\n", file.c_str());
+        } else {
+            SWSS_LOG_ERROR("Sonic database config file doesn't exist at %s\n", file.c_str());
+            throw runtime_error("Sonic database config file doesn't exist at " + file);
+        }
     }
 }
 
@@ -128,10 +134,16 @@ void SonicDBConfig::initializeGlobalConfig(const string &file)
                     continue;
                 }
 
-                parseDatabaseConfig(local_file, inst_entry, db_entry, separator_entry);
-                m_inst_info[key] = inst_entry;
-                m_db_info[key] = db_entry;
-                m_db_separator[key] = separator_entry;
+                parseDatabaseConfig(local_file, inst_entry, db_entry, separator_entry, true);
+                // all the entries are empty, then don't add them to the map. It may happen if the included
+                // config doesn't exist. For example, dash-ha container will only mount the redis instance
+                // config file for the dpu it is managing.
+                if (!inst_entry.empty() || !db_entry.empty() || !separator_entry.empty())
+                {
+                    m_inst_info[key] = inst_entry;
+                    m_db_info[key] = db_entry;
+                    m_db_separator[key] = separator_entry;
+                }
 
                 if(key.isEmpty())
                 {
