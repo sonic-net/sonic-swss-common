@@ -169,7 +169,7 @@ void ZmqClient::sendMsg(
             //       For example when ZMQ socket still not receive reply message from last sended package.
             //       There was state machine inside ZMQ socket, when the socket is not in ready to send state, this error will happen.
             // for more detail, please check: http://api.zeromq.org/2-1:zmq-send
-            SWSS_LOG_DEBUG("zmq send retry, endpoint: %s, error: %d", m_endpoint.c_str(), zmq_err);
+            SWSS_LOG_WARN("zmq send retry, endpoint: %s, error: %d", m_endpoint.c_str(), zmq_err);
 
             retry_delay = 0;
         }
