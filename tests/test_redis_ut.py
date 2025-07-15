@@ -850,7 +850,8 @@ def test_SmartSwitchDBConnector():
     assert "dputest2" in keys
     assert tbl.get("dputest1")[1][0] == ("dashfield1", "dashvalue1")
     assert tbl.get("dputest2")[1][1] == ("dashfield2", "dashvalue2")
-    assert len(SonicDBConfig.getDbKeys()) == len(global_db_config_json["INCLUDES"])
+    # global config has one non-existent include to be ignored
+    assert len(SonicDBConfig.getDbKeys()) == len(global_db_config_json["INCLUDES"]) - 1
 
 
 def test_TableSetBinary():
