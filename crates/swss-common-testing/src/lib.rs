@@ -141,12 +141,30 @@ const CONFIG_DB_REDIS_CONFIG_JSON: &str = r#"
                 "id": 3,
                 "separator": "|",
                 "instance": "redis"
+            },
+            "DPU_APPL_DB": {
+                "id": 4,
+                "separator": ":",
+                "instance": "redis"
             }
         }
     }
 "#;
 
-const DB_GLOBAL_CONFIG_JSON: &str = "{}";
+const DB_GLOBAL_CONFIG_JSON: &str = r#"
+    {
+        "INCLUDES" : [
+            {
+                "include" : "db_config_test.json"
+            },
+            {
+                "container_name" : "dpu0",
+                "include" : "db_config_test.json"
+
+            }
+        ]
+    }
+"#;
 
 static SONIC_DB_INITIALIZED: Mutex<bool> = Mutex::new(false);
 static CONIFG_DB_INITIALIZED: Mutex<bool> = Mutex::new(false);

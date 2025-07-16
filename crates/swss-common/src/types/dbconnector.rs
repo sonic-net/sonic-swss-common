@@ -12,9 +12,25 @@ pub struct DbConnector {
 /// Details about how a DbConnector is connected to Redis
 #[derive(Debug, Clone)]
 pub enum DbConnectionInfo {
-    Tcp { hostname: String, port: u16, db_id: i32 },
-    Unix { sock_path: String, db_id: i32 },
-    Named { db_name: String, is_tcp_conn: bool },
+    Tcp {
+        hostname: String,
+        port: u16,
+        db_id: i32,
+    },
+    Unix {
+        sock_path: String,
+        db_id: i32,
+    },
+    Named {
+        db_name: String,
+        is_tcp_conn: bool,
+    },
+    Keyed {
+        db_name: String,
+        is_tcp_conn: bool,
+        container_name: String,
+        netns: String,
+    },
 }
 
 impl DbConnector {
@@ -37,6 +53,20 @@ impl DbConnector {
                 let db_name = cstr(db_name);
                 unsafe {
                     swss_try!(p_db => SWSSDBConnector_new_named(db_name.as_ptr(), timeout_ms, *is_tcp_conn as u8, p_db))?
+                }
+            }
+            DbConnectionInfo::Keyed {
+                db_name,
+                is_tcp_conn,
+                container_name,
+                netns,
+            } => {
+                let db_name = cstr(db_name);
+                let container_name = cstr(container_name);
+                let netns = cstr(netns);
+                unsafe {
+                    swss_try!(p_db => SWSSDBConnector_new_keyed(db_name.as_ptr(), timeout_ms, *is_tcp_conn as u8,
+                        container_name.as_ptr(), netns.as_ptr(), p_db))?
                 }
             }
         };
@@ -66,6 +96,27 @@ impl DbConnector {
     pub fn new_unix(db_id: i32, sock_path: impl Into<String>, timeout_ms: u32) -> Result<DbConnector> {
         let sock_path = sock_path.into();
         Self::new(DbConnectionInfo::Unix { sock_path, db_id }, timeout_ms)
+    }
+
+    pub fn new_keyed(
+        db_name: impl Into<String>,
+        is_tcp_conn: bool,
+        timeout_ms: u32,
+        container_name: impl Into<String>,
+        netns: impl Into<String>,
+    ) -> Result<DbConnector> {
+        let db_name = db_name.into();
+        let container_name = container_name.into();
+        let netns = netns.into();
+        Self::new(
+            DbConnectionInfo::Keyed {
+                db_name,
+                is_tcp_conn,
+                container_name,
+                netns,
+            },
+            timeout_ms,
+        )
     }
 
     /// Clone a DbConnector with a timeout.
@@ -182,6 +233,7 @@ impl DbConnector {
     async_util::impl_basic_async_method!(new_named_async <= new_named(db_name: &str, is_tcp_conn: bool, timeout_ms: u32) -> Result<DbConnector>);
     async_util::impl_basic_async_method!(new_tcp_async <= new_tcp(db_id: i32, hostname: &str, port: u16, timeout_ms: u32) -> Result<DbConnector>);
     async_util::impl_basic_async_method!(new_unix_async <= new_unix(db_id: i32, sock_path: &str, timeout_ms: u32) -> Result<DbConnector>);
+    async_util::impl_basic_async_method!(new_keyed_async <= new_keyed(db_name: &str, is_tcp_conn: bool, timeout_ms: u32, container_name: &str, netns: &str) -> Result<DbConnector>);
     async_util::impl_basic_async_method!(clone_timeout_async <= clone_timeout(&self, timeout_ms: u32) -> Result<DbConnector>);
     async_util::impl_basic_async_method!(del_async <= del(&self, key: &str) -> Result<bool>);
     async_util::impl_basic_async_method!(set_async <= set(&self, key: &str, value: &CxxStr) -> Result<()>);

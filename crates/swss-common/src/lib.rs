@@ -23,4 +23,5 @@ pub trait SonicDbTable {
     fn key_separator() -> char;
     fn table_name() -> &'static str;
     fn db_name() -> &'static str;
+    fn is_dpu() -> bool;
 }
