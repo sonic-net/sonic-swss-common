@@ -121,6 +121,8 @@ jobs:
         make -C goext
         redis-cli FLUSHALL
         make -C goext check
+        cargo test           --workspace --all-features
+        cargo test --release --workspace --all-features
 
         rm -rf $(Build.ArtifactStagingDirectory)/download
       displayName: "Run swss common unit tests"
