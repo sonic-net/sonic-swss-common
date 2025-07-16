@@ -46,11 +46,9 @@ override_dh_auto_configure:
 #	-DCMAKE_LIBRARY_PATH=$(DEB_HOST_MULTIARCH)
 
 override_dh_auto_build:
+	dh_auto_build
 	cargo build --release --all
 
 override_dh_auto_clean:
+	dh_auto_clean
 	cargo clean --release
-
-override_dh_auto_test:
-	# do nothing
-	:
