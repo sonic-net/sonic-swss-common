@@ -26,6 +26,10 @@
         {
             "container_name" : "dpu1",
             "include" : "../redis_multi_db_ut_config/database_config5.json"
+        },
+        {
+            "container_name" : "dpu2",
+            "include" : "../redis_multi_db_ut_config/non_existent.json"
         }
     ],
     "VERSION" : "1.0"

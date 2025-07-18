@@ -16,7 +16,7 @@ extern string global_existing_file;
 
 TEST(DBConnector, multi_ns_test)
 {
-    std::string local_file, dir_name;
+    std::string dir_name;
     set<string> namespaces;
     vector<string> ns_names;
     vector<SonicDBKey> dbkeys;
@@ -62,8 +62,16 @@ TEST(DBConnector, multi_ns_test)
         for (auto& element : g["INCLUDES"])
         {
             swss::SonicDBKey key;
+            std::string local_file;
             local_file.append(dir_name);
             local_file.append(element["include"]);
+
+            ifstream i(local_file);
+            if (!i.good()) {
+                // If the file is not found, skip the test. This is to handle the case where the
+                // test is run on a platform that does not have the file.
+                continue;
+            }
 
             if(!element["namespace"].empty())
             {
@@ -82,59 +90,53 @@ TEST(DBConnector, multi_ns_test)
             }
 
             // parse config file
-            ifstream i(local_file);
-
-            if (i.good())
+            json j;
+            i >> j;
+            map<string, RedisInstInfo> m_inst_info;
+            for (auto it = j["INSTANCES"].begin(); it!= j["INSTANCES"].end(); it++)
             {
-                json j;
-                i >> j;
-                map<string, RedisInstInfo> m_inst_info;
-                for (auto it = j["INSTANCES"].begin(); it!= j["INSTANCES"].end(); it++)
-                {
-                   string instName = it.key();
-                   string socket = it.value().at("unix_socket_path");
-                   string hostname = it.value().at("hostname");
-                   int port = it.value().at("port");
-                   m_inst_info[instName] = {socket, hostname, port};
-                }
+                string instName = it.key();
+                string socket = it.value().at("unix_socket_path");
+                string hostname = it.value().at("hostname");
+                int port = it.value().at("port");
+                m_inst_info[instName] = {socket, hostname, port};
+            }
 
-                for (auto it = j["DATABASES"].begin(); it!= j["DATABASES"].end(); it++)
+            for (auto it = j["DATABASES"].begin(); it!= j["DATABASES"].end(); it++)
+            {
+                string dbName = it.key();
+                string instName = it.value().at("instance");
+                int dbId = it.value().at("id");
+                cout<<"testing "<<dbName<<endl;
+                cout<<key.netns<<"#"<<dbId<<dbName<<"#"<<m_inst_info[instName].unixSocketPath<<"#"<<m_inst_info[instName].hostname<<"#"<<m_inst_info[instName].port<<endl;
+                if (key.containerName.empty())
                 {
-                   string dbName = it.key();
-                   string instName = it.value().at("instance");
-                   int dbId = it.value().at("id");
-                   cout<<"testing "<<dbName<<endl;
-                   cout<<key.netns<<"#"<<dbId<<dbName<<"#"<<m_inst_info[instName].unixSocketPath<<"#"<<m_inst_info[instName].hostname<<"#"<<m_inst_info[instName].port<<endl;
-                   if (key.containerName.empty())
-                   {
-                        // Test for original namespace only API
-                        // dbInst info matches between get api and context in json file
-                        EXPECT_EQ(instName, SonicDBConfig::getDbInst(dbName, key.netns));
-                        // dbId info matches between get api and context in json file
-                        EXPECT_EQ(dbId, SonicDBConfig::getDbId(dbName, key.netns));
-                        // socket info matches between get api and context in json file
-                        EXPECT_EQ(m_inst_info[instName].unixSocketPath, SonicDBConfig::getDbSock(dbName, key.netns));
-                        // hostname info matches between get api and context in json file
-                        EXPECT_EQ(m_inst_info[instName].hostname, SonicDBConfig::getDbHostname(dbName, key.netns));
-                        // port info matches between get api and context in json file
-                        EXPECT_EQ(m_inst_info[instName].port, SonicDBConfig::getDbPort(dbName, key.netns));
-                   }
-                   else
-                   {
-                        // dbInst info matches between get api and context in json file
-                        EXPECT_EQ(instName, SonicDBConfig::getDbInst(dbName, key));
-                        // dbId info matches between get api and context in json file
-                        EXPECT_EQ(dbId, SonicDBConfig::getDbId(dbName, key));
-                        // socket info matches between get api and context in json file
-                        EXPECT_EQ(m_inst_info[instName].unixSocketPath, SonicDBConfig::getDbSock(dbName, key));
-                        // hostname info matches between get api and context in json file
-                        EXPECT_EQ(m_inst_info[instName].hostname, SonicDBConfig::getDbHostname(dbName, key));
-                        // port info matches between get api and context in json file
-                        EXPECT_EQ(m_inst_info[instName].port, SonicDBConfig::getDbPort(dbName, key));
-                   }
+                    // Test for original namespace only API
+                    // dbInst info matches between get api and context in json file
+                    EXPECT_EQ(instName, SonicDBConfig::getDbInst(dbName, key.netns));
+                    // dbId info matches between get api and context in json file
+                    EXPECT_EQ(dbId, SonicDBConfig::getDbId(dbName, key.netns));
+                    // socket info matches between get api and context in json file
+                    EXPECT_EQ(m_inst_info[instName].unixSocketPath, SonicDBConfig::getDbSock(dbName, key.netns));
+                    // hostname info matches between get api and context in json file
+                    EXPECT_EQ(m_inst_info[instName].hostname, SonicDBConfig::getDbHostname(dbName, key.netns));
+                    // port info matches between get api and context in json file
+                    EXPECT_EQ(m_inst_info[instName].port, SonicDBConfig::getDbPort(dbName, key.netns));
+                }
+                else
+                {
+                    // dbInst info matches between get api and context in json file
+                    EXPECT_EQ(instName, SonicDBConfig::getDbInst(dbName, key));
+                    // dbId info matches between get api and context in json file
+                    EXPECT_EQ(dbId, SonicDBConfig::getDbId(dbName, key));
+                    // socket info matches between get api and context in json file
+                    EXPECT_EQ(m_inst_info[instName].unixSocketPath, SonicDBConfig::getDbSock(dbName, key));
+                    // hostname info matches between get api and context in json file
+                    EXPECT_EQ(m_inst_info[instName].hostname, SonicDBConfig::getDbHostname(dbName, key));
+                    // port info matches between get api and context in json file
+                    EXPECT_EQ(m_inst_info[instName].port, SonicDBConfig::getDbPort(dbName, key));
                 }
             }
-             local_file.clear();
         }
     }
 
