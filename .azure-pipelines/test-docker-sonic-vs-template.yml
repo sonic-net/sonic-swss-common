@@ -70,7 +70,7 @@ jobs:
           libboost-dev \
           libhiredis0.14 \
           libyang-dev \
-          libyang \
+          libyang  \
           uuid-dev \
           net-tools \
           bridge-utils \
