@@ -2,6 +2,7 @@
 #include <cstring>
 #include <array>
 #include <sys/wait.h>
+#include <stdexcept>
 #include "exec.h"
 #include "common/logger.h"
 
