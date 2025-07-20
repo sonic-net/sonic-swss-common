@@ -70,13 +70,15 @@ jobs:
           libboost-dev \
           libhiredis0.14 \
           libyang-dev \
-          libyang  \
           uuid-dev \
           net-tools \
           bridge-utils \
           vlan
 
       sudo sonic-swss-common/.azure-pipelines/build_and_install_module.sh
+
+      # Install libyang packages from downloaded artifacts first
+      sudo dpkg -i $(Build.ArtifactStagingDirectory)/download/libyang-*_1.0*.deb
 
       sudo dpkg -i $(Build.ArtifactStagingDirectory)/download/libprotobuf*_amd64.deb $(Build.ArtifactStagingDirectory)/download/libprotobuf-lite*_amd64.deb $(Build.ArtifactStagingDirectory)/download/python3-protobuf*_amd64.deb 
       sudo dpkg -i $(Build.ArtifactStagingDirectory)/download/libdashapi*.deb
