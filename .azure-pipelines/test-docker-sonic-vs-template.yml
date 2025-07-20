@@ -45,7 +45,7 @@ jobs:
       project: build
       pipeline: Azure.sonic-buildimage.common_libs
       runVersion: 'latestFromBranch'
-      runBranch: 'refs/heads/${{ parameters.sonic_buildimage_ubuntu22_04 }}'
+      runBranch: 'refs/heads/$(BUILD_BRANCH)'
       path: $(Build.ArtifactStagingDirectory)/download
       artifact: common-lib
       patterns: |
