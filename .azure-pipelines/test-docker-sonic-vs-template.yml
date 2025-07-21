@@ -49,10 +49,10 @@ jobs:
       path: $(Build.ArtifactStagingDirectory)/download
       artifact: common-lib
       patterns: |
-        target/debs/ubuntu22.04/libyang-*_1.0*.deb
-        target/debs/ubuntu22.04/libyang_1.0*.deb
-        target/debs/ubuntu22.04/libyang-cpp_*.deb
-        target/debs/ubuntu22.04/python3-yang_*.deb
+        target/debs/bookworm/libyang-*_1.0*.deb
+        target/debs/bookworm/libyang_1.0*.deb
+        target/debs/bookworm/libyang-cpp_*.deb
+        target/debs/bookworm/python3-yang_*.deb
     displayName: "Download libyang from common lib"
   - task: DownloadPipelineArtifact@2
     inputs:
