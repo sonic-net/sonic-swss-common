@@ -292,6 +292,8 @@ public:
 
     int64_t incr(const std::string &key);
 
+    int64_t incrby(const std::string &key, int increment);
+
     int64_t decr(const std::string &key);
 
     int64_t rpush(const std::string &list, const std::string &item);
