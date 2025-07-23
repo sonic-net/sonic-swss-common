@@ -831,6 +831,64 @@ def test_ConfigDBConnector_with_statement(self):
     # check close() method called by with statement
     ConfigDBConnector.close.assert_called_once_with()
 
+def _test_ConfigDBConnectorSetOrder(cls):
+    table_name_1 = "PREFIX_SET"
+    table_name_2 = "PREFIX"
+    inp = {
+        table_name_1: {
+            "test_prefix_set": {
+                "mode": "IPv4"
+            }
+        },
+        table_name_2: {
+            "test_prefix_set|10.1.0.0/24|exact": {
+                "action": "permit"
+            }
+        }
+    }
+
+    ret_queue = multiprocessing.Queue()
+
+    def thread_listen(ret_queue):
+        config_db = ConfigDBConnector()
+        config_db.connect(wait_for_init=False)
+
+        def handler(table, key, data):
+            print('thread_listen received', table, key, data)
+            ret_queue.put(table)
+
+        config_db.subscribe(table_name_1, handler)
+        config_db.subscribe(table_name_2, handler)
+        config_db.listen()
+
+    config_db = cls()
+    config_db.connect(wait_for_init=False)
+    client = config_db.get_redis_client(config_db.CONFIG_DB)
+    client.flushdb()
+
+    listener = multiprocessing.Process(target=thread_listen, args=(ret_queue,))
+    listener.start()
+
+    # Wait until the listener has connected before modifying the config
+    time.sleep(2)
+
+    try:
+        config_db.mod_config(inp)
+        # Check that items are added to the queue in order
+        assert ret_queue.get(timeout=5) == table_name_1
+        assert ret_queue.get(timeout=5) == table_name_2
+    finally:
+        listener.terminate()
+
+def test_ConfigDBConnectorSetOrder():
+    """Check that ConfigDBConnector::mod_config updates tables in order of the
+    input Python dict"""
+    _test_ConfigDBConnectorSetOrder(ConfigDBConnector)
+
+def test_ConfigDBPipeConnectorSetOrder():
+    """Check that ConfigDBPipeConnector::mod_config updates tables in order of the
+    input Python dict"""
+    _test_ConfigDBConnectorSetOrder(ConfigDBPipeConnector)
 
 def test_SmartSwitchDBConnector():
     test_dir = os.path.dirname(os.path.abspath(__file__))
@@ -878,4 +936,3 @@ def test_TableOpsMemoryLeak():
         t.set("long_data", fvs)
         t.get("long_data")
     assert psutil.Process(os.getpid()).memory_info().rss - rss < OP_COUNT
-
