@@ -611,7 +611,6 @@ namespace swss {
 #define STATE_ACL_TABLE_TABLE_NAME                  "ACL_TABLE_TABLE"
 #define STATE_ACL_RULE_TABLE_NAME                   "ACL_RULE_TABLE"
 
-
 /*PAC*/
 #define STATE_PAC_GLOBAL_OPER_TABLE               "PAC_GLOBAL_OPER_TABLE"
 #define STATE_PAC_PORT_OPER_TABLE                 "PAC_PORT_OPER_TABLE"
