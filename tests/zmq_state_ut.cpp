@@ -549,14 +549,15 @@ TEST(ZmqWithResponseClientError, test)
     std::string pushEndpoint = "tcp://localhost:1234";
     DBConnector db(TEST_DB, 0, true);
     ZmqClient client(pushEndpoint, 3000);
-    ZmqProducerStateTable p(&db, testTableName, client, true);
+    ZmqProducerStateTable p(&db, testTableName, client);
     std::vector<KeyOpFieldsValuesTuple> kcos;
     kcos.push_back(KeyOpFieldsValuesTuple{"k", SET_COMMAND, std::vector<FieldValueTuple>{}});
-    std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> kcosPtr;
+    std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> kcos_p;
     std::string dbName, tableName;
     p.send(kcos);
     // Wait will timeout without server reply.
-    EXPECT_FALSE(p.wait(dbName, tableName, kcosPtr));
+    EXPECT_FALSE(p.wait(dbName, tableName, kcos_p));
+    // Send will return error without server reply.
     EXPECT_THROW(p.send(kcos), std::system_error);
 }
 
