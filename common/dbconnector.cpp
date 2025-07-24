@@ -541,11 +541,19 @@ RedisContext::RedisContext(const RedisContext &other)
     const char *unixPath = octx->unix_sock.path;
     if (unixPath)
     {
+#if HIREDIS_MAJOR >= 1
+        initContext(unixPath, octx->connect_timeout);
+#else
         initContext(unixPath, octx->timeout);
+#endif
     }
     else
     {
+#if HIREDIS_MAJOR >= 1
+        initContext(octx->tcp.host, octx->tcp.port, octx->connect_timeout);
+#else
         initContext(octx->tcp.host, octx->tcp.port, octx->timeout);
+#endif
     }
 }
 
