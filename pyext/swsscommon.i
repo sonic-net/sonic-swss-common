@@ -307,7 +307,6 @@ std::vector<std::pair<std::string, std::vector<swss::FieldValueTuple>>> zmqWait(
 }
 %}
 
-%ignore swss::ZmqProducerStateTable::wait;
 %ignore swss::TableEntryPoppable::pops(std::deque<KeyOpFieldsValuesTuple> &, const std::string &);
 %apply std::vector<std::string>& OUTPUT {std::vector<std::string> &keys};
 %apply std::vector<std::string>& OUTPUT {std::vector<std::string> &ops};
