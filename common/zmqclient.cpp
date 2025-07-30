@@ -98,6 +98,10 @@ void ZmqClient::connect()
     int linger = 0;
     zmq_setsockopt(m_socket, ZMQ_LINGER, &linger, sizeof(linger));
 
+    // only queue on complete connection, so ZMQ will not lost data during reconnect: http://api.zeromq.org/master:zmq-setsockopt
+    int immediate = 1;
+    zmq_setsockopt(m_socket, ZMQ_IMMEDIATE, &immediate, sizeof(immediate));
+
     // Increase send buffer for use all bandwidth: http://api.zeromq.org/4-2:zmq-setsockopt
     int high_watermark = MQ_WATERMARK;
     zmq_setsockopt(m_socket, ZMQ_SNDHWM, &high_watermark, sizeof(high_watermark));
