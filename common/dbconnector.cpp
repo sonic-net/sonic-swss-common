@@ -24,6 +24,9 @@ using namespace std;
 using namespace swss;
 #define SUDO_GID 27
 
+// This is a macro to check if the REDIS_ACL_G is defined, which meaning that the feature Redis ACL is enabled.
+#ifdef REDIS_ACL_G
+
 bool isUserInSudoGroup() {
     int ngroups = getgroups(0, nullptr); // Get the number of supplementary groups
     bool group_sudo_exists = false;
@@ -117,6 +120,7 @@ std::string get_auth_cmd() {
     return command;
 }
 
+#endif
 
 void SonicDBConfig::parseDatabaseConfig(const string &file,
                     std::map<std::string, RedisInstInfo> &inst_entry,
@@ -663,6 +667,7 @@ void RedisContext::initContext(const char *host, int port, const timeval *tv)
         throw system_error(make_error_code(errc::address_not_available),
                            "Unable to connect to redis - " + std::string(m_conn->errstr) + "(" + std::to_string(m_conn->err) + ")");
 
+#ifdef REDIS_ACL_G
     // Redis SSL configuration
     redisSSLContext *ssl;
     redisSSLContextError ssl_error = REDIS_SSL_CTX_NONE;
@@ -697,6 +702,7 @@ void RedisContext::initContext(const char *host, int port, const timeval *tv)
     std::string command = "";
     command = get_auth_cmd();
     RedisReply r1(this, command, REDIS_REPLY_STATUS);
+#endif
 }
 
 void RedisContext::initContext(const char *path, const timeval *tv)
@@ -714,10 +720,12 @@ void RedisContext::initContext(const char *path, const timeval *tv)
         throw system_error(make_error_code(errc::address_not_available),
                            "Unable to connect to redis (unix-socket) - " + std::string(m_conn->errstr) + "(" + std::to_string(m_conn->err) + ")");
 
+#ifdef REDIS_ACL_G
     // Redis Authentication
     std::string command = "";
     command = get_auth_cmd();
     RedisReply r1(this, command, REDIS_REPLY_STATUS);
+#endif
 }
 
 redisContext *RedisContext::getContext() const
