@@ -565,7 +565,16 @@ TEST(ZmqWithResponseClientError, test)
     kcos.push_back(KeyOpFieldsValuesTuple{"k", SET_COMMAND, std::vector<FieldValueTuple>{}});
     std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> kcosPtr;
     std::string dbName, tableName;
-    p.send(kcos);
+
+    std::string exception_message = "";
+    try
+    {
+        p.send(kcos);
+    }
+    catch (const std::system_error& e) {
+        exception_message = e.what();
+    }
+
     // Wait will timeout without server reply.
-    EXPECT_FALSE(p.wait(dbName, tableName, kcosPtr));
+    EXPECT_TRUE(exception_message.contains("zmqerrno: 11:Resource temporarily unavailable"));
 }

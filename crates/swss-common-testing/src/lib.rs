@@ -51,7 +51,7 @@ impl Redis {
         let mut child = Command::new("timeout")
             .args([
                 "--signal=KILL",
-                "15s",
+                "60s",
                 "redis-server",
                 "--appendonly", "no",
                 "--save", "",

@@ -206,7 +206,6 @@ fn zmq_consumer_producer_state_tables_sync_api_connect_late_reconnect() -> Resul
     let zmqc = ZmqClient::new(&endpoint)?;
     let redis = Redis::start();
     let zpst = ZmqProducerStateTable::new(redis.db_connector(), "table_a", zmqc, false)?;
-    let server_connector = redis.db_connector();
 
     // send will failed because not connect to server
     let result = zpst.set(&random_string(), random_fvs().clone());
@@ -218,7 +217,7 @@ fn zmq_consumer_producer_state_tables_sync_api_connect_late_reconnect() -> Resul
 
     // create ZMQ server and try receive data
     let mut zmqs = ZmqServer::new(&endpoint)?;
-    let zcst = ZmqConsumerStateTable::new(server_connector, "table_a", &mut zmqs, None, None)?;
+    let zcst = ZmqConsumerStateTable::new(redis.db_connector(), "table_a", &mut zmqs, None, None)?;
 
     // should not receive any data
     let mut kfvs_seen = Vec::new();
