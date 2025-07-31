@@ -190,12 +190,10 @@ fn zmq_consumer_producer_state_tables_sync_api_basic_test() -> Result<(), Except
     Ok(())
 }
 
-// Below test covers 2 scenarios:
-// 1. late connect when zmq server is started after client sending messages.
-// 2. reconnect when zmq server is stopped and restarted. messages from client during
-//    the time should be queued by client and resent when server is restarted.
+// Test late connect when zmq server is started after client sending messages. messages from client during
+//    the time should not be queued by client, because queued data may lost.
 #[test]
-fn zmq_consumer_producer_state_tables_sync_api_connect_late_reconnect() -> Result<(), Exception> {
+fn zmq_consumer_producer_state_tables_send_failed_when_server_not_ready() -> Result<(), Exception> {
     use SelectResult::*;
     enum TestPhase {
         LateConnect,
@@ -206,27 +204,39 @@ fn zmq_consumer_producer_state_tables_sync_api_connect_late_reconnect() -> Resul
     let zmqc = ZmqClient::new(&endpoint)?;
     let redis = Redis::start();
     let zpst = ZmqProducerStateTable::new(redis.db_connector(), "table_a", zmqc, false)?;
+    let server_connector = redis.db_connector();
 
-    for _ in [TestPhase::LateConnect, TestPhase::Reconnect] {
-        let kfvs = random_kfvs();
-        for kfv in &kfvs {
-            match kfv.operation {
-                KeyOperation::Set => zpst.set(&kfv.key, kfv.field_values.clone())?,
-                KeyOperation::Del => zpst.del(&kfv.key)?,
-            }
-        }
+    // send will failed because not connect to server
+    let result = zpst.set(&random_string(), random_fvs().clone());
+    let result_message = match result {
+        Ok(val) => format!("Success"),
+        Err(e) => format!("Error: {}", e),
+    };
+    assert!(result_message.contains("zmqerrno: 11:Resource temporarily unavailable"));
 
-        let mut zmqs = ZmqServer::new(&endpoint)?;
-        let zcst = ZmqConsumerStateTable::new(redis.db_connector(), "table_a", &mut zmqs, None, None)?;
-        let mut kfvs_seen = Vec::new();
-        while kfvs_seen.len() != kfvs.len() {
-            assert_eq!(zcst.read_data(Duration::from_millis(2000), true)?, Data);
-            kfvs_seen.extend(zcst.pops()?);
-        }
-        assert_eq!(kfvs, kfvs_seen);
-        drop(zcst);
-        drop(zmqs);
+    // create ZMQ server and try receive data
+    let mut zmqs = ZmqServer::new(&endpoint)?;
+    let zcst = ZmqConsumerStateTable::new(server_connector, "table_a", &mut zmqs, None, None)?;
+
+    // should not receive any data
+    let mut kfvs_seen = Vec::new();
+    for i in 0..10 {
+        zcst.read_data(Duration::from_millis(2000), true);
+        kfvs_seen.extend(zcst.pops()?);
     }
+    assert_eq!(kfvs_seen.len(), 0);
+
+    // send again, should receive data because client reconnect
+    zpst.set(&random_string(), random_fvs().clone());
+
+    while kfvs_seen.len() != 1 {
+        zcst.read_data(Duration::from_millis(2000), true);
+        kfvs_seen.extend(zcst.pops()?);
+    }
+    assert_eq!(kfvs_seen.len(), 1);
+
+    drop(zcst);
+    drop(zmqs);
 
     Ok(())
 }
