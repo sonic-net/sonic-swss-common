@@ -264,5 +264,10 @@ pub fn random_port() -> u16 {
 pub fn random_zmq_endpoint() -> (String, impl Drop) {
     let sock = random_unix_sock();
     let endpoint = format!("ipc://{sock}");
-    (endpoint, Defer(Some(|| remove_file(sock).unwrap())))
+    (endpoint, Defer(Some(move || {
+        if let Err(e) = remove_file(&sock) {
+            eprintln!("Failed to remove socket file {}: {}", sock, e);
+        }
+    })))
+
 }
