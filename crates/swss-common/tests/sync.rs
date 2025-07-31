@@ -190,10 +190,12 @@ fn zmq_consumer_producer_state_tables_sync_api_basic_test() -> Result<(), Except
     Ok(())
 }
 
-// Test late connect when zmq server is started after client sending messages. messages from client during
-//    the time should not be queued by client, because queued data may lost.
+// This test covers two scenarios:
+// 1. Late connection: the ZMQ server starts after the client has already begun sending messages.
+//    Messages sent during this period should not be queued by the client, as queued data may be lost.
+// 2. Reconnection: once the ZMQ server is up, messages sent afterward should be successfully received.
 #[test]
-fn zmq_consumer_producer_state_tables_send_failed_when_server_not_ready() -> Result<(), Exception> {
+fn zmq_consumer_producer_state_tables_sync_api_connect_late_reconnect() -> Result<(), Exception> {
     use SelectResult::*;
     enum TestPhase {
         LateConnect,
