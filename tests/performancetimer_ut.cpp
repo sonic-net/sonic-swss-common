@@ -38,6 +38,6 @@ TEST(PerformancetimerTest, basic)
     output = timer.inc(2000);
 
     expected = R"({"API":"basic_set_name","RPS[k]":5.0,"Tasks":3000,"Total[ms]":600,"busy[ms]":400,"idle[ms]":200,"m_gaps":[0,200],"m_incs":[1000,2000],"m_intervals":[100,300]})";
-    
-    //EXPECT_EQ(output, expected);
+
+    EXPECT_EQ(output, expected);
 }
