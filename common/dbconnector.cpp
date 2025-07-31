@@ -18,6 +18,10 @@ using json = nlohmann::json;
 using namespace std;
 using namespace swss;
 
+namespace {
+constexpr size_t KEY_DEL_CHUNK_SIZE = 10000;
+}
+
 
 void SonicDBConfig::parseDatabaseConfig(const string &file,
                     std::map<std::string, RedisInstInfo> &inst_entry,
@@ -1021,11 +1025,21 @@ void DBConnector::del(const std::vector<std::string>& keys)
     SWSS_LOG_ENTER();
 
     RedisPipeline pipe(this);
-    for (auto& key : keys)
-    {
-        RedisCommand del;
-        del.formatDEL(key);
-        pipe.push(del, REDIS_REPLY_INTEGER);
+    std::string joined_keys = "";
+    size_t joined_keys_size = 0;
+    for (size_t i = 0; i < keys.size(); ++i) {
+        if (!joined_keys.empty()) {
+           joined_keys.append(" ");
+       }
+       joined_keys.append(keys[i]);
+       ++joined_keys_size;
+       if ((joined_keys_size == KEY_DEL_CHUNK_SIZE) || (i == keys.size()-1)) {
+           RedisCommand del;
+           del.formatDEL(joined_keys);
+           pipe.push(del, REDIS_REPLY_INTEGER);
+           joined_keys = "";
+           joined_keys_size = 0;
+       }
     }
 
     pipe.flush();
