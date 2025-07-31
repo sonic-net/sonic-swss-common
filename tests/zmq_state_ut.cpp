@@ -576,5 +576,5 @@ TEST(ZmqWithResponseClientError, test)
     }
 
     // Wait will timeout without server reply.
-    EXPECT_TRUE(exception_message.contains("zmqerrno: 11:Resource temporarily unavailable"));
+    EXPECT_TRUE(exception_message.find("zmqerrno: 11:Resource temporarily unavailable") != std::string::npos);
 }
