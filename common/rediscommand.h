@@ -77,7 +77,7 @@ protected:
 
 private:
     char *temp;
-    int len;
+    long long len;
 };
 
 template<typename InputIterator>
