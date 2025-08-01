@@ -8,6 +8,7 @@
 #include <sys/epoll.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdexcept>
 
 
 using namespace std;
