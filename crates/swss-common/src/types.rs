@@ -1,9 +1,11 @@
 #[cfg(feature = "async")]
 mod async_util;
 
+mod configdbconnector;
 mod consumerstatetable;
 mod cxxstring;
 mod dbconnector;
+mod events;
 mod exception;
 mod logger;
 mod producerstatetable;
@@ -14,9 +16,11 @@ mod zmqconsumerstatetable;
 mod zmqproducerstatetable;
 mod zmqserver;
 
+pub use configdbconnector::ConfigDBConnector;
 pub use consumerstatetable::ConsumerStateTable;
 pub use cxxstring::{CxxStr, CxxString};
 pub use dbconnector::{DbConnectionInfo, DbConnector};
+pub use events::EventPublisher;
 pub use exception::{Exception, Result};
 pub use logger::{link_to_swsscommon_logger, log_level, log_output, LoggerConfigChangeHandler};
 pub use producerstatetable::ProducerStateTable;
