@@ -17,11 +17,3 @@ pub fn sonic_db_config_initialize_global(path: &str) -> Result<(), Exception> {
     let path = cstr(path);
     unsafe { swss_try!(bindings::SWSSSonicDBConfig_initializeGlobalConfig(path.as_ptr())) }
 }
-
-/// Trait for objects that can be stored in a Sonic DB table.
-pub trait SonicDbTable {
-    fn key_separator() -> char;
-    fn table_name() -> &'static str;
-    fn db_name() -> &'static str;
-    fn is_dpu() -> bool;
-}
