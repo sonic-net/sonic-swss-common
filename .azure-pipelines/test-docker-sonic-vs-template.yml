@@ -84,7 +84,6 @@ jobs:
           libboost1.74-dev \
           libboost-dev \
           libhiredis0.14 \
-          libyang-dev \
           uuid-dev \
           net-tools \
           bridge-utils \
