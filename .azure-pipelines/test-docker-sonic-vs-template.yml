@@ -84,6 +84,7 @@ jobs:
           libboost1.74-dev \
           libboost-dev \
           libhiredis0.14 \
+          libpcre3-dev \
           uuid-dev \
           net-tools \
           bridge-utils \
