@@ -1,0 +1,17 @@
+[package]
+name = "swss-common-testing"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+edition.workspace = true
+
+[dependencies]
+swss-common = { path = "../swss-common" }
+rand = "0.8.5"
+lazy_static.workspace = true
+
+[lints]
+workspace = true
