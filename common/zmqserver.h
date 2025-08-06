@@ -8,7 +8,7 @@
 
 #define MQ_RESPONSE_MAX_COUNT (16*1024*1024)
 #define MQ_SIZE 100
-#define MQ_MAX_RETRY 10
+#define MQ_MAX_RETRY 3
 #define MQ_POLL_TIMEOUT (1000)
 #define MQ_WATERMARK 10000
 
