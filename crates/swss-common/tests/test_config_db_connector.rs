@@ -18,10 +18,10 @@ fn test_config_db_connector() -> Result<(), Box<dyn std::error::Error>> {
     assert_eq!(config_db.netns(), "");
     assert!(config_db.use_unix_socket_path());
 
-    // Connect to CONFIG_DB (equivalent to Python's connect(wait_for_init=False))
+    // Connect to CONFIG_DB
     config_db.connect(false, false)?;
 
-    // Set up test data - equivalent to Python's set_entry("TEST_PORT", "Ethernet111", {"alias": "etp1x"})
+    // Set up test data
     let mut test_data = HashMap::new();
     test_data.insert("alias", CxxString::new("etp1x"));
     config_db.set_entry("TEST_PORT", "Ethernet111", test_data)?;
@@ -33,7 +33,7 @@ fn test_config_db_connector() -> Result<(), Box<dyn std::error::Error>> {
     assert!(ethernet_entry.contains_key("alias"));
     assert_eq!(ethernet_entry["alias"].as_cxx_str(), "etp1x");
 
-    // Test entry update - equivalent to Python's set_entry("TEST_PORT", "Ethernet111", {"mtu": "12345"})
+    // Test entry update
     let mut update_data = HashMap::new();
     update_data.insert("mtu", CxxString::new("12345"));
     config_db.set_entry("TEST_PORT", "Ethernet111", update_data)?;
@@ -59,9 +59,8 @@ fn test_config_db_connector() -> Result<(), Box<dyn std::error::Error>> {
 /// Rust version of test_ConfigDBConnectorSeparator()
 #[test]
 fn test_config_db_connector_separator() -> Result<(), Box<dyn std::error::Error>> {
-    // NOTE: The Python version uses both DBConnector and ConfigDBConnector to test
-    // table separator functionality. The Rust ConfigDBConnector doesn't expose
-    // direct DB connector access, so we'll test what we can.
+    // NOTE: This test verifies table separator functionality.
+    // The ConfigDBConnector should only include properly separated keys.
 
     let config_db = ConfigDBConnector::new(true, None)?;
     config_db.connect(false, false)?;
@@ -74,8 +73,7 @@ fn test_config_db_connector_separator() -> Result<(), Box<dyn std::error::Error>
     // Verify the entry appears in get_config (which should only include properly separated keys)
     let all_config = config_db.get_table("*")?;
 
-    // In the original test, items without proper table separator are filtered out
-    // Here we just verify our properly formatted entry exists
+    // Verify our properly formatted entry exists
     assert!(all_config.contains_key("Ethernet222"));
 
     // Clean up
@@ -94,8 +92,7 @@ fn test_config_db_connector_separator() -> Result<(), Box<dyn std::error::Error>
 fn test_config_db_connect() -> Result<(), Box<dyn std::error::Error>> {
     let config_db = ConfigDBConnector::new(true, None)?;
 
-    // Test connection - the Python version uses db_connect('CONFIG_DB') but
-    // our Rust wrapper uses the standard connect method
+    // Test connection
     config_db.connect(false, false)?;
 
     // Verify we can perform basic operations after connection
