@@ -10,7 +10,7 @@ using namespace std;
 
 struct SWSSEventPublisherOpaque {
     event_handle_t handle;
-    
+
     SWSSEventPublisherOpaque(event_handle_t h) : handle(h) {}
 };
 
@@ -50,10 +50,10 @@ SWSSResult SWSSEventPublisher_publish(SWSSEventPublisher publisher, const char *
         if (!publisher || !event_tag) {
             throw std::invalid_argument("Invalid publisher or event_tag");
         }
-        
+
         string tag_str(event_tag);
         event_params_t event_params;
-        
+
         // Convert SWSSFieldValueArray to event_params_t if params provided
         if (params) {
             for (uint64_t i = 0; i < params->len; i++) {
@@ -62,7 +62,7 @@ SWSSResult SWSSEventPublisher_publish(SWSSEventPublisher publisher, const char *
                 event_params[key] = value;
             }
         }
-        
+
         int result = event_publish(publisher->handle, tag_str, params ? &event_params : nullptr);
         if (result != 0) {
             throw std::runtime_error("Failed to publish event, error code: " + std::to_string(result));
