@@ -106,10 +106,6 @@ jobs:
         sudo dpkg -i libswsscommon-dev_*.deb
         sudo dpkg -i python3-swsscommon_*.deb
 
-        ps aux
-        cargo test           --workspace --all-features
-        cargo test --release --workspace --all-features
-
         sudo sed -i 's/notify-keyspace-events ""/notify-keyspace-events AKE/' /etc/redis/redis.conf
         sudo sed -ri 's/^# unixsocket/unixsocket/' /etc/redis/redis.conf
         sudo sed -ri 's/^unixsocketperm .../unixsocketperm 777/' /etc/redis/redis.conf
@@ -125,6 +121,9 @@ jobs:
         make -C goext
         redis-cli FLUSHALL
         make -C goext check
+        ps aux
+        cargo test           --workspace --all-features
+        cargo test --release --workspace --all-features
 
         rm -rf $(Build.ArtifactStagingDirectory)/download
       displayName: "Run swss common unit tests"
