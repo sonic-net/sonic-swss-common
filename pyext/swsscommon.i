@@ -156,7 +156,7 @@
         PyList_SetItem($result, 0, temp);
     }
     temp = SWIG_NewPointerObj(*$1, SWIGTYPE_p_swss__Selectable, 0);
-    SWIG_Python_AppendOutput($result, temp);
+    SWIG_AppendOutput($result, temp);
 }
 
 %typemap(in, fragment="SWIG_AsVal_std_string")
