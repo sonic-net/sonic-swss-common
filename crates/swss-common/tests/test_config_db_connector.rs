@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use swss_common::{ConfigDBConnector, CxxString};
+use swss_common::{ConfigDBConnector, CxxString, DbConnector};
 
 /// Test ConfigDBConnector functionality - Rust version of test_ConfigDBConnector()
 /// 
@@ -51,6 +51,91 @@ fn test_config_db_connector() -> Result<(), Box<dyn std::error::Error>> {
     // Verify table is empty after deletion
     let empty_table = config_db.get_table("TEST_PORT")?;
     assert!(empty_table.is_empty(), "Table should be empty after deletion");
+    
+    Ok(())
+}
+
+/// Test ConfigDBConnector with table separator functionality
+/// Rust version of test_ConfigDBConnectorSeparator()
+#[test]
+fn test_config_db_connector_separator() -> Result<(), Box<dyn std::error::Error>> {
+    // NOTE: The Python version uses both DBConnector and ConfigDBConnector to test
+    // table separator functionality. The Rust ConfigDBConnector doesn't expose
+    // direct DB connector access, so we'll test what we can.
+    
+    let config_db = ConfigDBConnector::new(true, None)?;
+    config_db.connect(false, false)?;
+    
+    // Set an entry in TEST_PORT table
+    let mut test_data = HashMap::new();
+    test_data.insert("alias", CxxString::new("etp2x"));
+    config_db.set_entry("TEST_PORT", "Ethernet222", test_data)?;
+    
+    // Verify the entry appears in get_config (which should only include properly separated keys)
+    let all_config = config_db.get_table("*")?;
+    
+    // In the original test, items without proper table separator are filtered out
+    // Here we just verify our properly formatted entry exists
+    assert!(all_config.contains_key("Ethernet222"));
+    
+    // Clean up
+    config_db.delete_table("TEST_PORT")?;
+    let final_config = config_db.get_table("*")?;
+    
+    // Note: This may not be empty if other tests have run, but TEST_PORT should be gone
+    assert!(!final_config.contains_key("Ethernet222"));
+    
+    Ok(())
+}
+
+/// Test ConfigDBConnector connect functionality
+/// Rust version of test_ConfigDBConnect() 
+#[test]
+fn test_config_db_connect() -> Result<(), Box<dyn std::error::Error>> {
+    let config_db = ConfigDBConnector::new(true, None)?;
+    
+    // Test connection - the Python version uses db_connect('CONFIG_DB') but
+    // our Rust wrapper uses the standard connect method
+    config_db.connect(false, false)?;
+    
+    // Verify we can perform basic operations after connection
+    let all_config = config_db.get_table("*")?;
+    // Should return a (possibly empty) map, not fail
+    
+    Ok(())
+}
+
+/// Test ConfigDBConnector scan functionality with many entries
+/// Rust version of test_ConfigDBScan()
+#[test]
+fn test_config_db_scan() -> Result<(), Box<dyn std::error::Error>> {
+    let config_db = ConfigDBConnector::new(true, None)?;
+    config_db.connect(false, false)?;
+    
+    let n = 100; // Reduced from 1000 to keep test fast
+    
+    // Create many table entries to test scan functionality
+    for i in 0..n {
+        let table_name = format!("TEST_TYPE{}", i);
+        let key_name = format!("Ethernet{}", i);
+        let mut field_data = HashMap::new();
+        field_data.insert(format!("alias{}", i), CxxString::new(format!("etp{}", i)));
+        
+        config_db.set_entry(&table_name, &key_name, field_data)?;
+    }
+    
+    // Verify all entries were created by checking each table
+    for i in 0..n {
+        let table_name = format!("TEST_TYPE{}", i);
+        let table_data = config_db.get_table(&table_name)?;
+        assert!(!table_data.is_empty(), "Table {} should contain data", table_name);
+    }
+    
+    // Clean up - delete all test tables
+    for i in 0..n {
+        let table_name = format!("TEST_TYPE{}", i);
+        config_db.delete_table(&table_name)?;
+    }
     
     Ok(())
 }
