@@ -41,8 +41,12 @@ fn test_config_db_connector() -> Result<(), Box<dyn std::error::Error>> {
     // Verify update replaced previous data (alias should be gone, mtu should be present)
     let updated_table = config_db.get_table("TEST_PORT")?;
     let updated_entry = &updated_table["Ethernet111"];
+
+    // Debug output to help diagnose the issue
+    println!("Updated entry keys: {:?}", updated_entry.keys().collect::<Vec<_>>());
+
     assert!(!updated_entry.contains_key("alias"), "Previous 'alias' field should be removed");
-    assert!(updated_entry.contains_key("mtu"));
+    assert!(updated_entry.contains_key("mtu"), "Entry should contain 'mtu' key. Available keys: {:?}", updated_entry.keys().collect::<Vec<_>>());
     assert_eq!(updated_entry["mtu"].as_cxx_str(), "12345");
 
     // Test table deletion
