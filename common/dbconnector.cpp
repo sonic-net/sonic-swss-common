@@ -7,6 +7,7 @@
 #include <fstream>
 #include <nlohmann/json.hpp>
 #include <set>
+#include <unistd.h>
 #include "logger.h"
 
 #include "common/dbconnector.h"
@@ -25,6 +26,11 @@ void SonicDBConfig::parseDatabaseConfig(const string &file,
                     std::unordered_map<int, std::string> &separator_entry,
                     bool ignore_nonexistent)
 {
+    if (ignore_nonexistent && access(file.c_str(), F_OK) == -1) {
+        SWSS_LOG_NOTICE("Sonic database config file doesn't exist at %s\n", file.c_str());
+        return;
+    }
+
     ifstream i(file);
     if (i.good())
     {
@@ -71,17 +77,12 @@ void SonicDBConfig::parseDatabaseConfig(const string &file,
     }
     else
     {
-        if (ignore_nonexistent)
-        {
-            SWSS_LOG_INFO("Sonic database config file doesn't exist at %s\n", file.c_str());
-        } else {
-            SWSS_LOG_ERROR("Sonic database config file doesn't exist at %s\n", file.c_str());
-            throw runtime_error("Sonic database config file doesn't exist at " + file);
-        }
+        SWSS_LOG_ERROR("Sonic database config file doesn't exist at %s\n", file.c_str());
+        throw runtime_error("Sonic database config file doesn't exist at " + file);
     }
 }
 
-void SonicDBConfig::initializeGlobalConfig(const string &file)
+void SonicDBConfig::initializeGlobalConfig(const string &file, bool ignore_nonexistent)
 {
     std::string dir_name;
     std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
@@ -134,7 +135,7 @@ void SonicDBConfig::initializeGlobalConfig(const string &file)
                     continue;
                 }
 
-                parseDatabaseConfig(local_file, inst_entry, db_entry, separator_entry, true);
+                parseDatabaseConfig(local_file, inst_entry, db_entry, separator_entry, ignore_nonexistent);
                 // all the entries are empty, then don't add them to the map. It may happen if the included
                 // config doesn't exist. For example, dash-ha container will only mount the redis instance
                 // config file for the dpu it is managing.

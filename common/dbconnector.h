@@ -99,13 +99,13 @@ public:
     %}
 #endif
 
-    static void initializeGlobalConfig(const std::string &file = DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE);
+    static void initializeGlobalConfig(const std::string &file = DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE, bool ignore_nonexistent = false);
 #if defined(SWIG) && defined(SWIGPYTHON)
     %pythoncode %{
         ## TODO: the python function and C++ one is not on-par
         @staticmethod
-        def load_sonic_global_db_config(global_db_file_path=DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE, namespace=None):
-            SonicDBConfig.initializeGlobalConfig(global_db_file_path)
+        def load_sonic_global_db_config(global_db_file_path=DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE, namespace=None, ignore_nonexistent=False):
+            SonicDBConfig.initializeGlobalConfig(global_db_file_path, ignore_nonexistent)
     %}
 #endif
     static void reset();
