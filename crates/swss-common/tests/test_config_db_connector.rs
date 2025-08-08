@@ -1,5 +1,10 @@
 use std::collections::HashMap;
+use std::io;
+use std::thread;
+use std::time::Duration;
 use swss_common::{ConfigDBConnector, CxxString, DbConnector};
+use swss_common_testing::Redis;
+use serial_test::serial;
 
 /// Test ConfigDBConnector functionality - Rust version of test_ConfigDBConnector()
 ///
@@ -10,7 +15,11 @@ use swss_common::{ConfigDBConnector, CxxString, DbConnector};
 /// - Configuration data integrity
 #[cfg(test)]
 #[test]
+#[serial]
 fn test_config_db_connector() -> Result<(), Box<dyn std::error::Error>> {
+    let _redis = Redis::start_config_db();
+    println!("Redis unix socket: {}", _redis.sock);
+    
     // Create ConfigDBConnector instance
     let config_db = ConfigDBConnector::new(true, None)?;
 
@@ -40,6 +49,7 @@ fn test_config_db_connector() -> Result<(), Box<dyn std::error::Error>> {
 
     // Verify update replaced previous data (alias should be gone, mtu should be present)
     let updated_table = config_db.get_table("TEST_PORT")?;
+    assert!(updated_table.contains_key("Ethernet111"));
     let updated_entry = &updated_table["Ethernet111"];
 
     // Debug output to help diagnose the issue
@@ -62,10 +72,12 @@ fn test_config_db_connector() -> Result<(), Box<dyn std::error::Error>> {
 /// Test ConfigDBConnector with table separator functionality
 /// Rust version of test_ConfigDBConnectorSeparator()
 #[test]
+#[serial]
 fn test_config_db_connector_separator() -> Result<(), Box<dyn std::error::Error>> {
+    let _redis = Redis::start_config_db();
+
     // NOTE: This test verifies table separator functionality.
     // The ConfigDBConnector should only include properly separated keys.
-
     let config_db = ConfigDBConnector::new(true, None)?;
     config_db.connect(false, false)?;
 
@@ -93,15 +105,23 @@ fn test_config_db_connector_separator() -> Result<(), Box<dyn std::error::Error>
 /// Test ConfigDBConnector connect functionality
 /// Rust version of test_ConfigDBConnect()
 #[test]
+#[serial]
 fn test_config_db_connect() -> Result<(), Box<dyn std::error::Error>> {
+    let _redis = Redis::start_config_db();
     let config_db = ConfigDBConnector::new(true, None)?;
 
     // Test connection
     config_db.connect(false, false)?;
-
+    
+    // Clear the database - equivalent to client.flushdb() in Python
+    // We need to get a direct Redis client and flush the CONFIG_DB (database 1)
+    let db_client = DbConnector::new_unix(1, &_redis.sock, 0)?;
+    db_client.flush_db()?;
+    
     // Verify we can perform basic operations after connection
+    // This is equivalent to allconfig = config_db.get_config() followed by assert len(allconfig) == 0
     let all_config = config_db.get_table("*")?;
-    // Should return a (possibly empty) map, not fail
+    assert_eq!(all_config.len(), 0, "Config should be empty after flushdb");
 
     Ok(())
 }
@@ -109,6 +129,7 @@ fn test_config_db_connect() -> Result<(), Box<dyn std::error::Error>> {
 /// Test ConfigDBConnector scan functionality with many entries
 /// Rust version of test_ConfigDBScan()
 #[test]
+#[serial]
 fn test_config_db_scan() -> Result<(), Box<dyn std::error::Error>> {
     let config_db = ConfigDBConnector::new(true, None)?;
     config_db.connect(false, false)?;
