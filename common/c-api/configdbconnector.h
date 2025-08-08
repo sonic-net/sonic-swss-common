@@ -3,6 +3,7 @@
 
 #include "result.h"
 #include "util.h"
+#include "dbconnector.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -45,6 +46,10 @@ SWSSResult SWSSConfigDBConnector_mod_entry(SWSSConfigDBConnector configDb, const
 
 // Delete an entire table
 SWSSResult SWSSConfigDBConnector_delete_table(SWSSConfigDBConnector configDb, const char *table);
+
+// Get the Redis client for the specified database
+// Returns a SWSSDBConnector that can be used to perform direct Redis operations
+SWSSResult SWSSConfigDBConnector_get_redis_client(SWSSConfigDBConnector configDb, const char *db_name, SWSSDBConnector *outDbConnector);
 
 #ifdef __cplusplus
 }

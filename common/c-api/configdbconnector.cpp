@@ -116,3 +116,14 @@ SWSSResult SWSSConfigDBConnector_mod_entry(SWSSConfigDBConnector configDb, const
 SWSSResult SWSSConfigDBConnector_delete_table(SWSSConfigDBConnector configDb, const char *table) {
     SWSSTry(((ConfigDBConnector_Native *)configDb)->delete_table(string(table)));
 }
+
+SWSSResult SWSSConfigDBConnector_get_redis_client(SWSSConfigDBConnector configDb, const char *db_name, SWSSDBConnector *outDbConnector) {
+    SWSSTry({
+        // Get the Redis client from the ConfigDBConnector's parent SonicV2Connector_Native
+        DBConnector& redis_client = ((ConfigDBConnector_Native *)configDb)->get_redis_client(string(db_name));
+
+        // Return a pointer to the existing DBConnector
+        // Note: This returns a reference to the existing connector, not a new one
+        *outDbConnector = (SWSSDBConnector)&redis_client;
+    });
+}

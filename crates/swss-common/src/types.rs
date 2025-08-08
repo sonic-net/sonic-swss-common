@@ -16,7 +16,7 @@ mod zmqconsumerstatetable;
 mod zmqproducerstatetable;
 mod zmqserver;
 
-pub use configdbconnector::ConfigDBConnector;
+pub use configdbconnector::{ConfigDBConnector, BorrowedDbConnector};
 pub use consumerstatetable::ConsumerStateTable;
 pub use cxxstring::{CxxStr, CxxString};
 pub use dbconnector::{DbConnectionInfo, DbConnector};

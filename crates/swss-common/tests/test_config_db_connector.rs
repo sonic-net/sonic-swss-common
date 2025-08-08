@@ -114,9 +114,10 @@ fn test_config_db_connect() -> Result<(), Box<dyn std::error::Error>> {
     config_db.connect(false, false)?;
     
     // Clear the database - equivalent to client.flushdb() in Python
-    // We need to get a direct Redis client and flush the CONFIG_DB (database 1)
-    let db_client = DbConnector::new_unix(1, &_redis.sock, 0)?;
-    db_client.flush_db()?;
+    // Python: config_db.get_redis_client(config_db.CONFIG_DB).flushdb()
+    let redis_client = config_db.get_redis_client("CONFIG_DB")?;
+    let flush_success = redis_client.flush_db()?;
+    assert!(flush_success, "Database flush should succeed");
     
     // Verify we can perform basic operations after connection
     // This is equivalent to allconfig = config_db.get_config() followed by assert len(allconfig) == 0

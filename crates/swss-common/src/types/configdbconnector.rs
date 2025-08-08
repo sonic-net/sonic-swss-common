@@ -163,6 +163,25 @@ impl ConfigDBConnector {
     pub fn netns(&self) -> &str {
         &self.netns
     }
+
+    /// Get the Redis client for the specified database.
+    /// This allows direct Redis operations on the underlying database.
+    /// Returns a borrowed reference to the underlying Redis client.
+    pub fn get_redis_client(&self, db_name: &str) -> Result<BorrowedDbConnector> {
+        let db_name_cstr = cstr(db_name);
+        
+        unsafe {
+            let db_connector_ptr = swss_try!(p_db => SWSSConfigDBConnector_get_redis_client(
+                self.ptr,
+                db_name_cstr.as_ptr(),
+                p_db
+            ))?;
+            
+            // Create a borrowed wrapper around the returned pointer
+            // Note: This is a reference to an existing connector, so we don't own it
+            Ok(BorrowedDbConnector { ptr: db_connector_ptr })
+        }
+    }
 }
 
 impl Drop for ConfigDBConnector {
@@ -181,4 +200,20 @@ impl ConfigDBConnector {
     async_util::impl_basic_async_method!(get_keys_async <= get_keys(&self, table: &str, split: bool) -> Result<Vec<String>>);
     async_util::impl_basic_async_method!(get_table_async <= get_table(&self, table: &str) -> Result<HashMap<String, HashMap<String, CxxString>>>);
     async_util::impl_basic_async_method!(delete_table_async <= delete_table(&self, table: &str) -> Result<()>);
+}
+
+/// A borrowed reference to a DbConnector obtained from ConfigDBConnector.
+/// This does not own the underlying connection and does not implement Drop.
+#[derive(Debug)]
+pub struct BorrowedDbConnector {
+    ptr: SWSSDBConnector,
+}
+
+impl BorrowedDbConnector {
+    /// Flush the current database, removing all keys.
+    /// Equivalent to Redis FLUSHDB command.
+    pub fn flush_db(&self) -> Result<bool> {
+        let status = unsafe { swss_try!(p_status => SWSSDBConnector_flushdb(self.ptr, p_status))? };
+        Ok(status == 1)
+    }
 }
