@@ -169,17 +169,71 @@ impl ConfigDBConnector {
     /// Returns a borrowed reference to the underlying Redis client.
     pub fn get_redis_client(&self, db_name: &str) -> Result<BorrowedDbConnector> {
         let db_name_cstr = cstr(db_name);
-        
+
         unsafe {
             let db_connector_ptr = swss_try!(p_db => SWSSConfigDBConnector_get_redis_client(
                 self.ptr,
                 db_name_cstr.as_ptr(),
                 p_db
             ))?;
-            
+
             // Create a borrowed wrapper around the returned pointer
             // Note: This is a reference to an existing connector, so we don't own it
             Ok(BorrowedDbConnector { ptr: db_connector_ptr })
+        }
+    }
+
+    /// Get the entire configuration as a nested map structure.
+    /// Returns a HashMap where keys are table names and values are table contents
+    /// (key -> field -> value mappings).
+    pub fn get_config(&self) -> Result<HashMap<String, HashMap<String, HashMap<String, CxxString>>>> {
+        unsafe {
+            let config_map = swss_try!(p_config => SWSSConfigDBConnector_get_config(
+                self.ptr,
+                p_config
+            ))?;
+
+            let mut result = HashMap::new();
+
+            // Process each table
+            for i in 0..config_map.len {
+                let i_usize = i as usize;
+                let table = &*config_map.data.add(i_usize);
+                let table_name = std::ffi::CStr::from_ptr(table.table_name).to_string_lossy().to_string();
+
+                let mut table_entries = HashMap::new();
+
+                // Process each key in the table
+                for j in 0..table.entries.len {
+                    let j_usize = j as usize;
+                    let entry = &*table.entries.data.add(j_usize);
+                    let key = std::ffi::CStr::from_ptr(entry.key).to_string_lossy().to_string();
+
+                    let mut field_values = HashMap::new();
+
+                    // Process each field-value pair
+                    for k in 0..entry.fieldValues.len {
+                        let k_usize = k as usize;
+                        let fv = &*entry.fieldValues.data.add(k_usize);
+                        let field = std::ffi::CStr::from_ptr(fv.field).to_string_lossy().to_string();
+                        // Note: We need to take ownership of the string, but fv.value will be freed
+                        // by SWSSConfigMap_free, so we need to clone the string content first
+                        let value_str = std::ffi::CStr::from_ptr(SWSSStrRef_c_str(fv.value as SWSSStrRef)).to_string_lossy().to_string();
+                        let value = CxxString::new(value_str);
+
+                        field_values.insert(field, value);
+                    }
+
+                    table_entries.insert(key, field_values);
+                }
+
+                result.insert(table_name, table_entries);
+            }
+
+            // Free the C structure
+            SWSSConfigMap_free(config_map);
+
+            Ok(result)
         }
     }
 }
@@ -199,6 +253,7 @@ impl ConfigDBConnector {
     async_util::impl_basic_async_method!(get_entry_async <= get_entry(&self, table: &str, key: &str) -> Result<HashMap<String, CxxString>>);
     async_util::impl_basic_async_method!(get_keys_async <= get_keys(&self, table: &str, split: bool) -> Result<Vec<String>>);
     async_util::impl_basic_async_method!(get_table_async <= get_table(&self, table: &str) -> Result<HashMap<String, HashMap<String, CxxString>>>);
+    async_util::impl_basic_async_method!(get_config_async <= get_config(&self) -> Result<HashMap<String, HashMap<String, HashMap<String, CxxString>>>>);
     async_util::impl_basic_async_method!(delete_table_async <= delete_table(&self, table: &str) -> Result<()>);
 }
 

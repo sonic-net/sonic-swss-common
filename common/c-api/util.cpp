@@ -33,3 +33,48 @@ void SWSSKeyOpFieldValuesArray_free(SWSSKeyOpFieldValuesArray kfvs) {
 void SWSSStringArray_free(SWSSStringArray arr) {
     delete[] arr.data;
 }
+
+void SWSSConfigMap_free(SWSSConfigMap config) {
+    if (config.data) {
+        for (uint64_t i = 0; i < config.len; i++) {
+            SWSSConfigTable &table = config.data[i];
+
+            // Free table name
+            if (table.table_name) {
+                free(const_cast<char*>(table.table_name));
+            }
+
+            // Free entries array and its contents
+            if (table.entries.data) {
+                for (uint64_t j = 0; j < table.entries.len; j++) {
+                    SWSSKeyOpFieldValues &kfv = table.entries.data[j];
+
+                    // Free key
+                    if (kfv.key) {
+                        free(const_cast<char*>(kfv.key));
+                    }
+
+                    // Free field-value array
+                    if (kfv.fieldValues.data) {
+                        for (uint64_t k = 0; k < kfv.fieldValues.len; k++) {
+                            SWSSFieldValueTuple &fv = kfv.fieldValues.data[k];
+
+                            // Free field name
+                            if (fv.field) {
+                                free(const_cast<char*>(fv.field));
+                            }
+
+                            // Free value string
+                            if (fv.value) {
+                                SWSSString_free(fv.value);
+                            }
+                        }
+                        delete[] kfv.fieldValues.data;
+                    }
+                }
+                delete[] table.entries.data;
+            }
+        }
+        delete[] config.data;
+    }
+}

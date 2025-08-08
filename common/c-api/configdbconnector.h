@@ -51,6 +51,11 @@ SWSSResult SWSSConfigDBConnector_delete_table(SWSSConfigDBConnector configDb, co
 // Returns a SWSSDBConnector that can be used to perform direct Redis operations
 SWSSResult SWSSConfigDBConnector_get_redis_client(SWSSConfigDBConnector configDb, const char *db_name, SWSSDBConnector *outDbConnector);
 
+// Get the entire configuration as a nested structure
+// Returns a nested table structure containing all configuration data
+// The result represents a map of table_name -> (key -> (field -> value))
+SWSSResult SWSSConfigDBConnector_get_config(SWSSConfigDBConnector configDb, SWSSConfigMap *outConfig);
+
 #ifdef __cplusplus
 }
 #endif
