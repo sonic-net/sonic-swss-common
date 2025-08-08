@@ -240,9 +240,8 @@ impl ConfigDBConnector {
 
 impl Drop for ConfigDBConnector {
     fn drop(&mut self) {
-        if let Err(err) = unsafe { swss_try!(SWSSConfigDBConnector_free(self.ptr)) } {
-            eprintln!("Warning: Failed to drop ConfigDBConnector: {}", err);
-        }
+        // Ignore errors in Drop to avoid panic-during-panic scenarios
+        let _ = unsafe { swss_try!(SWSSConfigDBConnector_free(self.ptr)) };
     }
 }
 
