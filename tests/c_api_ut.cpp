@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "common/c-api/consumerstatetable.h"
+#include "common/c-api/configdbconnector.h"
 #include "common/c-api/dbconnector.h"
 #include "common/c-api/producerstatetable.h"
 #include "common/c-api/result.h"
@@ -65,6 +66,10 @@ static void freeKeyOpFieldValuesArray(SWSSKeyOpFieldValuesArray arr) {
     SWSSKeyOpFieldValuesArray_free(arr);
 }
 
+static void freeConfigMap(SWSSConfigMap config) {
+    SWSSConfigMap_free(config);
+}
+
 struct SWSSStringManager {
     vector<SWSSString> m_strings;
     bool use_c_str = false;
@@ -91,6 +96,124 @@ struct SWSSStringManager {
             SWSSString_free(s);
     }
 };
+
+TEST(c_api, ConfigDBConnector) {
+    clearDB();
+    SWSSStringManager sm;
+
+    // Test ConfigDBConnector creation
+    SWSSConfigDBConnector configDb;
+    SWSSConfigDBConnector_new(1, "", &configDb);
+
+    // Test connect
+    SWSSConfigDBConnector_connect(configDb, 0, 0);
+
+    // Test set_entry
+    SWSSFieldValueTuple data[2] = {
+        {.field = "field1", .value = sm.makeString("value1")},
+        {.field = "field2", .value = sm.makeString("value2")}
+    };
+    SWSSFieldValueArray fvs = {.len = 2, .data = data};
+    SWSSConfigDBConnector_set_entry(configDb, "TEST_TABLE", "test_key", &fvs);
+
+    // Test get_entry
+    SWSSFieldValueArray entry;
+    SWSSConfigDBConnector_get_entry(configDb, "TEST_TABLE", "test_key", &entry);
+    ASSERT_EQ(entry.len, 2);
+    // Verify the entries are correct (note: order may vary)
+    bool found_field1 = false, found_field2 = false;
+    for (uint64_t i = 0; i < entry.len; i++) {
+        if (strcmp(entry.data[i].field, "field1") == 0) {
+            EXPECT_STREQ(SWSSStrRef_c_str((SWSSStrRef)entry.data[i].value), "value1");
+            found_field1 = true;
+        } else if (strcmp(entry.data[i].field, "field2") == 0) {
+            EXPECT_STREQ(SWSSStrRef_c_str((SWSSStrRef)entry.data[i].value), "value2");
+            found_field2 = true;
+        }
+    }
+    EXPECT_TRUE(found_field1);
+    EXPECT_TRUE(found_field2);
+    freeFieldValuesArray(entry);
+
+    // Test get_keys
+    SWSSStringArray keys;
+    SWSSConfigDBConnector_get_keys(configDb, "TEST_TABLE", 1, &keys);
+    ASSERT_EQ(keys.len, 1);
+    EXPECT_STREQ(keys.data[0], "test_key");
+    for (uint64_t i = 0; i < keys.len; i++) {
+        free(keys.data[i]);
+    }
+    SWSSStringArray_free(keys);
+
+    // Test get_table
+    SWSSKeyOpFieldValuesArray table;
+    SWSSConfigDBConnector_get_table(configDb, "TEST_TABLE", &table);
+    ASSERT_EQ(table.len, 1);
+    EXPECT_STREQ(table.data[0].key, "test_key");
+    ASSERT_EQ(table.data[0].fieldValues.len, 2);
+    freeKeyOpFieldValuesArray(table);
+
+    // Test mod_entry (add another field)
+    SWSSFieldValueTuple mod_data[1] = {
+        {.field = "field3", .value = sm.makeString("value3")}
+    };
+    SWSSFieldValueArray mod_fvs = {.len = 1, .data = mod_data};
+    SWSSConfigDBConnector_mod_entry(configDb, "TEST_TABLE", "test_key", &mod_fvs);
+
+    // Verify mod_entry worked
+    SWSSConfigDBConnector_get_entry(configDb, "TEST_TABLE", "test_key", &entry);
+    EXPECT_EQ(entry.len, 3); // Should now have 3 fields
+    freeFieldValuesArray(entry);
+
+    // Test get_redis_client and flush_db
+    SWSSDBConnector redisClient;
+    SWSSConfigDBConnector_get_redis_client(configDb, "CONFIG_DB", &redisClient);
+    int8_t flushStatus;
+    SWSSDBConnector_flushdb(redisClient, &flushStatus);
+    EXPECT_TRUE(flushStatus);
+
+    // Add some test data for get_config
+    SWSSConfigDBConnector_set_entry(configDb, "TABLE1", "key1", &fvs);
+    SWSSFieldValueTuple single_data[1] = {
+        {.field = "single_field", .value = sm.makeString("single_value")}
+    };
+    SWSSFieldValueArray single_fvs = {.len = 1, .data = single_data};
+    SWSSConfigDBConnector_set_entry(configDb, "TABLE2", "key2", &single_fvs);
+
+    // Test get_config
+    SWSSConfigMap config;
+    SWSSConfigDBConnector_get_config(configDb, &config);
+
+    // Should have at least the tables we just created
+    EXPECT_GE(config.len, 2);
+
+    bool found_table1 = false, found_table2 = false;
+    for (uint64_t i = 0; i < config.len; i++) {
+        if (strcmp(config.data[i].table_name, "TABLE1") == 0) {
+            found_table1 = true;
+            ASSERT_EQ(config.data[i].entries.len, 1);
+            EXPECT_STREQ(config.data[i].entries.data[0].key, "key1");
+            EXPECT_EQ(config.data[i].entries.data[0].fieldValues.len, 2);
+        } else if (strcmp(config.data[i].table_name, "TABLE2") == 0) {
+            found_table2 = true;
+            ASSERT_EQ(config.data[i].entries.len, 1);
+            EXPECT_STREQ(config.data[i].entries.data[0].key, "key2");
+            EXPECT_EQ(config.data[i].entries.data[0].fieldValues.len, 1);
+        }
+    }
+    EXPECT_TRUE(found_table1);
+    EXPECT_TRUE(found_table2);
+    freeConfigMap(config);
+
+    // Test delete_table
+    SWSSConfigDBConnector_delete_table(configDb, "TABLE1");
+    SWSSConfigDBConnector_get_keys(configDb, "TABLE1", 0, &keys);
+    EXPECT_EQ(keys.len, 0); // Should be empty after deletion
+    SWSSStringArray_free(keys);
+
+    // Clean up
+    SWSSConfigDBConnector_free(configDb);
+}
 
 void logLevelNotify(const char* component, const char* prioStr)
 {
