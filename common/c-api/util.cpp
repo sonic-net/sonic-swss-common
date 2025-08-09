@@ -40,9 +40,7 @@ void SWSSConfigMap_free(SWSSConfigMap config) {
             SWSSConfigTable &table = config.data[i];
 
             // Free table name
-            if (table.table_name) {
-                free(const_cast<char*>(table.table_name));
-            }
+            free(const_cast<char*>(table.table_name));
 
             // Free entries array and its contents
             if (table.entries.data) {
@@ -50,9 +48,7 @@ void SWSSConfigMap_free(SWSSConfigMap config) {
                     SWSSKeyOpFieldValues &kfv = table.entries.data[j];
 
                     // Free key
-                    if (kfv.key) {
-                        free(const_cast<char*>(kfv.key));
-                    }
+                    free(const_cast<char*>(kfv.key));
 
                     // Free field-value array
                     if (kfv.fieldValues.data) {
@@ -60,14 +56,10 @@ void SWSSConfigMap_free(SWSSConfigMap config) {
                             SWSSFieldValueTuple &fv = kfv.fieldValues.data[k];
 
                             // Free field name
-                            if (fv.field) {
-                                free(const_cast<char*>(fv.field));
-                            }
+                            free(const_cast<char*>(fv.field));
 
-                            // Free value string
-                            if (fv.value) {
-                                SWSSString_free(fv.value);
-                            }
+                            // Free value string - SWSSString_free handles NULL
+                            SWSSString_free(fv.value);
                         }
                         delete[] kfv.fieldValues.data;
                     }
