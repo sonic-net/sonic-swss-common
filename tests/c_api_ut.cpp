@@ -6,6 +6,7 @@
 #include "common/c-api/consumerstatetable.h"
 #include "common/c-api/configdbconnector.h"
 #include "common/c-api/dbconnector.h"
+#include "common/c-api/events.h"
 #include "common/c-api/producerstatetable.h"
 #include "common/c-api/result.h"
 #include "common/c-api/subscriberstatetable.h"
@@ -611,6 +612,56 @@ TEST(c_api, ZmqConsumerProducerStateTable) {
     int8_t flushStatus;
     SWSSDBConnector_flushdb(db, &flushStatus);
     SWSSDBConnector_free(db);
+}
+
+TEST(c_api, EventPublisher) {
+    SWSSStringManager sm;
+
+    // Test EventPublisher creation
+    SWSSEventPublisher publisher;
+    SWSSResult result = SWSSEventPublisher_new("test-module", &publisher);
+    EXPECT_EQ(result.exception, SWSSException_None);
+    EXPECT_NE(publisher, nullptr);
+
+    // Test publishing event without parameters
+    result = SWSSEventPublisher_publish(publisher, "test-event", nullptr);
+    EXPECT_EQ(result.exception, SWSSException_None);
+
+    // Test publishing event with parameters
+    SWSSFieldValueTuple params[2] = {
+        {.field = "param1", .value = sm.makeString("value1")},
+        {.field = "param2", .value = sm.makeString("value2")}
+    };
+    SWSSFieldValueArray param_array = {.len = 2, .data = params};
+    result = SWSSEventPublisher_publish(publisher, "test-event-with-params", &param_array);
+    EXPECT_EQ(result.exception, SWSSException_None);
+
+    // Test deinitialize
+    result = SWSSEventPublisher_deinit(publisher);
+    EXPECT_EQ(result.exception, SWSSException_None);
+
+    // Test free
+    result = SWSSEventPublisher_free(publisher);
+    EXPECT_EQ(result.exception, SWSSException_None);
+
+    // Test error handling - invalid publisher
+    result = SWSSEventPublisher_publish(nullptr, "test-event", nullptr);
+    EXPECT_NE(result.exception, SWSSException_None);
+    if (result.location) SWSSString_free(result.location);
+    if (result.message) SWSSString_free(result.message);
+
+    // Test error handling - invalid event_tag
+    SWSSEventPublisher publisher2;
+    result = SWSSEventPublisher_new("test-module2", &publisher2);
+    EXPECT_EQ(result.exception, SWSSException_None);
+
+    result = SWSSEventPublisher_publish(publisher2, nullptr, nullptr);
+    EXPECT_NE(result.exception, SWSSException_None);
+    if (result.location) SWSSString_free(result.location);
+    if (result.message) SWSSString_free(result.message);
+
+    // Clean up
+    SWSSEventPublisher_free(publisher2);
 }
 
 TEST(c_api, exceptions) {
