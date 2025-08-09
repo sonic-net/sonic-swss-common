@@ -4,6 +4,7 @@ use std::thread::sleep;
 use std::time::Duration;
 use swss_common::*;
 use swss_common_testing::*;
+use serial_test::serial;
 
 lazy_static! {
     static ref LEVEL: Mutex<String> = Mutex::new("INFO".to_string());
@@ -23,6 +24,7 @@ impl LoggerConfigChangeHandler for LoggerConfigHandlerForTest {
     }
 }
 #[test]
+#[serial]
 fn logger_init_test() -> Result<(), Exception> {
     let redis = Redis::start_config_db();
     // todo: change redis::db_connector to passing db_id as parameter

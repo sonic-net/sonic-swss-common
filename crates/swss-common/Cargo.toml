@@ -29,3 +29,4 @@ bindgen = "0.70.1"
 swss-common-testing = { path = "../swss-common-testing" }
 paste = "1.0.15"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "time"] }
+serial_test.workspace = true

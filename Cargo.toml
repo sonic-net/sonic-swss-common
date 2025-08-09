@@ -46,6 +46,7 @@ serde_with = "3.12"
 
 getset = "0.1"
 lazy_static = "1.4"
+serial_test = "3.0"
 
 # Internal dependencies
 swss-common = { version = "0.1.0", path = "crates/swss-common" }
