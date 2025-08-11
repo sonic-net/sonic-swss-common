@@ -1026,20 +1026,17 @@ void DBConnector::del(const std::vector<std::string>& keys)
 
     RedisPipeline pipe(this);
     std::string joined_keys = "";
-    size_t joined_keys_size = 0;
     for (size_t i = 0; i < keys.size(); ++i) {
         if (!joined_keys.empty()) {
-           joined_keys.append(" ");
-       }
-       joined_keys.append(keys[i]);
-       ++joined_keys_size;
-       if ((joined_keys_size == KEY_DEL_CHUNK_SIZE) || (i == keys.size()-1)) {
-           RedisCommand del;
-           del.formatDEL(joined_keys);
-           pipe.push(del, REDIS_REPLY_INTEGER);
-           joined_keys = "";
-           joined_keys_size = 0;
-       }
+            joined_keys.append(" ");
+        }
+        joined_keys.append(keys[i]);
+        if (((i + 1) % KEY_DEL_CHUNK_SIZE == 0) || (i == keys.size()-1)) {
+            RedisCommand del;
+            del.formatDEL(joined_keys);
+            pipe.push(del, REDIS_REPLY_INTEGER);
+            joined_keys = "";
+        }
     }
 
     pipe.flush();
