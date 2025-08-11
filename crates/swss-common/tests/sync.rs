@@ -208,7 +208,7 @@ fn zmq_consumer_producer_state_tables_sync_api_connect_late_reconnect() -> Resul
     let zpst = ZmqProducerStateTable::new(redis.db_connector(), "table_a", zmqc, false)?;
 
     // send will failed because not connect to server
-    let result = zpst.set(&random_string(), random_fvs().clone());
+    let result = zpst.set(&random_string(), random_fvs());
     let result_message = match result {
         Ok(val) => format!("Success"),
         Err(e) => format!("Error: {}", e),
@@ -222,16 +222,16 @@ fn zmq_consumer_producer_state_tables_sync_api_connect_late_reconnect() -> Resul
     // should not receive any data
     let mut kfvs_seen = Vec::new();
     for i in 0..10 {
-        zcst.read_data(Duration::from_millis(2000), true);
+         _ = zcst.read_data(Duration::from_millis(2000), true);
         kfvs_seen.extend(zcst.pops()?);
     }
     assert_eq!(kfvs_seen.len(), 0);
 
     // send again, should receive data because client reconnect
-    zpst.set(&random_string(), random_fvs().clone());
+    zpst.set(&random_string(), random_fvs());
 
     while kfvs_seen.len() != 1 {
-        zcst.read_data(Duration::from_millis(2000), true);
+         _ = zcst.read_data(Duration::from_millis(2000), true);
         kfvs_seen.extend(zcst.pops()?);
     }
     assert_eq!(kfvs_seen.len(), 1);
