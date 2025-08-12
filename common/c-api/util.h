@@ -103,6 +103,26 @@ void SWSSKeyOpFieldValuesArray_free(SWSSKeyOpFieldValuesArray kfvs);
 // grained control of ownership).
 void SWSSStringArray_free(SWSSStringArray arr);
 
+// FFI version of map<string, map<string, string>> (key -> field -> value)
+// This represents one table's configuration data
+// table_name should be freed with libc's free()
+// entries should be freed with SWSSKeyOpFieldValuesArray_free()
+typedef struct {
+    const char *table_name;
+    SWSSKeyOpFieldValuesArray entries;
+} SWSSConfigTable;
+
+// FFI version of map<string, map<string, map<string, string>>> (table_name -> key -> field -> value)
+// This represents the entire configuration
+// data should be freed with SWSSConfigMap_free()
+typedef struct {
+    uint64_t len;
+    SWSSConfigTable *data;
+} SWSSConfigMap;
+
+// Free a SWSSConfigMap structure
+void SWSSConfigMap_free(SWSSConfigMap config);
+
 #ifdef __cplusplus
 }
 #endif
