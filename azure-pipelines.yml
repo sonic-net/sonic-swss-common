@@ -261,3 +261,4 @@ stages:
   - template: .azure-pipelines/test-docker-sonic-vs-template.yml
     parameters:
       log_artifact_name: log
+      debian_version: ${{ parameters.debian_version }}
