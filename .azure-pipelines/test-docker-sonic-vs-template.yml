@@ -10,6 +10,10 @@ parameters:
   type: string
   default: '$(BUILD_BRANCH)'
 
+- name: debian_version
+  type: string
+  default: bookworm
+
 jobs:
 - job:
   displayName: vstest
