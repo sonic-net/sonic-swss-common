@@ -99,6 +99,7 @@ common_libswsscommon_la_SOURCES = \
     common/interface.h               \
     common/c-api/util.cpp                  \
     common/c-api/dbconnector.cpp           \
+    common/c-api/configdbconnector.cpp     \
     common/c-api/consumerstatetable.cpp    \
     common/c-api/producerstatetable.cpp    \
     common/c-api/subscriberstatetable.cpp  \
@@ -107,7 +108,8 @@ common_libswsscommon_la_SOURCES = \
     common/c-api/zmqconsumerstatetable.cpp \
     common/c-api/zmqproducerstatetable.cpp \
     common/c-api/table.cpp                 \
-    common/c-api/logger.cpp \
+    common/c-api/logger.cpp                \
+    common/c-api/events.cpp                \
     common/performancetimer.cpp
 
 common_libswsscommon_la_CXXFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CFLAGS) $(CODE_COVERAGE_CXXFLAGS)
