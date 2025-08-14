@@ -19,7 +19,7 @@ using namespace std;
 using namespace swss;
 
 namespace {
-constexpr size_t KEY_DEL_CHUNK_SIZE = 10000;
+constexpr size_t KEY_DEL_CHUNK_SIZE = 128;
 }
 
 
