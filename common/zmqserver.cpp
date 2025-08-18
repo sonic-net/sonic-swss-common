@@ -29,7 +29,7 @@ ZmqServer::ZmqServer(const std::string& endpoint, const std::string& vrf, bool l
     m_vrf(vrf),
     m_context(nullptr),
     m_socket(nullptr),
-    m_binded(false)
+    m_bound(false)
 {
     if (!lazyBind)
     {
