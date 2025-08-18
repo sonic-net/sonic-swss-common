@@ -569,3 +569,46 @@ TEST(ZmqWithResponseClientError, test)
     // Wait will timeout without server reply.
     EXPECT_FALSE(p.wait(dbName, tableName, kcosPtr));
 }
+
+TEST(ZmqServerLazzyBind, test)
+{
+    std::string testTableName = "ZMQ_PROD_CONS_UT";
+    std::string pushEndpoint = "tcp://localhost:1234";
+    DBConnector db(TEST_DB, 0, true);
+    ZmqClient client(pushEndpoint, 3000);
+    ZmqProducerStateTable p(&db, testTableName, client, true);
+    std::vector<KeyOpFieldsValuesTuple> kcos;
+    auto testKey = "testkey";
+    kcos.push_back(KeyOpFieldsValuesTuple{testKey, SET_COMMAND, std::vector<FieldValueTuple>{}});
+    std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> kcosPtr;
+    std::string dbName, tableName;
+    p.send(kcos);
+
+    // initialize ZMQ server with lazzy bind
+    DBConnector server_db(TEST_DB, 0, true);
+    ZmqServer server(pushEndpoint, "", true);
+    ZmqConsumerStateTable c(&db, tableName, server, 128, 0, false);
+    server.bind();
+
+    std::deque<KeyOpFieldsValuesTuple> vkco;
+    int received = 0;
+    while (received < 1)
+    {
+        c.pops(vkco);
+        while (!vkco.empty())
+        {
+            auto &kco = vkco.front();
+            auto key = kfvKey(kco);
+            auto op = kfvOp(kco);
+            auto fvs = kfvFieldsValues(kco);
+
+            EXPECT_EQ(key, testKey);
+
+            received += 1;
+            vkco.pop_front();
+        }
+    }
+
+    EXPECT_EQ(received, 1);
+}
+
