@@ -9,7 +9,6 @@
 #include "binaryserializer.h"
 
 using namespace std;
-#include <iostream>
 
 namespace swss {
 
@@ -115,14 +114,12 @@ ZmqMessageHandler* ZmqServer::findMessageHandler(
     auto dbMappingIter = m_HandlerMap.find(dbName);
     if (dbMappingIter == m_HandlerMap.end()) {
         SWSS_LOG_DEBUG("ZmqServer can't find any handler for db: %s", dbName.c_str());
-        std::cout << "ZmqServer can't find any handler for db: " << dbName.c_str() << std::endl;
         return nullptr;
     }
 
     auto tableMappingIter = dbMappingIter->second.find(tableName);
     if (tableMappingIter == dbMappingIter->second.end()) {
         SWSS_LOG_DEBUG("ZmqServer can't find handler for db: %s, table: %s", dbName.c_str(), tableName.c_str());
-        std::cout << "ZmqServer can't find any handler for table: " << tableName.c_str() << std::endl;
         return nullptr;
     }
 
@@ -140,11 +137,9 @@ void ZmqServer::handleReceivedData(const char* buffer, const size_t size)
     auto handler = findMessageHandler(dbName, tableName);
     if (handler == nullptr) {
         SWSS_LOG_WARN("ZmqServer can't find handler for received message: %s", buffer);
-        std::cout << "ZmqServer can't find handler for received message: " << buffer << std::endl;
         return;
     }
 
-    std::cout << "ZmqServer find handler for received message: " << buffer << std::endl;
     handler->handleReceivedData(kcos);
 }
 
