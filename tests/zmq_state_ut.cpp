@@ -582,13 +582,12 @@ TEST(ZmqServerLazzyBind, test)
     auto testKey = "testkey";
     kcos.push_back(KeyOpFieldsValuesTuple{testKey, SET_COMMAND, std::vector<FieldValueTuple>{}});
     std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> kcosPtr;
-    std::string dbName, tableName;
     p.send(kcos);
 
     // initialize ZMQ server with lazzy bind
     DBConnector server_db(TEST_DB, 0, true);
     ZmqServer server(pullEndpoint, "", true);
-    ZmqConsumerStateTable c(&db, tableName, server, 128, 0, false);
+    ZmqConsumerStateTable c(&db, testTableName, server, 128, 0, false);
     server.bind();
 
     std::deque<KeyOpFieldsValuesTuple> vkco;
