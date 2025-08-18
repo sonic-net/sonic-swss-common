@@ -574,6 +574,7 @@ TEST(ZmqServerLazzyBind, test)
 {
     std::string testTableName = "ZMQ_PROD_CONS_UT";
     std::string pushEndpoint = "tcp://localhost:1234";
+    std::string pullEndpoint = "tcp://*:1234";
     DBConnector db(TEST_DB, 0, true);
     ZmqClient client(pushEndpoint, 3000);
     ZmqProducerStateTable p(&db, testTableName, client, true);
@@ -586,7 +587,7 @@ TEST(ZmqServerLazzyBind, test)
 
     // initialize ZMQ server with lazzy bind
     DBConnector server_db(TEST_DB, 0, true);
-    ZmqServer server(pushEndpoint, "", true);
+    ZmqServer server(pullEndpoint, "", true);
     ZmqConsumerStateTable c(&db, tableName, server, 128, 0, false);
     server.bind();
 
