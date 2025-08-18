@@ -48,6 +48,8 @@ public:
 private:
     void handleReceivedData(const char* buffer, const size_t size);
 
+    void startMqPollThread();
+
     void mqPollThread();
     
     ZmqMessageHandler* findMessageHandler(const std::string dbName, const std::string tableName);

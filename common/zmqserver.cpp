@@ -24,8 +24,11 @@ ZmqServer::ZmqServer(const std::string& endpoint, const std::string& vrf)
 }
 
 ZmqServer::ZmqServer(const std::string& endpoint, const std::string& vrf, bool lazzyBind)
-    : m_endpoint(endpoint),
+    : m_mqPollThread(nullptr),
+    m_endpoint(endpoint),
     m_vrf(vrf),
+    m_context(nullptr),
+    m_socket(nullptr),
     m_binded(false)
 {
     if (!lazzyBind)
@@ -33,20 +36,26 @@ ZmqServer::ZmqServer(const std::string& endpoint, const std::string& vrf, bool l
         bind();
     }
 
-    m_buffer.resize(MQ_RESPONSE_MAX_COUNT);
-    m_runThread = true;
-    m_mqPollThread = std::make_shared<std::thread>(&ZmqServer::mqPollThread, this);
-
     SWSS_LOG_DEBUG("ZmqServer ctor endpoint: %s", endpoint.c_str());
 }
 
 ZmqServer::~ZmqServer()
 {
     m_runThread = false;
-    m_mqPollThread->join();
+    if (m_mqPollThread)
+    {
+        m_mqPollThread->join();
+    }
 
-    zmq_close(m_socket);
-    zmq_ctx_destroy(m_context);
+    if (m_socket)
+    {
+        zmq_close(m_socket);
+    }
+
+    if (m_context)
+    {
+        zmq_ctx_destroy(m_context);
+    }
 }
 
 void ZmqServer::bind()
@@ -79,6 +88,8 @@ void ZmqServer::bind()
 
     m_binded = true;
     SWSS_LOG_DEBUG("ZmqServer bind to endpoint: %s", m_endpoint.c_str());
+
+    startMqPollThread();
 }
 
 void ZmqServer::registerMessageHandler(
@@ -135,6 +146,13 @@ void ZmqServer::handleReceivedData(const char* buffer, const size_t size)
 
     std::cout << "ZmqServer find handler for received message: " << buffer << std::endl;
     handler->handleReceivedData(kcos);
+}
+
+void ZmqServer::startMqPollThread()
+{
+    m_buffer.resize(MQ_RESPONSE_MAX_COUNT);
+    m_runThread = true;
+    m_mqPollThread = std::make_shared<std::thread>(&ZmqServer::mqPollThread, this);
 }
 
 void ZmqServer::mqPollThread()
