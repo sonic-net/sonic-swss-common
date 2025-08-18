@@ -23,7 +23,7 @@ ZmqServer::ZmqServer(const std::string& endpoint, const std::string& vrf)
 {
 }
 
-ZmqServer::ZmqServer(const std::string& endpoint, const std::string& vrf, bool lazzyBind)
+ZmqServer::ZmqServer(const std::string& endpoint, const std::string& vrf, bool lazyBind)
     : m_mqPollThread(nullptr),
     m_endpoint(endpoint),
     m_vrf(vrf),
@@ -31,7 +31,7 @@ ZmqServer::ZmqServer(const std::string& endpoint, const std::string& vrf, bool l
     m_socket(nullptr),
     m_binded(false)
 {
-    if (!lazzyBind)
+    if (!lazyBind)
     {
         bind();
     }
@@ -61,9 +61,9 @@ ZmqServer::~ZmqServer()
 void ZmqServer::bind()
 {
     SWSS_LOG_ENTER();
-    if (m_binded)
+    if (m_bound)
     {
-        SWSS_LOG_THROW("ZmqServer alread bind to endpoint: %s", m_endpoint.c_str());
+        SWSS_LOG_THROW("ZmqServer has already been bound to the endpoint: %s", m_endpoint.c_str());
     }
 
     m_context = zmq_ctx_new();
@@ -86,7 +86,7 @@ void ZmqServer::bind()
             zmq_errno());
     }
 
-    m_binded = true;
+    m_bound = true;
     SWSS_LOG_DEBUG("ZmqServer bind to endpoint: %s", m_endpoint.c_str());
 
     startMqPollThread();

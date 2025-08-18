@@ -32,7 +32,7 @@ public:
 
     ZmqServer(const std::string& endpoint);
     ZmqServer(const std::string& endpoint, const std::string& vrf);
-    ZmqServer(const std::string& endpoint, const std::string& vrf, bool lazzyBind);
+    ZmqServer(const std::string& endpoint, const std::string& vrf, bool lazyBind);
     ~ZmqServer();
 
     void registerMessageHandler(
@@ -68,7 +68,7 @@ private:
 
     void* m_socket;
 
-    bool m_binded;
+    bool m_bound;
 
     std::map<std::string, std::map<std::string, ZmqMessageHandler*>> m_HandlerMap;
 };
