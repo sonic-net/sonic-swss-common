@@ -68,8 +68,6 @@ private:
 
     void* m_socket;
 
-    bool m_bound;
-
     std::map<std::string, std::map<std::string, ZmqMessageHandler*>> m_HandlerMap;
 };
 
