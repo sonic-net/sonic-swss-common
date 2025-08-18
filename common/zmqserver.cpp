@@ -9,19 +9,30 @@
 #include "binaryserializer.h"
 
 using namespace std;
+#include <iostream>
 
 namespace swss {
 
 ZmqServer::ZmqServer(const std::string& endpoint)
-    : ZmqServer(endpoint, "")
+    : ZmqServer(endpoint, "", false)
 {
 }
 
 ZmqServer::ZmqServer(const std::string& endpoint, const std::string& vrf)
-    : m_endpoint(endpoint),
-    m_vrf(vrf)
+    : ZmqServer(endpoint, vrf, false)
 {
-    connect();
+}
+
+ZmqServer::ZmqServer(const std::string& endpoint, const std::string& vrf, bool lazzyBind)
+    : m_endpoint(endpoint),
+    m_vrf(vrf),
+    m_binded(false)
+{
+    if (!lazzyBind)
+    {
+        bind();
+    }
+
     m_buffer.resize(MQ_RESPONSE_MAX_COUNT);
     m_runThread = true;
     m_mqPollThread = std::make_shared<std::thread>(&ZmqServer::mqPollThread, this);
@@ -38,9 +49,14 @@ ZmqServer::~ZmqServer()
     zmq_ctx_destroy(m_context);
 }
 
-void ZmqServer::connect()
+void ZmqServer::bind()
 {
     SWSS_LOG_ENTER();
+    if (m_binded)
+    {
+        SWSS_LOG_THROW("ZmqServer alread bind to endpoint: %s", m_endpoint.c_str());
+    }
+
     m_context = zmq_ctx_new();
     m_socket = zmq_socket(m_context, ZMQ_PULL);
 
@@ -60,6 +76,9 @@ void ZmqServer::connect()
             m_endpoint.c_str(),
             zmq_errno());
     }
+
+    m_binded = true;
+    SWSS_LOG_DEBUG("ZmqServer bind to endpoint: %s", m_endpoint.c_str());
 }
 
 void ZmqServer::registerMessageHandler(
@@ -85,12 +104,14 @@ ZmqMessageHandler* ZmqServer::findMessageHandler(
     auto dbMappingIter = m_HandlerMap.find(dbName);
     if (dbMappingIter == m_HandlerMap.end()) {
         SWSS_LOG_DEBUG("ZmqServer can't find any handler for db: %s", dbName.c_str());
+        std::cout << "ZmqServer can't find any handler for db: " << dbName.c_str() << std::endl;
         return nullptr;
     }
 
     auto tableMappingIter = dbMappingIter->second.find(tableName);
     if (tableMappingIter == dbMappingIter->second.end()) {
         SWSS_LOG_DEBUG("ZmqServer can't find handler for db: %s, table: %s", dbName.c_str(), tableName.c_str());
+        std::cout << "ZmqServer can't find any handler for table: " << tableName.c_str() << std::endl;
         return nullptr;
     }
 
@@ -108,9 +129,11 @@ void ZmqServer::handleReceivedData(const char* buffer, const size_t size)
     auto handler = findMessageHandler(dbName, tableName);
     if (handler == nullptr) {
         SWSS_LOG_WARN("ZmqServer can't find handler for received message: %s", buffer);
+        std::cout << "ZmqServer can't find handler for received message: " << buffer << std::endl;
         return;
     }
 
+    std::cout << "ZmqServer find handler for received message: " << buffer << std::endl;
     handler->handleReceivedData(kcos);
 }
 
