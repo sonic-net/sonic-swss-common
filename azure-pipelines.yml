@@ -165,7 +165,7 @@ stages:
       arch: amd64
       sonic_slave: sonic-slave-trixie:$(BUILD_BRANCH)
       artifact_name: sonic-swss-common-trixie
-      debian_version: ${{ parameters.debian_version }}
+      debian_version: trixie
 
   - template: .azure-pipelines/build-template.yml
     parameters:
@@ -174,7 +174,7 @@ stages:
       pool: sonicbld-armhf
       sonic_slave: sonic-slave-trixie-armhf:$(BUILD_BRANCH)
       artifact_name: sonic-swss-common-trixie.armhf
-      debian_version: ${{ parameters.debian_version }}
+      debian_version: trixie
 
   - template: .azure-pipelines/build-template.yml
     parameters:
@@ -183,7 +183,7 @@ stages:
       pool: sonicbld-arm64
       sonic_slave: sonic-slave-trixie-arm64:$(BUILD_BRANCH)
       artifact_name: sonic-swss-common-trixie.arm64
-      debian_version: ${{ parameters.debian_version }}
+      debian_version: trixie
 
 - stage: BuildSairedis
   dependsOn: Build
