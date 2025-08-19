@@ -85,6 +85,25 @@ jobs:
         target/debs/${{ parameters.debian_version }}/libyang-*_1.0*.deb
         target/debs/${{ parameters.debian_version }}/libyang_1.0*.deb
     displayName: "Download libyang from ${{ parameters.arch }} common lib"
+    condition: not(contains('sonic-slave-trixie', parameters.sonic_slave))
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      source: specific
+      project: build
+      pipeline: Azure.sonic-buildimage.common_libs
+      runVersion: 'latestFromBranch'
+      runBranch: 'refs/heads/$(BUILD_BRANCH)'
+      path: $(Build.ArtifactStagingDirectory)/download
+      ${{ if eq(parameters.arch, 'amd64') }}:
+        artifact: common-lib
+      ${{ else }}:
+        artifact: common-lib.${{ parameters.arch }}
+      patterns: |
+        target/debs/${{ parameters.debian_version }}/libyang-*_1.0*.deb
+        target/debs/${{ parameters.debian_version }}/libyang_1.0*.deb
+        target/debs/${{ parameters.debian_version }}/libpcre*.deb
+    displayName: "Download libyang from ${{ parameters.arch }} common lib"
+    condition: contains('sonic-slave-trixie', parameters.sonic_slave)
   - script: |
       set -ex
       sudo dpkg -i $(find ./download -name *.deb)
