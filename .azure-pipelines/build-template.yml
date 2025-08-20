@@ -85,7 +85,7 @@ jobs:
         target/debs/${{ parameters.debian_version }}/libyang-*_1.0*.deb
         target/debs/${{ parameters.debian_version }}/libyang_1.0*.deb
     displayName: "Download libyang from ${{ parameters.arch }} common lib"
-    condition: ne(parameters.debian_version, 'trixie')
+    condition: ne('${{ parameters.debian_version }}', 'trixie')
   - task: DownloadPipelineArtifact@2
     inputs:
       source: specific
@@ -103,7 +103,7 @@ jobs:
         target/debs/${{ parameters.debian_version }}/libyang_1.0*.deb
         target/debs/${{ parameters.debian_version }}/libpcre*.deb
     displayName: "Download libyang from ${{ parameters.arch }} common lib"
-    condition: eq(parameters.debian_version, 'trixie')
+    condition: eq('${{ parameters.debian_version }}', 'trixie')
   - script: |
       set -ex
       sudo dpkg -i $(find ./download -name *.deb)
