@@ -1,4 +1,4 @@
-usage: sonic-db-cli [-h] [-s] [-n NAMESPACE] db_or_op [cmd [cmd ...]]
+usage: sonic-db-cli [-h] [-s] [-n NAMESPACE] [-d DPU_NAME] db_or_op [cmd [cmd ...]]
 
 SONiC DB CLI:
 
@@ -11,6 +11,8 @@ optional arguments:
   -s, --unixsocket      Override use of tcp_port and use unixsocket
   -n NAMESPACE, --namespace NAMESPACE
                         Namespace string to use asic0/asic1.../asicn
+  -d DPU, --dpu DPU
+                        DPU name for accessing DPU database instead of default dpu0/dpu1.../dpu3
 
 **sudo** needed for commands accesing a different namespace [-n], or using unixsocket connection [-s]
 
