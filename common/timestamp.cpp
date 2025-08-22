@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <unistd.h>
 #include <sys/time.h>
 #include <ctime>
@@ -15,7 +16,7 @@ string getTimestamp()
     gettimeofday(&tv, NULL);
 
     size_t size = strftime(buffer, 32 ,"%Y-%m-%d.%T.", localtime(&tv.tv_sec));
-    snprintf(&buffer[size], 32, "%06" PRIu64, tv.tv_usec);
+    snprintf(&buffer[size], 32, "%06" PRIu64, (uint64_t) tv.tv_usec);
 
     return string(buffer);
 }
