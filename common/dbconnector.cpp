@@ -7,6 +7,7 @@
 #include <fstream>
 #include <nlohmann/json.hpp>
 #include <set>
+#include <unistd.h>
 #include "logger.h"
 
 #include "common/dbconnector.h"
@@ -26,8 +27,14 @@ constexpr size_t KEY_DEL_CHUNK_SIZE = 128;
 void SonicDBConfig::parseDatabaseConfig(const string &file,
                     std::map<std::string, RedisInstInfo> &inst_entry,
                     std::unordered_map<std::string, SonicDBInfo> &db_entry,
-                    std::unordered_map<int, std::string> &separator_entry)
+                    std::unordered_map<int, std::string> &separator_entry,
+                    bool ignore_nonexistent)
 {
+    if (ignore_nonexistent && access(file.c_str(), F_OK) == -1) {
+        SWSS_LOG_NOTICE("Sonic database config file doesn't exist at %s\n", file.c_str());
+        return;
+    }
+
     ifstream i(file);
     if (i.good())
     {
@@ -79,7 +86,7 @@ void SonicDBConfig::parseDatabaseConfig(const string &file,
     }
 }
 
-void SonicDBConfig::initializeGlobalConfig(const string &file)
+void SonicDBConfig::initializeGlobalConfig(const string &file, bool ignore_nonexistent)
 {
     std::string dir_name;
     std::lock_guard<std::recursive_mutex> guard(m_db_info_mutex);
@@ -132,10 +139,16 @@ void SonicDBConfig::initializeGlobalConfig(const string &file)
                     continue;
                 }
 
-                parseDatabaseConfig(local_file, inst_entry, db_entry, separator_entry);
-                m_inst_info[key] = inst_entry;
-                m_db_info[key] = db_entry;
-                m_db_separator[key] = separator_entry;
+                parseDatabaseConfig(local_file, inst_entry, db_entry, separator_entry, ignore_nonexistent);
+                // all the entries are empty, then don't add them to the map. It may happen if the included
+                // config doesn't exist. For example, dash-ha container will only mount the redis instance
+                // config file for the dpu it is managing.
+                if (!inst_entry.empty() || !db_entry.empty() || !separator_entry.empty())
+                {
+                    m_inst_info[key] = inst_entry;
+                    m_db_info[key] = db_entry;
+                    m_db_separator[key] = separator_entry;
+                }
 
                 if(key.isEmpty())
                 {
@@ -545,11 +558,19 @@ RedisContext::RedisContext(const RedisContext &other)
     const char *unixPath = octx->unix_sock.path;
     if (unixPath)
     {
+#if HIREDIS_MAJOR >= 1
+        initContext(unixPath, octx->connect_timeout);
+#else
         initContext(unixPath, octx->timeout);
+#endif
     }
     else
     {
+#if HIREDIS_MAJOR >= 1
+        initContext(octx->tcp.host, octx->tcp.port, octx->connect_timeout);
+#else
         initContext(octx->tcp.host, octx->tcp.port, octx->timeout);
+#endif
     }
 }
 

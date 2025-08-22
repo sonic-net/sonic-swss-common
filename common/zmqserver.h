@@ -32,6 +32,7 @@ public:
 
     ZmqServer(const std::string& endpoint);
     ZmqServer(const std::string& endpoint, const std::string& vrf);
+    ZmqServer(const std::string& endpoint, const std::string& vrf, bool lazyBind);
     ~ZmqServer();
 
     void registerMessageHandler(
@@ -42,11 +43,12 @@ public:
     void sendMsg(const std::string& dbName, const std::string& tableName,
         const std::vector<swss::KeyOpFieldsValuesTuple>& values);
 
+    void bind();
+
 private:
-
-    void connect();
-
     void handleReceivedData(const char* buffer, const size_t size);
+
+    void startMqPollThread();
 
     void mqPollThread();
     
