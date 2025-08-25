@@ -13,18 +13,26 @@ using namespace std;
 namespace swss {
 
 ZmqServer::ZmqServer(const std::string& endpoint)
-    : ZmqServer(endpoint, "")
+    : ZmqServer(endpoint, "", false)
 {
 }
 
 ZmqServer::ZmqServer(const std::string& endpoint, const std::string& vrf)
-    : m_endpoint(endpoint),
-    m_vrf(vrf)
+    : ZmqServer(endpoint, vrf, false)
 {
-    connect();
-    m_buffer.resize(MQ_RESPONSE_MAX_COUNT);
-    m_runThread = true;
-    m_mqPollThread = std::make_shared<std::thread>(&ZmqServer::mqPollThread, this);
+}
+
+ZmqServer::ZmqServer(const std::string& endpoint, const std::string& vrf, bool lazyBind)
+    : m_mqPollThread(nullptr),
+    m_endpoint(endpoint),
+    m_vrf(vrf),
+    m_context(nullptr),
+    m_socket(nullptr)
+{
+    if (!lazyBind)
+    {
+        bind();
+    }
 
     SWSS_LOG_DEBUG("ZmqServer ctor endpoint: %s", endpoint.c_str());
 }
@@ -32,15 +40,30 @@ ZmqServer::ZmqServer(const std::string& endpoint, const std::string& vrf)
 ZmqServer::~ZmqServer()
 {
     m_runThread = false;
-    m_mqPollThread->join();
+    if (m_mqPollThread)
+    {
+        m_mqPollThread->join();
+    }
 
-    zmq_close(m_socket);
-    zmq_ctx_destroy(m_context);
+    if (m_socket)
+    {
+        zmq_close(m_socket);
+    }
+
+    if (m_context)
+    {
+        zmq_ctx_destroy(m_context);
+    }
 }
 
-void ZmqServer::connect()
+void ZmqServer::bind()
 {
     SWSS_LOG_ENTER();
+    if (m_socket)
+    {
+        SWSS_LOG_THROW("ZmqServer has already been bound to the endpoint: %s", m_endpoint.c_str());
+    }
+
     m_context = zmq_ctx_new();
     m_socket = zmq_socket(m_context, ZMQ_PULL);
 
@@ -60,6 +83,10 @@ void ZmqServer::connect()
             m_endpoint.c_str(),
             zmq_errno());
     }
+
+    SWSS_LOG_DEBUG("ZmqServer bind to endpoint: %s", m_endpoint.c_str());
+
+    startMqPollThread();
 }
 
 void ZmqServer::registerMessageHandler(
@@ -112,6 +139,13 @@ void ZmqServer::handleReceivedData(const char* buffer, const size_t size)
     }
 
     handler->handleReceivedData(kcos);
+}
+
+void ZmqServer::startMqPollThread()
+{
+    m_buffer.resize(MQ_RESPONSE_MAX_COUNT);
+    m_runThread = true;
+    m_mqPollThread = std::make_shared<std::thread>(&ZmqServer::mqPollThread, this);
 }
 
 void ZmqServer::mqPollThread()
