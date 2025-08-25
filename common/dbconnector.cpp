@@ -1055,7 +1055,7 @@ void DBConnector::del(const std::vector<std::string>& keys)
         if (((i + 1) % KEY_DEL_CHUNK_SIZE == 0) || (i == keys.size()-1)) {
             RedisCommand del;
             del.formatDEL(joined_keys);
-            SWSS_LOG_ERROR("%s", del.toPrintableString().c_str());
+            SWSS_LOG_ERROR("[Thanh DGB]: %s", del.toPrintableString().c_str());
             pipe.push(del, REDIS_REPLY_INTEGER);
 	    joined_keys.clear();
         }
