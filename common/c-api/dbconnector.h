@@ -12,7 +12,7 @@ extern "C" {
 
 SWSSResult SWSSSonicDBConfig_initialize(const char *path);
 
-SWSSResult SWSSSonicDBConfig_initializeGlobalConfig(const char *path);
+SWSSResult SWSSSonicDBConfig_initializeGlobalConfig(const char *path, uint8_t ignore_nonexistent);
 
 typedef struct SWSSDBConnectorOpaque *SWSSDBConnector;
 
@@ -25,6 +25,10 @@ SWSSResult SWSSDBConnector_new_unix(int32_t dbId, const char *sock_path, uint32_
 
 // Pass 0 to timeout for infinity
 SWSSResult SWSSDBConnector_new_named(const char *dbName, uint32_t timeout_ms, uint8_t isTcpConn, SWSSDBConnector *outDb);
+
+// Pass 0 to timeout for infinity
+SWSSResult SWSSDBConnector_new_keyed(const char *dbName, uint32_t timeout_ms, uint8_t isTcpConn,
+                                     const char *containerName, const char *netns, SWSSDBConnector *outDb);
 
 SWSSResult SWSSDBConnector_free(SWSSDBConnector db);
 

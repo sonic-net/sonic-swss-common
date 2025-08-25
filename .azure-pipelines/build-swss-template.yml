@@ -42,7 +42,7 @@ jobs:
     ${{ if ne(parameters.pool, 'default') }}:
       name: ${{ parameters.pool }}
     ${{ else }}:
-      vmImage: 'ubuntu-20.04'
+      vmImage: 'ubuntu-22.04'
 
   container:
     image: sonicdev-microsoft.azurecr.io:443/${{ parameters.sonic_slave }}
@@ -105,8 +105,8 @@ jobs:
         target/debs/${{ parameters.debian_version }}/libnl-genl*.deb
         target/debs/${{ parameters.debian_version }}/libnl-route*.deb
         target/debs/${{ parameters.debian_version }}/libnl-nf*.deb
-        target/debs/${{ parameters.debian_version }}/libyang-*.deb
-        target/debs/${{ parameters.debian_version }}/libyang_*.deb
+        target/debs/${{ parameters.debian_version }}/libyang-*_1.0*.deb
+        target/debs/${{ parameters.debian_version }}/libyang_1.0*.deb
         target/debs/${{ parameters.debian_version }}/libprotobuf*.deb
         target/debs/${{ parameters.debian_version }}/libprotoc*.deb
         target/debs/${{ parameters.debian_version }}/protobuf-compiler*.deb

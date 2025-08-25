@@ -13,8 +13,8 @@ SWSSResult SWSSSonicDBConfig_initialize(const char *path) {
     SWSSTry(SonicDBConfig::initialize(path));
 }
 
-SWSSResult SWSSSonicDBConfig_initializeGlobalConfig(const char *path) {
-    SWSSTry(SonicDBConfig::initializeGlobalConfig(path));
+SWSSResult SWSSSonicDBConfig_initializeGlobalConfig(const char *path, uint8_t ignore_nonexistent) {
+    SWSSTry(SonicDBConfig::initializeGlobalConfig(path, ignore_nonexistent));
 }
 
 SWSSResult SWSSDBConnector_new_tcp(int32_t dbId, const char *hostname, uint16_t port,
@@ -28,6 +28,16 @@ SWSSResult SWSSDBConnector_new_unix(int32_t dbId, const char *sock_path, uint32_
 
 SWSSResult SWSSDBConnector_new_named(const char *dbName, uint32_t timeout_ms, uint8_t isTcpConn, SWSSDBConnector *outDb) {
     SWSSTry(*outDb = (SWSSDBConnector) new DBConnector(string(dbName), timeout_ms, isTcpConn));
+}
+
+SWSSResult SWSSDBConnector_new_keyed(const char *dbName, uint32_t timeout_ms, uint8_t isTcpConn,
+                                     const char *containerName, const char *netns, SWSSDBConnector *outDb) {
+    SWSSTry({
+        SonicDBKey key;
+        key.containerName = string(containerName);
+        key.netns = string(netns);
+        *outDb = (SWSSDBConnector) new DBConnector(string(dbName), timeout_ms, isTcpConn, key);
+    });
 }
 
 SWSSResult SWSSDBConnector_free(SWSSDBConnector db) {
