@@ -1048,7 +1048,8 @@ void DBConnector::del(const std::vector<std::string>& keys, bool enable_batched_
 
     if (enable_batched_keys_delete) {
         std::vector<std::string> batched_keys;
-        for (size_t i = 0; i < keys.size(); ++i) {
+        for (size_t i = 0; i < keys.size(); ++i)
+        {
             batched_keys.push_back(keys[i]);
             if (((i + 1) % KEY_DEL_CHUNK_SIZE == 0) || (i == keys.size()-1)) {
                 RedisCommand del;
@@ -1061,11 +1062,11 @@ void DBConnector::del(const std::vector<std::string>& keys, bool enable_batched_
     else
     {
         for (auto& key : keys)
-	{
-	    RedisCommand del;
-	    del.formatDEL(key);
-	    pipe.push(del, REDIS_REPLY_INTEGER);
-	}
+        {
+            RedisCommand del;
+            del.formatDEL(key);
+            pipe.push(del, REDIS_REPLY_INTEGER);
+        }
     }
 
     pipe.flush();
