@@ -261,7 +261,7 @@ public:
 
     int64_t hdel(const std::string &key, const std::vector<std::string> &fields);
 
-    void del(const std::vector<std::string>& keys);
+    void del(const std::vector<std::string>& keys, bool enable_batched_keys_delete = false);
 
     template <typename ReturnType=std::unordered_map<std::string, std::string>>
     ReturnType hgetall(const std::string &key);
