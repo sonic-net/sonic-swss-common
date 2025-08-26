@@ -1046,17 +1046,14 @@ void DBConnector::del(const std::vector<std::string>& keys)
     SWSS_LOG_ENTER();
 
     RedisPipeline pipe(this);
-    std::string joined_keys;
+    std::vector<std::string> batched_keys;
     for (size_t i = 0; i < keys.size(); ++i) {
-        if (!joined_keys.empty()) {
-            joined_keys.append(" ");
-        }
-        joined_keys.append(keys[i]);
+        batched_keys.push_back(keys[i]);
         if (((i + 1) % KEY_DEL_CHUNK_SIZE == 0) || (i == keys.size()-1)) {
             RedisCommand del;
-            del.formatDEL(joined_keys);
+            del.formatDEL(batched_keys);
             pipe.push(del, REDIS_REPLY_INTEGER);
-	    joined_keys.clear();
+            batched_keys.clear();
         }
     }
 

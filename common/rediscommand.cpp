@@ -127,6 +127,7 @@ void RedisCommand::formatDEL(const std::string& key)
     return format("DEL %s", key.c_str());
 }
 
+/* Format DEL multiple keys command */
 void RedisCommand::formatDEL(const std::vector<std::string>& keys)
 {
     if (keys.empty()) throw std::invalid_argument("empty values");
