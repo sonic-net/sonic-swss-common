@@ -66,6 +66,9 @@ public:
     /* Format DEL key command */
     void formatDEL(const std::string& key);
 
+    /* Format DEL multiple keys command */
+    void formatDEL(const std::vector<std::string>& keys);
+
     int appendTo(redisContext *ctx) const;
 
     std::string toPrintableString() const;

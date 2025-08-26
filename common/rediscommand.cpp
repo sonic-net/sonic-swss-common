@@ -127,6 +127,15 @@ void RedisCommand::formatDEL(const std::string& key)
     return format("DEL %s", key.c_str());
 }
 
+void RedisCommand::formatDEL(const std::vector<std::string>& keys)
+{
+    if (keys.empty()) throw std::invalid_argument("empty values");
+
+    std::vector<string> args = {"DEL"};
+    args.insert(args.end(), keys.begin(), keys.end());
+    format(args);
+}
+
 int RedisCommand::appendTo(redisContext *ctx) const
 {
     return redisAppendFormattedCommand(ctx, c_str(), length());
