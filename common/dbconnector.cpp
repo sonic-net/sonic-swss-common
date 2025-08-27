@@ -1057,6 +1057,7 @@ void DBConnector::del(const std::vector<std::string>& keys)
             batched_keys.clear();
         }
     }
+
     pipe.flush();
 }
 
