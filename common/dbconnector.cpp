@@ -1041,34 +1041,22 @@ void DBConnector::hmset(const std::unordered_map<std::string, std::vector<std::p
     pipe.flush();
 }
 
-void DBConnector::del(const std::vector<std::string>& keys, bool enable_batched_keys_delete)
+void DBConnector::del(const std::vector<std::string>& keys)
 {
     SWSS_LOG_ENTER();
     RedisPipeline pipe(this);
 
-    if (enable_batched_keys_delete) {
-        std::vector<std::string> batched_keys;
-        for (size_t i = 0; i < keys.size(); ++i)
-        {
-            batched_keys.push_back(keys[i]);
-            if (((i + 1) % KEY_DEL_CHUNK_SIZE == 0) || (i == keys.size()-1)) {
-                RedisCommand del;
-                del.formatDEL(batched_keys);
-                pipe.push(del, REDIS_REPLY_INTEGER);
-                batched_keys.clear();
-            }
-        }
-    }
-    else
+    std::vector<std::string> batched_keys;
+    for (size_t i = 0; i < keys.size(); ++i)
     {
-        for (auto& key : keys)
-        {
+        batched_keys.push_back(keys[i]);
+        if (((i + 1) % KEY_DEL_CHUNK_SIZE == 0) || (i == keys.size()-1)) {
             RedisCommand del;
-            del.formatDEL(key);
+            del.formatDEL(batched_keys);
             pipe.push(del, REDIS_REPLY_INTEGER);
+            batched_keys.clear();
         }
     }
-
     pipe.flush();
 }
 
