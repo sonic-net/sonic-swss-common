@@ -541,7 +541,7 @@ TEST(DBConnector, DelMultipleKeys)
     clearDB();
 
     vector<size_t> num_keys = {1, 128, 300};
-    vector<pair<string, string>> keys;
+    vector<string> keys;
     for (size_t i = 0; i < num_keys.size(); ++i)
     {
         size_t num_key = num_keys[i];
