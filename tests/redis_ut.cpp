@@ -535,6 +535,33 @@ TEST(DBConnector, HmsetAndDel)
     }
 }
 
+TEST(DBConnector, DelMultipleKeys)
+{
+    DBConnector db("TEST_DB", 0, true);
+    clearDB();
+
+    vector<size_t> num_keys = {1, 128, 300};
+    vector<pair<string, string>> keys;
+    for (size_t i = 0; i < num_keys.size(); ++i)
+    {
+        size_t num_key = num_keys[i];
+        if (i > 0)
+        {
+            keys.clear();
+        }
+        for (size_t j = 0; j < num_key; ++j)
+        {
+            string key = "hash_key_" + to_string(j);
+            db.set(key, "value");
+            keys.push_back(key);
+        }
+        EXPECT_EQ(db.keys().size(), num_key);
+
+        db.del(keys);
+        EXPECT_EQ(db.keys().size(), 0);
+    }
+}
+
 TEST(DBConnector, test)
 {
     thread *producerThreads[NUMBER_OF_THREADS];
