@@ -555,10 +555,10 @@ TEST(DBConnector, DelMultipleKeys)
             db.set(key, "value");
             keys.push_back(key);
         }
-        EXPECT_EQ(db.keys().size(), num_key);
+        EXPECT_EQ(db.keys("*").size(), num_key);
 
         db.del(keys);
-        EXPECT_EQ(db.keys().size(), 0);
+        EXPECT_EQ(db.keys("*").size(), 0);
     }
 }
 
