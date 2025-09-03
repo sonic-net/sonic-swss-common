@@ -1,0 +1,2 @@
+common --check_direct_dependencies=off
+common --noincompatible_disallow_empty_glob

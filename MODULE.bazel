@@ -1,0 +1,13 @@
+module(name = "sonic-swss-common")
+
+bazel_dep(name = "googletest", version = "1.11.0", repo_name = "com_google_googletest")
+bazel_dep(name = "glog", version = "0.5.0", repo_name = "com_github_google_glog")
+
+# bazel_dep(name = "nlohmann_json", version = "3.12.0")
+# bazel_dep(name = "boost.algorithm", version = "1.87.0")
+# bazel_dep(name = "boost.serialization", version = "1.87.0")
+# bazel_dep(name = "libuuid", version = "2.39.3.bcr.1")
+# bazel_dep(name = "libzmq", version = "4.3.5.bcr.3")
+# bazel_dep(name = "swig", version = "4.3.0")
+# bazel_dep(name = "abseil-cpp", version = "20210324.2")
+# bazel_dep(name = "gflags", version = "2.2.2")
