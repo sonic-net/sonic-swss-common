@@ -136,25 +136,25 @@ stages:
       inputs:
         source: specific
         project: build
-        pipeline: Azure.sonic-buildimage.common_libs
+        pipeline: 142
+        artifact: sonic-buildimage.vs
         runVersion: 'latestFromBranch'
         runBranch: 'refs/heads/$(BUILD_BRANCH)'
         path: $(Build.ArtifactStagingDirectory)/download
-        artifact: common-lib
         patterns: |
           target/debs/${{ parameters.debian_version }}/libyang-*_1.0*.deb
           target/debs/${{ parameters.debian_version }}/libyang_1.0*.deb
           target/debs/${{ parameters.debian_version }}/libyang-cpp_*.deb
           target/debs/${{ parameters.debian_version }}/python3-yang_*.deb
-      displayName: "Download yang deb from amd64 common lib"
+      displayName: "Download yang deb packages from latest sonic-buildimage build"
     - script: |
         set -ex
-        sudo dpkg -i $(Build.ArtifactStagingDirectory)/download/target/debs/${{ parameters.debian_version }}/libyang_1.0*.deb \
-                     $(Build.ArtifactStagingDirectory)/download/target/debs/${{ parameters.debian_version }}/libyang-*_1.0*.deb \
-                     $(Build.ArtifactStagingDirectory)/download/target/debs/${{ parameters.debian_version }}/libyang-cpp_*.deb \
-                     $(Build.ArtifactStagingDirectory)/download/target/debs/${{ parameters.debian_version }}/python3-yang_*.deb
+        sudo dpkg -i ./download/target/debs/${{ parameters.debian_version }}/libyang_1.0*.deb \
+                     ./download/target/debs/${{ parameters.debian_version }}/libyang-*_1.0*.deb \
+                     ./download/target/debs/${{ parameters.debian_version }}/libyang-cpp_*.deb \
+                     ./download/target/debs/${{ parameters.debian_version }}/python3-yang_*.deb
       workingDirectory: $(Build.ArtifactStagingDirectory)
-      displayName: "Install yang deb from common lib"
+      displayName: "Install yang deb packages"
     - task: DownloadPipelineArtifact@2
       inputs:
         source: specific
