@@ -40,7 +40,7 @@ resources:
 parameters:
   - name: debian_version
     type: string
-    default: buster
+    default: bookworm
 variables:
   - name: BUILD_BRANCH
     ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
