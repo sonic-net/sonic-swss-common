@@ -22,7 +22,7 @@ BUILT_SOURCES = common/cfg_schema.h
 if YANGMODS
 # Generate schema dynamically when yang modules are enabled
 common/cfg_schema.h: FORCE
-	$(AM_V_GEN)$(PYTHON) $(srcdir)/gen_cfg_schema.py -o $@
+	$(AM_V_GEN)$(PYTHON3) $(srcdir)/gen_cfg_schema.py -o $@
 else
 # Generate minimal static schema when yang modules are disabled
 common/cfg_schema.h: FORCE
