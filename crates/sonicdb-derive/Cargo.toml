@@ -1,0 +1,23 @@
+[package]
+name = "sonicdb-derive"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+edition.workspace = true
+
+[dependencies]
+syn.workspace = true         # For parsing Rust code
+quote.workspace = true       # For generating Rust code
+proc-macro2.workspace = true # For working with procedural macros
+swss-common = { path = "../swss-common" }
+sonicdb = { path = "../sonicdb" }
+
+[lib]
+proc-macro = true
+
+[lints]
+workspace = true
+
