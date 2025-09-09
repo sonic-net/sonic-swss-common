@@ -118,7 +118,7 @@ pub fn serde_sonicdb_derive(input: TokenStream) -> TokenStream {
     let is_dpu_value = is_dpu;
 
     let expanded = quote! {
-        impl sonic_common::SonicDbTable for #struct_name {
+        impl sonicdb::SonicDbTable for #struct_name {
             fn key_separator() -> char {
                 #key_separator
             }
