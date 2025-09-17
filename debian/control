@@ -4,6 +4,7 @@ Section: net
 Priority: optional
 Build-Depends: dh-exec (>=0.3), debhelper (>= 12), autotools-dev, libboost-dev | libboost1.71-dev | libboost1.83-dev, libhiredis-dev, libgtest-dev, libgmock-dev, swig, nlohmann-json3-dev
 Standards-Version: 1.0.0
+Rules-Requires-Root: no
 
 Package: libswsscommon
 Architecture: any
