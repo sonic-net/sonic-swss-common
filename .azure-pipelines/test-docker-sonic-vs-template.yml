@@ -8,7 +8,7 @@ parameters:
 
 - name: debian_version
   type: string
-  default: buster
+  default: bookworm
 
 - name: sonic_buildimage_ubuntu22_04
   type: string
