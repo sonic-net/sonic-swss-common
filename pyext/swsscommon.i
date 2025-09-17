@@ -39,6 +39,7 @@
 #include "consumertable.h"
 #include "subscriberstatetable.h"
 #ifdef ENABLE_YANG_MODULES
+#include "cfg_schema.h"
 #include "decoratortable.h"
 #include "defaultvalueprovider.h"
 #include "decoratorsubscriberstatetable.h"
@@ -267,6 +268,7 @@ T castSelectableObj(swss::Selectable *temp)
 %include "schema.h"
 %include "dbconnector.h"
 #ifdef ENABLE_YANG_MODULES
+%include "cfg_schema.h"
 %include "defaultvalueprovider.h"
 #endif
 %include "sonicv2connector.h"
