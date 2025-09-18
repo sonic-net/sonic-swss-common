@@ -4,7 +4,10 @@ exports_files(["LICENSE"])
 
 cc_library(
     name = "common",
-    srcs = glob(["common/*.cpp"], exclude=["common/loglevel.cpp", "common/loglevel_util.cpp"]),
+    srcs = glob(
+        ["common/*.cpp"],
+        ["common/loglevel.cpp", "common/loglevel_util.cpp"]
+    ),
     hdrs = glob([
         "common/*.h",
         "common/*.hpp",
@@ -16,7 +19,14 @@ cc_library(
     includes = [
         "common",
     ],
-    linkopts = ["-lpthread -lhiredis -lnl-genl-3 -lnl-nf-3 -lnl-route-3 -lnl-3 -lzmq -lboost_serialization -luuid -lyang"],
+    # deps = [
+    #     "@boost.algorithm",
+    #     "@boost.serialization",
+    #     "@nlohmann_json//:json",
+    #     "@libuuid//:libuuid",
+    #     "@swig//:swig",
+    # ],
+    linkopts = ["-lpthread -lhiredis -lnl-genl-3 -lnl-nf-3 -lnl-route-3 -lnl-3 -lzmq -luuid -lyang"],
     visibility = ["//visibility:public"],
 )
 
