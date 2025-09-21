@@ -73,6 +73,7 @@ common_libswsscommon_la_SOURCES = \
     common/c-api/util.cpp                  \
     common/c-api/dbconnector.cpp           \
     common/c-api/configdbconnector.cpp     \
+    common/c-api/sonicv2connector.cpp      \
     common/c-api/consumerstatetable.cpp    \
     common/c-api/producerstatetable.cpp    \
     common/c-api/subscriberstatetable.cpp  \
