@@ -363,44 +363,7 @@ impl SonicV2Connector {
     async_util::impl_basic_async_method!(set_async <= set(&self, db_name: &str, hash: &str, key: &str, value: &str, blocking: bool) -> Result<i64>);
     async_util::impl_basic_async_method!(del_async <= del(&self, db_name: &str, key: &str, blocking: bool) -> Result<i64>);
     async_util::impl_basic_async_method!(delete_all_by_pattern_async <= delete_all_by_pattern(&self, db_name: &str, pattern: &str) -> Result<()>);
-
-    pub async fn keys_async(&self, db_name: &str, pattern: Option<&str>, blocking: bool) -> Result<Vec<String>> {
-        let db_name = db_name.to_owned();
-        let pattern = pattern.map(|s| s.to_owned());
-        let self_ptr = self as *const Self;
-        tokio::task::spawn_blocking(move || unsafe {
-            let self_ref = &*self_ptr;
-            self_ref.keys(&db_name, pattern.as_deref(), blocking)
-        }).await.unwrap()
-    }
-
-
-    pub async fn get_async(&self, db_name: &str, hash: &str, key: &str, blocking: bool) -> Result<Option<String>> {
-        let db_name = db_name.to_owned();
-        let hash = hash.to_owned();
-        let key = key.to_owned();
-        let self_ptr = self as *const Self;
-        tokio::task::spawn_blocking(move || unsafe {
-            let self_ref = &*self_ptr;
-            self_ref.get(&db_name, &hash, &key, blocking)
-        }).await.unwrap()
-    }
-
-    pub async fn hmset_async<I, F, V>(&self, db_name: &str, key: &str, values: I) -> Result<()>
-    where
-        I: IntoIterator<Item = (F, V)> + Send,
-        F: AsRef<[u8]> + Send,
-        V: Into<CxxString> + Send,
-    {
-        let db_name = db_name.to_owned();
-        let key = key.to_owned();
-        let values: Vec<(String, CxxString)> = values.into_iter()
-            .map(|(f, v)| (String::from_utf8_lossy(f.as_ref()).to_string(), v.into()))
-            .collect();
-        let self_ptr = self as *const Self;
-        tokio::task::spawn_blocking(move || unsafe {
-            let self_ref = &*self_ptr;
-            self_ref.hmset(&db_name, &key, values)
-        }).await.unwrap()
-    }
+    async_util::impl_basic_async_method!(keys_async <= keys(&self, db_name: &str, pattern: Option<&str>, blocking: bool) -> Result<Vec<String>>);
+    async_util::impl_basic_async_method!(get_async <= get(&self, db_name: &str, hash: &str, key: &str, blocking: bool) -> Result<Option<String>>);
+    async_util::impl_basic_async_method!(hmset_async <= hmset(&self, db_name: &str, key: &str, values: Vec<(String, CxxString)>) -> Result<()>);
 }

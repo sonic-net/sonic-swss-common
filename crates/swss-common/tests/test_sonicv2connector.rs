@@ -14,8 +14,8 @@ use serial_test::serial;
 #[cfg(test)]
 #[test]
 #[serial]
-fn test_sonicv2_connector_basic_operations() -> Result<(), Box<dyn std::error::Error>> {
-    let _redis = Redis::start_test_db();
+fn test_sonicv2connector_basic_operations() -> Result<(), Box<dyn std::error::Error>> {
+    let _redis = Redis::start();
     println!("Redis unix socket: {}", _redis.sock);
 
     // Create SonicV2Connector instance
@@ -68,8 +68,8 @@ fn test_sonicv2_connector_basic_operations() -> Result<(), Box<dyn std::error::E
 /// Test SonicV2Connector hmset functionality
 #[test]
 #[serial]
-fn test_sonicv2_connector_hmset() -> Result<(), Box<dyn std::error::Error>> {
-    let _redis = Redis::start_test_db();
+fn test_sonicv2connector_hmset() -> Result<(), Box<dyn std::error::Error>> {
+    let _redis = Redis::start();
 
     let connector = SonicV2Connector::new(true, None)?;
     connector.connect("TEST_DB", true)?;
@@ -99,8 +99,8 @@ fn test_sonicv2_connector_hmset() -> Result<(), Box<dyn std::error::Error>> {
 /// Test SonicV2Connector keys and scan functionality
 #[test]
 #[serial]
-fn test_sonicv2_connector_keys_and_scan() -> Result<(), Box<dyn std::error::Error>> {
-    let _redis = Redis::start_test_db();
+fn test_sonicv2connector_keys_and_scan() -> Result<(), Box<dyn std::error::Error>> {
+    let _redis = Redis::start();
 
     let connector = SonicV2Connector::new(true, None)?;
     connector.connect("TEST_DB", true)?;
@@ -131,7 +131,7 @@ fn test_sonicv2_connector_keys_and_scan() -> Result<(), Box<dyn std::error::Erro
 /// Test SonicV2Connector namespace functionality
 #[test]
 #[serial]
-fn test_sonicv2_connector_namespace() -> Result<(), Box<dyn std::error::Error>> {
+fn test_sonicv2connector_namespace() -> Result<(), Box<dyn std::error::Error>> {
     // Test with custom namespace
     let test_namespace = "test_namespace";
     let connector = SonicV2Connector::new(true, Some(test_namespace.to_string()))?;
@@ -152,8 +152,8 @@ fn test_sonicv2_connector_namespace() -> Result<(), Box<dyn std::error::Error>> 
 /// Test SonicV2Connector database operations
 #[test]
 #[serial]
-fn test_sonicv2_connector_database_operations() -> Result<(), Box<dyn std::error::Error>> {
-    let _redis = Redis::start_test_db();
+fn test_sonicv2connector_database_operations() -> Result<(), Box<dyn std::error::Error>> {
+    let _redis = Redis::start();
 
     let connector = SonicV2Connector::new(true, None)?;
 
@@ -189,8 +189,8 @@ fn test_sonicv2_connector_database_operations() -> Result<(), Box<dyn std::error
 /// Test SonicV2Connector publish functionality
 #[test]
 #[serial]
-fn test_sonicv2_connector_publish() -> Result<(), Box<dyn std::error::Error>> {
-    let _redis = Redis::start_test_db();
+fn test_sonicv2connector_publish() -> Result<(), Box<dyn std::error::Error>> {
+    let _redis = Redis::start();
 
     let connector = SonicV2Connector::new(true, None)?;
     connector.connect("TEST_DB", true)?;
@@ -205,8 +205,8 @@ fn test_sonicv2_connector_publish() -> Result<(), Box<dyn std::error::Error>> {
 /// Test SonicV2Connector delete_all_by_pattern functionality
 #[test]
 #[serial]
-fn test_sonicv2_connector_delete_by_pattern() -> Result<(), Box<dyn std::error::Error>> {
-    let _redis = Redis::start_test_db();
+fn test_sonicv2connector_delete_by_pattern() -> Result<(), Box<dyn std::error::Error>> {
+    let _redis = Redis::start();
 
     let connector = SonicV2Connector::new(true, None)?;
     connector.connect("TEST_DB", true)?;
@@ -238,7 +238,7 @@ fn test_sonicv2_connector_delete_by_pattern() -> Result<(), Box<dyn std::error::
 /// Test SonicV2Connector error handling
 #[test]
 #[serial]
-fn test_sonicv2_connector_error_handling() -> Result<(), Box<dyn std::error::Error>> {
+fn test_sonicv2connector_error_handling() -> Result<(), Box<dyn std::error::Error>> {
     let connector = SonicV2Connector::new(true, None)?;
 
     // Test operations on non-connected database (should handle gracefully)
@@ -267,8 +267,8 @@ fn test_sonicv2_connector_error_handling() -> Result<(), Box<dyn std::error::Err
 /// Test SonicV2Connector with different data types
 #[test]
 #[serial]
-fn test_sonicv2_connector_data_types() -> Result<(), Box<dyn std::error::Error>> {
-    let _redis = Redis::start_test_db();
+fn test_sonicv2connector_data_types() -> Result<(), Box<dyn std::error::Error>> {
+    let _redis = Redis::start();
 
     let connector = SonicV2Connector::new(true, None)?;
     connector.connect("TEST_DB", true)?;
