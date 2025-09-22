@@ -14,7 +14,7 @@ using namespace std;
 const string not_exist_config_file = "./tests/redis_multi_db_ut_config/database_config_not_exist.json";
 const string config_file = "./tests/redis_multi_db_ut_config/database_config.json";
 const string global_config_file = "./tests/redis_multi_db_ut_config/database_global.json";
-const string dpu_config_file = "./tests/redis_multi_db_ut_config/database_config6.json";
+const string container_config_file = "./tests/redis_multi_db_ut_config/database_config6.json";
 
 int sonic_db_cli(int argc, char** argv)
 {
@@ -26,10 +26,10 @@ int sonic_db_cli(int argc, char** argv)
         }
     };
 
-    auto initializeConfig = [](const string& dpu_name = "")
+    auto initializeConfig = [](const string& container_name = "")
     {
-        if (!dpu_name.empty()){
-            SonicDBConfig::initialize(dpu_config_file);
+        if (!container_name.empty()){
+            SonicDBConfig::initialize(container_config_file);
         }
 
         if (!SonicDBConfig::isInit())
@@ -297,7 +297,7 @@ TEST(sonic_db_cli, test_cli_ping_cmd_no_config)
         SonicDBConfig::initializeGlobalConfig(not_exist_config_file);
     };
 
-    auto initializeConfig = [](const string& dpu_name = "")
+    auto initializeConfig = [](const string& container_name = "")
     {
         SonicDBConfig::initialize(not_exist_config_file);
     };
@@ -518,7 +518,7 @@ TEST(sonic_db_cli, test_cli_run_dpu_cmd)
 {
     char *args[7];
     args[0] = "sonic-db-cli";
-    args[1] = "-d";
+    args[1] = "-c";
     args[2] = "dpu0";
     args[3] = "DPU_TEST_DB";
 
@@ -538,7 +538,7 @@ TEST(sonic_db_cli, test_cli_run_dpu_cmd)
     // throw exception when dpu and namespace flags are used together
     args[1] = "-n";
     args[2] = "asic2";
-    args[3] = "-d";
+    args[3] = "-c";
     args[4] = "dpu0";
     args[5] = "DPU_TEST_DB";
 }
@@ -560,7 +560,7 @@ TEST(sonic_db_cli, test_cli_not_throw_exception)
         throw std::system_error();
     };
 
-    auto initializeConfig = [](const string& dpu_name = "")
+    auto initializeConfig = [](const string& container_name = "")
     {
         throw std::system_error();
     };

@@ -1,10 +1,12 @@
 #include <future>
+#include <fstream>
 #include <iostream>
 #include <getopt.h>
 #include <list>
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/find.hpp>
 #include "common/redisreply.h"
+#include <nlohmann/json.hpp>
 #include "sonic-db-cli.h"
 
 using namespace swss;
@@ -15,24 +17,22 @@ void initializeGlobalConfig()
     SonicDBConfig::initializeGlobalConfig(SonicDBConfig::DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE);
 }
 
-void initializeConfig(const string& dpu_name = "")
+void initializeConfig(const string& container_name = "")
 {
-    if(dpu_name.empty())
+    if(container_name.empty())
     {
         SonicDBConfig::initialize(SonicDBConfig::DEFAULT_SONIC_DB_CONFIG_FILE);
     }
     else
     {
-        std::stringstream path_stream;
-        path_stream << DPU_SONIC_DB_CONFIG_PATH_PREFIX << dpu_name << DPU_SONIC_DB_CONFIG_PATH_SUFFIX;
-        auto path = path_stream.str();
+        auto path = getContainerFilePath(container_name);
         SonicDBConfig::initialize(path);
     }
 };
 
 void printUsage()
 {
-    cout << "usage: sonic-db-cli [-h] [-s] [-n NAMESPACE] [-d DPU_NAME] db_or_op [cmd [cmd ...]]" << endl;
+    cout << "usage: sonic-db-cli [-h] [-s] [-n NAMESPACE] [-c CONTAINER_NAME] db_or_op [cmd [cmd ...]]" << endl;
     cout << endl;
     cout << "SONiC DB CLI:" << endl;
     cout << endl;
@@ -45,8 +45,8 @@ void printUsage()
     cout << "  -s, --unixsocket      Override use of tcp_port and use unixsocket" << endl;
     cout << "  -n NAMESPACE, --namespace NAMESPACE" << endl;
     cout << "                        Namespace string to use asic0/asic1.../asicn" << endl;
-    cout << "  -d DPU, --dpu DPU" << endl;
-    cout << "                        DPU name for accessing DPU database instead of default dpu0/dpu1.../dpu3" << endl;
+    cout << "  -c CONTAINER_NAME, --container_name CONTAINER_NAME" << endl;
+    cout << "                        Container name for accessing container database instead of default dpu0/dpu1.../dpu3" << endl;
     cout << endl;
     cout << "**sudo** needed for commands accesing a different namespace [-n], or using unixsocket connection [-s]" << endl;
     cout << endl;
@@ -208,12 +208,12 @@ void parseCliArguments(
     Options &options)
 {
     // Parse argument with getopt https://man7.org/linux/man-pages/man3/getopt.3.html
-    const char* short_options = "hsnd";
+    const char* short_options = "hsnc";
     static struct option long_options[] = {
        {"help",        optional_argument, NULL,  'h' },
        {"unixsocket",  optional_argument, NULL,  's' },
        {"namespace",   optional_argument, NULL,  'n' },
-       {"dpu",    optional_argument, NULL,  'd' },
+       {"container_name",    optional_argument, NULL,  'c' },
        // The last element of the array has to be filled with zeros.
        {0,          0,       0,  0 }
     };
@@ -246,15 +246,15 @@ void parseCliArguments(
                     }
                     break;
 
-                case 'd':
+                case 'c':
                     if (optind < argc)
                     {
-                        options.m_dpu_name = argv[optind];
+                        options.m_container_name = argv[optind];
                         optind++;
                     }
                     else
                     {
-                        throw invalid_argument("dpu_name value option used but dpu name is missing.");
+                        throw invalid_argument("container_name value option used but container name is missing.");
                     }
                     break;
 
@@ -263,13 +263,13 @@ void parseCliArguments(
                    throw invalid_argument("Unknown argument:" + string(argv[optind]));
             }
 
-            if(!options.m_namespace.empty() && !options.m_dpu_name.empty())
+            if(!options.m_namespace.empty() && !options.m_container_name.empty())
             {
-                throw invalid_argument("dpu and namespace flags cannot be used together.");
+                throw invalid_argument("container_name and namespace flags cannot be used together.");
             }
-            else if(options.m_unixsocket && !options.m_dpu_name.empty())
+            else if(options.m_unixsocket && !options.m_container_name.empty())
             {
-                throw invalid_argument("dpu and unixsocket flags cannot be used together.");
+                throw invalid_argument("container_name and unixsocket flags cannot be used together.");
             }
         }
         else
@@ -340,7 +340,7 @@ int sonic_db_cli(
         {
             auto commands = options.m_cmd;
 
-            initializeConfig(options.m_dpu_name);
+            initializeConfig(options.m_container_name);
 
             return executeCommands(dbOrOperation, commands, netns, useUnixSocket);
         }
@@ -354,7 +354,7 @@ int sonic_db_cli(
             {
 
                 // When database_config.json does not exist, sonic-db-cli will ignore exception and return 1.
-                initializeConfig(options.m_dpu_name);
+                initializeConfig(options.m_container_name);
 
                 return handleAllInstances(netns, dbOrOperation, useUnixSocket);
             }
@@ -422,4 +422,28 @@ string getCommandName(vector<string>& commands)
     }
 
     return boost::to_upper_copy<string>(commands[0]);
+}
+
+string getContainerFilePath(const string& container_name)
+{
+    using json = nlohmann::json;
+    ifstream i(SonicDBConfig::DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE);
+    json global_config = json::parse(i);
+    for (auto& element : global_config["INCLUDES"])
+    {
+        if (element["container_name"] == container_name)
+        {
+            auto relative_path = to_string(element["include"]);
+
+            // remove the prefix "../.. from the relative path
+            relative_path = relative_path.substr(6);
+            
+            // remove the trailing " from the relative path
+            relative_path = relative_path.substr(0, relative_path.size() - 1);
+            std::stringstream path_stream;
+            path_stream << DPU_SONIC_DB_CONFIG_PATH_PREFIX << relative_path;
+            return path_stream.str();
+        }
+    }
+    throw invalid_argument("container name " + container_name + " not found in global config file");
 }

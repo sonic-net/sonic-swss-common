@@ -8,14 +8,13 @@
 #include "common/dbinterface.h"
 #include "common/redisreply.h"
 
-static constexpr const char *DPU_SONIC_DB_CONFIG_PATH_PREFIX = "/var/run/redis";
-static constexpr const char *DPU_SONIC_DB_CONFIG_PATH_SUFFIX = "/sonic-db/database_config.json";
+static constexpr const char *DPU_SONIC_DB_CONFIG_PATH_PREFIX = "/var/run";
 
 struct Options
 {
     bool m_help = false;
     bool m_unixsocket = false;
-    std::string m_dpu_name = "";
+    std::string m_container_name = "";
     std::string m_namespace;
     std::string m_db_or_op;
     std::vector<std::string> m_cmd;
@@ -23,7 +22,7 @@ struct Options
 
 void initializeGlobalConfig();
 
-void initializeConfig(const std::string& dpu_name);
+void initializeConfig(const std::string& container_name);
 
 void printUsage();
 
@@ -69,3 +68,5 @@ int cli_exception_wrapper(
     std::function<void(const std::string&)> initializeConfig);
 
 std::string getCommandName(std::vector<std::string>& command);
+
+std::string getContainerFilePath(const std::string& container_name);
