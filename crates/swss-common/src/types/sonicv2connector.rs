@@ -12,8 +12,16 @@ pub struct SonicV2Connector {
 
 impl SonicV2Connector {
     /// Create a new SonicV2Connector.
-    pub fn new(use_unix_socket_path: bool, netns: Option<String>) -> Result<SonicV2Connector> {
-        let netns_str = netns.unwrap_or_default();
+    ///
+    /// # Parameters
+    /// - `use_unix_socket_path`: Whether to use Unix socket for connection
+    /// - `namespace`: Optional namespace (equivalent to Python's namespace parameter)
+    pub fn new(
+        use_unix_socket_path: bool,
+        namespace: Option<String>
+    ) -> Result<SonicV2Connector> {
+
+        let netns_str = namespace.unwrap_or_default();
         let netns_cstr = cstr(&netns_str);
 
         let ptr = unsafe {
