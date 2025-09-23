@@ -8,7 +8,7 @@
 #include "common/dbinterface.h"
 #include "common/redisreply.h"
 
-static constexpr const char *DPU_SONIC_DB_CONFIG_PATH_PREFIX = "/var/run";
+static constexpr const char *SONIC_DB_CONFIG_PATH_PREFIX = "/var/run";
 
 struct Options
 {
@@ -69,4 +69,4 @@ int cli_exception_wrapper(
 
 std::string getCommandName(std::vector<std::string>& command);
 
-std::string getContainerFilePath(const std::string& container_name);
+std::string getContainerFilePath(const std::string& container_name, const std::string& global_config_file);

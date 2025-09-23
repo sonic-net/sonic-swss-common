@@ -25,7 +25,7 @@ void initializeConfig(const string& container_name = "")
     }
     else
     {
-        auto path = getContainerFilePath(container_name);
+        auto path = getContainerFilePath(container_name, SonicDBConfig::DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE);
         SonicDBConfig::initialize(path);
     }
 };
@@ -424,10 +424,10 @@ string getCommandName(vector<string>& commands)
     return boost::to_upper_copy<string>(commands[0]);
 }
 
-string getContainerFilePath(const string& container_name)
+string getContainerFilePath(const string& container_name, const string& global_config_file)
 {
     using json = nlohmann::json;
-    ifstream i(SonicDBConfig::DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE);
+    ifstream i(global_config_file);
     json global_config = json::parse(i);
     for (auto& element : global_config["INCLUDES"])
     {
@@ -441,7 +441,7 @@ string getContainerFilePath(const string& container_name)
             // remove the trailing " from the relative path
             relative_path = relative_path.substr(0, relative_path.size() - 1);
             std::stringstream path_stream;
-            path_stream << DPU_SONIC_DB_CONFIG_PATH_PREFIX << relative_path;
+            path_stream << SONIC_DB_CONFIG_PATH_PREFIX << relative_path;
             return path_stream.str();
         }
     }
