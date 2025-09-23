@@ -29,6 +29,7 @@ int sonic_db_cli(int argc, char** argv)
     auto initializeConfig = [](const string& container_name = "")
     {
         if (!container_name.empty()){
+            cout << "container_name: " << container_name << endl;
             auto path = getContainerFilePath(container_name, global_config_file);
             cout << "container_name: " << container_name << " path: " << path << endl;
             SonicDBConfig::initialize(path);
