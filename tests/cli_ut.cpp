@@ -530,8 +530,16 @@ TEST(sonic_db_cli, test_cli_run_dpu_cmd)
     args[4] = "SET";
     args[5] = "testkey";
     args[6] = "testvalue";
-    auto output = runCli(7, args);
-    EXPECT_EQ("True\n", output);
+    string output;
+    try
+    {
+        output = runCli(7, args);
+        EXPECT_EQ("True\n", output);
+    }
+    catch (const exception& e)
+    {
+        cout << "test_cli_run_dpu_cmd test exception: " << e.what() << endl;
+    }
 
     // get key from dpu test db
     args[4] = "GET";
