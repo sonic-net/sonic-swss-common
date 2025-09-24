@@ -520,7 +520,7 @@ TEST(sonic_db_cli, test_cli_run_dpu_cmd)
     args[0] = "sonic-db-cli";
     args[1] = "-c";
     args[2] = "dpu0";
-    args[3] = "CONFIG_DB";
+    args[3] = "DPU_TEST_DB";
 
     // set key to dpu test DB
     args[4] = "SET";
@@ -540,7 +540,28 @@ TEST(sonic_db_cli, test_cli_run_dpu_cmd)
     args[2] = "asic2";
     args[3] = "-c";
     args[4] = "dpu0";
-    args[5] = "CONFIG_DB";
+    args[5] = "DPU_TEST_DB";
+    int exit_code = cli_exception_wrapper(
+        5,
+        args,
+        initializeGlobalConfig,
+        initializeConfig);
+
+    EXPECT_EQ(1, exit_code);
+
+    // throw exception when dpu and unixsocket flags are used together
+    args[1] = "-s";
+    args[2] = "asic2";
+    args[3] = "-c";
+    args[4] = "dpu0";
+    args[5] = "DPU_TEST_DB";
+    exit_code = cli_exception_wrapper(
+        5,
+        args,
+        initializeGlobalConfig,
+        initializeConfig);
+
+    EXPECT_EQ(1, exit_code);
 }
 
 TEST(sonic_db_cli, test_cli_not_throw_exception)
