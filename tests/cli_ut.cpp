@@ -535,26 +535,21 @@ TEST(sonic_db_cli, test_cli_run_dpu_cmd)
     output = runCli(6, args);
     EXPECT_EQ("testvalue\n", output);
 
-    // dpu and namespace flags are used together, should return help message
+    // dpu and namespace flags are used together, should return -1 exit code
     args[1] = "-n";
     args[2] = "asic2";
     args[3] = "-c";
     args[4] = "dpu0";
     args[5] = "DPU_TEST_DB";
-    output = runCli(6, args);
+    output = runCli(6, args, -1);
 
-    const char* expected_output = "usage: sonic-db-cli";
-    EXPECT_EQ(expected_output, output.substr(0, strlen(expected_output)));
-
-    // dpu and unixsocket flags are used together, should return help message
+    // dpu and unixsocket flags are used together, should return -1 exit code
     args[1] = "-s";
     args[2] = "asic2";
     args[3] = "-c";
     args[4] = "dpu0";
     args[5] = "DPU_TEST_DB";
-    output = runCli(6, args);
-
-    EXPECT_EQ(expected_output, output.substr(0, strlen(expected_output)));
+    output = runCli(6, args, -1);
 }
 
 TEST(sonic_db_cli, test_cli_not_throw_exception)
