@@ -114,12 +114,10 @@ jobs:
         if [ ! -z "$new_macros" ]; then
           echo "ERROR: New CFG_ macros detected in common/schema.h:"
           echo -e "$new_macros"
-          echo "CFG_ macros should NOT be added directly to schema.h."
+          echo "CFG_XXX_TABLE_NAME macros should NOT be added directly to schema.h."
           echo "Instead, CFG_ macros are auto-generated from YANG models via cfg_schema.h."
           echo "To add a new configuration table:"
-          echo "1. Add the table definition to the appropriate YANG model"
-          echo "2. The CFG_XXX_TABLE_NAME macro will be automatically generated in cfg_schema.h"
-          echo "3. The macro will be available through the #include \"cfg_schema.h\" directive"
+          echo "Add the table relative YANG model. The CFG_XXX_TABLE_NAME macro will be automatically generated."
           exit 1
         fi
 
