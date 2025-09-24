@@ -426,7 +426,6 @@ string getCommandName(vector<string>& commands)
 
 string getContainerFilePath(const string& container_name, const string& global_config_file)
 {
-    cout << "getContainerFilePath: " << container_name << " global_config_file: " << global_config_file << endl;
     using json = nlohmann::json;
     ifstream i(global_config_file);
     json global_config = json::parse(i);
@@ -435,13 +434,12 @@ string getContainerFilePath(const string& container_name, const string& global_c
         if (element["container_name"] == container_name)
         {
             auto relative_path = to_string(element["include"]);
-            cout << "relative_path: " << relative_path << endl;
+
             // remove the prefix "../.. from the relative path
             relative_path = relative_path.substr(6);
-            cout << "relative_path: " << relative_path << endl;
+            
             // remove the trailing " from the relative path
             relative_path = relative_path.substr(0, relative_path.size() - 1);
-            cout << "relative_path: " << relative_path << endl;
             std::stringstream path_stream;
             path_stream << SONIC_DB_CONFIG_PATH_PREFIX << relative_path;
             return path_stream.str();
