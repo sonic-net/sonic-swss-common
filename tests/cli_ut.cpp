@@ -30,7 +30,6 @@ int sonic_db_cli(int argc, char** argv)
     {
         if (!container_name.empty()){
             auto path = getContainerFilePath(container_name, global_config_file);
-            cout << "container_name: " << container_name << " path: " << path << endl;
             SonicDBConfig::initialize(path);
         }
 
@@ -518,7 +517,6 @@ TEST(sonic_db_cli, test_parallel_cmd) {
 
 TEST(sonic_db_cli, test_cli_run_dpu_cmd)
 {
-    cout << "test_cli_run_dpu_cmd test start" << endl;
     char *args[7];
     args[0] = "sonic-db-cli";
     args[1] = "-c";
