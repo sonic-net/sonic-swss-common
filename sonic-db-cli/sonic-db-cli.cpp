@@ -25,7 +25,7 @@ void initializeConfig(const string& container_name = "")
     }
     else
     {
-        auto path = getContainerFilePath(container_name, SonicDBConfig::DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE);
+        auto path = getContainerFilePath(container_name, SONIC_DB_CONFIG_DIR, SonicDBConfig::DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE);
         SonicDBConfig::initialize(path);
     }
 };
@@ -424,7 +424,7 @@ string getCommandName(vector<string>& commands)
     return boost::to_upper_copy<string>(commands[0]);
 }
 
-string getContainerFilePath(const string& container_name, const string& global_config_file)
+string getContainerFilePath(const string& container_name, const string& config_directory, const string& global_config_file)
 {
     using json = nlohmann::json;
     ifstream i(global_config_file);
@@ -434,14 +434,18 @@ string getContainerFilePath(const string& container_name, const string& global_c
         if (element["container_name"] == container_name)
         {
             auto relative_path = to_string(element["include"]);
-
-            // remove the prefix "../.. from the relative path
-            relative_path = relative_path.substr(6);
             
-            // remove the trailing " from the relative path
-            relative_path = relative_path.substr(0, relative_path.size() - 1);
+            // remove the trailing " from the relative path (JSON string quotes)
+            if (relative_path.front() == '"' && relative_path.back() == '"') {
+                relative_path = relative_path.substr(1, relative_path.size() - 2);
+            }
+            
+            // remove all preceding "../" sequences from the relative path
+            while (relative_path.substr(0, 3) == "../") {
+                relative_path = relative_path.substr(3);
+            }
             std::stringstream path_stream;
-            path_stream << SONIC_DB_CONFIG_PATH_PREFIX << relative_path;
+            path_stream <<  config_directory << "/" << relative_path;
             return path_stream.str();
         }
     }
