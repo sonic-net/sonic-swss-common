@@ -100,8 +100,8 @@ jobs:
           allowed_dict["$macro"]=1
         done
 
-        # Find all CFG_ macros in the current schema.h
-        current_cfg_macros=$(grep -o 'CFG_[A-Za-z_]*' common/schema.h | sort | uniq)
+        # Find all CFG_ macros in the current schema.h (only from #define statements)
+        current_cfg_macros=$(grep '#define CFG_' common/schema.h | grep -o 'CFG_[A-Za-z0-9_]*' | sort | uniq)
 
         # Check if any new CFG_ macros have been added
         new_macros=""
