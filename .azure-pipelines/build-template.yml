@@ -147,6 +147,14 @@ jobs:
                         ./download/target/python-wheels/${{ parameters.debian_version }}/sonic_yang_models-1.0-py3-none-any.whl
     workingDirectory: $(Build.ArtifactStagingDirectory)
     displayName: "Install yang wheel from common lib"
+    condition: ne('${{ parameters.debian_version }}', 'trixie')
+  - script: |
+      set -ex
+      sudo pip3 install ./download/target/python-wheels/bookworm/sonic_yang_mgmt-1.0-py3-none-any.whl \
+                        ./download/target/python-wheels/bookworm/sonic_yang_models-1.0-py3-none-any.whl
+    workingDirectory: $(Build.ArtifactStagingDirectory)
+    displayName: "Install yang wheel from common lib"
+    condition: eq('${{ parameters.debian_version }}', 'trixie')
   - script: |
       set -ex
       rm ../*.deb || true
