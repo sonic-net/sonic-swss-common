@@ -362,7 +362,6 @@ after libswsscommon deb make.
 #define CFG_STP_VLAN_PORT_TABLE_NAME                "STP_VLAN_PORT"
 #define CFG_STP_PORT_TABLE_NAME                     "STP_PORT"
 #define CFG_MCLAG_TABLE_NAME                        "MCLAG_DOMAIN"
-#define CFG_MCLAG_TABLE_NAMEEEEEEE                        "MCLAG_DOMAIN"
 #define CFG_MCLAG_INTF_TABLE_NAME                   "MCLAG_INTERFACE"
 #define CFG_VRRP_TABLE_NAME                         "VRRP"
 #define CFG_VRRP6_TABLE_NAME                        "VRRP6"
@@ -402,6 +401,7 @@ after libswsscommon deb make.
 /***** STATE DATABASE *****/
 
 #define STATE_SWITCH_CAPABILITY_TABLE_NAME          "SWITCH_CAPABILITY"
+#define STATE_SWITCH_CAPABILITY_TABLE_NAMEEEEEE          "SWITCH_CAPABILITY"
 #define STATE_ACL_STAGE_CAPABILITY_TABLE_NAME       "ACL_STAGE_CAPABILITY_TABLE"
 #define STATE_PBH_CAPABILITIES_TABLE_NAME           "PBH_CAPABILITIES"
 #define STATE_PORT_TABLE_NAME                       "PORT_TABLE"
