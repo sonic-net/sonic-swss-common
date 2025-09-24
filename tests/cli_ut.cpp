@@ -543,3 +543,35 @@ TEST(sonic_db_cli, test_cli_run_dpu_cmd)
     args[4] = "dpu0";
     args[5] = "DPU_COUNTERS_DB";
 }
+
+TEST(sonic_db_cli, test_cli_not_throw_exception)
+{
+    char *args[5];
+    args[0] = "sonic-db-cli";
+    args[1] = "TEST_DB";
+
+    // set key to test DB
+    args[2] = "SET";
+    args[3] = "testkey";
+    args[4] = "testvalue";
+
+    // data base file does not exist, will throw exception
+    auto initializeGlobalConfig = []()
+    {
+        throw std::system_error();
+    };
+
+    auto initializeConfig = [](const string& container_name = "")
+    {
+        throw std::system_error();
+    };
+
+    optind = 0;
+    int exit_code = cli_exception_wrapper(
+                        5,
+                        args,
+                        initializeGlobalConfig,
+                        initializeConfig);
+
+    EXPECT_EQ(1, exit_code);
+}
