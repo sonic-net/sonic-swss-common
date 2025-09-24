@@ -362,6 +362,7 @@ after libswsscommon deb make.
 #define CFG_STP_VLAN_PORT_TABLE_NAME                "STP_VLAN_PORT"
 #define CFG_STP_PORT_TABLE_NAME                     "STP_PORT"
 #define CFG_MCLAG_TABLE_NAME                        "MCLAG_DOMAIN"
+#define CFG_MCLAG_TABLE_NAMEEEEEEE                        "MCLAG_DOMAIN"
 #define CFG_MCLAG_INTF_TABLE_NAME                   "MCLAG_INTERFACE"
 #define CFG_VRRP_TABLE_NAME                         "VRRP"
 #define CFG_VRRP6_TABLE_NAME                        "VRRP6"
