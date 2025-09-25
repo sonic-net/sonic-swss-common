@@ -185,14 +185,11 @@ fn test_dbinterface() -> Result<(), Box<dyn std::error::Error>> {
     // This should block until the data arrives (or timeout)
     // Note: Actual blocking behavior depends on implementation
     let fvs = db.get_all("TEST_DB", "key0_coming", true)?;
+    assert!(fvs.contains_key("field1"));
+    assert_eq!(fvs["field1"].as_cxx_str().to_str().unwrap(), "value2");
 
     // Wait for thread to complete
     handle.join().unwrap();
-
-    // Verify the data was set
-    let fvs_verify = db.get_all("TEST_DB", "key0_coming", false)?;
-    assert!(fvs_verify.contains_key("field1"));
-    assert_eq!(fvs_verify["field1"].as_cxx_str(), "value2");
 
     // Test hmset (Python lines 336-347)
     let mut fvs_map = HashMap::new();
