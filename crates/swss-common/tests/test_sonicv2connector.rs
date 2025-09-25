@@ -32,40 +32,40 @@ fn test_dbinterface() -> Result<(), Box<dyn std::error::Error>> {
     assert_eq!(db.get_namespace()?, "");
     db.connect("TEST_DB", true)?;
 
-    // Get redis client and flush db (Python lines 217-218)
+    // Get redis client and flush db
     let redis_client = db.get_redis_client("TEST_DB")?;
     redis_client.flush_db()?;
 
-    // Case: hset and hget normally (Python lines 220-223)
+    // Case: hset and hget normally
     db.set("TEST_DB", "key0", "field1", "value2", false)?;
     let val = db.get("TEST_DB", "key0", "field1", false)?;
     assert_eq!(val, Some("value2".to_string()));
 
-    // Case: hset an empty value (Python lines 224-227)
+    // Case: hset an empty value
     db.set("TEST_DB", "kkk3", "field3", "", false)?;
     let val = db.get("TEST_DB", "kkk3", "field3", false)?;
     assert_eq!(val, Some("".to_string()));
 
-    // Case: hset an "None" string value (Python lines 228-231)
+    // Case: hset an "None" string value
     db.set("TEST_DB", "kkk3", "field3", "None", false)?;
     let val = db.get("TEST_DB", "kkk3", "field3", false)?;
     // Note: Python converts "None" string to actual None, check if Rust does the same
     assert_eq!(val, None, "Rust should convert 'None' string to None like Python");
 
-    // hget on an existing key but non-existing field (Python lines 232-234)
+    // hget on an existing key but non-existing field
     let val = db.get("TEST_DB", "kkk3", "missing", false)?;
     assert_eq!(val, None);
 
-    // hget on an non-existing key and non-existing field (Python lines 235-237)
+    // hget on an non-existing key and non-existing field
     let val = db.get("TEST_DB", "kkk_missing", "missing", false)?;
     assert_eq!(val, None);
 
-    // Test get_all (Python lines 239-245)
+    // Test get_all
     let fvs = db.get_all("TEST_DB", "key0", false)?;
     assert!(fvs.contains_key("field1"));
     assert_eq!(fvs["field1"].as_cxx_str(), "value2");
 
-    // Test JSON serialization (Python lines 242-245)
+    // Test JSON serialization
     // Convert to a regular HashMap for JSON serialization
     let mut json_map = std::collections::HashMap::new();
     for (key, value) in &fvs {
@@ -74,7 +74,7 @@ fn test_dbinterface() -> Result<(), Box<dyn std::error::Error>> {
     let _json_result = serde_json::to_string(&json_map);
     assert!(_json_result.is_ok(), "JSON serialization should succeed");
 
-    // Test keys (Python lines 247-251)
+    // Test keys
     let ks = db.keys("TEST_DB", Some("key*"), false)?;
     assert_eq!(ks.len(), 1);
 
@@ -82,7 +82,7 @@ fn test_dbinterface() -> Result<(), Box<dyn std::error::Error>> {
     let ks_unicode = db.keys("TEST_DB", Some("key*"), false)?;
     assert_eq!(ks_unicode.len(), 1);
 
-    // Test keys could be sorted in place (Python lines 253-261)
+    // Test keys could be sorted in place
     db.set("TEST_DB", "key11", "field1", "value2", false)?;
     db.set("TEST_DB", "key12", "field1", "value2", false)?;
     db.set("TEST_DB", "key13", "field1", "value2", false)?;
@@ -95,14 +95,14 @@ fn test_dbinterface() -> Result<(), Box<dyn std::error::Error>> {
     expected.reverse();
     assert_eq!(ks, expected);
 
-    // Test del (Python lines 263-268)
+    // Test del
     db.set("TEST_DB", "key3", "field4", "value5", false)?;
     let deleted = db.del("TEST_DB", "key3", false)?;
     assert_eq!(deleted, 1);
     let deleted = db.del("TEST_DB", "key3", false)?;
     assert_eq!(deleted, 0);
 
-    // Test pubsub (Python lines 270-296)
+    // Test pubsub
     // Note: Rust may not have direct pubsub access like Python, but we test what we can
     let dbid = db.get_dbid("TEST_DB")?;
     println!("TEST_DB ID for pubsub: {}", dbid);
@@ -111,7 +111,7 @@ fn test_dbinterface() -> Result<(), Box<dyn std::error::Error>> {
     db.set("TEST_DB", "pub_key", "field3", "value3", false)?;
     db.set("TEST_DB", "pub_key", "field4", "value4", false)?;
 
-    // Test dict.get() equivalent behavior (Python lines 298-302)
+    // Test dict.get() equivalent behavior
     let fvs = db.get_all("TEST_DB", "key0", false)?;
 
     // Test fvs.get("field1") == "value2" (Python line 299)
@@ -128,7 +128,7 @@ fn test_dbinterface() -> Result<(), Box<dyn std::error::Error>> {
     let nonfield_value = fvs.get("nonfield").map(|v| v.as_cxx_str().to_str().unwrap()).unwrap_or("default");
     assert_eq!(nonfield_value, "default");
 
-    // Test dict.update() equivalent behavior (Python lines 304-318)
+    // Test dict.update() equivalent behavior
     // Note: Since get_all() returns immutable data, we can't test update() directly
     // But we can test the concept by setting new values and verifying the result
 
@@ -149,12 +149,12 @@ fn test_dbinterface() -> Result<(), Box<dyn std::error::Error>> {
 
     // Note: Python tests TypeError on invalid update - Rust type system prevents this at compile time
 
-    // Test blocking reading existing data (Python lines 320-325)
+    // Test blocking reading existing data
     let fvs = db.get_all("TEST_DB", "key0", true)?;
     assert!(fvs.contains_key("field1"));
     assert_eq!(fvs["field1"].as_cxx_str(), "value2");
 
-    // Test blocking reading coming data in Redis (Python lines 327-334)
+    // Test blocking reading coming data in Redis
     // Note: This is complex in Rust due to threading, but we'll simulate the concept
     use std::thread;
     use std::time::Duration;
@@ -191,7 +191,7 @@ fn test_dbinterface() -> Result<(), Box<dyn std::error::Error>> {
     // Wait for thread to complete
     handle.join().unwrap();
 
-    // Test hmset (Python lines 336-347)
+    // Test hmset
     let mut fvs_map = HashMap::new();
     fvs_map.insert("field1", CxxString::new("value3"));
     fvs_map.insert("field2", CxxString::new("value4"));
@@ -208,14 +208,14 @@ fn test_dbinterface() -> Result<(), Box<dyn std::error::Error>> {
     assert_eq!(attrs.len(), 3);
     assert_eq!(attrs["field5"].as_cxx_str(), "value5");
 
-    // Test empty/none namespace (Python lines 349-355)
+    // Test empty/none namespace
     let db2 = SonicV2Connector::new(true, None)?;
     assert_eq!(db2.get_namespace()?, "");
 
     let db3 = SonicV2Connector::new(true, None)?;
     assert_eq!(db3.get_namespace()?, "");
 
-    // Test no exception - various constructor patterns (Python lines 357-364)
+    // Test no exception - various constructor patterns
 
     // Python: db = SonicV2Connector(use_unix_socket_path=True, namespace='')
     let _db1 = SonicV2Connector::new(true, Some("".to_string()))?;
