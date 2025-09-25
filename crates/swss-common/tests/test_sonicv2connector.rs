@@ -78,10 +78,6 @@ fn test_dbinterface() -> Result<(), Box<dyn std::error::Error>> {
     let ks = db.keys("TEST_DB", Some("key*"), false)?;
     assert_eq!(ks.len(), 1);
 
-    // Test Unicode string pattern (Python line 250-251)
-    let ks_unicode = db.keys("TEST_DB", Some("key*"), false)?;
-    assert_eq!(ks_unicode.len(), 1);
-
     // Test keys could be sorted in place
     db.set("TEST_DB", "key11", "field1", "value2", false)?;
     db.set("TEST_DB", "key12", "field1", "value2", false)?;
@@ -114,17 +110,17 @@ fn test_dbinterface() -> Result<(), Box<dyn std::error::Error>> {
     // Test dict.get() equivalent behavior
     let fvs = db.get_all("TEST_DB", "key0", false)?;
 
-    // Test fvs.get("field1") == "value2" (Python line 299)
+    // Test fvs.get("field1") == "value2"
     assert_eq!(fvs.get("field1").map(|v| v.as_cxx_str().to_str().unwrap()), Some("value2"));
 
-    // Test fvs.get("field1_noexisting") == None (Python line 300)
+    // Test fvs.get("field1_noexisting") == None
     assert_eq!(fvs.get("field1_noexisting"), None);
 
-    // Test fvs.get("field1", "default") == "value2" (Python line 301)
+    // Test fvs.get("field1", "default") == "value2"
     let field1_value = fvs.get("field1").map(|v| v.as_cxx_str().to_str().unwrap()).unwrap_or("default");
     assert_eq!(field1_value, "value2");
 
-    // Test fvs.get("nonfield", "default") == "default" (Python line 302)
+    // Test fvs.get("nonfield", "default") == "default"
     let nonfield_value = fvs.get("nonfield").map(|v| v.as_cxx_str().to_str().unwrap()).unwrap_or("default");
     assert_eq!(nonfield_value, "default");
 
