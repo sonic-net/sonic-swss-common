@@ -1,0 +1,124 @@
+name: Prevent CFG_ Macro Additions
+
+on:
+  push:
+    branches:
+      - 'master'
+      - '202[2-9][0-9][0-9]'
+    paths:
+      - 'common/schema.h'
+  pull_request:
+    branches:
+      - 'master'
+      - '202[2-9][0-9][0-9]'
+    paths:
+      - 'common/schema.h'
+
+jobs:
+  check-cfg-macros:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Check for new CFG_ macros in schema.h
+      run: |
+        echo "Checking for new CFG_ macro additions in common/schema.h..."
+
+        # Allowed legacy CFG_ macros that should remain in schema.h
+        # DO NOT add new entries to this list
+        ALLOWED_CFG_MACROS=(
+          CFG_PORT_CABLE_LEN_TABLE_NAME
+          CFG_SEND_TO_INGRESS_PORT_TABLE_NAME
+          CFG_GEARBOX_TABLE_NAME
+          CFG_INTF_TABLE_NAME
+          CFG_LAG_INTF_TABLE_NAME
+          CFG_VLAN_INTF_TABLE_NAME
+          CFG_VLAN_SUB_INTF_TABLE_NAME
+          CFG_LAG_TABLE_NAME
+          CFG_LAG_MEMBER_TABLE_NAME
+          CFG_VLAN_STACKING_TABLE_NAME
+          CFG_VLAN_TRANSLATION_TABLE_NAME
+          CFG_FDB_TABLE_NAME
+          CFG_SWITCH_TABLE_NAME
+          CFG_NTP_GLOBAL_TABLE_NAME
+          CFG_FLEX_COUNTER_TABLE_NAME
+          CFG_WATERMARK_TABLE_NAME
+          CFG_PFC_PRIORITY_TO_QUEUE_MAP_TABLE_NAME
+          CFG_TC_TO_DOT1P_MAP_TABLE_NAME
+          CFG_BUFFER_PORT_INGRESS_PROFILE_LIST_NAME
+          CFG_BUFFER_PORT_EGRESS_PROFILE_LIST_NAME
+          CFG_DEFAULT_LOSSLESS_BUFFER_PARAMETER
+          CFG_NEIGH_SUPPRESS_VLAN_TABLE_NAME
+          CFG_VNET_RT_TABLE_NAME
+          CFG_VNET_RT_TUNNEL_TABLE_NAME
+          CFG_PASS_THROUGH_ROUTE_TABLE_NAME
+          CFG_DEBUG_COUNTER_TABLE_NAME
+          CFG_DEBUG_COUNTER_DROP_REASON_TABLE_NAME
+          CFG_STP_GLOBAL_TABLE_NAME
+          CFG_STP_VLAN_TABLE_NAME
+          CFG_STP_VLAN_PORT_TABLE_NAME
+          CFG_STP_PORT_TABLE_NAME
+          CFG_MCLAG_TABLE_NAME
+          CFG_MCLAG_INTF_TABLE_NAME
+          CFG_VRRP_TABLE_NAME
+          CFG_VRRP6_TABLE_NAME
+          CFG_RATES_TABLE_NAME
+          CFG_FG_NHG
+          CFG_FG_NHG_PREFIX
+          CFG_FG_NHG_MEMBER
+          CFG_CHASSIS_MODULE_TABLE
+          CFG_TWAMP_SESSION_TABLE_NAME
+          CFG_LOGGING_TABLE_NAME
+          CFG_DHCP_TABLE
+          CFG_DPU_TABLE
+          CFG_DASH_HA_GLOBAL_CONFIG_TABLE_NAME
+          CFG_LOGGER_TABLE_NAME
+          CFG_SAG_TABLE_NAME
+          CFG_SUPPRESS_ASIC_SDK_HEALTH_EVENT_NAME
+          CFG_PAC_PORT_CONFIG_TABLE
+          CFG_PAC_GLOBAL_CONFIG_TABLE
+          CFG_PAC_HOSTAPD_GLOBAL_CONFIG_TABLE
+          CFG_SRV6_MY_SID_TABLE_NAME
+          CFG_SRV6_MY_LOCATOR_TABLE_NAME
+          CFG_DTEL_TABLE_NAME
+          CFG_DTEL_REPORT_SESSION_TABLE_NAME
+          CFG_DTEL_INT_SESSION_TABLE_NAME
+          CFG_DTEL_QUEUE_REPORT_TABLE_NAME
+          CFG_DTEL_EVENT_TABLE_NAME
+          CFG_FABRIC_MONITOR_DATA_TABLE_NAME
+          CFG_FABRIC_MONITOR_PORT_TABLE_NAME
+          CFG_WARM_RESTART_TABLE_NAME
+          CFG_HIGH_FREQUENCY_TELEMETRY_PROFILE_TABLE_NAME
+          CFG_HIGH_FREQUENCY_TELEMETRY_GROUP_TABLE_NAME
+        )
+
+        # Create associative array for fast lookup
+        declare -A allowed_dict
+        for macro in "${ALLOWED_CFG_MACROS[@]}"; do
+          allowed_dict["$macro"]=1
+        done
+
+        # Find all CFG_ macros in the current schema.h (only from #define statements)
+        current_cfg_macros=$(grep '#define CFG_' common/schema.h | grep -o 'CFG_[A-Za-z0-9_]*' | sort | uniq)
+
+        # Check if any new CFG_ macros have been added
+        new_macros=""
+        for macro in $current_cfg_macros; do
+          if [[ -z "${allowed_dict[$macro]}" ]]; then
+            new_macros="$new_macros$macro\n"
+          fi
+        done
+
+        if [ ! -z "$new_macros" ]; then
+          echo "ERROR: New CFG_ macros detected in common/schema.h:"
+          echo -e "$new_macros"
+          echo "CFG_XXX_TABLE_NAME macros should NOT be added directly to schema.h."
+          echo "Instead, CFG_ macros are auto-generated from YANG models via cfg_schema.h."
+          echo "To add a new configuration table:"
+          echo "Add the table relative YANG model. The CFG_XXX_TABLE_NAME macro will be automatically generated."
+          exit 1
+        fi
+
+        echo "No new CFG_ macros detected. All CFG_ macros are from the allowed legacy list."
