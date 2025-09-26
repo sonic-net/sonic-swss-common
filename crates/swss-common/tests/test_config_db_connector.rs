@@ -1,8 +1,5 @@
 use std::collections::HashMap;
-use std::io;
-use std::thread;
-use std::time::Duration;
-use swss_common::{ConfigDBConnector, CxxString, DbConnector};
+use swss_common::{ConfigDBConnector, CxxString};
 use swss_common_testing::Redis;
 use serial_test::serial;
 
