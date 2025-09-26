@@ -2,6 +2,7 @@
 
 #include <string>
 #include <queue>
+#include <list>
 #include <unordered_set>
 #include <functional>
 #include <chrono>
@@ -186,7 +187,7 @@ public:
 
 private:
     DBConnector *m_db;
-    std::queue<int> m_expectedTypes;
+    std::queue<int, std::list<int>> m_expectedTypes;
     size_t m_remaining;
     long int m_ownerTid;
 
