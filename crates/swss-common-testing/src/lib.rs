@@ -146,6 +146,11 @@ const CONFIG_DB_REDIS_CONFIG_JSON: &str = r#"
                 "id": 4,
                 "separator": ":",
                 "instance": "redis"
+            },
+            "TEST_DB": {
+                "id": 15,
+                "separator": "|",
+                "instance": "redis"
             }
         }
     }
@@ -160,7 +165,6 @@ const DB_GLOBAL_CONFIG_JSON: &str = r#"
             {
                 "container_name" : "dpu0",
                 "include" : "db_config_test.json"
-
             }
         ]
     }
