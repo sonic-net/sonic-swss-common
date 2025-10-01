@@ -266,6 +266,12 @@ pub struct BorrowedDbConnector {
 }
 
 impl BorrowedDbConnector {
+    /// Create a new BorrowedDbConnector from a raw pointer.
+    /// This is intended for internal use by other modules.
+    pub(crate) fn new(ptr: SWSSDBConnector) -> Self {
+        Self { ptr }
+    }
+
     /// Flush the current database, removing all keys.
     /// Equivalent to Redis FLUSHDB command.
     pub fn flush_db(&self) -> Result<bool> {
