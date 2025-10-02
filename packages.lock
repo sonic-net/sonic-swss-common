@@ -1,0 +1,1223 @@
+{
+	"dependency_sets": {
+		"focal": {
+			"sets": {
+				"amd64": {
+					"/focal-updates/libnl-3-dev:amd64": "3.4.0-1ubuntu0.1",
+					"/focal-updates/libnl-genl-3-dev:amd64": "3.4.0-1ubuntu0.1",
+					"/focal-updates/libnl-nf-3-dev:amd64": "3.4.0-1ubuntu0.1",
+					"/focal-updates/libnl-route-3-dev:amd64": "3.4.0-1ubuntu0.1",
+					"/focal-updates/uuid-dev:amd64": "2.34-0.1ubuntu9.4",
+					"/focal/libboost-dev:amd64": "1.71.0.0ubuntu2",
+					"/focal/libboost-serialization-dev:amd64": "1.71.0.0ubuntu2",
+					"/focal/libhiredis-dev:amd64": "0.14.0-6",
+					"/focal/libyang-dev:amd64": "0.16.105-3build1",
+					"/focal/libzmq3-dev:amd64": "4.3.2-2ubuntu1",
+					"/focal/nlohmann-json3-dev:all": "3.7.3-1"
+				}
+			}
+		}
+	},
+	"facts": {
+		"focal-security/main/amd64": "sha256-PPAP+FM9Xyl+HLqg79PwCK/UBRe/jkhW/vvdQCQX/Fk=",
+		"focal-security/main/arm64": "sha256-ciZ4r8aMicFjbGcqaThQpCuY4vF6JqggRDhQ+yrtL2g=",
+		"focal-security/restricted/amd64": "sha256-G+NNiNG7p+lVwf3AeZTV/aEnhNXpKGf9vOW0iQ63HdE=",
+		"focal-security/restricted/arm64": "sha256-qPviKOkjFnoZRAn/hXD0wx2gzPjQ6J/kup5+l3mqwkM=",
+		"focal-security/universe/amd64": "sha256-D56h0DA37X7QhjKrxV3456/KYL8xxAFnLwFuozn3Dgw=",
+		"focal-updates/main/amd64": "sha256-IbyvQR6AFetp/vNG6VcDYTLTZ2+rTGS0zVCCoXgnbZ0=",
+		"focal-updates/main/arm64": "sha256-O8Y/K3Rp/6AjwKTNc2d+h3eY2iMzlb1HAx2AgmBkbKI=",
+		"focal-updates/restricted/amd64": "sha256-oBwFEJbWbD4C5NtHfYKepaJBaHEy7tf2oqk0ui9XFc8=",
+		"focal-updates/restricted/arm64": "sha256-G7Y2q2jFLqRVE4Wu9CF3oGQEJ0j88T4pUQGKoDMKu84=",
+		"focal-updates/universe/amd64": "sha256-RLESkuOhTcB3afytQan28XDovWvI23EtZJbUTkBzL7E=",
+		"focal/main/amd64": "sha256-d1eSH/j+7Zw5NKDJk21EG6SiOL7j6myMHfXLzUP8mGE=",
+		"focal/main/arm64": "sha256-4BSyQQIdjAzxbLlPRPTK+3dGUHdpuvNrd4RdOuIuLBs=",
+		"focal/restricted/amd64": "sha256-sKgv29J6TqA92w/Bg0m6MeGJlJw4PPXBcWv1iAnvnIs=",
+		"focal/restricted/arm64": "sha256-NKnRlfCG1mDV03aGlcMNa+EbT18TZW0BToSzDBbMBe8=",
+		"focal/universe/amd64": "sha256-RqdG2seJvZU3rKVNsWgLnf9RwkgVMRE1A4IZnX2WudE="
+	},
+	"packages": {
+		"/focal-security/gcc-10-base:amd64=10.5.0-1ubuntu1~20.04": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/g/gcc-10/gcc-10-base_10.5.0-1ubuntu1~20.04_amd64.deb",
+			"name": "gcc-10-base",
+			"sha256": "8fac06791057b1bba6178466e160bb3ec2a795297f10e88e34daf762572ed5c0",
+			"size": 20776,
+			"suite": "focal-security",
+			"version": "10.5.0-1ubuntu1~20.04"
+		},
+		"/focal-security/libc6:amd64=2.31-0ubuntu9.14": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/g/glibc/libc6_2.31-0ubuntu9.14_amd64.deb",
+			"name": "libc6",
+			"sha256": "a469164a97599aaef2552512acfd91c8830dc8d5e8053f9c02215ff9cd36673c",
+			"size": 2724848,
+			"suite": "focal-security",
+			"version": "2.31-0ubuntu9.14"
+		},
+		"/focal-security/libgcc-s1:amd64=10.5.0-1ubuntu1~20.04": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/g/gcc-10/libgcc-s1_10.5.0-1ubuntu1~20.04_amd64.deb",
+			"name": "libgcc-s1",
+			"sha256": "4aa7b9c9f3225df65a750ae0ff5c890fc6108c82a609b3c5abd45d211838bf3c",
+			"size": 41824,
+			"suite": "focal-security",
+			"version": "10.5.0-1ubuntu1~20.04"
+		},
+		"/focal-updates/comerr-dev:amd64=2.1-1.45.5-2ubuntu1.1": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/e/e2fsprogs/comerr-dev_2.1-1.45.5-2ubuntu1.1_amd64.deb",
+			"name": "comerr-dev",
+			"sha256": "1f4e15c76b2ee416752e4571c53cd9077b49dce410af91db14a9676ecd6e7dc6",
+			"size": 39900,
+			"suite": "focal-updates",
+			"version": "2.1-1.45.5-2ubuntu1.1"
+		},
+		"/focal-updates/dpkg:amd64=1.19.7ubuntu3.2": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/d/dpkg/dpkg_1.19.7ubuntu3.2_amd64.deb",
+			"name": "dpkg",
+			"sha256": "6fdb88a04deb4cc57a164a43de7efe2ab36fd31f6b1df9a3aca4b39fc0a4d87f",
+			"size": 1128228,
+			"suite": "focal-updates",
+			"version": "1.19.7ubuntu3.2"
+		},
+		"/focal-updates/gcc-10-base:amd64=10.5.0-1ubuntu1~20.04": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/g/gcc-10/gcc-10-base_10.5.0-1ubuntu1~20.04_amd64.deb",
+			"name": "gcc-10-base",
+			"sha256": "8fac06791057b1bba6178466e160bb3ec2a795297f10e88e34daf762572ed5c0",
+			"size": 20776,
+			"suite": "focal-updates",
+			"version": "10.5.0-1ubuntu1~20.04"
+		},
+		"/focal-updates/gcc-10-base:arm64=10.5.0-1ubuntu1~20.04": {
+			"architecture": "arm64",
+			"depends_on": [],
+			"filename": "pool/main/g/gcc-10/gcc-10-base_10.5.0-1ubuntu1~20.04_arm64.deb",
+			"name": "gcc-10-base",
+			"sha256": "b099a2d475b16fe466a435fff8c1bac7385645b77fb632e21f782f0c6787e990",
+			"size": 20780,
+			"suite": "focal-updates",
+			"version": "10.5.0-1ubuntu1~20.04"
+		},
+		"/focal-updates/krb5-multidev:amd64=1.17-6ubuntu4.4": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/k/krb5/krb5-multidev_1.17-6ubuntu4.4_amd64.deb",
+			"name": "krb5-multidev",
+			"sha256": "bc301a20ac99c4eb63aa07aca9c05a792b9b00e9a0e222ebd27a17133cb31ae2",
+			"size": 119964,
+			"suite": "focal-updates",
+			"version": "1.17-6ubuntu4.4"
+		},
+		"/focal-updates/libc-dev-bin:amd64=2.31-0ubuntu9.14": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/g/glibc/libc-dev-bin_2.31-0ubuntu9.14_amd64.deb",
+			"name": "libc-dev-bin",
+			"sha256": "4335c5c0e4e6ce9fcf7a3a4efff204a562b1034bc6839e0f2b62470ff05aa9a4",
+			"size": 71828,
+			"suite": "focal-updates",
+			"version": "2.31-0ubuntu9.14"
+		},
+		"/focal-updates/libc6-dev:amd64=2.31-0ubuntu9.14": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/g/glibc/libc6-dev_2.31-0ubuntu9.14_amd64.deb",
+			"name": "libc6-dev",
+			"sha256": "935b86dcc468909db5c0bffbc9e688cb920d46ff52bcbde8a9321ceaa6663c6b",
+			"size": 2519404,
+			"suite": "focal-updates",
+			"version": "2.31-0ubuntu9.14"
+		},
+		"/focal-updates/libc6:amd64=2.31-0ubuntu9.14": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/g/glibc/libc6_2.31-0ubuntu9.14_amd64.deb",
+			"name": "libc6",
+			"sha256": "a469164a97599aaef2552512acfd91c8830dc8d5e8053f9c02215ff9cd36673c",
+			"size": 2724848,
+			"suite": "focal-updates",
+			"version": "2.31-0ubuntu9.14"
+		},
+		"/focal-updates/libc6:arm64=2.31-0ubuntu9.14": {
+			"architecture": "arm64",
+			"depends_on": [],
+			"filename": "pool/main/g/glibc/libc6_2.31-0ubuntu9.14_arm64.deb",
+			"name": "libc6",
+			"sha256": "c9fe3f57c6d9d2209bc89c12e67b550a2e03278439cd545a38f0e40bf705f2e5",
+			"size": 2281332,
+			"suite": "focal-updates",
+			"version": "2.31-0ubuntu9.14"
+		},
+		"/focal-updates/libcom-err2:amd64=1.45.5-2ubuntu1.1": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/e/e2fsprogs/libcom-err2_1.45.5-2ubuntu1.1_amd64.deb",
+			"name": "libcom-err2",
+			"sha256": "25ad33e306bf4ed08fbd39bf32db643f189c6ed1ec2acb19553d6a2bf69e590d",
+			"size": 9548,
+			"suite": "focal-updates",
+			"version": "1.45.5-2ubuntu1.1"
+		},
+		"/focal-updates/libexpat1-dev:amd64=2.2.9-1ubuntu0.6": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/e/expat/libexpat1-dev_2.2.9-1ubuntu0.6_amd64.deb",
+			"name": "libexpat1-dev",
+			"sha256": "9563780a3635ee93fbddf5780f5ddb0c5ef9437f5d832802e0c674d3c4f7d6af",
+			"size": 116392,
+			"suite": "focal-updates",
+			"version": "2.2.9-1ubuntu0.6"
+		},
+		"/focal-updates/libexpat1:amd64=2.2.9-1ubuntu0.6": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/e/expat/libexpat1_2.2.9-1ubuntu0.6_amd64.deb",
+			"name": "libexpat1",
+			"sha256": "d17d32a884edef59cefffb3b30eecbc60c6fbed73084f540b617711444efedb0",
+			"size": 74648,
+			"suite": "focal-updates",
+			"version": "2.2.9-1ubuntu0.6"
+		},
+		"/focal-updates/libgcc-s1:amd64=10.5.0-1ubuntu1~20.04": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/g/gcc-10/libgcc-s1_10.5.0-1ubuntu1~20.04_amd64.deb",
+			"name": "libgcc-s1",
+			"sha256": "4aa7b9c9f3225df65a750ae0ff5c890fc6108c82a609b3c5abd45d211838bf3c",
+			"size": 41824,
+			"suite": "focal-updates",
+			"version": "10.5.0-1ubuntu1~20.04"
+		},
+		"/focal-updates/libgcc-s1:arm64=10.5.0-1ubuntu1~20.04": {
+			"architecture": "arm64",
+			"depends_on": [],
+			"filename": "pool/main/g/gcc-10/libgcc-s1_10.5.0-1ubuntu1~20.04_arm64.deb",
+			"name": "libgcc-s1",
+			"sha256": "9638c0a04a540175e34314f51bc3c5709859c6f7690cb16f2deccbf8f5f1ecc6",
+			"size": 34596,
+			"suite": "focal-updates",
+			"version": "10.5.0-1ubuntu1~20.04"
+		},
+		"/focal-updates/libgssapi-krb5-2:amd64=1.17-6ubuntu4.4": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/k/krb5/libgssapi-krb5-2_1.17-6ubuntu4.4_amd64.deb",
+			"name": "libgssapi-krb5-2",
+			"sha256": "873956e64e6e8c3dcbe2f62beaf919199a63e026483d1823410f9f79c954b1e2",
+			"size": 121140,
+			"suite": "focal-updates",
+			"version": "1.17-6ubuntu4.4"
+		},
+		"/focal-updates/libgssrpc4:amd64=1.17-6ubuntu4.4": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/k/krb5/libgssrpc4_1.17-6ubuntu4.4_amd64.deb",
+			"name": "libgssrpc4",
+			"sha256": "59b18e32c04545dcd3efe318f50d8763de7ad9a7a1cd72dbc2eda2307c1b6381",
+			"size": 55244,
+			"suite": "focal-updates",
+			"version": "1.17-6ubuntu4.4"
+		},
+		"/focal-updates/libk5crypto3:amd64=1.17-6ubuntu4.4": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/k/krb5/libk5crypto3_1.17-6ubuntu4.4_amd64.deb",
+			"name": "libk5crypto3",
+			"sha256": "046e292eb3beb82cc83365a4580a2c0448b484e8ce47f6057771cf44ccc9be45",
+			"size": 79884,
+			"suite": "focal-updates",
+			"version": "1.17-6ubuntu4.4"
+		},
+		"/focal-updates/libkadm5clnt-mit11:amd64=1.17-6ubuntu4.4": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/k/krb5/libkadm5clnt-mit11_1.17-6ubuntu4.4_amd64.deb",
+			"name": "libkadm5clnt-mit11",
+			"sha256": "39170b968781b80f76e29cc54e9df79499093badfd89448ba1ee43529b1c246e",
+			"size": 37744,
+			"suite": "focal-updates",
+			"version": "1.17-6ubuntu4.4"
+		},
+		"/focal-updates/libkadm5srv-mit11:amd64=1.17-6ubuntu4.4": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/k/krb5/libkadm5srv-mit11_1.17-6ubuntu4.4_amd64.deb",
+			"name": "libkadm5srv-mit11",
+			"sha256": "b90b79fe8dab68a4bbb022ed588a72261a63ffb8e96d85d82fcfb6d27ef7bbfc",
+			"size": 49644,
+			"suite": "focal-updates",
+			"version": "1.17-6ubuntu4.4"
+		},
+		"/focal-updates/libkdb5-9:amd64=1.17-6ubuntu4.4": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/k/krb5/libkdb5-9_1.17-6ubuntu4.4_amd64.deb",
+			"name": "libkdb5-9",
+			"sha256": "6fd8e6a857fd8dd16d636731c42fc60892f32ae66b8bb814ba38056c30a6c03c",
+			"size": 37504,
+			"suite": "focal-updates",
+			"version": "1.17-6ubuntu4.4"
+		},
+		"/focal-updates/libkeyutils1:amd64=1.6-6ubuntu1.1": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/k/keyutils/libkeyutils1_1.6-6ubuntu1.1_amd64.deb",
+			"name": "libkeyutils1",
+			"sha256": "5a098b2585e549b997a979c38e5bfcc07a5df3efef4753e41ad4dab1122d576c",
+			"size": 10252,
+			"suite": "focal-updates",
+			"version": "1.6-6ubuntu1.1"
+		},
+		"/focal-updates/libkrb5-3:amd64=1.17-6ubuntu4.4": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/k/krb5/libkrb5-3_1.17-6ubuntu4.4_amd64.deb",
+			"name": "libkrb5-3",
+			"sha256": "4457de873b2ad6f81311f6464568321751a4a8382526155f8560ec04ccfb9e94",
+			"size": 329732,
+			"suite": "focal-updates",
+			"version": "1.17-6ubuntu4.4"
+		},
+		"/focal-updates/libkrb5-dev:amd64=1.17-6ubuntu4.4": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/k/krb5/libkrb5-dev_1.17-6ubuntu4.4_amd64.deb",
+			"name": "libkrb5-dev",
+			"sha256": "08e4ad8358a4a82252f3ff522a2178fd486db02377c290fd644be3156168f9ec",
+			"size": 11752,
+			"suite": "focal-updates",
+			"version": "1.17-6ubuntu4.4"
+		},
+		"/focal-updates/libkrb5support0:amd64=1.17-6ubuntu4.4": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/k/krb5/libkrb5support0_1.17-6ubuntu4.4_amd64.deb",
+			"name": "libkrb5support0",
+			"sha256": "4997d0cbd7b5bcd940a981f5ab231de89febe3ee0ee53c113a0b4bf556cb97e1",
+			"size": 31020,
+			"suite": "focal-updates",
+			"version": "1.17-6ubuntu4.4"
+		},
+		"/focal-updates/liblzma5:amd64=5.2.4-1ubuntu1.1": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/x/xz-utils/liblzma5_5.2.4-1ubuntu1.1_amd64.deb",
+			"name": "liblzma5",
+			"sha256": "f545d34c86119802fbae869a09e1077a714e12a01ef6a3ef67fdc745e5db311d",
+			"size": 91812,
+			"suite": "focal-updates",
+			"version": "5.2.4-1ubuntu1.1"
+		},
+		"/focal-updates/libncursesw6:amd64=6.2-0ubuntu2.1": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/n/ncurses/libncursesw6_6.2-0ubuntu2.1_amd64.deb",
+			"name": "libncursesw6",
+			"sha256": "b6f3d459aa868b3f8a24ae1f96b6d3fc1df782e20a97820700223824c18f62ed",
+			"size": 132480,
+			"suite": "focal-updates",
+			"version": "6.2-0ubuntu2.1"
+		},
+		"/focal-updates/libnl-3-200:amd64=3.4.0-1ubuntu0.1": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/libn/libnl3/libnl-3-200_3.4.0-1ubuntu0.1_amd64.deb",
+			"name": "libnl-3-200",
+			"sha256": "2301b7012fa8b3ec41bb1971e6d501c3e985a1c6b708ca3728a9eb0587c352de",
+			"size": 54360,
+			"suite": "focal-updates",
+			"version": "3.4.0-1ubuntu0.1"
+		},
+		"/focal-updates/libnl-3-200:arm64=3.4.0-1ubuntu0.1": {
+			"architecture": "arm64",
+			"depends_on": [],
+			"filename": "pool/main/libn/libnl3/libnl-3-200_3.4.0-1ubuntu0.1_arm64.deb",
+			"name": "libnl-3-200",
+			"sha256": "1690e0569b29b16555d1c460eceaaeee82721568d33c3ed92b6ffaca5a6b5706",
+			"size": 51156,
+			"suite": "focal-updates",
+			"version": "3.4.0-1ubuntu0.1"
+		},
+		"/focal-updates/libnl-3-dev:amd64=3.4.0-1ubuntu0.1": {
+			"architecture": "amd64",
+			"depends_on": [
+				"/focal-updates/libnl-3-200:amd64=3.4.0-1ubuntu0.1",
+				"/focal-updates/libc6:amd64=2.31-0ubuntu9.14",
+				"/focal/libcrypt1:amd64=1:4.4.10-10ubuntu4",
+				"/focal-updates/libgcc-s1:amd64=10.5.0-1ubuntu1~20.04",
+				"/focal-updates/gcc-10-base:amd64=10.5.0-1ubuntu1~20.04"
+			],
+			"filename": "pool/main/libn/libnl3/libnl-3-dev_3.4.0-1ubuntu0.1_amd64.deb",
+			"name": "libnl-3-dev",
+			"sha256": "2bad5942a76854cfa01a1c396ece3a831d2eccbe0978280812c7b6c8ad8717d7",
+			"size": 92868,
+			"suite": "focal-updates",
+			"version": "3.4.0-1ubuntu0.1"
+		},
+		"/focal-updates/libnl-3-dev:arm64=3.4.0-1ubuntu0.1": {
+			"architecture": "arm64",
+			"depends_on": [
+				"/focal-updates/libnl-3-200:arm64=3.4.0-1ubuntu0.1",
+				"/focal-updates/libc6:arm64=2.31-0ubuntu9.14",
+				"/focal/libcrypt1:arm64=1:4.4.10-10ubuntu4",
+				"/focal-updates/libgcc-s1:arm64=10.5.0-1ubuntu1~20.04",
+				"/focal-updates/gcc-10-base:arm64=10.5.0-1ubuntu1~20.04"
+			],
+			"filename": "pool/main/libn/libnl3/libnl-3-dev_3.4.0-1ubuntu0.1_arm64.deb",
+			"name": "libnl-3-dev",
+			"sha256": "df82787d164038550392078bf64013454d808799eea9bd107e71210850300135",
+			"size": 93248,
+			"suite": "focal-updates",
+			"version": "3.4.0-1ubuntu0.1"
+		},
+		"/focal-updates/libnl-genl-3-200:amd64=3.4.0-1ubuntu0.1": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/libn/libnl3/libnl-genl-3-200_3.4.0-1ubuntu0.1_amd64.deb",
+			"name": "libnl-genl-3-200",
+			"sha256": "e8ec98184284ed22598e6da0285da0ea74cd6a53a334158ecb1721457a1fd0c9",
+			"size": 11220,
+			"suite": "focal-updates",
+			"version": "3.4.0-1ubuntu0.1"
+		},
+		"/focal-updates/libnl-genl-3-dev:amd64=3.4.0-1ubuntu0.1": {
+			"architecture": "amd64",
+			"depends_on": [
+				"/focal-updates/libnl-genl-3-200:amd64=3.4.0-1ubuntu0.1",
+				"/focal-updates/libc6:amd64=2.31-0ubuntu9.14",
+				"/focal/libcrypt1:amd64=1:4.4.10-10ubuntu4",
+				"/focal-updates/libgcc-s1:amd64=10.5.0-1ubuntu1~20.04",
+				"/focal-updates/gcc-10-base:amd64=10.5.0-1ubuntu1~20.04",
+				"/focal-updates/libnl-3-200:amd64=3.4.0-1ubuntu0.1",
+				"/focal-updates/libnl-3-dev:amd64=3.4.0-1ubuntu0.1"
+			],
+			"filename": "pool/main/libn/libnl3/libnl-genl-3-dev_3.4.0-1ubuntu0.1_amd64.deb",
+			"name": "libnl-genl-3-dev",
+			"sha256": "ef5147165e7c7246e491d1b3c276448b2caecfe08c7d5565aaa051189bfe8bfc",
+			"size": 10816,
+			"suite": "focal-updates",
+			"version": "3.4.0-1ubuntu0.1"
+		},
+		"/focal-updates/libnl-nf-3-200:amd64=3.4.0-1ubuntu0.1": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/libn/libnl3/libnl-nf-3-200_3.4.0-1ubuntu0.1_amd64.deb",
+			"name": "libnl-nf-3-200",
+			"sha256": "73377b64281f4fffca26683280070d8d191c77fb64b6566d54eb74affb78a5cc",
+			"size": 28956,
+			"suite": "focal-updates",
+			"version": "3.4.0-1ubuntu0.1"
+		},
+		"/focal-updates/libnl-nf-3-dev:amd64=3.4.0-1ubuntu0.1": {
+			"architecture": "amd64",
+			"depends_on": [
+				"/focal-updates/libnl-nf-3-200:amd64=3.4.0-1ubuntu0.1",
+				"/focal-updates/libc6:amd64=2.31-0ubuntu9.14",
+				"/focal/libcrypt1:amd64=1:4.4.10-10ubuntu4",
+				"/focal-updates/libgcc-s1:amd64=10.5.0-1ubuntu1~20.04",
+				"/focal-updates/gcc-10-base:amd64=10.5.0-1ubuntu1~20.04",
+				"/focal-updates/libnl-route-3-200:amd64=3.4.0-1ubuntu0.1",
+				"/focal-updates/libnl-3-200:amd64=3.4.0-1ubuntu0.1",
+				"/focal-updates/libnl-route-3-dev:amd64=3.4.0-1ubuntu0.1",
+				"/focal-updates/libnl-3-dev:amd64=3.4.0-1ubuntu0.1"
+			],
+			"filename": "pool/main/libn/libnl3/libnl-nf-3-dev_3.4.0-1ubuntu0.1_amd64.deb",
+			"name": "libnl-nf-3-dev",
+			"sha256": "4e416932b8c4161ab4b49352c49698f5190215214c9961a40c1390947fa926a6",
+			"size": 28372,
+			"suite": "focal-updates",
+			"version": "3.4.0-1ubuntu0.1"
+		},
+		"/focal-updates/libnl-route-3-200:amd64=3.4.0-1ubuntu0.1": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/libn/libnl3/libnl-route-3-200_3.4.0-1ubuntu0.1_amd64.deb",
+			"name": "libnl-route-3-200",
+			"sha256": "7b6200f51b2840029d92eeb7d1fd4b359a082795ace6bed44d83f3b1a29e4824",
+			"size": 150552,
+			"suite": "focal-updates",
+			"version": "3.4.0-1ubuntu0.1"
+		},
+		"/focal-updates/libnl-route-3-dev:amd64=3.4.0-1ubuntu0.1": {
+			"architecture": "amd64",
+			"depends_on": [
+				"/focal-updates/libnl-route-3-200:amd64=3.4.0-1ubuntu0.1",
+				"/focal-updates/libc6:amd64=2.31-0ubuntu9.14",
+				"/focal/libcrypt1:amd64=1:4.4.10-10ubuntu4",
+				"/focal-updates/libgcc-s1:amd64=10.5.0-1ubuntu1~20.04",
+				"/focal-updates/gcc-10-base:amd64=10.5.0-1ubuntu1~20.04",
+				"/focal-updates/libnl-3-200:amd64=3.4.0-1ubuntu0.1",
+				"/focal-updates/libnl-3-dev:amd64=3.4.0-1ubuntu0.1"
+			],
+			"filename": "pool/main/libn/libnl3/libnl-route-3-dev_3.4.0-1ubuntu0.1_amd64.deb",
+			"name": "libnl-route-3-dev",
+			"sha256": "ab8543ded4988a84ea56f8cc557005deccbc8248870dc2612192fbb29c5501d5",
+			"size": 167448,
+			"suite": "focal-updates",
+			"version": "3.4.0-1ubuntu0.1"
+		},
+		"/focal-updates/libpcre16-3:amd64=2:8.39-12ubuntu0.1": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/p/pcre3/libpcre16-3_8.39-12ubuntu0.1_amd64.deb",
+			"name": "libpcre16-3",
+			"sha256": "f1a0a90902ab2d884a263a26f6754c001fb80b9f46aa9608c5dee09db0846320",
+			"size": 149824,
+			"suite": "focal-updates",
+			"version": "2:8.39-12ubuntu0.1"
+		},
+		"/focal-updates/libpcre2-8-0:amd64=10.34-7ubuntu0.1": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/p/pcre2/libpcre2-8-0_10.34-7ubuntu0.1_amd64.deb",
+			"name": "libpcre2-8-0",
+			"sha256": "5229f14c06074ae5f2d6dd7cef2c9dff8dd57c6ecf1381ff019fe5d233cc275f",
+			"size": 197976,
+			"suite": "focal-updates",
+			"version": "10.34-7ubuntu0.1"
+		},
+		"/focal-updates/libpcre3-dev:amd64=2:8.39-12ubuntu0.1": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/p/pcre3/libpcre3-dev_8.39-12ubuntu0.1_amd64.deb",
+			"name": "libpcre3-dev",
+			"sha256": "ecfe009b98fe4228a4d9d9ef04983e3ec7292a953d0a1e67c5b69c2232332fb9",
+			"size": 540468,
+			"suite": "focal-updates",
+			"version": "2:8.39-12ubuntu0.1"
+		},
+		"/focal-updates/libpcre32-3:amd64=2:8.39-12ubuntu0.1": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/p/pcre3/libpcre32-3_8.39-12ubuntu0.1_amd64.deb",
+			"name": "libpcre32-3",
+			"sha256": "4542168d8f2793ec6d101ce9a06e5bea935d304bdc37127a73136d303fb55ee0",
+			"size": 140268,
+			"suite": "focal-updates",
+			"version": "2:8.39-12ubuntu0.1"
+		},
+		"/focal-updates/libpcre3:amd64=2:8.39-12ubuntu0.1": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/p/pcre3/libpcre3_8.39-12ubuntu0.1_amd64.deb",
+			"name": "libpcre3",
+			"sha256": "98c25f98cc8df949e774a7ebaff509c37a6baea4dab83786a3c1efecb850bfae",
+			"size": 232396,
+			"suite": "focal-updates",
+			"version": "2:8.39-12ubuntu0.1"
+		},
+		"/focal-updates/libpcrecpp0v5:amd64=2:8.39-12ubuntu0.1": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/p/pcre3/libpcrecpp0v5_8.39-12ubuntu0.1_amd64.deb",
+			"name": "libpcrecpp0v5",
+			"sha256": "aa3849bf6ee28f8f55b88369b34346ee8c3a33e3ee337b1ccefa112516f2fb15",
+			"size": 15504,
+			"suite": "focal-updates",
+			"version": "2:8.39-12ubuntu0.1"
+		},
+		"/focal-updates/libpython2.7-dev:amd64=2.7.18-1~20.04.3": {
+			"architecture": "amd64",
+			"depends_on": [
+				"/focal-updates/libexpat1-dev:amd64=2.2.9-1ubuntu0.6",
+				"/focal-updates/libc6-dev:amd64=2.31-0ubuntu9.14",
+				"/focal/libcrypt-dev:amd64=1:4.4.10-10ubuntu4",
+				"/focal/libcrypt1:amd64=1:4.4.10-10ubuntu4",
+				"/focal-updates/libc6:amd64=2.31-0ubuntu9.14",
+				"/focal-updates/libgcc-s1:amd64=10.5.0-1ubuntu1~20.04",
+				"/focal-updates/gcc-10-base:amd64=10.5.0-1ubuntu1~20.04",
+				"/focal-updates/linux-libc-dev:amd64=5.4.0-172.190",
+				"/focal-updates/libc-dev-bin:amd64=2.31-0ubuntu9.14",
+				"/focal-updates/libexpat1:amd64=2.2.9-1ubuntu0.6",
+				"/focal-updates/libpython2.7:amd64=2.7.18-1~20.04.3",
+				"/focal-updates/zlib1g:amd64=1:1.2.11.dfsg-2ubuntu1.5",
+				"/focal-updates/libpython2.7-stdlib:amd64=2.7.18-1~20.04.3",
+				"/focal-updates/libtinfo6:amd64=6.2-0ubuntu2.1",
+				"/focal-updates/libsqlite3-0:amd64=3.31.1-4ubuntu0.6",
+				"/focal/libreadline8:amd64=8.0-4",
+				"/focal/readline-common:all=8.0-4",
+				"/focal-updates/dpkg:amd64=1.19.7ubuntu3.2",
+				"/focal-updates/tar:amd64=1.30+dfsg-7ubuntu0.20.04.4",
+				"/focal/libselinux1:amd64=3.0-1build2",
+				"/focal-updates/libpcre2-8-0:amd64=10.34-7ubuntu0.1",
+				"/focal/libacl1:amd64=2.2.53-6",
+				"/focal-updates/libzstd1:amd64=1.4.4+dfsg-3ubuntu0.1",
+				"/focal-updates/liblzma5:amd64=5.2.4-1ubuntu1.1",
+				"/focal/libbz2-1.0:amd64=1.0.8-2",
+				"/focal-updates/libncursesw6:amd64=6.2-0ubuntu2.1",
+				"/focal/libffi7:amd64=3.3-4",
+				"/focal/libdb5.3:amd64=5.3.28+dfsg1-0.6ubuntu2",
+				"/focal/mime-support:all=3.64ubuntu1",
+				"/focal-updates/libssl1.1:amd64=1.1.1f-1ubuntu2.22",
+				"/focal/debconf:all=1.5.73",
+				"/focal-updates/perl-base:amd64=5.30.0-9ubuntu0.5",
+				"/focal-updates/libpython2.7-minimal:amd64=2.7.18-1~20.04.3"
+			],
+			"filename": "pool/universe/p/python2.7/libpython2.7-dev_2.7.18-1~20.04.3_amd64.deb",
+			"name": "libpython2.7-dev",
+			"sha256": "16ca1a594688ce7eccc2ac99a8675cf578e13389de24f7a38c328286fe25d89f",
+			"size": 2466392,
+			"suite": "focal-updates",
+			"version": "2.7.18-1~20.04.3"
+		},
+		"/focal-updates/libpython2.7-minimal:amd64=2.7.18-1~20.04.3": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/universe/p/python2.7/libpython2.7-minimal_2.7.18-1~20.04.3_amd64.deb",
+			"name": "libpython2.7-minimal",
+			"sha256": "0a817771e43abe14be25e22afd2118cfa7abea1029e2c3d1c26f4f426587a6ed",
+			"size": 335576,
+			"suite": "focal-updates",
+			"version": "2.7.18-1~20.04.3"
+		},
+		"/focal-updates/libpython2.7-stdlib:amd64=2.7.18-1~20.04.3": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/universe/p/python2.7/libpython2.7-stdlib_2.7.18-1~20.04.3_amd64.deb",
+			"name": "libpython2.7-stdlib",
+			"sha256": "b53360ff0bc732770fa73618c5d4d4abbd411034fcb16c98485e079217f22653",
+			"size": 1887808,
+			"suite": "focal-updates",
+			"version": "2.7.18-1~20.04.3"
+		},
+		"/focal-updates/libpython2.7:amd64=2.7.18-1~20.04.3": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/universe/p/python2.7/libpython2.7_2.7.18-1~20.04.3_amd64.deb",
+			"name": "libpython2.7",
+			"sha256": "d71287dceb241ce4871241c86739121239d4bcb59c0a4c1580f122eed374ab94",
+			"size": 1037408,
+			"suite": "focal-updates",
+			"version": "2.7.18-1~20.04.3"
+		},
+		"/focal-updates/libsqlite3-0:amd64=3.31.1-4ubuntu0.6": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/s/sqlite3/libsqlite3-0_3.31.1-4ubuntu0.6_amd64.deb",
+			"name": "libsqlite3-0",
+			"sha256": "5a680b1560a6cf69d8bca1c0265293cb3654f5c43390c61fbd862a746ab97614",
+			"size": 548804,
+			"suite": "focal-updates",
+			"version": "3.31.1-4ubuntu0.6"
+		},
+		"/focal-updates/libssl1.1:amd64=1.1.1f-1ubuntu2.22": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.22_amd64.deb",
+			"name": "libssl1.1",
+			"sha256": "df9d07d552aab0c7e5b9fbcc568913acd20d50fb8b1e34876fa348b7a0c82d48",
+			"size": 1322804,
+			"suite": "focal-updates",
+			"version": "1.1.1f-1ubuntu2.22"
+		},
+		"/focal-updates/libstdc++6:amd64=10.5.0-1ubuntu1~20.04": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/g/gcc-10/libstdc++6_10.5.0-1ubuntu1~20.04_amd64.deb",
+			"name": "libstdc++6",
+			"sha256": "7f9222342d3551d063bf651319ec397c39278eeeb9ab5950ae0e8c28ef0af431",
+			"size": 501136,
+			"suite": "focal-updates",
+			"version": "10.5.0-1ubuntu1~20.04"
+		},
+		"/focal-updates/libtinfo6:amd64=6.2-0ubuntu2.1": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/n/ncurses/libtinfo6_6.2-0ubuntu2.1_amd64.deb",
+			"name": "libtinfo6",
+			"sha256": "711a3a901c3a71561565558865699efa9c07a99fdc810ffe086a5636f89c6431",
+			"size": 87420,
+			"suite": "focal-updates",
+			"version": "6.2-0ubuntu2.1"
+		},
+		"/focal-updates/libuuid1:amd64=2.34-0.1ubuntu9.4": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/u/util-linux/libuuid1_2.34-0.1ubuntu9.4_amd64.deb",
+			"name": "libuuid1",
+			"sha256": "c489687ed296c92ce173c39173f4c12d3f0beeba45d23d369dc8e44961ef2767",
+			"size": 19992,
+			"suite": "focal-updates",
+			"version": "2.34-0.1ubuntu9.4"
+		},
+		"/focal-updates/libzstd1:amd64=1.4.4+dfsg-3ubuntu0.1": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/libz/libzstd/libzstd1_1.4.4+dfsg-3ubuntu0.1_amd64.deb",
+			"name": "libzstd1",
+			"sha256": "7a4422dadb90510dc90765c308d65e61a3e244ceb3886394335e48cff7559e69",
+			"size": 236912,
+			"suite": "focal-updates",
+			"version": "1.4.4+dfsg-3ubuntu0.1"
+		},
+		"/focal-updates/linux-libc-dev:amd64=5.4.0-172.190": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/l/linux/linux-libc-dev_5.4.0-172.190_amd64.deb",
+			"name": "linux-libc-dev",
+			"sha256": "af6820eb80c881d68171565e77a561be40389c5b8b57c7010383279351e5bf8b",
+			"size": 1131368,
+			"suite": "focal-updates",
+			"version": "5.4.0-172.190"
+		},
+		"/focal-updates/perl-base:amd64=5.30.0-9ubuntu0.5": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/p/perl/perl-base_5.30.0-9ubuntu0.5_amd64.deb",
+			"name": "perl-base",
+			"sha256": "9997a2d7cf8a0ce2270730414c269e04a3ad6457280c21741c9e8f2489b18ba7",
+			"size": 1513756,
+			"suite": "focal-updates",
+			"version": "5.30.0-9ubuntu0.5"
+		},
+		"/focal-updates/tar:amd64=1.30+dfsg-7ubuntu0.20.04.4": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/t/tar/tar_1.30+dfsg-7ubuntu0.20.04.4_amd64.deb",
+			"name": "tar",
+			"sha256": "7387a202f0c71a5638c9514f854f2efd9809e24fa5212d1c7227b02bd06be5ec",
+			"size": 239740,
+			"suite": "focal-updates",
+			"version": "1.30+dfsg-7ubuntu0.20.04.4"
+		},
+		"/focal-updates/uuid-dev:amd64=2.34-0.1ubuntu9.4": {
+			"architecture": "amd64",
+			"depends_on": [
+				"/focal-updates/libuuid1:amd64=2.34-0.1ubuntu9.4",
+				"/focal-updates/libc6:amd64=2.31-0ubuntu9.14",
+				"/focal/libcrypt1:amd64=1:4.4.10-10ubuntu4",
+				"/focal-updates/libgcc-s1:amd64=10.5.0-1ubuntu1~20.04",
+				"/focal-updates/gcc-10-base:amd64=10.5.0-1ubuntu1~20.04",
+				"/focal-updates/libc6-dev:amd64=2.31-0ubuntu9.14",
+				"/focal/libcrypt-dev:amd64=1:4.4.10-10ubuntu4",
+				"/focal-updates/linux-libc-dev:amd64=5.4.0-172.190",
+				"/focal-updates/libc-dev-bin:amd64=2.31-0ubuntu9.14"
+			],
+			"filename": "pool/main/u/util-linux/uuid-dev_2.34-0.1ubuntu9.4_amd64.deb",
+			"name": "uuid-dev",
+			"sha256": "d7cf7c7771740f887cb47c612fba2ca4667d7d4cd5ace91ba6ec8d5e0d1ff7da",
+			"size": 33580,
+			"suite": "focal-updates",
+			"version": "2.34-0.1ubuntu9.4"
+		},
+		"/focal-updates/zlib1g:amd64=1:1.2.11.dfsg-2ubuntu1.5": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/z/zlib/zlib1g_1.2.11.dfsg-2ubuntu1.5_amd64.deb",
+			"name": "zlib1g",
+			"sha256": "bf67018f5303466eb468680b637a5d3f3bb17b9d44decf3d82d40b35babcd3e0",
+			"size": 54164,
+			"suite": "focal-updates",
+			"version": "1:1.2.11.dfsg-2ubuntu1.5"
+		},
+		"/focal/debconf:all=1.5.73": {
+			"architecture": "all",
+			"depends_on": [],
+			"filename": "pool/main/d/debconf/debconf_1.5.73_all.deb",
+			"name": "debconf",
+			"sha256": "7d639ffea1be8e8f5859ca94a0a09b1e4664d10af421c748b4163b08db515990",
+			"size": 121524,
+			"suite": "focal",
+			"version": "1.5.73"
+		},
+		"/focal/googletest:all=1.10.0-2": {
+			"architecture": "all",
+			"depends_on": [],
+			"filename": "pool/universe/g/googletest/googletest_1.10.0-2_all.deb",
+			"name": "googletest",
+			"sha256": "f0047ded3178f5aa1d65f974b0310d012865e4ecb229d57418926438ecca4792",
+			"size": 623408,
+			"suite": "focal",
+			"version": "1.10.0-2"
+		},
+		"/focal/libacl1:amd64=2.2.53-6": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/a/acl/libacl1_2.2.53-6_amd64.deb",
+			"name": "libacl1",
+			"sha256": "9fa9cc2f8eeccd8d29efcb998111b082432c65de75ca60ad9c333289bb3bb765",
+			"size": 18820,
+			"suite": "focal",
+			"version": "2.2.53-6"
+		},
+		"/focal/libboost-dev:amd64=1.71.0.0ubuntu2": {
+			"architecture": "amd64",
+			"depends_on": [
+				"/focal/libboost1.71-dev:amd64=1.71.0-6ubuntu6"
+			],
+			"filename": "pool/main/b/boost-defaults/libboost-dev_1.71.0.0ubuntu2_amd64.deb",
+			"name": "libboost-dev",
+			"sha256": "e9e969b50d2efdf243bf220695ad575941e2709c582fd94130dfcb184ae8986c",
+			"size": 3596,
+			"suite": "focal",
+			"version": "1.71.0.0ubuntu2"
+		},
+		"/focal/libboost-serialization-dev:amd64=1.71.0.0ubuntu2": {
+			"architecture": "amd64",
+			"depends_on": [
+				"/focal/libboost-serialization1.71-dev:amd64=1.71.0-6ubuntu6",
+				"/focal/libboost-serialization1.71.0:amd64=1.71.0-6ubuntu6",
+				"/focal-updates/libstdc++6:amd64=10.5.0-1ubuntu1~20.04",
+				"/focal-updates/libgcc-s1:amd64=10.5.0-1ubuntu1~20.04",
+				"/focal-updates/libc6:amd64=2.31-0ubuntu9.14",
+				"/focal/libcrypt1:amd64=1:4.4.10-10ubuntu4",
+				"/focal-updates/gcc-10-base:amd64=10.5.0-1ubuntu1~20.04",
+				"/focal/libboost1.71-dev:amd64=1.71.0-6ubuntu6"
+			],
+			"filename": "pool/universe/b/boost-defaults/libboost-serialization-dev_1.71.0.0ubuntu2_amd64.deb",
+			"name": "libboost-serialization-dev",
+			"sha256": "2cd4e91752e400f9f56af216bc8cca1698b6ef7f6b2074cfa163c5aa8a5e3535",
+			"size": 3612,
+			"suite": "focal",
+			"version": "1.71.0.0ubuntu2"
+		},
+		"/focal/libboost-serialization1.71-dev:amd64=1.71.0-6ubuntu6": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/b/boost1.71/libboost-serialization1.71-dev_1.71.0-6ubuntu6_amd64.deb",
+			"name": "libboost-serialization1.71-dev",
+			"sha256": "1e1bd98b228e004c5fc5fcd34ce67e4840e8d0cd5159c2c257ed5967a2e3864e",
+			"size": 343900,
+			"suite": "focal",
+			"version": "1.71.0-6ubuntu6"
+		},
+		"/focal/libboost-serialization1.71.0:amd64=1.71.0-6ubuntu6": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/b/boost1.71/libboost-serialization1.71.0_1.71.0-6ubuntu6_amd64.deb",
+			"name": "libboost-serialization1.71.0",
+			"sha256": "29a885e9b1353b1bb69c6d067909c689af86c02bf3a108db1b9d56e9cc63343c",
+			"size": 301616,
+			"suite": "focal",
+			"version": "1.71.0-6ubuntu6"
+		},
+		"/focal/libboost1.71-dev:amd64=1.71.0-6ubuntu6": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/b/boost1.71/libboost1.71-dev_1.71.0-6ubuntu6_amd64.deb",
+			"name": "libboost1.71-dev",
+			"sha256": "d3346a9c1eb551c1b0214ee6db4efead588da16e607d1290ab143453a5e8924f",
+			"size": 9068148,
+			"suite": "focal",
+			"version": "1.71.0-6ubuntu6"
+		},
+		"/focal/libbz2-1.0:amd64=1.0.8-2": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/b/bzip2/libbz2-1.0_1.0.8-2_amd64.deb",
+			"name": "libbz2-1.0",
+			"sha256": "f3632ec38402ca0f9c61a6854469f1a0eba9389d3f73827b466033c3d5bbec69",
+			"size": 32308,
+			"suite": "focal",
+			"version": "1.0.8-2"
+		},
+		"/focal/libcrypt-dev:amd64=1:4.4.10-10ubuntu4": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/libx/libxcrypt/libcrypt-dev_4.4.10-10ubuntu4_amd64.deb",
+			"name": "libcrypt-dev",
+			"sha256": "f0a41d8e8cf379dbbdfc43169f34851ed452b3581e72c6654f2e290caf4e1b20",
+			"size": 104104,
+			"suite": "focal",
+			"version": "1:4.4.10-10ubuntu4"
+		},
+		"/focal/libcrypt1:amd64=1:4.4.10-10ubuntu4": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/libx/libxcrypt/libcrypt1_4.4.10-10ubuntu4_amd64.deb",
+			"name": "libcrypt1",
+			"sha256": "231b4dbbe5865775f118cfa61394f1e16fa7102b6953a327e672499a20876d73",
+			"size": 78204,
+			"suite": "focal",
+			"version": "1:4.4.10-10ubuntu4"
+		},
+		"/focal/libcrypt1:arm64=1:4.4.10-10ubuntu4": {
+			"architecture": "arm64",
+			"depends_on": [],
+			"filename": "pool/main/libx/libxcrypt/libcrypt1_4.4.10-10ubuntu4_arm64.deb",
+			"name": "libcrypt1",
+			"sha256": "89907b6c1b613c430a53ef10909934b9ce5854a396cd173360495f6f8e5e7ea4",
+			"size": 82520,
+			"suite": "focal",
+			"version": "1:4.4.10-10ubuntu4"
+		},
+		"/focal/libdb5.3:amd64=5.3.28+dfsg1-0.6ubuntu2": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/d/db5.3/libdb5.3_5.3.28+dfsg1-0.6ubuntu2_amd64.deb",
+			"name": "libdb5.3",
+			"sha256": "330775026b5e31340387fb58e12e40e241ca34cbbb6c0c28331bd83cb47c3656",
+			"size": 675076,
+			"suite": "focal",
+			"version": "5.3.28+dfsg1-0.6ubuntu2"
+		},
+		"/focal/libffi7:amd64=3.3-4": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/libf/libffi/libffi7_3.3-4_amd64.deb",
+			"name": "libffi7",
+			"sha256": "4584aa8fef1bf5086168ce2f7078cd2ebd78fdc4cc0d86d958d795d4e0b0f50d",
+			"size": 19688,
+			"suite": "focal",
+			"version": "3.3-4"
+		},
+		"/focal/libgmock-dev:amd64=1.10.0-2": {
+			"architecture": "amd64",
+			"depends_on": [
+				"/focal/libgtest-dev:amd64=1.10.0-2",
+				"/focal/googletest:all=1.10.0-2"
+			],
+			"filename": "pool/universe/g/googletest/libgmock-dev_1.10.0-2_amd64.deb",
+			"name": "libgmock-dev",
+			"sha256": "a1ecbd039344176f12045af2dd8f43c1577c5252a528966669dcf0d7cdc558ed",
+			"size": 119448,
+			"suite": "focal",
+			"version": "1.10.0-2"
+		},
+		"/focal/libgtest-dev:amd64=1.10.0-2": {
+			"architecture": "amd64",
+			"depends_on": [
+				"/focal/googletest:all=1.10.0-2"
+			],
+			"filename": "pool/universe/g/googletest/libgtest-dev_1.10.0-2_amd64.deb",
+			"name": "libgtest-dev",
+			"sha256": "267f0b12893ec2131b83b260fbb459bebc896279777a274a31859a290ad5949f",
+			"size": 1583468,
+			"suite": "focal",
+			"version": "1.10.0-2"
+		},
+		"/focal/libhiredis-dev:amd64=0.14.0-6": {
+			"architecture": "amd64",
+			"depends_on": [
+				"/focal/libhiredis0.14:amd64=0.14.0-6",
+				"/focal-updates/libc6:amd64=2.31-0ubuntu9.14",
+				"/focal/libcrypt1:amd64=1:4.4.10-10ubuntu4",
+				"/focal-updates/libgcc-s1:amd64=10.5.0-1ubuntu1~20.04",
+				"/focal-updates/gcc-10-base:amd64=10.5.0-1ubuntu1~20.04"
+			],
+			"filename": "pool/universe/h/hiredis/libhiredis-dev_0.14.0-6_amd64.deb",
+			"name": "libhiredis-dev",
+			"sha256": "6e2a2e25f9aafb165167244b3e5639d1b9a7dc8939c03efb709bc005e7c6850a",
+			"size": 48928,
+			"suite": "focal",
+			"version": "0.14.0-6"
+		},
+		"/focal/libhiredis0.14:amd64=0.14.0-6": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/universe/h/hiredis/libhiredis0.14_0.14.0-6_amd64.deb",
+			"name": "libhiredis0.14",
+			"sha256": "fd84ad0d45ebd87e54913f6e9d80dba967208c648236309d0d9cc3ed7de5a5c5",
+			"size": 30220,
+			"suite": "focal",
+			"version": "0.14.0-6"
+		},
+		"/focal/libnl-3-200:amd64=3.4.0-1": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/libn/libnl3/libnl-3-200_3.4.0-1_amd64.deb",
+			"name": "libnl-3-200",
+			"sha256": "d52b95d96cb62f1494a37be0b5e383fc7178aabf2b896fbaca053250c67a16cb",
+			"size": 53864,
+			"suite": "focal",
+			"version": "3.4.0-1"
+		},
+		"/focal/libnl-3-dev:amd64=3.4.0-1": {
+			"architecture": "amd64",
+			"depends_on": [
+				"/focal/libnl-3-200:amd64=3.4.0-1",
+				"/focal-security/libc6:amd64=2.31-0ubuntu9.14",
+				"/focal/libcrypt1:amd64=1:4.4.10-10ubuntu4",
+				"/focal-security/libgcc-s1:amd64=10.5.0-1ubuntu1~20.04",
+				"/focal-security/gcc-10-base:amd64=10.5.0-1ubuntu1~20.04"
+			],
+			"filename": "pool/main/libn/libnl3/libnl-3-dev_3.4.0-1_amd64.deb",
+			"name": "libnl-3-dev",
+			"sha256": "ee2fda94e298cbfe1436b8505c177d7a81926aa099463292df366e6eeac1e602",
+			"size": 92208,
+			"suite": "focal",
+			"version": "3.4.0-1"
+		},
+		"/focal/libnorm-dev:amd64=1.5.8+dfsg2-2build1": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/universe/n/norm/libnorm-dev_1.5.8+dfsg2-2build1_amd64.deb",
+			"name": "libnorm-dev",
+			"sha256": "a1a52859a4462dca9ccc587589b73e2a80d0e93baf693436b58b25d5389bb9fb",
+			"size": 463240,
+			"suite": "focal",
+			"version": "1.5.8+dfsg2-2build1"
+		},
+		"/focal/libnorm1:amd64=1.5.8+dfsg2-2build1": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/universe/n/norm/libnorm1_1.5.8+dfsg2-2build1_amd64.deb",
+			"name": "libnorm1",
+			"sha256": "434e1cfc3ee3dd47ff9f15f8bd731e05fc5489ed24de3a1cb499f084a982e35b",
+			"size": 289928,
+			"suite": "focal",
+			"version": "1.5.8+dfsg2-2build1"
+		},
+		"/focal/libpgm-5.2-0:amd64=5.2.122~dfsg-3ubuntu1": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/universe/libp/libpgm/libpgm-5.2-0_5.2.122~dfsg-3ubuntu1_amd64.deb",
+			"name": "libpgm-5.2-0",
+			"sha256": "657626ca6077ae4169ecbbdd8884d2891cef22ec8e0d5c538578d7002bca4987",
+			"size": 158116,
+			"suite": "focal",
+			"version": "5.2.122~dfsg-3ubuntu1"
+		},
+		"/focal/libpgm-dev:amd64=5.2.122~dfsg-3ubuntu1": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/universe/libp/libpgm/libpgm-dev_5.2.122~dfsg-3ubuntu1_amd64.deb",
+			"name": "libpgm-dev",
+			"sha256": "c2d9f232c6e723d55baf81568c8f1c6188f54d5c8a05db838b110304ab21421c",
+			"size": 188960,
+			"suite": "focal",
+			"version": "5.2.122~dfsg-3ubuntu1"
+		},
+		"/focal/libreadline8:amd64=8.0-4": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/r/readline/libreadline8_8.0-4_amd64.deb",
+			"name": "libreadline8",
+			"sha256": "5c0e982098eeb1b69a1360f4dc20553397d0a41240f3b2fc2812ee3f02274a82",
+			"size": 130880,
+			"suite": "focal",
+			"version": "8.0-4"
+		},
+		"/focal/libselinux1:amd64=3.0-1build2": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/libs/libselinux/libselinux1_3.0-1build2_amd64.deb",
+			"name": "libselinux1",
+			"sha256": "1b8674b6f9e62fbae768d9ffbd686955d08db889ee4107d15ae02d1ec033cc7b",
+			"size": 68784,
+			"suite": "focal",
+			"version": "3.0-1build2"
+		},
+		"/focal/libsodium-dev:amd64=1.0.18-1": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/libs/libsodium/libsodium-dev_1.0.18-1_amd64.deb",
+			"name": "libsodium-dev",
+			"sha256": "2bc3d45c379470ffbe6da5c30edd573c7579331299ad67a04af68f11b1858970",
+			"size": 169088,
+			"suite": "focal",
+			"version": "1.0.18-1"
+		},
+		"/focal/libsodium23:amd64=1.0.18-1": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/main/libs/libsodium/libsodium23_1.0.18-1_amd64.deb",
+			"name": "libsodium23",
+			"sha256": "2790af911186c8c8f34270199ac553ee43704f007d6af064205319d03b591f3c",
+			"size": 150040,
+			"suite": "focal",
+			"version": "1.0.18-1"
+		},
+		"/focal/libyang-dev:amd64=0.16.105-3build1": {
+			"architecture": "amd64",
+			"depends_on": [
+				"/focal/libyang0.16:amd64=0.16.105-3build1",
+				"/focal-updates/libpcre3:amd64=2:8.39-12ubuntu0.1",
+				"/focal-updates/libc6:amd64=2.31-0ubuntu9.14",
+				"/focal/libcrypt1:amd64=1:4.4.10-10ubuntu4",
+				"/focal-updates/libgcc-s1:amd64=10.5.0-1ubuntu1~20.04",
+				"/focal-updates/gcc-10-base:amd64=10.5.0-1ubuntu1~20.04",
+				"/focal-updates/libpcre3-dev:amd64=2:8.39-12ubuntu0.1",
+				"/focal-updates/libpcrecpp0v5:amd64=2:8.39-12ubuntu0.1",
+				"/focal-updates/libstdc++6:amd64=10.5.0-1ubuntu1~20.04",
+				"/focal-updates/libpcre32-3:amd64=2:8.39-12ubuntu0.1",
+				"/focal-updates/libpcre16-3:amd64=2:8.39-12ubuntu0.1",
+				"/focal-updates/libc6-dev:amd64=2.31-0ubuntu9.14",
+				"/focal/libcrypt-dev:amd64=1:4.4.10-10ubuntu4",
+				"/focal-updates/linux-libc-dev:amd64=5.4.0-172.190",
+				"/focal-updates/libc-dev-bin:amd64=2.31-0ubuntu9.14"
+			],
+			"filename": "pool/universe/liby/libyang/libyang-dev_0.16.105-3build1_amd64.deb",
+			"name": "libyang-dev",
+			"sha256": "75334c6d96a9e8bdf1a67af8e56b38f46fc49144a0ea13585711bea44baf36cd",
+			"size": 86200,
+			"suite": "focal",
+			"version": "0.16.105-3build1"
+		},
+		"/focal/libyang0.16:amd64=0.16.105-3build1": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/universe/liby/libyang/libyang0.16_0.16.105-3build1_amd64.deb",
+			"name": "libyang0.16",
+			"sha256": "0b87056bee4be55c18b9e5648a4c47830ee60fdeb64b33022092aba0249b95c4",
+			"size": 391036,
+			"suite": "focal",
+			"version": "0.16.105-3build1"
+		},
+		"/focal/libzmq3-dev:amd64=4.3.2-2ubuntu1": {
+			"architecture": "amd64",
+			"depends_on": [
+				"/focal-updates/libkrb5-dev:amd64=1.17-6ubuntu4.4",
+				"/focal-updates/krb5-multidev:amd64=1.17-6ubuntu4.4",
+				"/focal-updates/comerr-dev:amd64=2.1-1.45.5-2ubuntu1.1",
+				"/focal-updates/libcom-err2:amd64=1.45.5-2ubuntu1.1",
+				"/focal-updates/libc6:amd64=2.31-0ubuntu9.14",
+				"/focal/libcrypt1:amd64=1:4.4.10-10ubuntu4",
+				"/focal-updates/libgcc-s1:amd64=10.5.0-1ubuntu1~20.04",
+				"/focal-updates/gcc-10-base:amd64=10.5.0-1ubuntu1~20.04",
+				"/focal-updates/libc6-dev:amd64=2.31-0ubuntu9.14",
+				"/focal/libcrypt-dev:amd64=1:4.4.10-10ubuntu4",
+				"/focal-updates/linux-libc-dev:amd64=5.4.0-172.190",
+				"/focal-updates/libc-dev-bin:amd64=2.31-0ubuntu9.14",
+				"/focal-updates/libkadm5clnt-mit11:amd64=1.17-6ubuntu4.4",
+				"/focal-updates/libkrb5support0:amd64=1.17-6ubuntu4.4",
+				"/focal-updates/libkrb5-3:amd64=1.17-6ubuntu4.4",
+				"/focal-updates/libssl1.1:amd64=1.1.1f-1ubuntu2.22",
+				"/focal/debconf:all=1.5.73",
+				"/focal-updates/perl-base:amd64=5.30.0-9ubuntu0.5",
+				"/focal-updates/dpkg:amd64=1.19.7ubuntu3.2",
+				"/focal-updates/tar:amd64=1.30+dfsg-7ubuntu0.20.04.4",
+				"/focal/libselinux1:amd64=3.0-1build2",
+				"/focal-updates/libpcre2-8-0:amd64=10.34-7ubuntu0.1",
+				"/focal/libacl1:amd64=2.2.53-6",
+				"/focal-updates/zlib1g:amd64=1:1.2.11.dfsg-2ubuntu1.5",
+				"/focal-updates/libzstd1:amd64=1.4.4+dfsg-3ubuntu0.1",
+				"/focal-updates/liblzma5:amd64=5.2.4-1ubuntu1.1",
+				"/focal/libbz2-1.0:amd64=1.0.8-2",
+				"/focal-updates/libkeyutils1:amd64=1.6-6ubuntu1.1",
+				"/focal-updates/libk5crypto3:amd64=1.17-6ubuntu4.4",
+				"/focal-updates/libgssrpc4:amd64=1.17-6ubuntu4.4",
+				"/focal-updates/libgssapi-krb5-2:amd64=1.17-6ubuntu4.4",
+				"/focal-updates/libkadm5srv-mit11:amd64=1.17-6ubuntu4.4",
+				"/focal-updates/libkdb5-9:amd64=1.17-6ubuntu4.4",
+				"/focal/libnorm-dev:amd64=1.5.8+dfsg2-2build1",
+				"/focal/libnorm1:amd64=1.5.8+dfsg2-2build1",
+				"/focal-updates/libstdc++6:amd64=10.5.0-1ubuntu1~20.04",
+				"/focal/libsodium-dev:amd64=1.0.18-1",
+				"/focal/libsodium23:amd64=1.0.18-1",
+				"/focal/libpgm-dev:amd64=5.2.122~dfsg-3ubuntu1",
+				"/focal/libpgm-5.2-0:amd64=5.2.122~dfsg-3ubuntu1",
+				"/focal/libzmq5:amd64=4.3.2-2ubuntu1"
+			],
+			"filename": "pool/universe/z/zeromq3/libzmq3-dev_4.3.2-2ubuntu1_amd64.deb",
+			"name": "libzmq3-dev",
+			"sha256": "52d9dffee47836e6eee508a0f91777fb7a71caf71da06a402c70c64142d22734",
+			"size": 455128,
+			"suite": "focal",
+			"version": "4.3.2-2ubuntu1"
+		},
+		"/focal/libzmq5:amd64=4.3.2-2ubuntu1": {
+			"architecture": "amd64",
+			"depends_on": [],
+			"filename": "pool/universe/z/zeromq3/libzmq5_4.3.2-2ubuntu1_amd64.deb",
+			"name": "libzmq5",
+			"sha256": "6fa4752cf50a3cf1f61d9714398b89a084552a58b9ab7c2710e54ab6c44893a4",
+			"size": 242136,
+			"suite": "focal",
+			"version": "4.3.2-2ubuntu1"
+		},
+		"/focal/mime-support:all=3.64ubuntu1": {
+			"architecture": "all",
+			"depends_on": [],
+			"filename": "pool/main/m/mime-support/mime-support_3.64ubuntu1_all.deb",
+			"name": "mime-support",
+			"sha256": "b4f73c76fa2abc24562466ec814eb9b6cfe5e030628187bb71b3da1422bda901",
+			"size": 30596,
+			"suite": "focal",
+			"version": "3.64ubuntu1"
+		},
+		"/focal/nlohmann-json3-dev:all=3.7.3-1": {
+			"architecture": "all",
+			"depends_on": [],
+			"filename": "pool/universe/n/nlohmann-json3/nlohmann-json3-dev_3.7.3-1_all.deb",
+			"name": "nlohmann-json3-dev",
+			"sha256": "6239d42dbf15f881711ace5d0530f56dadc761fb11270f1223f3b6945d975ca2",
+			"size": 666708,
+			"suite": "focal",
+			"version": "3.7.3-1"
+		},
+		"/focal/readline-common:all=8.0-4": {
+			"architecture": "all",
+			"depends_on": [],
+			"filename": "pool/main/r/readline/readline-common_8.0-4_all.deb",
+			"name": "readline-common",
+			"sha256": "38c3ac67e2dab4122a2f948f433c4cb5d5653d82b323f3ff30599797b7adee9f",
+			"size": 53492,
+			"suite": "focal",
+			"version": "8.0-4"
+		},
+		"/focal/swig3.0:amd64=3.0.12-2.2ubuntu1": {
+			"architecture": "amd64",
+			"depends_on": [
+				"/focal-updates/libstdc++6:amd64=10.5.0-1ubuntu1~20.04",
+				"/focal-updates/libgcc-s1:amd64=10.5.0-1ubuntu1~20.04",
+				"/focal-updates/libc6:amd64=2.31-0ubuntu9.14",
+				"/focal/libcrypt1:amd64=1:4.4.10-10ubuntu4",
+				"/focal-updates/gcc-10-base:amd64=10.5.0-1ubuntu1~20.04",
+				"/focal-updates/libpcre3:amd64=2:8.39-12ubuntu0.1"
+			],
+			"filename": "pool/universe/s/swig3.0/swig3.0_3.0.12-2.2ubuntu1_amd64.deb",
+			"name": "swig3.0",
+			"sha256": "a724fa1654bb1f94c0fa4515c94b9ae7949e1d5aa57d1eb73a40eea3662bd4ab",
+			"size": 1109128,
+			"suite": "focal",
+			"version": "3.0.12-2.2ubuntu1"
+		}
+	},
+	"sources": {
+		"focal": {
+			"architectures": [
+				"amd64"
+			],
+			"components": [
+				"main",
+				"restricted",
+				"universe"
+			],
+			"types": [],
+			"uris": [
+				"https://snapshot.ubuntu.com/ubuntu/20240301T030400Z",
+				"https://snapshot.ubuntu.com/ubuntu/20240301T030400Z"
+			]
+		},
+		"focal-security": {
+			"architectures": [
+				"amd64"
+			],
+			"components": [
+				"main",
+				"restricted",
+				"universe"
+			],
+			"types": [],
+			"uris": [
+				"https://snapshot.ubuntu.com/ubuntu/20240301T030400Z",
+				"https://snapshot.ubuntu.com/ubuntu/20240301T030400Z"
+			]
+		},
+		"focal-updates": {
+			"architectures": [
+				"amd64"
+			],
+			"components": [
+				"main",
+				"restricted",
+				"universe"
+			],
+			"types": [],
+			"uris": [
+				"https://snapshot.ubuntu.com/ubuntu/20240301T030400Z",
+				"https://snapshot.ubuntu.com/ubuntu/20240301T030400Z"
+			]
+		}
+	},
+	"version": 2
+}
