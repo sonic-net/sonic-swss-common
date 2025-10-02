@@ -1,8 +1,66 @@
 module(name = "sonic-swss-common")
 
-bazel_dep(name = "googletest", version = "1.11.0", repo_name = "com_google_googletest")
-bazel_dep(name = "glog", version = "0.5.0", repo_name = "com_github_google_glog")
+bazel_dep(name = "rules_distroless", version = "0.0.0")
+local_path_override(
+    module_name = "rules_distroless",
+    path = "../rules_distroless"
+)
 
+
+apt = use_extension("@rules_distroless//apt:extensions.bzl", "apt")
+
+apt.sources_list(
+    architectures = ["amd64"],
+    components = ["main"],
+    suites = ["bookworm", "bookworm-updates"],
+    uris = ["https://snapshot.debian.org/archive/debian/20251001T023456Z"],
+)
+
+apt.sources_list(
+    architectures = ["amd64"],
+    components = ["main"],
+    suites = ["bookworm-security"],
+    uris = ["https://snapshot.debian.org/archive/debian-security/20251001T023456Z"],
+)
+
+
+
+# sudo apt-get install -y
+# make libtool m4 autoconf dh-exec debhelper cmake pkg-config
+# nlohmann-json3-dev libhiredis-dev libnl-3-dev libnl-genl-3-dev
+# libnl-route-3-dev libnl-nf-3-dev swig3.0 libpython2.7-dev libboost-dev
+# libboost-serialization-dev uuid-dev libzmq3-dev
+
+apt.install(
+    dependency_set = "bookworm",
+    target_release = "bookworm",
+    packages = [
+        "nlohmann-json3-dev",
+        "libhiredis-dev",
+        "libnl-3-dev",
+        "libnl-genl-3-dev",
+        "libnl-route-3-dev",
+        "libnl-nf-3-dev",
+        "libboost-dev",
+        "libboost-serialization-dev",
+        "uuid-dev",
+        "libzmq3-dev",
+        "libyang2-dev",
+
+        # These seem to be unused
+        # "swig3.0",
+        # "libpython2.7-dev",
+        # "libgtest-dev",
+        # "libgmock-dev",
+    ]
+)
+
+apt.lock(into = ":packages.lock")
+
+use_repo(apt, "bookworm")
+
+# bazel_dep(name = "googletest", version = "1.11.0", repo_name = "com_google_googletest")
+# bazel_dep(name = "glog", version = "0.5.0", repo_name = "com_github_google_glog")
 # bazel_dep(name = "nlohmann_json", version = "3.12.0")
 # bazel_dep(name = "boost.algorithm", version = "1.87.0")
 # bazel_dep(name = "boost.serialization", version = "1.87.0")
