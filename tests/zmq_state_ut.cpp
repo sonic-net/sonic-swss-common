@@ -612,13 +612,26 @@ TEST(ZmqServerLazzyBind, test)
     EXPECT_EQ(received, 1);
 }
 
-TEST(ZmqConsumerStateTablePopSize, test)
+// Parameterized test structure for ZmqConsumerStateTablePopSize
+struct PopSizeTestParams
 {
+    int batchSize;
+    int numElements;
+    int expectedPopCount;
+    vector<int> expectedSizes;
+};
+
+class ZmqConsumerStateTablePopSize : public ::testing::TestWithParam<PopSizeTestParams>
+{
+};
+
+TEST_P(ZmqConsumerStateTablePopSize, test)
+{
+    auto params = GetParam();
     std::string testTableName = "ZMQ_BATCH_SIZE_UT";
     std::string pushEndpoint = "tcp://localhost:1235";
     std::string pullEndpoint = "tcp://*:1235";
     int popCount = 0;
-    vector<int> expectedSizes = {40, 40, 40, 30};
     vector<int> recvdSizes;
 
     // Start consumer first
@@ -626,7 +639,7 @@ TEST(ZmqConsumerStateTablePopSize, test)
         cout << "Consumer thread started" << endl;
         DBConnector db(TEST_DB, 0, true);
         ZmqServer server(pullEndpoint);
-        Selectable* c = new ZmqConsumerStateTable(&db, testTableName, server, 40, 0, false);
+        Selectable* c = new ZmqConsumerStateTable(&db, testTableName, server, params.batchSize, 0, false);
         Select cs;
         cs.addSelectable(c);
 
@@ -636,7 +649,7 @@ TEST(ZmqConsumerStateTablePopSize, test)
         const auto timeout = std::chrono::seconds(15);
         auto startTime = std::chrono::steady_clock::now();
 
-        while (popCount < 4 && (std::chrono::steady_clock::now() - startTime < timeout))
+        while (popCount < params.expectedPopCount && (std::chrono::steady_clock::now() - startTime < timeout))
         {
             cout << "Entering select" << endl;
             if (cs.select(&selectcs, 1000, true) == Select::OBJECT)
@@ -654,13 +667,13 @@ TEST(ZmqConsumerStateTablePopSize, test)
     // Wait for consumer to start
     sleep(1);
 
-    // Producer sends 150 elements
+    // Producer sends elements
     DBConnector db(TEST_DB, 0, true);
     ZmqClient client(pushEndpoint, 3000);
     ZmqProducerStateTable p(&db, testTableName, client, false);
 
     std::vector<KeyOpFieldsValuesTuple> kcos;
-    for (int i = 0; i < 150; i++)
+    for (int i = 0; i < params.numElements; i++)
     {
         kcos.push_back(KeyOpFieldsValuesTuple{
             "key_" + to_string(i),
@@ -675,9 +688,18 @@ TEST(ZmqConsumerStateTablePopSize, test)
     delete consumerThread;
 
     cout << "Consumer thread joined" << endl;
-    EXPECT_EQ(popCount, 4) << "popCount: " << popCount << ", expected: 4";
+    EXPECT_EQ(popCount, params.expectedPopCount) << "popCount: " << popCount << ", expected: " << params.expectedPopCount;
     for (int i = 0; i < popCount; i++)
     {
-        EXPECT_EQ(recvdSizes[i], expectedSizes[i]) << "recvdSizes[" << i << "]: " << recvdSizes[i] << ", expected: " << expectedSizes[i];
+        EXPECT_EQ(recvdSizes[i], params.expectedSizes[i]) << "recvdSizes[" << i << "]: " << recvdSizes[i] << ", expected: " << params.expectedSizes[i];
     }
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    BatchSizeTests,
+    ZmqConsumerStateTablePopSize,
+    ::testing::Values(
+        PopSizeTestParams{40, 150, 4, {40, 40, 40, 30}},
+        PopSizeTestParams{-1, 384, 3, {128, 128, 128}}
+    )
+);
