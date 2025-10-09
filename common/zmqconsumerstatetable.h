@@ -84,6 +84,8 @@ private:
     ZmqServer& m_zmqServer;
 
     std::unique_ptr<AsyncDBUpdater> m_asyncDBUpdater;
+
+    size_t m_popBatchSize;
 };
 
 }
