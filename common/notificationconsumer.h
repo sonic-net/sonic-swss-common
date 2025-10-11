@@ -4,7 +4,6 @@
 #include <string>
 #include <vector>
 #include <queue>
-#include <list>
 
 #include <hiredis/hiredis.h>
 
@@ -56,7 +55,7 @@ private:
     swss::DBConnector *m_db;
     swss::DBConnector *m_subscribe;
     std::string m_channel;
-    std::queue<std::string, std::list<std::string>> m_queue;
+    std::queue<std::string> m_queue;
 };
 
 }
