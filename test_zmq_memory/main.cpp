@@ -5,7 +5,7 @@
 #include <string>
 #include <malloc.h>
 
-#include "gperftools/malloc_extension.h"
+//#include "gperftools/malloc_extension.h"
 
 #include <string.h>
 #include <stdint.h>
@@ -87,7 +87,7 @@ void memory_alloc_release()
     delete[] dataArray;
 
     malloc_trim(0);
-    MallocExtension::instance()->ReleaseFreeMemory();
+    //MallocExtension::instance()->ReleaseFreeMemory();
 }
 
 int main()
