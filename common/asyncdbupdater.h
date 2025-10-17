@@ -2,6 +2,7 @@
 
 #include <string>
 #include <deque>
+#include <list>
 #include <condition_variable>
 #include "dbconnector.h"
 #include "table.h"
@@ -32,7 +33,7 @@ private:
 
     std::condition_variable m_dbUpdateDataNotifyCv;
 
-    std::queue<std::shared_ptr<KeyOpFieldsValuesTuple>> m_dbUpdateDataQueue;
+    std::queue<std::shared_ptr<KeyOpFieldsValuesTuple>, std::list<std::shared_ptr<KeyOpFieldsValuesTuple>>> m_dbUpdateDataQueue;
 
     DBConnector *m_db;
 
