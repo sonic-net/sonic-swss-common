@@ -84,17 +84,82 @@ jobs:
       patterns: |
         target/debs/${{ parameters.debian_version }}/libyang-*_1.0*.deb
         target/debs/${{ parameters.debian_version }}/libyang_1.0*.deb
+        target/debs/${{ parameters.debian_version }}/libyang-cpp_*.deb
+        target/debs/${{ parameters.debian_version }}/python3-yang_*.deb
     displayName: "Download libyang from ${{ parameters.arch }} common lib"
+    condition: ne('${{ parameters.debian_version }}', 'trixie')
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      source: specific
+      project: build
+      pipeline: Azure.sonic-buildimage.common_libs
+      runVersion: 'specific'
+      pipelineId: '926659'
+      path: $(Build.ArtifactStagingDirectory)/download
+      ${{ if eq(parameters.arch, 'amd64') }}:
+        artifact: common-lib
+      ${{ else }}:
+        artifact: common-lib.${{ parameters.arch }}
+      patterns: |
+        target/debs/${{ parameters.debian_version }}/libyang-*_1.0*.deb
+        target/debs/${{ parameters.debian_version }}/libyang_1.0*.deb
+        target/debs/${{ parameters.debian_version }}/libyang-cpp_*.deb
+        target/debs/${{ parameters.debian_version }}/python3-yang_*.deb
+        target/debs/${{ parameters.debian_version }}/libpcre*.deb
+    displayName: "Download libyang from ${{ parameters.arch }} common lib"
+    condition: eq('${{ parameters.debian_version }}', 'trixie')
   - script: |
       set -ex
       sudo dpkg -i $(find ./download -name *.deb)
     workingDirectory: $(Build.ArtifactStagingDirectory)
     displayName: "Install libyang from common lib"
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      source: specific
+      project: build
+      pipeline: 142
+      artifact: sonic-buildimage.vs
+      runVersion: 'latestFromBranch'
+      runBranch: 'refs/heads/$(BUILD_BRANCH)'
+      path: $(Build.ArtifactStagingDirectory)/download
+      patterns: |
+        target/python-wheels/${{ parameters.debian_version }}/sonic_yang_mgmt-1.0-py3-none-any.whl
+        target/python-wheels/${{ parameters.debian_version }}/sonic_yang_models-1.0-py3-none-any.whl
+    displayName: "Download yang wheel from latest sonic-buildimage build"
+    condition: ne('${{ parameters.debian_version }}', 'trixie')
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      source: specific
+      project: build
+      pipeline: 142
+      artifact: sonic-buildimage.vs
+      runVersion: 'latestFromBranch'
+      runBranch: 'refs/heads/$(BUILD_BRANCH)'
+      path: $(Build.ArtifactStagingDirectory)/download
+      patterns: |
+        target/python-wheels/bookworm/sonic_yang_mgmt-1.0-py3-none-any.whl
+        target/python-wheels/bookworm/sonic_yang_models-1.0-py3-none-any.whl
+    displayName: "Download yang wheel from latest sonic-buildimage build"
+    condition: eq('${{ parameters.debian_version }}', 'trixie')
+  - script: |
+      set -ex
+      sudo pip3 install ./download/target/python-wheels/${{ parameters.debian_version }}/sonic_yang_mgmt-1.0-py3-none-any.whl \
+                        ./download/target/python-wheels/${{ parameters.debian_version }}/sonic_yang_models-1.0-py3-none-any.whl
+    workingDirectory: $(Build.ArtifactStagingDirectory)
+    displayName: "Install yang wheel from common lib"
+    condition: ne('${{ parameters.debian_version }}', 'trixie')
+  - script: |
+      set -ex
+      sudo pip3 install ./download/target/python-wheels/bookworm/sonic_yang_mgmt-1.0-py3-none-any.whl \
+                        ./download/target/python-wheels/bookworm/sonic_yang_models-1.0-py3-none-any.whl
+    workingDirectory: $(Build.ArtifactStagingDirectory)
+    displayName: "Install yang wheel from common lib"
+    condition: eq('${{ parameters.debian_version }}', 'trixie')
   - script: |
       set -ex
       rm ../*.deb || true
       ./autogen.sh
-      fakeroot debian/rules DEB_CONFIGURE_EXTRA_FLAGS='--enable-code-coverage' DEB_BUILD_PROFILES=nopython2 CFLAGS="" CXXFLAGS="--coverage -fprofile-abs-path" LDFLAGS="--coverage -fprofile-abs-path" binary
+      DEB_CONFIGURE_EXTRA_FLAGS='--enable-code-coverage' DEB_CXXFLAGS_APPEND="-coverage -fprofile-abs-path" DEB_LDFLAGS_APPEND="-coverage -fprofile-abs-path" dpkg-buildpackage -Pnopython2 -us -uc -b -j$(nproc)
       mv ../*.deb .
     displayName: "Compile sonic swss common with coverage enabled"
   - ${{ if eq(parameters.run_unit_test, true) }}:
@@ -115,7 +180,7 @@ jobs:
         sudo sed -ri 's/^unixsocketperm .../unixsocketperm 777/' /etc/redis/redis.conf
         sudo sed -ri 's/redis-server.sock/redis.sock/' /etc/redis/redis.conf
         sudo service redis-server restart
-        sudo mkdir /usr/local/yang-models
+        sudo mkdir -p /usr/local/yang-models
 
         ./tests/tests
         redis-cli FLUSHALL

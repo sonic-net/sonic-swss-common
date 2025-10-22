@@ -39,6 +39,7 @@
 #include "consumertable.h"
 #include "subscriberstatetable.h"
 #ifdef ENABLE_YANG_MODULES
+#include "cfg_schema.h"
 #include "decoratortable.h"
 #include "defaultvalueprovider.h"
 #include "decoratorsubscriberstatetable.h"
@@ -156,7 +157,7 @@
         PyList_SetItem($result, 0, temp);
     }
     temp = SWIG_NewPointerObj(*$1, SWIGTYPE_p_swss__Selectable, 0);
-    SWIG_Python_AppendOutput($result, temp);
+    SWIG_AppendOutput($result, temp);
 }
 
 %typemap(in, fragment="SWIG_AsVal_std_string")
@@ -267,6 +268,7 @@ T castSelectableObj(swss::Selectable *temp)
 %include "schema.h"
 %include "dbconnector.h"
 #ifdef ENABLE_YANG_MODULES
+%include "cfg_schema.h"
 %include "defaultvalueprovider.h"
 #endif
 %include "sonicv2connector.h"

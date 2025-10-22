@@ -34,7 +34,7 @@ public:
     }
 
     static size_t serializeBuffer(
-        const char* buffer,
+        char* buffer,
         const size_t size,
         const std::string& dbName,
         const std::string& tableName,
@@ -171,12 +171,12 @@ public:
     }
 
 private:
-    const char* m_buffer;
+    char* m_buffer;
     const size_t m_buffer_size;
     char* m_current_position;
     size_t m_kvp_count;
 
-    BinarySerializer(const char* buffer, const size_t size)
+    BinarySerializer(char* buffer, const size_t size)
         : m_buffer(buffer), m_buffer_size(size)
     {
         resetSerializer();
@@ -184,7 +184,7 @@ private:
 
     void resetSerializer()
     {
-        m_current_position = const_cast<char*>(m_buffer) + sizeof(size_t);
+        m_current_position = m_buffer + sizeof(size_t);
         m_kvp_count = 0;
     }
 
@@ -201,7 +201,7 @@ private:
     {
         // set key value pair count to message
         WARNINGS_NO_CAST_ALIGN;
-        size_t* pkvp_count = (size_t*)const_cast<char*>(m_buffer);
+        size_t* pkvp_count = (size_t*)m_buffer;
         WARNINGS_RESET;
 
         *pkvp_count = m_kvp_count;

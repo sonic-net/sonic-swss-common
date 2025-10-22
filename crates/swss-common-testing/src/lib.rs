@@ -146,6 +146,21 @@ const CONFIG_DB_REDIS_CONFIG_JSON: &str = r#"
                 "id": 4,
                 "separator": ":",
                 "instance": "redis"
+            },
+            "CHASSIS_STATE_DB": {
+                "id": 5,
+                "separator": "|",
+                "instance": "redis"
+            },
+            "CHASSIS_APP_DB": {
+                "id": 6,
+                "separator": "|",
+                "instance": "redis"
+            },
+            "TEST_DB": {
+                "id": 15,
+                "separator": "|",
+                "instance": "redis"
             }
         }
     }
@@ -160,7 +175,6 @@ const DB_GLOBAL_CONFIG_JSON: &str = r#"
             {
                 "container_name" : "dpu0",
                 "include" : "db_config_test.json"
-
             }
         ]
     }
@@ -182,7 +196,7 @@ pub fn sonic_db_config_init_for_test() {
         fs::write("/tmp/db_config_test.json", DB_CONFIG_JSON).unwrap();
         fs::write("/tmp/db_global_config_test.json", DB_GLOBAL_CONFIG_JSON).unwrap();
         sonic_db_config_initialize("/tmp/db_config_test.json").unwrap();
-        sonic_db_config_initialize_global("/tmp/db_global_config_test.json").unwrap();
+        sonic_db_config_initialize_global("/tmp/db_global_config_test.json", false).unwrap();
         fs::remove_file("/tmp/db_config_test.json").unwrap();
         fs::remove_file("/tmp/db_global_config_test.json").unwrap();
         *sonic_db_init = true;
@@ -206,7 +220,7 @@ fn config_db_config_init_for_test(sock_str: &str) {
         fs::write("/tmp/db_config_test.json", db_config_json).unwrap();
         fs::write("/tmp/db_global_config_test.json", DB_GLOBAL_CONFIG_JSON).unwrap();
         sonic_db_config_initialize("/tmp/db_config_test.json").unwrap();
-        sonic_db_config_initialize_global("/tmp/db_global_config_test.json").unwrap();
+        sonic_db_config_initialize_global("/tmp/db_global_config_test.json", false).unwrap();
         fs::remove_file("/tmp/db_config_test.json").unwrap();
         fs::remove_file("/tmp/db_global_config_test.json").unwrap();
         *config_db_init = true;

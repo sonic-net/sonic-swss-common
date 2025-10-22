@@ -1,4 +1,3 @@
-
 lib_LTLIBRARIES += common/libswsscommon.la
 
 dist_swss_DATA = \
@@ -16,6 +15,34 @@ swssdir = $(datadir)/swss
 swsscommondir = /var/run/redis/sonic-db
 
 bin_PROGRAMS += common/swssloglevel
+
+# Generate cfg_schema.h before building the library
+BUILT_SOURCES = common/cfg_schema.h
+
+if YANGMODS
+# Generate schema dynamically when yang modules are enabled
+common/cfg_schema.h: FORCE
+	$(AM_V_GEN)$(PYTHON3) $(srcdir)/gen_cfg_schema.py -o $@
+else
+# Generate minimal static schema when yang modules are disabled
+common/cfg_schema.h: FORCE
+	$(AM_V_GEN)echo '#ifndef CFG_SCHEMA_H' > $@; \
+	echo '#define CFG_SCHEMA_H' >> $@; \
+	echo '' >> $@; \
+	echo '// Minimal cfg_schema.h generated when YANG modules are disabled' >> $@; \
+	echo '#ifdef __cplusplus' >> $@; \
+	echo 'namespace swss {' >> $@; \
+	echo '#endif' >> $@; \
+	echo '' >> $@; \
+	echo '#ifdef __cplusplus' >> $@; \
+	echo '}' >> $@; \
+	echo '#endif' >> $@; \
+	echo '#endif' >> $@
+endif
+
+# FORCE target to ensure cfg_schema.h is always regenerated
+.PHONY: FORCE
+FORCE:
 
 common_libswsscommon_la_SOURCES = \
     common/events_common.cpp         \
@@ -72,6 +99,8 @@ common_libswsscommon_la_SOURCES = \
     common/interface.h               \
     common/c-api/util.cpp                  \
     common/c-api/dbconnector.cpp           \
+    common/c-api/configdbconnector.cpp     \
+    common/c-api/sonicv2connector.cpp      \
     common/c-api/consumerstatetable.cpp    \
     common/c-api/producerstatetable.cpp    \
     common/c-api/subscriberstatetable.cpp  \
@@ -80,7 +109,8 @@ common_libswsscommon_la_SOURCES = \
     common/c-api/zmqconsumerstatetable.cpp \
     common/c-api/zmqproducerstatetable.cpp \
     common/c-api/table.cpp                 \
-    common/c-api/logger.cpp \
+    common/c-api/logger.cpp                \
+    common/c-api/events.cpp                \
     common/performancetimer.cpp
 
 common_libswsscommon_la_CXXFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CFLAGS) $(CODE_COVERAGE_CXXFLAGS)

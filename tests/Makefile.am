@@ -33,6 +33,7 @@ tests_tests_SOURCES = tests/redis_ut.cpp                \
                       tests/saiaclschema_ut.cpp         \
                       tests/countertable_ut.cpp         \
                       tests/timer_ut.cpp                \
+                      tests/config_ut.cpp               \
                       tests/cli_ut.cpp                  \
                       tests/events_common_ut.cpp        \
                       tests/events_service_ut.cpp       \
@@ -43,7 +44,9 @@ tests_tests_SOURCES = tests/redis_ut.cpp                \
                       tests/zmq_state_ut.cpp            \
                       tests/profileprovider_ut.cpp      \
                       tests/c_api_ut.cpp                \
+                      tests/test_sonicv2connector_c_api.cpp \
                       tests/performancetimer_ut.cpp     \
+                      tests/timestamp_ut.cpp            \
                       tests/main.cpp
 
 tests_tests_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_GTEST) $(LIBNL_CFLAGS)
