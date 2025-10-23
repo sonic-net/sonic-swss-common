@@ -111,7 +111,8 @@ common_libswsscommon_la_SOURCES = \
     common/c-api/table.cpp                 \
     common/c-api/logger.cpp                \
     common/c-api/events.cpp                \
-    common/performancetimer.cpp
+    common/performancetimer.cpp            \
+    common/debugframework.cpp
 
 common_libswsscommon_la_CXXFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CFLAGS) $(CODE_COVERAGE_CXXFLAGS)
 common_libswsscommon_la_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(LIBNL_CPPFLAGS) $(CODE_COVERAGE_CPPFLAGS)
