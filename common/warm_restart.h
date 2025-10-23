@@ -86,6 +86,10 @@ public:
     static void getWarmStartState(const std::string &app_name,
                                   WarmStartState    &state);
 
+    // For python via SWIG: return state instead of passing state
+    // variable by reference as a parameter.
+    static WarmStartState returnWarmStartState(const std::string &app_name);
+
     static void setWarmStartState(const std::string &app_name,
                                   WarmStartState     state);
 
@@ -98,6 +102,8 @@ public:
 
     static DataCheckState getDataCheckState(const std::string &app_name,
                                             DataCheckStage stage);
+    static bool isStateVerificationEnabled();
+    static bool waitForUnfreeze();
 private:
     std::shared_ptr<swss::DBConnector>   m_stateDb;
     std::shared_ptr<swss::DBConnector>   m_cfgDb;

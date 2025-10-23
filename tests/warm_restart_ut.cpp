@@ -11,6 +11,28 @@ using namespace swss;
 static const string testAppName = "TestApp";
 static const string testDockerName = "TestDocker";
 
+void verifyWarmbootState(std::string app,
+                         WarmStart::WarmStartState expected_state)
+{
+    WarmStart::WarmStartState state;
+    WarmStart::getWarmStartState(app, state);
+    EXPECT_EQ(state, expected_state);
+
+    DBConnector stateDb("STATE_DB", 0, true);
+    Table stateWarmRestartTable(&stateDb, STATE_WARM_RESTART_TABLE_NAME);
+    std::string state_str;
+    stateWarmRestartTable.hget(app, "state", state_str);
+    EXPECT_EQ(state_str, WarmStart::warmStartStateNameMap()->at(state).c_str());
+}
+
+void configureStateVerification(std::string value)
+{
+    DBConnector stateDb("STATE_DB", 0, true);
+    Table stateWarmRestartEnableTable(&stateDb,
+                                      STATE_WARM_RESTART_ENABLE_TABLE_NAME);
+    stateWarmRestartEnableTable.hset("system", "state_verification", value);
+}
+
 // This test must be executed before first successful call to initialize()
 // The static elements of this class can only be initialized once.
 TEST(WarmRestart, testRegisterWarmBootInfoNotInitialized)
@@ -143,8 +165,6 @@ TEST(WarmRestart, checkWarmStart_and_State)
     system_enabled = WarmStart::isSystemWarmRebootEnabled();
     EXPECT_FALSE(system_enabled);
 }
-
-
 
 TEST(WarmRestart, getWarmStartTimer)
 {
@@ -361,4 +381,58 @@ TEST(WarmRestart, testRegisterWarmBootInfo)
         tableName, WarmStart::kRegistrationReconciliationKey, value);
     EXPECT_TRUE(ret);
     EXPECT_EQ(value, "true");
+}
+
+TEST(WarmRestart, testOptionalStateVerification)
+{
+    DBConnector stateDb("STATE_DB", 0, true);
+    Table stateWarmRestartTable(&stateDb, STATE_WARM_RESTART_TABLE_NAME);
+    Table stateWarmRestartEnableTable(&stateDb,
+                                      STATE_WARM_RESTART_ENABLE_TABLE_NAME);
+
+    DBConnector configDb("CONFIG_DB", 0, true);
+    Table cfgWarmRestartTable(&configDb, CFG_WARM_RESTART_TABLE_NAME);
+
+    // Clean up warm restart state for testAppName and warm restart config for
+    // testDockerName
+    stateWarmRestartTable.del(testAppName);
+    cfgWarmRestartTable.del(testDockerName);
+    stateWarmRestartEnableTable.del("system");
+    stateWarmRestartEnableTable.del(testDockerName);
+
+    // Initialize WarmStart class for TestApp
+    WarmStart::initialize(testAppName, testDockerName, 0, true);
+
+    // perform checkWarmStart for TestApp running in TestDocker. This updates
+    // warmboot state in the DB.
+    EXPECT_FALSE(WarmStart::checkWarmStart(testAppName, testDockerName));
+
+    // State verification is disabled by default.
+    EXPECT_FALSE(WarmStart::isStateVerificationEnabled());
+    EXPECT_FALSE(WarmStart::waitForUnfreeze());
+    // Since state verification is disabled by default, warmboot state should be
+    // RECONCILED.
+    verifyWarmbootState(testAppName, WarmStart::RECONCILED);
+
+    // Disable system level warm restart. Verify that checkWarmStart() still
+    // updates warmboot state to RECONCILED since state verification is disabled
+    // by default.
+    stateWarmRestartEnableTable.hset("system", "enable", "false");
+    EXPECT_FALSE(WarmStart::isStateVerificationEnabled());
+    EXPECT_FALSE(WarmStart::waitForUnfreeze());
+    EXPECT_FALSE(WarmStart::checkWarmStart(testAppName, testDockerName));
+    verifyWarmbootState(testAppName, WarmStart::RECONCILED);
+
+    // Set warmboot state and enable system level warm restart. Verify that
+    // warmboot state reflects the configured state and doesn't get updated by
+    // checkWarmStart().
+    WarmStart::setWarmStartState(testAppName, WarmStart::INITIALIZED);
+    stateWarmRestartEnableTable.hset("system", "enable", "true");
+    EXPECT_TRUE(WarmStart::checkWarmStart(testAppName, testDockerName));
+    verifyWarmbootState(testAppName, WarmStart::INITIALIZED);
+
+    // Disable state verification.
+    configureStateVerification("false");
+    EXPECT_FALSE(WarmStart::isStateVerificationEnabled());
+    EXPECT_FALSE(WarmStart::waitForUnfreeze());
 }

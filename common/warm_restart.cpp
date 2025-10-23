@@ -300,13 +300,6 @@ void WarmStart::getWarmStartState(const std::string &app_name, WarmStartState &s
 
     auto& warmStart = getInstance();
 
-    state = RECONCILED;
-
-    if (!isWarmStart())
-    {
-        return;
-    }
-
     if (app_name == warmStart.m_appName &&
         warmStart.m_warmbootState != WSUNKNOWN) {
         /* Cache is up-to-date. Read state from cache. */
@@ -316,9 +309,6 @@ void WarmStart::getWarmStartState(const std::string &app_name, WarmStartState &s
 
     warmStart.m_stateWarmRestartTable->hget(app_name, "state", statestr);
 
-    /* If warm-start is enabled, state cannot be assumed as Reconciled
-     * It should be set to unknown
-     */
     state = WSUNKNOWN;
 
     for (auto it = warmStartStateNameMap()->begin(); it != warmStartStateNameMap()->end(); it++)
@@ -341,6 +331,15 @@ void WarmStart::getWarmStartState(const std::string &app_name, WarmStartState &s
     return;
 }
 
+// Wrap getWarmStartState to return state vs passing a state variable by
+// reference. SWIG (for python) does not handle passing enum by reference
+// cleanly.
+WarmStart::WarmStartState WarmStart::returnWarmStartState(const std::string &app_name)
+{
+    WarmStartState state;
+    getWarmStartState(app_name, state);
+    return state;
+}
 // Set the WarmStart FSM state for a particular application.
 void WarmStart::setWarmStartState(const std::string &app_name, WarmStartState state)
 {
@@ -414,6 +413,26 @@ WarmStart::DataCheckState WarmStart::getDataCheckState(const std::string &app_na
                     stateStr.c_str());
 
     return state;
+}
+
+bool WarmStart::isStateVerificationEnabled()
+{
+    auto& warmStart = getInstance();
+
+    std::string value;
+    warmStart.m_stateWarmRestartEnableTable->hget("system",
+                                                  "state_verification", value);
+    if (value == "true")
+    {
+        return true;
+    }
+    return false;
+}
+
+bool WarmStart::waitForUnfreeze()
+{
+    // Wait for unfreeze notification only if state verification is enabled.
+    return isStateVerificationEnabled();
 }
 
 } // namespace swss
