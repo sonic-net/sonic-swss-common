@@ -14,6 +14,10 @@ class WarmStart
 {
 public:
     static const std::string kNsfManagerNotificationChannel;
+    static const std::string kRegistrationFreezeKey;
+    static const std::string kRegistrationCheckpointKey;
+    static const std::string kRegistrationReconciliationKey;
+    static const std::string kRegistrationTimestampKey;
 
     enum WarmStartState
     {
@@ -63,6 +67,10 @@ public:
                            unsigned int db_timeout = 0,
                            bool isTcpConn = false);
 
+    static bool registerWarmBootInfo(bool wait_for_freeze,
+                                     bool wait_for_checkpoint,
+                                     bool wait_for_reconciliation);
+
     static bool checkWarmStart(const std::string &app_name,
                                const std::string &docker_name,
                                const bool incr_restore_cnt = true);
@@ -95,6 +103,8 @@ private:
     bool                                 m_initialized;
     bool                                 m_enabled;
     bool                                 m_systemWarmRebootEnabled;
+    std::string                          m_appName;
+    std::string                          m_dockerName;
 };
 
 }

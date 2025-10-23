@@ -2,12 +2,17 @@
 #include <climits>
 #include "logger.h"
 #include "schema.h"
+#include "timestamp.h"
 #include "warm_restart.h"
 
 namespace swss {
 
 const std::string WarmStart::kNsfManagerNotificationChannel =
     "NSF_MANAGER_COMMON_NOTIFICATION_CHANNEL";
+const std::string WarmStart::kRegistrationFreezeKey = "freeze";
+const std::string WarmStart::kRegistrationCheckpointKey = "checkpoint";
+const std::string WarmStart::kRegistrationReconciliationKey = "reconciliation";
+const std::string WarmStart::kRegistrationTimestampKey = "timestamp";
 
 const WarmStart::WarmStartStateNameMap WarmStart::warmStartStateNameMap =
 {
@@ -69,6 +74,9 @@ void WarmStart::initialize(const std::string &app_name,
         return;
     }
 
+    warmStart.m_appName = app_name;
+    warmStart.m_dockerName = docker_name;
+
     /* Use unix socket for db connection by default */
     warmStart.m_stateDb =
         std::make_shared<swss::DBConnector>("STATE_DB", db_timeout, isTcpConn);
@@ -83,6 +91,70 @@ void WarmStart::initialize(const std::string &app_name,
             std::unique_ptr<Table>(new Table(warmStart.m_cfgDb.get(), CFG_WARM_RESTART_TABLE_NAME));
 
     warmStart.m_initialized = true;
+}
+
+/*
+ * registerWarmBootInfo
+ *
+ * Register an application with NSF Manager.
+ *
+ * Returns: true on success, false otherwise.
+ *
+ * wait_for_freeze: if true, NSF Manager waits for application to freeze
+ *                  and become quiescent before proceeding to state
+ *                  verification and checkpointing
+ * wait_for_checkpoint: if true, NSF Manager waits for application to
+ *                      complete checkpointing before reboot
+ * wait_for_reconciliation: if true, NSF Manager waits for application to
+ *                          complete reconciliation before unfreeze
+ */
+bool WarmStart::registerWarmBootInfo(bool wait_for_freeze,
+                                     bool wait_for_checkpoint,
+                                     bool wait_for_reconciliation) {
+    auto& warmStart = getInstance();
+
+    if (!warmStart.m_initialized) {
+        SWSS_LOG_ERROR("registerWarmBootInfo called before initialized");
+        return false;
+    }
+
+    if (warmStart.m_dockerName.empty()) {
+        SWSS_LOG_ERROR("registerWarmBootInfo: m_dockerName is empty");
+        return false;
+    }
+
+    if (warmStart.m_appName.empty()) {
+        SWSS_LOG_ERROR("registerWarmBootInfo: m_appName is empty");
+        return false;
+    }
+
+    std::unique_ptr<Table> stateWarmRestartRegistrationTable =
+        std::unique_ptr<Table>(
+            new Table(warmStart.m_stateDb.get(),
+                      STATE_WARM_RESTART_REGISTRATION_TABLE_NAME));
+
+    std::string separator =
+        TableBase::getTableSeparator(warmStart.m_stateDb->getDbId());
+    std::string tableName =
+        warmStart.m_dockerName + separator + warmStart.m_appName;
+
+    std::vector<FieldValueTuple> values;
+
+    values.push_back(swss::FieldValueTuple(WarmStart::kRegistrationFreezeKey,
+                                           wait_for_freeze ? "true" : "false"));
+    values.push_back(swss::FieldValueTuple(
+        WarmStart::kRegistrationCheckpointKey,
+        wait_for_checkpoint ? "true" : "false"));
+    values.push_back(swss::FieldValueTuple(
+        WarmStart::kRegistrationReconciliationKey,
+        wait_for_reconciliation ? "true" : "false"));
+    values.push_back(swss::FieldValueTuple(
+        WarmStart::kRegistrationTimestampKey,
+        getTimestamp()));
+
+    stateWarmRestartRegistrationTable->set(tableName, values);
+
+    return true;
 }
 
 /*
