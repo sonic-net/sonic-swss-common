@@ -1,8 +1,8 @@
 #include <iostream>
 #include "gtest/gtest.h"
 #include "common/dbconnector.h"
-#include "common/table.h"
 #include "common/schema.h"
+#include "common/table.h"
 #include "common/warm_restart.h"
 
 using namespace std;
@@ -234,4 +234,21 @@ TEST(WarmRestart, set_get_DataCheckState)
     EXPECT_EQ(value, "failed");
     state = WarmStart::getDataCheckState(testAppName, WarmStart::STAGE_RESTORE);
     EXPECT_EQ(state, WarmStart::CHECK_FAILED);
+}
+
+TEST(WarmRestart, testNotificationMaps)
+{
+    WarmStart::WarmBootNotification warmBootNotifications[] =
+        {
+            WarmStart::WarmBootNotification::kFreeze,
+            WarmStart::WarmBootNotification::kUnfreeze,
+            WarmStart::WarmBootNotification::kCheckpoint,
+        };
+
+    for (const auto &currNotification : warmBootNotifications) {
+        std::string type = WarmStart::warmBootNotificationNameMap()->at(currNotification);
+        WarmStart::WarmBootNotification notification;
+        notification = WarmStart::warmBootNotificationReverseMap()->at(type);
+        EXPECT_EQ(notification, currNotification);
+    }
 }

@@ -13,6 +13,8 @@ namespace swss {
 class WarmStart
 {
 public:
+    static const std::string kNsfManagerNotificationChannel;
+
     enum WarmStartState
     {
         INITIALIZED,
@@ -36,11 +38,23 @@ public:
         STAGE_RESTORE,
     };
 
+    enum class WarmBootNotification {
+        kFreeze,
+        kUnfreeze,
+        kCheckpoint,
+    };
+
     typedef std::map<WarmStartState, std::string>  WarmStartStateNameMap;
     static const WarmStartStateNameMap warmStartStateNameMap;
 
     typedef std::map<DataCheckState, std::string>  DataCheckStateNameMap;
     static const DataCheckStateNameMap dataCheckStateNameMap;
+
+    typedef std::map<WarmBootNotification, std::string>  WarmBootNotificationNameMap;
+    static const WarmBootNotificationNameMap* warmBootNotificationNameMap();
+
+    typedef std::map<std::string, WarmBootNotification>  WarmBootNotificationReverseMap;
+    static const WarmBootNotificationReverseMap* warmBootNotificationReverseMap();
 
     static WarmStart &getInstance(void);
 
@@ -71,7 +85,7 @@ public:
                                   DataCheckState state);
 
     static DataCheckState getDataCheckState(const std::string &app_name,
-                                                       DataCheckStage stage);
+                                            DataCheckStage stage);
 private:
     std::shared_ptr<swss::DBConnector>   m_stateDb;
     std::shared_ptr<swss::DBConnector>   m_cfgDb;
