@@ -5,6 +5,10 @@
 %module swsscommon
 #endif
 
+
+%define NO_RET_TYPE
+%enddef
+
 %rename(delete) del;
 
 %{
@@ -60,6 +64,7 @@
 #include <memory>
 #include <functional>
 #include "interface.h"
+#include "debugframework.h"
 %}
 
 %include <std_string.i>
@@ -361,3 +366,4 @@ T castSelectableObj(swss::Selectable *temp)
 %include "status_code_util.h"
 #include "redis_table_waiter.h"
 %include "restart_waiter.h"
+%include "debugframework.h"
