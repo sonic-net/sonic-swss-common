@@ -6,6 +6,9 @@
 
 namespace swss {
 
+const std::string WarmStart::kNsfManagerNotificationChannel =
+    "NSF_MANAGER_COMMON_NOTIFICATION_CHANNEL";
+
 const WarmStart::WarmStartStateNameMap* WarmStart::warmStartStateNameMap()
 {
     static const auto* const warmStartStateNameMap =
@@ -33,6 +36,28 @@ const WarmStart::DataCheckStateNameMap* WarmStart::dataCheckStateNameMap()
             {CHECK_FAILED,    "failed"}
         });
     return dataCheckStateNameMap;
+}
+
+const WarmStart::WarmBootNotificationNameMap* WarmStart::warmBootNotificationNameMap()
+{
+    static const auto* const  warmBootNotificationNameMap =
+        new WarmBootNotificationNameMap({
+          {WarmBootNotification::kFreeze,         "freeze"},
+          {WarmBootNotification::kUnfreeze,       "unfreeze"},
+          {WarmBootNotification::kCheckpoint,     "checkpoint"},
+        });
+    return warmBootNotificationNameMap;
+}
+
+const WarmStart::WarmBootNotificationReverseMap* WarmStart::warmBootNotificationReverseMap()
+{
+    static const auto* const  warmBootNotificationReverseMap =
+        new WarmBootNotificationReverseMap({
+          {"freeze",     WarmBootNotification::kFreeze},
+          {"unfreeze",   WarmBootNotification::kUnfreeze},
+          {"checkpoint", WarmBootNotification::kCheckpoint},
+        });
+    return warmBootNotificationReverseMap;
 }
 
 WarmStart &WarmStart::getInstance(void)
@@ -300,4 +325,4 @@ WarmStart::DataCheckState WarmStart::getDataCheckState(const std::string &app_na
     return state;
 }
 
-}
+} // namespace swss
