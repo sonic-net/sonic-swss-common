@@ -103,6 +103,7 @@ void WarmStart::initialize(const std::string &app_name,
             std::unique_ptr<Table>(new Table(warmStart.m_cfgDb.get(), CFG_WARM_RESTART_TABLE_NAME));
 
     warmStart.m_initialized = true;
+    warmStart.m_warmbootState = WSUNKNOWN;
 }
 
 /*
@@ -306,6 +307,13 @@ void WarmStart::getWarmStartState(const std::string &app_name, WarmStartState &s
         return;
     }
 
+    if (app_name == warmStart.m_appName &&
+        warmStart.m_warmbootState != WSUNKNOWN) {
+        /* Cache is up-to-date. Read state from cache. */
+        state = warmStart.m_warmbootState;
+        return;
+    }
+
     warmStart.m_stateWarmRestartTable->hget(app_name, "state", statestr);
 
     /* If warm-start is enabled, state cannot be assumed as Reconciled
@@ -321,7 +329,12 @@ void WarmStart::getWarmStartState(const std::string &app_name, WarmStartState &s
             break;
         }
     }
-        
+    if (app_name == warmStart.m_appName)
+    {
+        /* Update cache. */
+        warmStart.m_warmbootState = state;
+    }
+
     SWSS_LOG_INFO("%s warm start state get %s(%d)",
                     app_name.c_str(), statestr.c_str(), state);
 
@@ -336,6 +349,12 @@ void WarmStart::setWarmStartState(const std::string &app_name, WarmStartState st
     warmStart.m_stateWarmRestartTable->hset(app_name,
                                             "state",
                                             warmStartStateNameMap()->at(state).c_str());
+
+    if (app_name == warmStart.m_appName)
+    {
+        /* Update cache. */
+        warmStart.m_warmbootState = state;
+    }
 
     SWSS_LOG_NOTICE("%s warm start state changed to %s",
                     app_name.c_str(),

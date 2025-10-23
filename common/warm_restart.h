@@ -109,6 +109,7 @@ private:
     bool                                 m_systemWarmRebootEnabled;
     std::string                          m_appName;
     std::string                          m_dockerName;
+    WarmStartState                       m_warmbootState;
 };
 
 }
