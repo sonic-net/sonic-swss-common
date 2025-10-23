@@ -5,10 +5,6 @@
 %module swsscommon
 #endif
 
-
-%define NO_RET_TYPE
-%enddef
-
 %rename(delete) del;
 
 %{
