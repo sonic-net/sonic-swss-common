@@ -1,0 +1,33 @@
+[package]
+name = "swss-common"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+edition.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+async = ["dep:tokio"]
+
+[dependencies]
+libc = "0.2.158"
+tokio = { version = "1", optional = true, features = ["net", "rt"] }
+serde.workspace = true
+getset.workspace = true
+lazy_static.workspace = true
+tracing-subscriber.workspace = true
+
+[build-dependencies]
+bindgen = "0.70.1"
+
+[dev-dependencies]
+swss-common-testing = { path = "../swss-common-testing" }
+paste = "1.0.15"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time"] }
+serial_test.workspace = true
+serde_json = "1.0"
