@@ -13,6 +13,12 @@ namespace swss {
 class WarmStart
 {
 public:
+    static const std::string kNsfManagerNotificationChannel;
+    static const std::string kRegistrationFreezeKey;
+    static const std::string kRegistrationCheckpointKey;
+    static const std::string kRegistrationReconciliationKey;
+    static const std::string kRegistrationTimestampKey;
+
     enum WarmStartState
     {
         INITIALIZED,
@@ -21,6 +27,10 @@ public:
         RECONCILED,
         WSDISABLED,
         WSUNKNOWN,
+        FROZEN,
+        QUIESCENT,
+        CHECKPOINTED,
+        FAILED,
     };
 
     enum DataCheckState
@@ -36,11 +46,23 @@ public:
         STAGE_RESTORE,
     };
 
+    enum class WarmBootNotification {
+        kFreeze,
+        kUnfreeze,
+        kCheckpoint,
+    };
+
     typedef std::map<WarmStartState, std::string>  WarmStartStateNameMap;
-    static const WarmStartStateNameMap warmStartStateNameMap;
+    static const WarmStartStateNameMap* warmStartStateNameMap();
 
     typedef std::map<DataCheckState, std::string>  DataCheckStateNameMap;
-    static const DataCheckStateNameMap dataCheckStateNameMap;
+    static const DataCheckStateNameMap* dataCheckStateNameMap();
+
+    typedef std::map<WarmBootNotification, std::string>  WarmBootNotificationNameMap;
+    static const WarmBootNotificationNameMap* warmBootNotificationNameMap();
+
+    typedef std::map<std::string, WarmBootNotification>  WarmBootNotificationReverseMap;
+    static const WarmBootNotificationReverseMap* warmBootNotificationReverseMap();
 
     static WarmStart &getInstance(void);
 
@@ -48,6 +70,10 @@ public:
                            const std::string &docker_name,
                            unsigned int db_timeout = 0,
                            bool isTcpConn = false);
+
+    static bool registerWarmBootInfo(bool wait_for_freeze,
+                                     bool wait_for_checkpoint,
+                                     bool wait_for_reconciliation);
 
     static bool checkWarmStart(const std::string &app_name,
                                const std::string &docker_name,
@@ -60,6 +86,10 @@ public:
     static void getWarmStartState(const std::string &app_name,
                                   WarmStartState    &state);
 
+    // For python via SWIG: return state instead of passing state
+    // variable by reference as a parameter.
+    static WarmStartState returnWarmStartState(const std::string &app_name);
+
     static void setWarmStartState(const std::string &app_name,
                                   WarmStartState     state);
 
@@ -71,7 +101,9 @@ public:
                                   DataCheckState state);
 
     static DataCheckState getDataCheckState(const std::string &app_name,
-                                                       DataCheckStage stage);
+                                            DataCheckStage stage);
+    static bool isStateVerificationEnabled();
+    static bool waitForUnfreeze();
 private:
     std::shared_ptr<swss::DBConnector>   m_stateDb;
     std::shared_ptr<swss::DBConnector>   m_cfgDb;
@@ -81,6 +113,9 @@ private:
     bool                                 m_initialized;
     bool                                 m_enabled;
     bool                                 m_systemWarmRebootEnabled;
+    std::string                          m_appName;
+    std::string                          m_dockerName;
+    WarmStartState                       m_warmbootState;
 };
 
 }
