@@ -68,6 +68,7 @@
 %include <std_map.i>
 %include <std_deque.i>
 #ifdef SWIGPYTHON
+%include <std_unordered_map.i>
 %include <std_shared_ptr.i>
 #endif
 %include <typemaps.i>
@@ -82,6 +83,9 @@
 %template(ScanResult) std::pair<int64_t, std::vector<std::string>>;
 %template(GetTableResult) std::map<std::string, std::map<std::string, std::string>>;
 %template(GetConfigResult) std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>;
+#ifdef SWIGPYTHON
+%template(GetUnorderedConfigResult) std::unordered_map<std::string, std::map<std::string, std::map<std::string, std::string>>>;
+#endif
 %template(GetInstanceListResult) std::map<std::string, swss::RedisInstInfo>;
 %template(KeyOpFieldsValuesQueue) std::deque<std::tuple<std::string, std::string, std::vector<std::pair<std::string, std::string>>>>;
 %template(VectorSonicDbKey) std::vector<swss::SonicDBKey>;
