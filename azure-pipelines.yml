@@ -53,10 +53,10 @@ stages:
 
   jobs:
   - job:
-    displayName: "amd64/ubuntu-20.04"
+    displayName: "amd64/ubuntu-latest"
     condition: false
     pool:
-      vmImage: 'ubuntu-20.04'
+      vmImage: 'ubuntu-latest'
 
     steps:
     - script: |
