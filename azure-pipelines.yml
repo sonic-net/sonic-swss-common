@@ -53,9 +53,9 @@ stages:
 
   jobs:
   - job:
-    displayName: "amd64/ubuntu-20.04"
+    displayName: "amd64/ubuntu-latest"
     pool:
-      vmImage: 'ubuntu-20.04'
+      vmImage: 'ubuntu-latest'
 
     steps:
     - script: |
@@ -105,7 +105,7 @@ stages:
     parameters:
       arch: armhf
       timeout: 180
-      pool: sonicbld-armhf
+      pool: sonicso1ES-armhf
       sonic_slave: sonic-slave-${{ parameters.debian_version }}-armhf:$(BUILD_BRANCH)
       artifact_name: sonic-swss-common.armhf
       debian_version: ${{ parameters.debian_version }}
@@ -114,7 +114,7 @@ stages:
     parameters:
       arch: arm64
       timeout: 180
-      pool: sonicbld-arm64
+      pool: sonicso1ES-arm64
       sonic_slave: sonic-slave-${{ parameters.debian_version }}-arm64:$(BUILD_BRANCH)
       artifact_name: sonic-swss-common.arm64
       debian_version: ${{ parameters.debian_version }}
@@ -134,7 +134,7 @@ stages:
     parameters:
       arch: armhf
       timeout: 180
-      pool: sonicbld-armhf
+      pool: sonicso1ES-armhf
       sonic_slave: sonic-slave-bookworm-armhf:$(BUILD_BRANCH)
       artifact_name: sonic-swss-common-bookworm.armhf
       debian_version: ${{ parameters.debian_version }}
@@ -143,7 +143,7 @@ stages:
     parameters:
       arch: arm64
       timeout: 180
-      pool: sonicbld-arm64
+      pool: sonicso1ES-arm64
       sonic_slave: sonic-slave-bookworm-arm64:$(BUILD_BRANCH)
       artifact_name: sonic-swss-common-bookworm.arm64
       debian_version: ${{ parameters.debian_version }}
