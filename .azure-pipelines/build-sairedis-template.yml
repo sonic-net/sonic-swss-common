@@ -41,7 +41,6 @@ jobs:
 - job:
   displayName: ${{ parameters.arch }}
   timeoutInMinutes: ${{ parameters.timeout }}
-
   pool:
     ${{ if ne(parameters.pool, 'default') }}:
       name: ${{ parameters.pool }}
