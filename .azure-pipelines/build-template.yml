@@ -50,7 +50,7 @@ jobs:
     ${{ if ne(parameters.pool, 'default') }}:
       name: ${{ parameters.pool }}
     ${{ else }}:
-      vmImage: 'ubuntu-latest'
+      vmImage: 'ubuntu-22.04'
 
   container:
     image: sonicdev-microsoft.azurecr.io:443/${{ parameters.sonic_slave }}
@@ -60,6 +60,7 @@ jobs:
     clean: true
   - script: |
       set -ex
+      sed -i '/bullseye-backports/d' /etc/apt/sources.list
       sudo apt-get update
       sudo apt-get install -qq -y \
         libhiredis-dev \

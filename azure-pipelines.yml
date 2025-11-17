@@ -53,9 +53,9 @@ stages:
 
   jobs:
   - job:
-    displayName: "amd64/ubuntu-latest"
+    displayName: "amd64/ubuntu-22.04"
     pool:
-      vmImage: 'ubuntu-latest'
+      vmImage: 'ubuntu-22.04'
 
     steps:
     - script: |
@@ -85,7 +85,7 @@ stages:
         bazel test //...
       displayName: "Compile and test all Bazel targets"
     - publish: $(System.DefaultWorkingDirectory)/
-      artifact: sonic-swss-common.amd64.ubuntu20_04
+      artifact: sonic-swss-common.amd64.ubuntu22_04
       displayName: "Archive swss common debian packages"
 
   - template: .azure-pipelines/build-template.yml
