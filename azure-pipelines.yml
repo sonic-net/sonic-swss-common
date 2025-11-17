@@ -53,9 +53,9 @@ stages:
 
   jobs:
   - job:
-    displayName: "amd64/ubuntu-latest"
+    displayName: "amd64/ubuntu-22.04"
     pool:
-      vmImage: 'ubuntu-latest'
+      vmImage: 'ubuntu-22.04'
 
     steps:
     - script: |
