@@ -42,8 +42,6 @@ parameters:
     type: string
     default: bookworm
 variables:
-  - name: CodeQL.Enabled
-    value: false
   - name: BUILD_BRANCH
     ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
       value: $(System.PullRequest.TargetBranch)
