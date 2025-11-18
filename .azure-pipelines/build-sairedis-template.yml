@@ -64,6 +64,7 @@ jobs:
     displayName: Set up sonic-sairedis branch
   - script: |
       set -ex
+      sudo sed -i '/bullseye-backports/d' /etc/apt/sources.list
       sudo apt-get update
       sudo apt-get install -qq -y \
         qtbase5-dev \
