@@ -23,6 +23,16 @@ ZmqConsumerStateTable::ZmqConsumerStateTable(DBConnector *db, const std::string 
     , m_db(db)
     , m_zmqServer(zmqServer)
 {
+    if (popBatchSize > 0)
+    {
+        m_popBatchSize = (size_t)popBatchSize;
+    }
+    else
+    {
+        m_popBatchSize = DEFAULT_POP_BATCH_SIZE;
+        SWSS_LOG_ERROR("Invalid pop batch size: Setting it to %d", DEFAULT_POP_BATCH_SIZE);
+    }
+
     if (dbPersistence)
     {
         SWSS_LOG_DEBUG("Database persistence enabled, tableName: %s", tableName.c_str());
@@ -80,7 +90,8 @@ void ZmqConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const
     }
 
     vkco.clear();
-    for (size_t ie = 0; ie < count; ie++)
+    auto pop_limit = min(count, m_popBatchSize);
+    for (size_t ie = 0; ie < pop_limit; ie++)
     {
         auto& kco = *(m_receivedOperationQueue.front());
         vkco.push_back(std::move(kco));
@@ -89,6 +100,12 @@ void ZmqConsumerStateTable::pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const
             std::lock_guard<std::mutex> lock(m_receivedQueueMutex);
             m_receivedOperationQueue.pop();
         }
+    }
+
+    if (count > m_popBatchSize)
+    {
+        // Notify epoll to wake up and continue to pop.
+        m_selectableEvent.notify();
     }
 }
 
