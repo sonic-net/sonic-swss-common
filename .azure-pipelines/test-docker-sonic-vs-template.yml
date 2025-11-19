@@ -46,7 +46,7 @@ jobs:
       pipeline: sonic-net.sonic-buildimage-ubuntu22.04
       artifact: sonic-buildimage.amd64.ubuntu22_04
       runVersion: 'latestFromBranch'
-      runBranch: 'refs/heads/${{ parameters.sonic_buildimage_ubuntu22_04 }}'
+      runBranch: 'refs/heads/master'
       path: $(Build.ArtifactStagingDirectory)/download
     displayName: "Download sonic buildimage ubuntu22.04 deb packages"
 
