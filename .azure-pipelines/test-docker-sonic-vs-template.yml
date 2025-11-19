@@ -15,7 +15,7 @@ jobs:
   displayName: vstest
   timeoutInMinutes: ${{ parameters.timeout }}
 
-  pool: sonic-common
+  pool: sonictest
 
   steps:
   - checkout: self
