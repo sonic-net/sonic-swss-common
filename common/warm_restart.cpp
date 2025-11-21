@@ -6,22 +6,59 @@
 
 namespace swss {
 
-const WarmStart::WarmStartStateNameMap WarmStart::warmStartStateNameMap =
-{
-    {INITIALIZED,   "initialized"},
-    {RESTORED,      "restored"},
-    {REPLAYED,      "replayed"},
-    {RECONCILED,    "reconciled"},
-    {WSDISABLED,    "disabled"},
-    {WSUNKNOWN,     "unknown"}
-};
+const std::string WarmStart::kNsfManagerNotificationChannel =
+    "NSF_MANAGER_COMMON_NOTIFICATION_CHANNEL";
 
-const WarmStart::DataCheckStateNameMap WarmStart::dataCheckStateNameMap =
+const WarmStart::WarmStartStateNameMap* WarmStart::warmStartStateNameMap()
 {
-    {CHECK_IGNORED,   "ignored"},
-    {CHECK_PASSED,    "passed"},
-    {CHECK_FAILED,    "failed"}
-};
+    static const auto* const warmStartStateNameMap =
+        new WarmStartStateNameMap({
+            {INITIALIZED,   "initialized"},
+            {RESTORED,      "restored"},
+            {REPLAYED,      "replayed"},
+            {RECONCILED,    "reconciled"},
+            {WSDISABLED,    "disabled"},
+            {WSUNKNOWN,     "unknown"},
+            {FROZEN,        "frozen"},
+            {QUIESCENT,     "quiescent"},
+            {CHECKPOINTED,  "checkpointed"},
+            {FAILED,        "failed"}
+        });
+    return warmStartStateNameMap;
+}
+
+const WarmStart::DataCheckStateNameMap* WarmStart::dataCheckStateNameMap()
+{
+    static const auto* const dataCheckStateNameMap =
+        new DataCheckStateNameMap({
+            {CHECK_IGNORED,   "ignored"},
+            {CHECK_PASSED,    "passed"},
+            {CHECK_FAILED,    "failed"}
+        });
+    return dataCheckStateNameMap;
+}
+
+const WarmStart::WarmBootNotificationNameMap* WarmStart::warmBootNotificationNameMap()
+{
+    static const auto* const  warmBootNotificationNameMap =
+        new WarmBootNotificationNameMap({
+          {WarmBootNotification::kFreeze,         "freeze"},
+          {WarmBootNotification::kUnfreeze,       "unfreeze"},
+          {WarmBootNotification::kCheckpoint,     "checkpoint"},
+        });
+    return warmBootNotificationNameMap;
+}
+
+const WarmStart::WarmBootNotificationReverseMap* WarmStart::warmBootNotificationReverseMap()
+{
+    static const auto* const  warmBootNotificationReverseMap =
+        new WarmBootNotificationReverseMap({
+          {"freeze",     WarmBootNotification::kFreeze},
+          {"unfreeze",   WarmBootNotification::kUnfreeze},
+          {"checkpoint", WarmBootNotification::kCheckpoint},
+        });
+    return warmBootNotificationReverseMap;
+}
 
 WarmStart &WarmStart::getInstance(void)
 {
@@ -204,7 +241,7 @@ void WarmStart::getWarmStartState(const std::string &app_name, WarmStartState &s
      */
     state = WSUNKNOWN;
 
-    for (auto it = warmStartStateNameMap.begin(); it != warmStartStateNameMap.end(); it++)
+    for (auto it = warmStartStateNameMap()->begin(); it != warmStartStateNameMap()->end(); it++)
     {
         if (it->second == statestr)
         {
@@ -226,11 +263,11 @@ void WarmStart::setWarmStartState(const std::string &app_name, WarmStartState st
 
     warmStart.m_stateWarmRestartTable->hset(app_name,
                                             "state",
-                                            warmStartStateNameMap.at(state).c_str());
+                                            warmStartStateNameMap()->at(state).c_str());
 
     SWSS_LOG_NOTICE("%s warm start state changed to %s",
                     app_name.c_str(),
-                    warmStartStateNameMap.at(state).c_str());
+                    warmStartStateNameMap()->at(state).c_str());
 }
 
 // Set the WarmStart data check state for a particular application.
@@ -246,12 +283,12 @@ void WarmStart::setDataCheckState(const std::string &app_name, DataCheckStage st
     }
     warmStart.m_stateWarmRestartTable->hset(app_name,
                                             stageField,
-                                            dataCheckStateNameMap.at(state).c_str());
+                                            dataCheckStateNameMap()->at(state).c_str());
 
     SWSS_LOG_NOTICE("%s %s result %s",
                     app_name.c_str(),
                     stageField.c_str(),
-                    dataCheckStateNameMap.at(state).c_str());
+                    dataCheckStateNameMap()->at(state).c_str());
 }
 
 WarmStart::DataCheckState WarmStart::getDataCheckState(const std::string &app_name, DataCheckStage stage)
@@ -271,7 +308,7 @@ WarmStart::DataCheckState WarmStart::getDataCheckState(const std::string &app_na
 
     DataCheckState state = CHECK_IGNORED;
 
-    for (auto it = dataCheckStateNameMap.begin(); it != dataCheckStateNameMap.end(); it++)
+    for (auto it = dataCheckStateNameMap()->begin(); it != dataCheckStateNameMap()->end(); it++)
     {
         if (it->second == stateStr)
         {
@@ -288,4 +325,4 @@ WarmStart::DataCheckState WarmStart::getDataCheckState(const std::string &app_na
     return state;
 }
 
-}
+} // namespace swss
