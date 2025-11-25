@@ -1,4 +1,4 @@
-use std::{collections::HashMap, time::Duration};
+use std::collections::HashMap;
 use swss_common::*;
 use swss_common_testing::*;
 
@@ -80,7 +80,7 @@ fn consumer_producer_state_tables_sync_api_basic_test() -> Result<(), Exception>
         }
     }
 
-    assert_eq!(cst.read_data(Duration::from_millis(2000), true)?, SelectResult::Data);
+    assert_eq!(cst.read_data(2000, true)?, SelectResult::Data);
     let mut kfvs_cst = cst.pops()?;
     assert!(cst.pops()?.is_empty());
 
@@ -102,7 +102,7 @@ fn subscriber_state_table_sync_api_basic_test() -> Result<(), Exception> {
 
     db.hset("table_a:key_a", "field_a", &CxxString::new("value_a"))?;
     db.hset("table_a:key_a", "field_b", &CxxString::new("value_b"))?;
-    assert_eq!(sst.read_data(Duration::from_millis(300), true)?, SelectResult::Data);
+    assert_eq!(sst.read_data(300, true)?, SelectResult::Data);
     let mut kfvs = sst.pops()?;
 
     // SubscriberStateTable will pick up duplicate KeyOpFieldValues' after two SETs on the same
@@ -147,10 +147,10 @@ fn zmq_consumer_state_table_sync_api_basic_test() -> Result<(), Exception> {
     let kfvs = random_kfvs();
 
     zmqc.send_msg("", "table_a", kfvs.clone())?; // db name is empty because we are using DbConnector::new_unix
-    assert_eq!(zcst_table_a.read_data(Duration::from_millis(1500), true)?, Data);
+    assert_eq!(zcst_table_a.read_data(1500, true)?, Data);
 
     zmqc.send_msg("", "table_b", kfvs.clone())?;
-    assert_eq!(zcst_table_b.read_data(Duration::from_millis(1500), true)?, Data);
+    assert_eq!(zcst_table_b.read_data(1500, true)?, Data);
 
     let kfvs_a = zcst_table_a.pops()?;
     let kvfs_b = zcst_table_b.pops()?;
@@ -182,7 +182,7 @@ fn zmq_consumer_producer_state_tables_sync_api_basic_test() -> Result<(), Except
 
     let mut kfvs_seen = Vec::new();
     while kfvs_seen.len() != kfvs.len() {
-        assert_eq!(zcst.read_data(Duration::from_millis(2000), true)?, Data);
+        assert_eq!(zcst.read_data(2000, true)?, Data);
         kfvs_seen.extend(zcst.pops()?);
     }
     assert_eq!(kfvs, kfvs_seen);
@@ -220,7 +220,7 @@ fn zmq_consumer_producer_state_tables_sync_api_connect_late_reconnect() -> Resul
         let zcst = ZmqConsumerStateTable::new(redis.db_connector(), "table_a", &mut zmqs, None, None)?;
         let mut kfvs_seen = Vec::new();
         while kfvs_seen.len() != kfvs.len() {
-            assert_eq!(zcst.read_data(Duration::from_millis(2000), true)?, Data);
+            assert_eq!(zcst.read_data(2000, true)?, Data);
             kfvs_seen.extend(zcst.pops()?);
         }
         assert_eq!(kfvs, kfvs_seen);
