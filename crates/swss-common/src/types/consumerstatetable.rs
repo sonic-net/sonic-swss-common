@@ -1,6 +1,6 @@
 use super::*;
 use crate::bindings::*;
-use std::{os::fd::BorrowedFd, ptr::null};
+use std::{os::fd::BorrowedFd, ptr::null, time::Duration};
 
 /// Rust wrapper around `swss::ConsumerStateTable`.
 #[derive(Debug)]
@@ -47,11 +47,13 @@ impl ConsumerStateTable {
         }
     }
 
-    pub fn read_data(&self, timeout_ms: u32, interrupt_on_signal: bool) -> Result<SelectResult> {
+    pub fn read_data(&self, timeout: Duration, interrupt_on_signal: bool) -> std::io::Result<SelectResult> {
+        let timeout_ms: u32 = timeout.as_millis().try_into()
+            .map_err(|_| std::io::Error::new(std::io::ErrorKind::InvalidInput, "Invalid timeout value"))?;
         let res = unsafe {
             swss_try!(p_res => {
                 SWSSConsumerStateTable_readData(self.ptr, timeout_ms, interrupt_on_signal as u8, p_res)
-            })?
+            }).map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?
         };
         Ok(SelectResult::from_raw(res))
     }
