@@ -37,7 +37,7 @@ macro_rules! impl_read_data_async {
 
             let fd = self.get_fd().map_err(::std::io::Error::other)?;
             let _ready_guard = AsyncFd::with_interest(fd, Interest::READABLE)?.readable().await?;
-            self.read_data(Duration::from_secs(0), false)
+            self.read_data(0, false)
                 .map_err(::std::io::Error::other)?;
             Ok(())
         }

@@ -238,5 +238,4 @@ impl DbConnector {
     async_util::impl_basic_async_method!(hgetall_async <= hgetall(&self, key: &str) -> Result<HashMap<String, CxxString>>);
     async_util::impl_basic_async_method!(hexists_async <= hexists(&self, key: &str, field: &str) -> Result<bool>);
     async_util::impl_basic_async_method!(flush_db_async <= flush_db(&self) -> Result<bool>);
-    async_util::impl_basic_async_method!(clone_async <= clone(&self) -> Self);
 }
