@@ -1,6 +1,6 @@
 use super::*;
 use crate::bindings::*;
-use std::{os::fd::BorrowedFd, ptr::null, sync::Arc, time::Duration};
+use std::{os::fd::BorrowedFd, ptr::null, sync::Arc};
 
 /// Rust wrapper around `swss::ZmqConsumerStateTable`.
 #[derive(Debug)]
@@ -45,21 +45,20 @@ impl ZmqConsumerStateTable {
     }
 
     pub fn get_fd(&self) -> Result<BorrowedFd> {
-        // SAFETY: This fd represents the underlying zmq socket, which should remain alive as long as there
-        // is a listener (i.e. a ZmqConsumerStateTable)
+        // SAFETY: This fd represents the underlying ZMQ socket, which should stay alive
+        // as long as this object does.
         unsafe {
             let fd = swss_try!(p_fd => SWSSZmqConsumerStateTable_getFd(self.ptr, p_fd))?;
-            let fd = BorrowedFd::borrow_raw(fd.try_into().unwrap());
+            let fd = BorrowedFd::borrow_raw(fd);
             Ok(fd)
         }
     }
 
-    pub fn read_data(&self, timeout: Duration, interrupt_on_signal: bool) -> Result<SelectResult> {
-        let timeout_ms = timeout.as_millis().try_into().unwrap();
+    pub fn read_data(&self, timeout_ms: u32, interrupt_on_signal: bool) -> Result<SelectResult> {
         let res = unsafe {
-            swss_try!(p_res =>
+            swss_try!(p_res => {
                 SWSSZmqConsumerStateTable_readData(self.ptr, timeout_ms, interrupt_on_signal as u8, p_res)
-            )?
+            })?
         };
         Ok(SelectResult::from_raw(res))
     }
@@ -74,7 +73,11 @@ pub(crate) struct DropGuard(SWSSZmqConsumerStateTable);
 
 impl Drop for DropGuard {
     fn drop(&mut self) {
-        unsafe { swss_try!(SWSSZmqConsumerStateTable_free(self.0)).expect("Dropping ZmqConsumerStateTable") };
+        unsafe {
+            if let Err(e) = swss_try!(SWSSZmqConsumerStateTable_free(self.0)) {
+                eprintln!("Error dropping ZmqConsumerStateTable: {}", e);
+            }
+        }
     }
 }
 

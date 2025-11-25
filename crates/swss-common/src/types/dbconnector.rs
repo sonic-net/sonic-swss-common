@@ -208,20 +208,13 @@ impl DbConnector {
     }
 }
 
-impl Clone for DbConnector {
-    /// Clone with a default timeout of 15 seconds.
-    ///
-    /// 15 seconds was picked as an absurdly long time to wait for Redis to respond.
-    /// Panics after a timeout, or if any other exception occurred.
-    /// Use `clone_timeout` for control of timeout and exception handling.
-    fn clone(&self) -> Self {
-        self.clone_timeout(15000).expect("DbConnector::clone failed")
-    }
-}
-
 impl Drop for DbConnector {
     fn drop(&mut self) {
-        unsafe { swss_try!(SWSSDBConnector_free(self.ptr)).expect("Dropping DbConnector") };
+        unsafe {
+            if let Err(e) = swss_try!(SWSSDBConnector_free(self.ptr)) {
+                eprintln!("Error dropping DbConnector: {}", e);
+            }
+        }
     }
 }
 

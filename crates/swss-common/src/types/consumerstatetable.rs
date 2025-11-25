@@ -1,6 +1,6 @@
 use super::*;
 use crate::bindings::*;
-use std::{os::fd::BorrowedFd, ptr::null, time::Duration};
+use std::{os::fd::BorrowedFd, ptr::null};
 
 /// Rust wrapper around `swss::ConsumerStateTable`.
 #[derive(Debug)]
@@ -38,13 +38,12 @@ impl ConsumerStateTable {
         // as long as the DbConnector does.
         unsafe {
             let fd = swss_try!(p_fd => SWSSConsumerStateTable_getFd(self.ptr, p_fd))?;
-            let fd = BorrowedFd::borrow_raw(fd.try_into().unwrap());
+            let fd = BorrowedFd::borrow_raw(fd);
             Ok(fd)
         }
     }
 
-    pub fn read_data(&self, timeout: Duration, interrupt_on_signal: bool) -> Result<SelectResult> {
-        let timeout_ms = timeout.as_millis().try_into().unwrap();
+    pub fn read_data(&self, timeout_ms: u32, interrupt_on_signal: bool) -> Result<SelectResult> {
         let res = unsafe {
             swss_try!(p_res => {
                 SWSSConsumerStateTable_readData(self.ptr, timeout_ms, interrupt_on_signal as u8, p_res)
@@ -68,7 +67,11 @@ impl ConsumerStateTable {
 
 impl Drop for ConsumerStateTable {
     fn drop(&mut self) {
-        unsafe { swss_try!(SWSSConsumerStateTable_free(self.ptr)).expect("Dropping ConsumerStateTable") };
+        unsafe {
+            if let Err(e) = swss_try!(SWSSConsumerStateTable_free(self.ptr)) {
+                eprintln!("Error dropping ConsumerStateTable: {}", e);
+            }
+        }
     }
 }
 
