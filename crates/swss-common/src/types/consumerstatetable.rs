@@ -33,11 +33,15 @@ impl ConsumerStateTable {
         }
     }
 
-    pub fn get_fd(&self) -> Result<BorrowedFd> {
+    pub fn get_fd(&self) -> std::io::Result<BorrowedFd> {
         // SAFETY: This fd represents the underlying redis connection, which should stay alive
         // as long as the DbConnector does.
         unsafe {
-            let fd = swss_try!(p_fd => SWSSConsumerStateTable_getFd(self.ptr, p_fd))?;
+            let fd = swss_try!(p_fd => SWSSConsumerStateTable_getFd(self.ptr, p_fd))
+                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+            if fd == -1 {
+                return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Invalid file descriptor"));
+            }
             let fd = BorrowedFd::borrow_raw(fd);
             Ok(fd)
         }
