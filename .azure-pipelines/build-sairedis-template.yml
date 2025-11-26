@@ -126,7 +126,7 @@ jobs:
       set -ex
       rm ../*.deb || true
       ./autogen.sh
-      DEB_BUILD_OPTIONS=nocheck dpkg-buildpackage -b -us -uc -Psyncd,vs,nopython2 -j$(nproc)
+      DEB_BUILD_OPTIONS=nocheck dpkg-buildpackage -b -us -uc -Psyncd,vs,nopython2 -j$(nproc) || { sudo du -sh /bin /lib /run /var /usr /home; sudo du -sh /var/lib/* /var/log | grep G ; exit 1}
       # Add SYS_TIME capability for settimeofday ok in syncd test
       sudo setcap "cap_sys_time=eip" syncd/.libs/syncd_tests
       # Add CAP_DAC_OVERRIDE capability for system directory creation in syncd unittest
