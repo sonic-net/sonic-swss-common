@@ -44,27 +44,26 @@ impl ZmqConsumerStateTable {
         }
     }
 
-    pub fn get_fd(&self) -> std::io::Result<BorrowedFd> {
+    pub fn get_fd(&self) -> Result<BorrowedFd> {
         // SAFETY: This fd represents the underlying ZMQ socket, which should stay alive
         // as long as this object does.
         unsafe {
-            let fd = swss_try!(p_fd => SWSSZmqConsumerStateTable_getFd(self.ptr, p_fd))
-                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+            let fd = swss_try!(p_fd => SWSSZmqConsumerStateTable_getFd(self.ptr, p_fd))?;
             if fd == -1 {
-                return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Invalid file descriptor"));
+                return Err(Exception::new("Invalid file descriptor: -1"));
             }
             let fd = BorrowedFd::borrow_raw(fd);
             Ok(fd)
         }
     }
 
-    pub fn read_data(&self, timeout: Duration, interrupt_on_signal: bool) -> std::io::Result<SelectResult> {
+    pub fn read_data(&self, timeout: Duration, interrupt_on_signal: bool) -> Result<SelectResult> {
         let timeout_ms: u32 = timeout.as_millis().try_into()
-            .map_err(|_| std::io::Error::new(std::io::ErrorKind::InvalidInput, "Invalid timeout value"))?;
+            .map_err(|_| Exception::new("Invalid timeout value"))?;
         let res = unsafe {
             swss_try!(p_res => {
                 SWSSZmqConsumerStateTable_readData(self.ptr, timeout_ms, interrupt_on_signal as u8, p_res)
-            }).map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?
+            })?
         };
         Ok(SelectResult::from_raw(res))
     }

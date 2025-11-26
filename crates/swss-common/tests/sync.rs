@@ -63,52 +63,54 @@ fn dbconnector_sync_api_basic_test() -> Result<(), Exception> {
 }
 
 #[test]
-fn consumer_producer_state_tables_sync_api_basic_test() {
+fn consumer_producer_state_tables_sync_api_basic_test() -> Result<(), Exception> {
     sonic_db_config_init_for_test();
     let redis = Redis::start();
-    let pst = ProducerStateTable::new(redis.db_connector(), "table_a").unwrap();
-    let cst = ConsumerStateTable::new(redis.db_connector(), "table_a", None, None).unwrap();
+    let pst = ProducerStateTable::new(redis.db_connector(), "table_a")?;
+    let cst = ConsumerStateTable::new(redis.db_connector(), "table_a", None, None)?;
 
-    assert!(cst.pops().unwrap().is_empty());
+    assert!(cst.pops()?.is_empty());
 
     let mut kfvs = random_kfvs();
     for (i, kfv) in kfvs.iter().enumerate() {
-        assert_eq!(pst.count().unwrap(), i as i64);
+        assert_eq!(pst.count()?, i as i64);
         match kfv.operation {
-            KeyOperation::Set => pst.set(&kfv.key, kfv.field_values.clone()).unwrap(),
-            KeyOperation::Del => pst.del(&kfv.key).unwrap(),
+            KeyOperation::Set => pst.set(&kfv.key, kfv.field_values.clone())?,
+            KeyOperation::Del => pst.del(&kfv.key)?,
         }
     }
 
-    assert_eq!(cst.read_data(Duration::from_millis(2000), true).unwrap(), SelectResult::Data);
-    let mut kfvs_cst = cst.pops().unwrap();
-    assert!(cst.pops().unwrap().is_empty());
+    assert_eq!(cst.read_data(Duration::from_millis(2000), true)?, SelectResult::Data);
+    let mut kfvs_cst = cst.pops()?;
+    assert!(cst.pops()?.is_empty());
 
     kfvs.sort_unstable();
     kfvs_cst.sort_unstable();
     assert_eq!(kfvs_cst.len(), kfvs.len());
     assert_eq!(kfvs_cst, kfvs);
+
+    Ok(())
 }
 
 #[test]
-fn subscriber_state_table_sync_api_basic_test() {
+fn subscriber_state_table_sync_api_basic_test() -> Result<(), Exception> {
     sonic_db_config_init_for_test();
     let redis = Redis::start();
     let db = redis.db_connector();
-    let sst = SubscriberStateTable::new(redis.db_connector(), "table_a", None, None).unwrap();
-    assert!(sst.pops().unwrap().is_empty());
+    let sst = SubscriberStateTable::new(redis.db_connector(), "table_a", None, None)?;
+    assert!(sst.pops()?.is_empty());
 
-    db.hset("table_a:key_a", "field_a", &CxxString::new("value_a")).unwrap();
-    db.hset("table_a:key_a", "field_b", &CxxString::new("value_b")).unwrap();
-    assert_eq!(sst.read_data(Duration::from_millis(300), true).unwrap(), SelectResult::Data);
-    let mut kfvs = sst.pops().unwrap();
+    db.hset("table_a:key_a", "field_a", &CxxString::new("value_a"))?;
+    db.hset("table_a:key_a", "field_b", &CxxString::new("value_b"))?;
+    assert_eq!(sst.read_data(Duration::from_millis(300), true)?, SelectResult::Data);
+    let mut kfvs = sst.pops()?;
 
     // SubscriberStateTable will pick up duplicate KeyOpFieldValues' after two SETs on the same
     // key. I'm not actually sure if this is intended.
     assert_eq!(kfvs.len(), 2);
     assert_eq!(kfvs[0], kfvs[1]);
 
-    assert!(sst.pops().unwrap().is_empty());
+    assert!(sst.pops()?.is_empty());
 
     let KeyOpFieldValues {
         key,
@@ -125,61 +127,67 @@ fn subscriber_state_table_sync_api_basic_test() {
             ("field_b".into(), "value_b".into())
         ])
     );
+
+    Ok(())
 }
 
 #[test]
-fn zmq_consumer_state_table_sync_api_basic_test() {
+fn zmq_consumer_state_table_sync_api_basic_test() -> Result<(), Exception> {
     use SelectResult::*;
 
     let (endpoint, _delete) = random_zmq_endpoint();
-    let mut zmqs = ZmqServer::new(&endpoint).unwrap();
-    let zmqc = ZmqClient::new(&endpoint).unwrap();
-    assert!(zmqc.is_connected().unwrap());
+    let mut zmqs = ZmqServer::new(&endpoint)?;
+    let zmqc = ZmqClient::new(&endpoint)?;
+    assert!(zmqc.is_connected()?);
 
     let redis = Redis::start();
-    let zcst_table_a = ZmqConsumerStateTable::new(redis.db_connector(), "table_a", &mut zmqs, None, None).unwrap();
-    let zcst_table_b = ZmqConsumerStateTable::new(redis.db_connector(), "table_b", &mut zmqs, None, None).unwrap();
+    let zcst_table_a = ZmqConsumerStateTable::new(redis.db_connector(), "table_a", &mut zmqs, None, None)?;
+    let zcst_table_b = ZmqConsumerStateTable::new(redis.db_connector(), "table_b", &mut zmqs, None, None)?;
 
     let kfvs = random_kfvs();
 
-    zmqc.send_msg("", "table_a", kfvs.clone()).unwrap(); // db name is empty because we are using DbConnector::new_unix
-    assert_eq!(zcst_table_a.read_data(Duration::from_millis(1500), true).unwrap(), Data);
+    zmqc.send_msg("", "table_a", kfvs.clone())?; // db name is empty because we are using DbConnector::new_unix
+    assert_eq!(zcst_table_a.read_data(Duration::from_millis(1500), true)?, Data);
 
-    zmqc.send_msg("", "table_b", kfvs.clone()).unwrap();
-    assert_eq!(zcst_table_b.read_data(Duration::from_millis(1500), true).unwrap(), Data);
+    zmqc.send_msg("", "table_b", kfvs.clone())?;
+    assert_eq!(zcst_table_b.read_data(Duration::from_millis(1500), true)?, Data);
 
-    let kfvs_a = zcst_table_a.pops().unwrap();
-    let kvfs_b = zcst_table_b.pops().unwrap();
+    let kfvs_a = zcst_table_a.pops()?;
+    let kvfs_b = zcst_table_b.pops()?;
     assert_eq!(kfvs_a, kvfs_b);
     assert_eq!(kfvs, kfvs_a);
+
+    Ok(())
 }
 
 #[test]
-fn zmq_consumer_producer_state_tables_sync_api_basic_test() {
+fn zmq_consumer_producer_state_tables_sync_api_basic_test() -> Result<(), Exception> {
     use SelectResult::*;
 
     let (endpoint, _delete) = random_zmq_endpoint();
-    let mut zmqs = ZmqServer::new(&endpoint).unwrap();
-    let zmqc = ZmqClient::new(&endpoint).unwrap();
+    let mut zmqs = ZmqServer::new(&endpoint)?;
+    let zmqc = ZmqClient::new(&endpoint)?;
 
     let redis = Redis::start();
-    let zpst = ZmqProducerStateTable::new(redis.db_connector(), "table_a", zmqc, false).unwrap();
-    let zcst = ZmqConsumerStateTable::new(redis.db_connector(), "table_a", &mut zmqs, None, None).unwrap();
+    let zpst = ZmqProducerStateTable::new(redis.db_connector(), "table_a", zmqc, false)?;
+    let zcst = ZmqConsumerStateTable::new(redis.db_connector(), "table_a", &mut zmqs, None, None)?;
 
     let kfvs = random_kfvs();
     for kfv in &kfvs {
         match kfv.operation {
-            KeyOperation::Set => zpst.set(&kfv.key, kfv.field_values.clone()).unwrap(),
-            KeyOperation::Del => zpst.del(&kfv.key).unwrap(),
+            KeyOperation::Set => zpst.set(&kfv.key, kfv.field_values.clone())?,
+            KeyOperation::Del => zpst.del(&kfv.key)?,
         }
     }
 
     let mut kfvs_seen = Vec::new();
     while kfvs_seen.len() != kfvs.len() {
-        assert_eq!(zcst.read_data(Duration::from_millis(2000), true).unwrap(), Data);
-        kfvs_seen.extend(zcst.pops().unwrap());
+        assert_eq!(zcst.read_data(Duration::from_millis(2000), true)?, Data);
+        kfvs_seen.extend(zcst.pops()?);
     }
     assert_eq!(kfvs, kfvs_seen);
+
+    Ok(())
 }
 
 // Below test covers 2 scenarios:
@@ -187,7 +195,7 @@ fn zmq_consumer_producer_state_tables_sync_api_basic_test() {
 // 2. reconnect when zmq server is stopped and restarted. messages from client during
 //    the time should be queued by client and resent when server is restarted.
 #[test]
-fn zmq_consumer_producer_state_tables_sync_api_connect_late_reconnect() {
+fn zmq_consumer_producer_state_tables_sync_api_connect_late_reconnect() -> Result<(), Exception> {
     use SelectResult::*;
     enum TestPhase {
         LateConnect,
@@ -195,30 +203,32 @@ fn zmq_consumer_producer_state_tables_sync_api_connect_late_reconnect() {
     }
     let (endpoint, _delete) = random_zmq_endpoint();
 
-    let zmqc = ZmqClient::new(&endpoint).unwrap();
+    let zmqc = ZmqClient::new(&endpoint)?;
     let redis = Redis::start();
-    let zpst = ZmqProducerStateTable::new(redis.db_connector(), "table_a", zmqc, false).unwrap();
+    let zpst = ZmqProducerStateTable::new(redis.db_connector(), "table_a", zmqc, false)?;
 
     for _ in [TestPhase::LateConnect, TestPhase::Reconnect] {
         let kfvs = random_kfvs();
         for kfv in &kfvs {
             match kfv.operation {
-                KeyOperation::Set => zpst.set(&kfv.key, kfv.field_values.clone()).unwrap(),
-                KeyOperation::Del => zpst.del(&kfv.key).unwrap(),
+                KeyOperation::Set => zpst.set(&kfv.key, kfv.field_values.clone())?,
+                KeyOperation::Del => zpst.del(&kfv.key)?,
             }
         }
 
-        let mut zmqs = ZmqServer::new(&endpoint).unwrap();
-        let zcst = ZmqConsumerStateTable::new(redis.db_connector(), "table_a", &mut zmqs, None, None).unwrap();
+        let mut zmqs = ZmqServer::new(&endpoint)?;
+        let zcst = ZmqConsumerStateTable::new(redis.db_connector(), "table_a", &mut zmqs, None, None)?;
         let mut kfvs_seen = Vec::new();
         while kfvs_seen.len() != kfvs.len() {
-            assert_eq!(zcst.read_data(Duration::from_millis(2000), true).unwrap(), Data);
-            kfvs_seen.extend(zcst.pops().unwrap());
+            assert_eq!(zcst.read_data(Duration::from_millis(2000), true)?, Data);
+            kfvs_seen.extend(zcst.pops()?);
         }
         assert_eq!(kfvs, kfvs_seen);
         drop(zcst);
         drop(zmqs);
     }
+
+    Ok(())
 }
 
 #[test]
