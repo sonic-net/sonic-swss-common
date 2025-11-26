@@ -137,7 +137,7 @@ jobs:
       set -ex
       rm ../*.deb || true
       ./autogen.sh
-      dpkg-buildpackage -us -uc -b -j$(nproc) || { sudo du -sh /bin /lib /run /var /usr /home; sudo du -sh /var/lib/* /var/log | grep G ; exit 1 }
+      dpkg-buildpackage -us -uc -b -j$(nproc) || { sudo du -sh /bin /lib /run /var /usr /home; sudo du -sh /var/lib/* /var/log | grep G ; exit 1; }
       mv ../*.deb $(Build.ArtifactStagingDirectory)
     displayName: "Compile sonic swss"
   - publish: $(Build.ArtifactStagingDirectory)
