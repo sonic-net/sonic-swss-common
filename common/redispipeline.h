@@ -36,7 +36,18 @@ public:
         if (m_ownerTid == gettid())
         {
             // call flush from different thread will trigger race condition issue.
-            flush();
+            try
+            {
+                flush();
+            }
+            catch (const std::exception& e)
+            {
+                SWSS_LOG_ERROR("Exception during RedisPipeline flush in destructor: %s, Database: %s", e.what(), getDbName().c_str());
+            }
+            catch (...)
+            {
+                SWSS_LOG_ERROR("Unknown exception during RedisPipeline flush in destructor, Database: %s", getDbName().c_str());
+            }
         }
         else
         {
