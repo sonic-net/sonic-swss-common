@@ -1,8 +1,8 @@
 #include <iostream>
 #include "gtest/gtest.h"
 #include "common/dbconnector.h"
-#include "common/table.h"
 #include "common/schema.h"
+#include "common/table.h"
 #include "common/warm_restart.h"
 
 using namespace std;
@@ -10,6 +10,14 @@ using namespace swss;
 
 static const string testAppName = "TestApp";
 static const string testDockerName = "TestDocker";
+
+// This test must be executed before first successful call to initialize()
+// The static elements of this class can only be initialized once.
+TEST(WarmRestart, testRegisterWarmBootInfoNotInitialized)
+{
+    bool ret = WarmStart::registerWarmBootInfo(true,false,false);
+    EXPECT_FALSE(ret);
+}
 
 TEST(WarmRestart, checkWarmStart_and_State)
 {
@@ -160,6 +168,49 @@ TEST(WarmRestart, getWarmStartTimer)
     EXPECT_EQ(timer, 5000u);
 }
 
+TEST(WarmRestart, set_get_WarmStartState)
+{
+    DBConnector stateDb("STATE_DB", 0, true);
+    Table stateWarmRestartTable(&stateDb, STATE_WARM_RESTART_TABLE_NAME);
+    Table stateWarmRestartEnableTable(&stateDb, STATE_WARM_RESTART_ENABLE_TABLE_NAME);
+
+    DBConnector configDb("CONFIG_DB", 0, true);
+    Table cfgWarmRestartTable(&configDb, CFG_WARM_RESTART_TABLE_NAME);
+
+    //Clean up warm restart state for testAppName and warm restart config for testDockerName
+    stateWarmRestartTable.del(testAppName);
+    cfgWarmRestartTable.del(testDockerName);
+
+    //Initialize WarmStart class for TestApp
+    WarmStart::initialize(testAppName, testDockerName, 0, true);
+
+    WarmStart::WarmStartState warmStartStates[] =
+        {
+            WarmStart::INITIALIZED,
+            WarmStart::RESTORED,
+            WarmStart::REPLAYED,
+            WarmStart::RECONCILED,
+            WarmStart::WSDISABLED,
+            WarmStart::WSUNKNOWN,
+            WarmStart::FROZEN,
+            WarmStart::QUIESCENT,
+            WarmStart::CHECKPOINTED,
+            WarmStart::FAILED,
+        };
+
+    for (const auto &currState : warmStartStates) {
+        WarmStart::setWarmStartState(testAppName, currState);
+
+        string state;
+        stateWarmRestartTable.hget(testAppName, "state", state);
+        EXPECT_EQ(state, WarmStart::warmStartStateNameMap()->at(currState).c_str());
+
+        WarmStart::WarmStartState ret_state;
+        WarmStart::getWarmStartState(testAppName, ret_state);
+        EXPECT_EQ(ret_state, currState);
+    }
+}
+
 TEST(WarmRestart, set_get_DataCheckState)
 {
     DBConnector stateDb("STATE_DB", 0, true);
@@ -234,4 +285,80 @@ TEST(WarmRestart, set_get_DataCheckState)
     EXPECT_EQ(value, "failed");
     state = WarmStart::getDataCheckState(testAppName, WarmStart::STAGE_RESTORE);
     EXPECT_EQ(state, WarmStart::CHECK_FAILED);
+}
+
+TEST(WarmRestart, testNotificationMaps)
+{
+    WarmStart::WarmBootNotification warmBootNotifications[] =
+        {
+            WarmStart::WarmBootNotification::kFreeze,
+            WarmStart::WarmBootNotification::kUnfreeze,
+            WarmStart::WarmBootNotification::kCheckpoint,
+        };
+
+    for (const auto &currNotification : warmBootNotifications) {
+        std::string type = WarmStart::warmBootNotificationNameMap()->at(currNotification);
+        WarmStart::WarmBootNotification notification;
+        notification = WarmStart::warmBootNotificationReverseMap()->at(type);
+        EXPECT_EQ(notification, currNotification);
+    }
+}
+
+TEST(WarmRestart, testRegisterWarmBootInfo)
+{
+    DBConnector stateDb("STATE_DB", 0, true);
+    Table stateWarmRestartRegTable(&stateDb,
+                                   STATE_WARM_RESTART_REGISTRATION_TABLE_NAME);
+
+    std::string tableName = testDockerName + "|" + testAppName;
+
+    //Clean up warm restart state for testAppName
+    stateWarmRestartRegTable.del(tableName);
+
+    //Initialize WarmStart class for TestApp
+    WarmStart::initialize(testAppName, testDockerName, 0, true);
+
+    bool ret = WarmStart::registerWarmBootInfo(true,false,false);
+    EXPECT_TRUE(ret);
+
+    std::string value;
+    ret = stateWarmRestartRegTable.hget(tableName,
+                                        WarmStart::kRegistrationFreezeKey, value);
+    EXPECT_TRUE(ret);
+    EXPECT_EQ(value, "true");
+
+    ret = stateWarmRestartRegTable.hget(
+        tableName, WarmStart::kRegistrationCheckpointKey, value);
+    EXPECT_TRUE(ret);
+    EXPECT_EQ(value, "false");
+
+    ret = stateWarmRestartRegTable.hget(
+        tableName, WarmStart::kRegistrationReconciliationKey, value);
+    EXPECT_TRUE(ret);
+    EXPECT_EQ(value, "false");
+
+    ret = stateWarmRestartRegTable.hget(
+        tableName, WarmStart::kRegistrationTimestampKey, value);
+    EXPECT_TRUE(ret);
+
+    ret = WarmStart::registerWarmBootInfo(false,true,false);
+    EXPECT_TRUE(ret);
+
+    ret = stateWarmRestartRegTable.hget(tableName,
+                                        WarmStart::kRegistrationFreezeKey, value);
+    EXPECT_TRUE(ret);
+    EXPECT_EQ(value, "false");
+
+    ret = stateWarmRestartRegTable.hget(
+        tableName, WarmStart::kRegistrationCheckpointKey, value);
+    EXPECT_TRUE(ret);
+    EXPECT_EQ(value, "true");
+
+    ret = WarmStart::registerWarmBootInfo(false,false,true);
+    EXPECT_TRUE(ret);
+
+    ret = stateWarmRestartRegTable.hget(
+        tableName, WarmStart::kRegistrationReconciliationKey, value);
+    EXPECT_TRUE(ret);
+    EXPECT_EQ(value, "true");
 }
