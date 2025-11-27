@@ -1,9 +1,19 @@
 module(name = "sonic-swss-common")
 
+bazel_dep(name = "rules_python", version = "1.7.0")
+bazel_dep(name = "rules_cc", version = "0.2.8")
 bazel_dep(name = "rules_distroless", version = "0.0.0")
+bazel_dep(name = "rules_pkg", version = "1.1.0")
+
 local_path_override(
     module_name = "rules_distroless",
     path = "../rules_distroless"
+)
+
+bazel_dep(name = "sonic-build-infra", version = "0.0.0")
+local_path_override(
+    module_name = "sonic-build-infra",
+    path = "../sonic-build-infra"
 )
 
 
@@ -46,6 +56,8 @@ apt.install(
         "uuid-dev",
         "libzmq3-dev",
         "libyang2-dev",
+        "swig",
+        "python3-dev"
 
         # These seem to be unused
         # "swig3.0",
