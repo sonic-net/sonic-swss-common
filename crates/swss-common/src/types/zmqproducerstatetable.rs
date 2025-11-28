@@ -32,7 +32,7 @@ impl ZmqProducerStateTable {
         V: Into<CxxString>,
     {
         let key = cstr(key)?;
-        let (arr, _k) = make_field_value_array(fvs);
+        let (arr, _k) = make_field_value_array(fvs)?;
         unsafe { swss_try!(SWSSZmqProducerStateTable_set(self.ptr, key.as_ptr(), arr)) }
     }
 

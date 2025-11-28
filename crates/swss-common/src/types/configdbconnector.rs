@@ -109,7 +109,7 @@ impl ConfigDBConnector {
     {
         let table_cstr = cstr(table)?;
         let key_cstr = cstr(key)?;
-        let (fv_array, _keep_alive) = make_field_value_array(data);
+        let (fv_array, _keep_alive) = make_field_value_array(data)?;
 
         unsafe {
             swss_try!(SWSSConfigDBConnector_set_entry(
@@ -130,7 +130,7 @@ impl ConfigDBConnector {
     {
         let table_cstr = cstr(table)?;
         let key_cstr = cstr(key)?;
-        let (fv_array, _keep_alive) = make_field_value_array(data);
+        let (fv_array, _keep_alive) = make_field_value_array(data)?;
 
         unsafe {
             swss_try!(SWSSConfigDBConnector_mod_entry(
