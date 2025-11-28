@@ -10,7 +10,7 @@ pub struct ProducerStateTable {
 
 impl ProducerStateTable {
     pub fn new(db: DbConnector, table_name: &str) -> Result<Self> {
-        let table_name = cstr(table_name);
+        let table_name = cstr(table_name)?;
         let ptr = unsafe { swss_try!(p_pst => SWSSProducerStateTable_new(db.ptr, table_name.as_ptr(), p_pst))? };
         Ok(Self { ptr, _db: db })
     }
@@ -25,13 +25,13 @@ impl ProducerStateTable {
         F: AsRef<[u8]>,
         V: Into<CxxString>,
     {
-        let key = cstr(key);
+        let key = cstr(key)?;
         let (arr, _k) = make_field_value_array(fvs);
         unsafe { swss_try!(SWSSProducerStateTable_set(self.ptr, key.as_ptr(), arr)) }
     }
 
     pub fn del(&self, key: &str) -> Result<()> {
-        let key = cstr(key);
+        let key = cstr(key)?;
         unsafe { swss_try!(SWSSProducerStateTable_del(self.ptr, key.as_ptr())) }
     }
 

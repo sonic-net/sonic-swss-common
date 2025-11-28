@@ -13,7 +13,7 @@ pub struct Table {
 impl Table {
     pub fn new(db: DbConnector, table_name: &str) -> Result<Self> {
         let table_name_copy = table_name.to_string();
-        let table_name = cstr(table_name);
+        let table_name = cstr(table_name)?;
         let ptr = unsafe { swss_try!(p_tbl => SWSSTable_new(db.ptr, table_name.as_ptr(), p_tbl))? };
         Ok(Self {
             name: table_name_copy,
@@ -23,7 +23,7 @@ impl Table {
     }
 
     pub fn get(&self, key: &str) -> Result<Option<FieldValues>> {
-        let key = cstr(key);
+        let key = cstr(key)?;
         let mut arr = SWSSFieldValueArray {
             len: 0,
             data: ptr::null_mut(),
@@ -38,8 +38,8 @@ impl Table {
     }
 
     pub fn hget(&self, key: &str, field: &str) -> Result<Option<CxxString>> {
-        let key = cstr(key);
-        let field = cstr(field);
+        let key = cstr(key)?;
+        let field = cstr(field)?;
         let mut val: SWSSString = ptr::null_mut();
         let exists = unsafe {
             swss_try!(p_exists => SWSSTable_hget(self.ptr, key.as_ptr(), field.as_ptr(), &mut val, p_exists))?
@@ -58,25 +58,25 @@ impl Table {
         F: AsRef<[u8]>,
         V: Into<CxxString>,
     {
-        let key = cstr(key);
+        let key = cstr(key)?;
         let (arr, _k) = make_field_value_array(fvs);
         unsafe { swss_try!(SWSSTable_set(self.ptr, key.as_ptr(), arr)) }
     }
 
     pub fn hset(&self, key: &str, field: &str, val: &CxxStr) -> Result<()> {
-        let key = cstr(key);
-        let field = cstr(field);
+        let key = cstr(key)?;
+        let field = cstr(field)?;
         unsafe { swss_try!(SWSSTable_hset(self.ptr, key.as_ptr(), field.as_ptr(), val.as_raw())) }
     }
 
     pub fn del(&self, key: &str) -> Result<()> {
-        let key = cstr(key);
+        let key = cstr(key)?;
         unsafe { swss_try!(SWSSTable_del(self.ptr, key.as_ptr())) }
     }
 
     pub fn hdel(&self, key: &str, field: &str) -> Result<()> {
-        let key = cstr(key);
-        let field = cstr(field);
+        let key = cstr(key)?;
+        let field = cstr(field)?;
         unsafe { swss_try!(SWSSTable_hdel(self.ptr, key.as_ptr(), field.as_ptr())) }
     }
 
