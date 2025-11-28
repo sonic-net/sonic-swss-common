@@ -48,8 +48,9 @@ use std::{
     str::FromStr,
 };
 
-pub(crate) fn cstr(s: impl AsRef<[u8]>) -> CString {
-    CString::new(s.as_ref()).expect("Bytes being converted to a C string already contains a null byte")
+pub(crate) fn cstr(s: impl AsRef<[u8]>) -> Result<CString> {
+    CString::new(s.as_ref())
+        .map_err(|e| Exception::new(format!("String contains null byte at position {}", e.nul_position())))
 }
 
 /// Take a malloc'd c string and convert it to a native String
@@ -262,7 +263,7 @@ where
     let mut data = Vec::new();
 
     for (field, value) in fvs {
-        let field = cstr(field);
+        let field = cstr(field).unwrap();
         let value_cxxstring: CxxString = value.into();
         let value_rawswssstring: RawMutableSWSSString = value_cxxstring.into_raw();
         data.push(SWSSFieldValueTuple {
@@ -289,7 +290,7 @@ where
     let mut data = Vec::new();
 
     for kfv in kfvs {
-        let key = cstr(kfv.key);
+        let key = cstr(kfv.key).unwrap();
         let operation = kfv.operation.as_raw();
         let (field_values, arr_k) = make_field_value_array(kfv.field_values);
         data.push(SWSSKeyOpFieldValues {

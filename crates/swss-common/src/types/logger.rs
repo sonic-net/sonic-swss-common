@@ -42,9 +42,9 @@ where
         logger.handler = Some(Box::new(logger_change_handler));
     }
 
-    let db_name = cstr(db_name);
-    let def_level = cstr("INFO");
-    let def_output = cstr("SYSLOG");
+    let db_name = cstr(db_name)?;
+    let def_level = cstr("INFO")?;
+    let def_output = cstr("SYSLOG")?;
     // link to config db using the specified db_name. It will trigger immediate
     // callback to set the current log level and output
     unsafe {

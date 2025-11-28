@@ -15,7 +15,7 @@ impl EventPublisher {
     /// # Arguments
     /// * `event_source` - The YANG module name for the event source
     pub fn new(event_source: &str) -> Result<EventPublisher> {
-        let source_cstr = cstr(event_source);
+        let source_cstr = cstr(event_source)?;
 
         let ptr = unsafe {
             swss_try!(p_publisher => SWSSEventPublisher_new(
@@ -36,13 +36,13 @@ impl EventPublisher {
     /// * `event_tag` - Name of the YANG container that defines this event
     /// * `params` - Parameters associated with the event (optional)
     pub fn publish(&self, event_tag: &str, params: Option<&HashMap<String, String>>) -> Result<()> {
-        let tag_cstr = cstr(event_tag);
+        let tag_cstr = cstr(event_tag)?;
 
         unsafe {
             if let Some(params_map) = params {
                 // Keep CStrings alive for the duration of the call
-                let keys_cstrs: Vec<_> = params_map.keys().map(|k| cstr(k)).collect();
-                let values_cstrs: Vec<_> = params_map.values().map(|v| cstr(v)).collect();
+                let keys_cstrs: Vec<_> = params_map.keys().map(|k| cstr(k)).collect::<Result<Vec<_>>>()?;
+                let values_cstrs: Vec<_> = params_map.values().map(|v| cstr(v)).collect::<Result<Vec<_>>>()?;
 
                 // Convert HashMap to SWSSFieldValueArray
                 let mut field_values: Vec<SWSSFieldValueTuple> = keys_cstrs

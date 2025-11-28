@@ -20,7 +20,7 @@ impl ZmqConsumerStateTable {
         pop_batch_size: Option<i32>,
         pri: Option<i32>,
     ) -> Result<Self> {
-        let table_name = cstr(table_name);
+        let table_name = cstr(table_name)?;
         let pop_batch_size = pop_batch_size.as_ref().map(|n| n as *const i32).unwrap_or(null());
         let pri = pri.as_ref().map(|n| n as *const i32).unwrap_or(null());
         let ptr = unsafe {
