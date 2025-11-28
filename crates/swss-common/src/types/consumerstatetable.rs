@@ -13,7 +13,7 @@ pub struct ConsumerStateTable {
 impl ConsumerStateTable {
     pub fn new(db: DbConnector, table_name: &str, pop_batch_size: Option<i32>, pri: Option<i32>) -> Result<Self> {
         let table_name_string = String::from(table_name);
-        let table_name = cstr(table_name);
+        let table_name = cstr(table_name)?;
         let pop_batch_size = pop_batch_size.as_ref().map(|n| n as *const i32).unwrap_or(null());
         let pri = pri.as_ref().map(|n| n as *const i32).unwrap_or(null());
         let ptr = unsafe {
@@ -38,13 +38,17 @@ impl ConsumerStateTable {
         // as long as the DbConnector does.
         unsafe {
             let fd = swss_try!(p_fd => SWSSConsumerStateTable_getFd(self.ptr, p_fd))?;
-            let fd = BorrowedFd::borrow_raw(fd.try_into().unwrap());
+            if fd == -1 {
+                return Err(Exception::new("Invalid file descriptor: -1"));
+            }
+            let fd = BorrowedFd::borrow_raw(fd);
             Ok(fd)
         }
     }
 
     pub fn read_data(&self, timeout: Duration, interrupt_on_signal: bool) -> Result<SelectResult> {
-        let timeout_ms = timeout.as_millis().try_into().unwrap();
+        let timeout_ms: u32 = timeout.as_millis().try_into()
+            .map_err(|_| Exception::new("Invalid timeout value"))?;
         let res = unsafe {
             swss_try!(p_res => {
                 SWSSConsumerStateTable_readData(self.ptr, timeout_ms, interrupt_on_signal as u8, p_res)
@@ -68,7 +72,11 @@ impl ConsumerStateTable {
 
 impl Drop for ConsumerStateTable {
     fn drop(&mut self) {
-        unsafe { swss_try!(SWSSConsumerStateTable_free(self.ptr)).expect("Dropping ConsumerStateTable") };
+        unsafe {
+            if let Err(e) = swss_try!(SWSSConsumerStateTable_free(self.ptr)) {
+                eprintln!("Error dropping ConsumerStateTable: {}", e);
+            }
+        }
     }
 }
 

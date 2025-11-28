@@ -8,12 +8,12 @@ pub use types::*;
 
 /// Rust wrapper around `swss::SonicDBConfig::initialize`.
 pub fn sonic_db_config_initialize(path: &str) -> Result<(), Exception> {
-    let path = cstr(path);
+    let path = cstr(path)?;
     unsafe { swss_try!(bindings::SWSSSonicDBConfig_initialize(path.as_ptr())) }
 }
 
 /// Rust wrapper around `swss::SonicDBConfig::initializeGlobalConfig`.
 pub fn sonic_db_config_initialize_global(path: &str, ignore_nonexistent: bool) -> Result<(), Exception> {
-    let path = cstr(path);
+    let path = cstr(path)?;
     unsafe { swss_try!(bindings::SWSSSonicDBConfig_initializeGlobalConfig(path.as_ptr(), ignore_nonexistent as u8)) }
 }
