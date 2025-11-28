@@ -29,7 +29,7 @@ impl ZmqClient {
     {
         let db_name = cstr(db_name)?;
         let table_name = cstr(table_name)?;
-        let (kfvs, _k) = make_key_op_field_values_array(kfvs);
+        let (kfvs, _k) = make_key_op_field_values_array(kfvs)?;
         unsafe {
             swss_try!(SWSSZmqClient_sendMsg(
                 self.ptr,

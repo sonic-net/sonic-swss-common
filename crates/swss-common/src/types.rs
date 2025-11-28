@@ -253,7 +253,7 @@ pub(crate) unsafe fn take_string_array(arr: SWSSStringArray) -> Vec<String> {
     out
 }
 
-pub(crate) fn make_field_value_array<I, F, V>(fvs: I) -> (SWSSFieldValueArray, KeepAlive)
+pub(crate) fn make_field_value_array<I, F, V>(fvs: I) -> Result<(SWSSFieldValueArray, KeepAlive)>
 where
     I: IntoIterator<Item = (F, V)>,
     F: AsRef<[u8]>,
@@ -263,7 +263,7 @@ where
     let mut data = Vec::new();
 
     for (field, value) in fvs {
-        let field = cstr(field).unwrap();
+        let field = cstr(field)?;
         let value_cxxstring: CxxString = value.into();
         let value_rawswssstring: RawMutableSWSSString = value_cxxstring.into_raw();
         data.push(SWSSFieldValueTuple {
@@ -279,10 +279,10 @@ where
     };
     k.keep(data);
 
-    (arr, k)
+    Ok((arr, k))
 }
 
-pub(crate) fn make_key_op_field_values_array<I>(kfvs: I) -> (SWSSKeyOpFieldValuesArray, KeepAlive)
+pub(crate) fn make_key_op_field_values_array<I>(kfvs: I) -> Result<(SWSSKeyOpFieldValuesArray, KeepAlive)>
 where
     I: IntoIterator<Item = KeyOpFieldValues>,
 {
@@ -292,7 +292,7 @@ where
     for kfv in kfvs {
         let key = cstr(kfv.key).unwrap();
         let operation = kfv.operation.as_raw();
-        let (field_values, arr_k) = make_field_value_array(kfv.field_values);
+        let (field_values, arr_k) = make_field_value_array(kfv.field_values)?;
         data.push(SWSSKeyOpFieldValues {
             key: key.as_ptr(),
             operation,
@@ -307,7 +307,7 @@ where
     };
     k.keep(Box::new(data));
 
-    (arr, k)
+    Ok((arr, k))
 }
 
 /// Helper struct to keep rust-owned data alive while it is in use by C++

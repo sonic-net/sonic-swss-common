@@ -268,9 +268,9 @@ impl SonicV2Connector {
         F: AsRef<[u8]>,
         V: Into<CxxString>,
     {
-        let db_name_cstr = cstr(db_name);
-        let key_cstr = cstr(key);
-        let (fv_array, _keep_alive) = make_field_value_array(values);
+        let db_name_cstr = cstr(db_name)?;
+        let key_cstr = cstr(key)?;
+        let (fv_array, _keep_alive) = make_field_value_array(values)?;
 
         unsafe {
             swss_try!(SWSSSonicV2Connector_hmset(
@@ -284,10 +284,10 @@ impl SonicV2Connector {
 
     /// Set a single field value in a hash.
     pub fn set(&self, db_name: &str, hash: &str, key: &str, value: &str, blocking: bool) -> Result<i64> {
-        let db_name_cstr = cstr(db_name);
-        let hash_cstr = cstr(hash);
-        let key_cstr = cstr(key);
-        let value_cstr = cstr(value);
+        let db_name_cstr = cstr(db_name)?;
+        let hash_cstr = cstr(hash)?;
+        let key_cstr = cstr(key)?;
+        let value_cstr = cstr(value)?;
 
         unsafe {
             let result = swss_try!(p_result => SWSSSonicV2Connector_set(
@@ -305,8 +305,8 @@ impl SonicV2Connector {
 
     /// Delete a key.
     pub fn del(&self, db_name: &str, key: &str, blocking: bool) -> Result<i64> {
-        let db_name_cstr = cstr(db_name);
-        let key_cstr = cstr(key);
+        let db_name_cstr = cstr(db_name)?;
+        let key_cstr = cstr(key)?;
 
         unsafe {
             let result = swss_try!(p_result => SWSSSonicV2Connector_del(
@@ -322,8 +322,8 @@ impl SonicV2Connector {
 
     /// Delete all keys matching a pattern.
     pub fn delete_all_by_pattern(&self, db_name: &str, pattern: &str) -> Result<()> {
-        let db_name_cstr = cstr(db_name);
-        let pattern_cstr = cstr(pattern);
+        let db_name_cstr = cstr(db_name)?;
+        let pattern_cstr = cstr(pattern)?;
 
         unsafe {
             swss_try!(SWSSSonicV2Connector_delete_all_by_pattern(
