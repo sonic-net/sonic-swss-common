@@ -39,8 +39,8 @@ SWSSResult SWSSSubscriberStateTable_pops(SWSSSubscriberStateTable tbl,
     });
 }
 
-SWSSResult SWSSSubscriberStateTable_getFd(SWSSSubscriberStateTable tbl, uint32_t *outFd) {
-    SWSSTry(*outFd = numeric_cast<uint32_t>(((SubscriberStateTable *)tbl)->getFd()));
+SWSSResult SWSSSubscriberStateTable_getFd(SWSSSubscriberStateTable tbl, int32_t *outFd) {
+    SWSSTry(*outFd = ((SubscriberStateTable *)tbl)->getFd());
 }
 
 SWSSResult SWSSSubscriberStateTable_readData(SWSSSubscriberStateTable tbl, uint32_t timeout_ms,
