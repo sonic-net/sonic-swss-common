@@ -8,8 +8,15 @@
 
 namespace swss {
 
+constexpr unsigned int RedisSelect::SUBSCRIBE_TIMEOUT;
+
 RedisSelect::RedisSelect(int pri) : Selectable(pri), m_queueLength(-1)
 {
+}
+
+RedisSelect::RedisSelect(DBConnector* parent, int pri) : Selectable(pri), m_queueLength(-1)
+{
+    m_subscribe.reset(parent->newConnector(SUBSCRIBE_TIMEOUT));
 }
 
 int RedisSelect::getFd()
@@ -21,7 +28,6 @@ const DBConnector* RedisSelect::getDbConnector() const
 {
     return m_subscribe.get();
 }
-
 uint64_t RedisSelect::readData()
 {
     redisReply *reply = nullptr;
@@ -81,10 +87,25 @@ void RedisSelect::subscribe(DBConnector* db, const std::string &channelName)
     m_subscribe->subscribe(channelName);
 }
 
+void RedisSelect::subscribe(const std::string &channelName)
+{
+    /* Send SUBSCRIBE #channel command */
+    m_subscribe->subscribe(channelName);
+}
+
 /* PSUBSCRIBE */
 void RedisSelect::psubscribe(DBConnector* db, const std::string &channelName)
 {
     m_subscribe.reset(db->newConnector(SUBSCRIBE_TIMEOUT));
+    /*
+     * Send PSUBSCRIBE #channel command on the
+     * non-blocking subscriber DBConnector
+     */
+    m_subscribe->psubscribe(channelName);
+}
+
+void RedisSelect::psubscribe(const std::string &channelName)
+{
     /*
      * Send PSUBSCRIBE #channel command on the
      * non-blocking subscriber DBConnector
@@ -101,7 +122,7 @@ void RedisSelect::punsubscribe(const std::string &channelName)
      */
     if (m_subscribe)
     {
-        m_subscribe->psubscribe(channelName);
+        m_subscribe->punsubscribe(channelName);
     }
 }
 
