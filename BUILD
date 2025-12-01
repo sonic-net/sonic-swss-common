@@ -27,7 +27,6 @@ cc_library(
     ],
     # Not needed with apt.install
     # linkopts = ["-lpthread -lhiredis -lnl-genl-3 -lnl-nf-3 -lnl-route-3 -lnl-3 -lzmq -luuid -lyang"],
-    linkopts = ["-lboost_serialization"],
     includes = [
         "common",
     ],
