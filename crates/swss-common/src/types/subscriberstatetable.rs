@@ -51,10 +51,11 @@ impl SubscriberStateTable {
         // as long as the DbConnector does.
         unsafe {
             let fd = swss_try!(p_fd => SWSSSubscriberStateTable_getFd(self.ptr, p_fd))?;
-            if fd == -1 {
+            let fd_i32 = fd as i32;
+            if fd_i32 == -1 {
                 return Err(Exception::new("Invalid file descriptor: -1"));
             }
-            let fd = BorrowedFd::borrow_raw(fd);
+            let fd = BorrowedFd::borrow_raw(fd_i32);
             Ok(fd)
         }
     }
