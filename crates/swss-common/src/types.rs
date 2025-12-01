@@ -54,6 +54,7 @@ pub(crate) fn cstr(s: impl AsRef<[u8]>) -> Result<CString> {
 }
 
 /// Take a malloc'd c string and convert it to a native String
+/// If any string fails to convert, returns an error and frees all allocated memory.
 pub(crate) unsafe fn take_cstr(p: *const libc::c_char) -> Result<String> {
     let cstr = CStr::from_ptr(p);
     // Convert to Rust String, capturing UTF-8 conversion errors.
@@ -210,6 +211,7 @@ impl Ord for KeyOpFieldValues {
 }
 
 /// Takes ownership of an `SWSSFieldValueArray` and turns it into a native representation.
+/// If any entry fails to convert, returns an error and frees all allocated memory.
 pub(crate) unsafe fn take_field_value_array(arr: SWSSFieldValueArray) -> Result<FieldValues> {
     let mut out = HashMap::with_capacity(arr.len as usize);
     let mut err: Option<Exception> = None;
@@ -252,6 +254,7 @@ pub(crate) unsafe fn take_field_value_array(arr: SWSSFieldValueArray) -> Result<
 }
 
 /// Takes ownership of an `SWSSKeyOpFieldValuesArray` and turns it into a native representation.
+/// If any entry fails to convert, returns an error and frees all allocated memory.
 pub(crate) unsafe fn take_key_op_field_values_array(kfvs: SWSSKeyOpFieldValuesArray) -> Result<Vec<KeyOpFieldValues>> {
     let mut out = Vec::with_capacity(kfvs.len as usize);
     let mut err: Option<Exception> = None;
@@ -292,6 +295,7 @@ pub(crate) unsafe fn take_key_op_field_values_array(kfvs: SWSSKeyOpFieldValuesAr
 }
 
 /// Takes ownership of an `SWSSStringArray` and turns it into a native representation.
+/// If any string fails to convert, returns an error and frees all allocated memory.
 pub(crate) unsafe fn take_string_array(arr: SWSSStringArray) -> Result<Vec<String>> {
     if !arr.data.is_null() {
         let entries = slice::from_raw_parts(arr.data, arr.len as usize);
@@ -344,7 +348,7 @@ where
 
     let arr = SWSSFieldValueArray {
         data: data.as_mut_ptr(),
-        len: data.len().try_into().unwrap(),
+        len: data.len().try_into().map_err(|_| Exception::new("field value array length doesn't fit target type".to_string()))?,
     };
     k.keep(data);
 
@@ -359,7 +363,7 @@ where
     let mut data = Vec::new();
 
     for kfv in kfvs {
-        let key = cstr(kfv.key).unwrap();
+        let key = cstr(kfv.key)?;
         let operation = kfv.operation.as_raw();
         let (field_values, arr_k) = make_field_value_array(kfv.field_values)?;
         data.push(SWSSKeyOpFieldValues {
@@ -372,7 +376,7 @@ where
 
     let arr = SWSSKeyOpFieldValuesArray {
         data: data.as_mut_ptr(),
-        len: data.len().try_into().unwrap(),
+        len: data.len().try_into().map_err(|_| Exception::new("key-op field values array length doesn't fit target type".to_string()))?,
     };
     k.keep(Box::new(data));
 
