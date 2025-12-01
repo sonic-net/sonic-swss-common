@@ -38,10 +38,12 @@ impl ConsumerStateTable {
         // as long as the DbConnector does.
         unsafe {
             let fd = swss_try!(p_fd => SWSSConsumerStateTable_getFd(self.ptr, p_fd))?;
-            if fd == -1 {
+            if fd == u32::MAX {
                 return Err(Exception::new("Invalid file descriptor: -1"));
             }
-            let fd = BorrowedFd::borrow_raw(fd);
+            let fd_i32: i32 = fd.try_into()
+                .map_err(|_| Exception::new("File descriptor value out of range"))?;
+            let fd = BorrowedFd::borrow_raw(fd_i32);
             Ok(fd)
         }
     }
