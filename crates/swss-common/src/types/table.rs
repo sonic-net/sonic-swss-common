@@ -30,7 +30,7 @@ impl Table {
         };
         let exists = unsafe { swss_try!(p_exists => SWSSTable_get(self.ptr, key.as_ptr(), &mut arr, p_exists))? };
         let maybe_fvs = if exists == 1 {
-            Some(unsafe { take_field_value_array(arr) })
+            Some(unsafe { take_field_value_array(arr)? })
         } else {
             None
         };
@@ -83,7 +83,7 @@ impl Table {
     pub fn get_keys(&self) -> Result<Vec<String>> {
         unsafe {
             let arr = swss_try!(p_arr => SWSSTable_getKeys(self.ptr, p_arr))?;
-            Ok(take_string_array(arr))
+            take_string_array(arr)
         }
     }
 

@@ -58,7 +58,7 @@ impl ConfigDBConnector {
                 key_cstr.as_ptr(),
                 p_arr
             ))?;
-            Ok(take_field_value_array(arr))
+            take_field_value_array(arr)
         }
     }
 
@@ -73,7 +73,7 @@ impl ConfigDBConnector {
                 split as u8,
                 p_arr
             ))?;
-            Ok(take_string_array(arr))
+            take_string_array(arr)
         }
     }
 
@@ -89,7 +89,7 @@ impl ConfigDBConnector {
                 p_arr
             ))?;
 
-            let kfvs = take_key_op_field_values_array(arr);
+            let kfvs = take_key_op_field_values_array(arr)?;
             let mut table_map = HashMap::new();
 
             for kfv in kfvs {
