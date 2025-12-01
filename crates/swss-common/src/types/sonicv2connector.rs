@@ -94,7 +94,7 @@ impl SonicV2Connector {
                 self.ptr,
                 p_arr
             ))?;
-            Ok(take_string_array(arr))
+            take_string_array(arr)
         }
     }
 
@@ -194,7 +194,7 @@ impl SonicV2Connector {
                 blocking as u8,
                 p_arr
             ))?;
-            Ok(take_string_array(arr))
+            take_string_array(arr)
         }
     }
 
@@ -257,7 +257,7 @@ impl SonicV2Connector {
                 blocking as u8,
                 p_arr
             ))?;
-            Ok(take_field_value_array(arr))
+            take_field_value_array(arr)
         }
     }
 

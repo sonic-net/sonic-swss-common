@@ -189,7 +189,7 @@ impl DbConnector {
         let key = cstr(key)?;
         unsafe {
             let arr = swss_try!(p_arr => SWSSDBConnector_hgetall(self.ptr, key.as_ptr(), p_arr))?;
-            Ok(take_field_value_array(arr))
+            take_field_value_array(arr)
         }
     }
 

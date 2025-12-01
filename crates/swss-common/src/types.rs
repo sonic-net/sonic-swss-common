@@ -54,13 +54,18 @@ pub(crate) fn cstr(s: impl AsRef<[u8]>) -> Result<CString> {
 }
 
 /// Take a malloc'd c string and convert it to a native String
-pub(crate) unsafe fn take_cstr(p: *const libc::c_char) -> String {
-    let s = CStr::from_ptr(p)
-        .to_str()
-        .expect("C string being converted to Rust String contains invalid UTF-8")
-        .to_string();
+pub(crate) unsafe fn take_cstr(p: *const libc::c_char) -> Result<String> {
+    let cstr = CStr::from_ptr(p);
+    // Convert to Rust String, capturing UTF-8 conversion errors.
+    let result: Result<String> = match cstr.to_str() {
+        Ok(s) => Ok(s.to_string()),
+        Err(_) => Err(Exception::new("C string being converted to Rust String contains invalid UTF-8".to_string())),
+    };
+
+    // Free the original C string in all cases to avoid leaks.
     libc::free(p as *mut libc::c_void);
-    s
+
+    result
 }
 
 /// Rust version of the return type from `swss::Select::select`.
@@ -205,53 +210,117 @@ impl Ord for KeyOpFieldValues {
 }
 
 /// Takes ownership of an `SWSSFieldValueArray` and turns it into a native representation.
-pub(crate) unsafe fn take_field_value_array(arr: SWSSFieldValueArray) -> FieldValues {
+pub(crate) unsafe fn take_field_value_array(arr: SWSSFieldValueArray) -> Result<FieldValues> {
     let mut out = HashMap::with_capacity(arr.len as usize);
+    let mut err: Option<Exception> = None;
+
     if !arr.data.is_null() {
         let entries = slice::from_raw_parts(arr.data, arr.len as usize);
         for fv in entries {
-            let field = take_cstr(fv.field);
-            let value = CxxString::take(fv.value).unwrap();
-            out.insert(field, value);
+            // Try to convert the field name. If it fails, remember the error but
+            // continue and still attempt to take the value (to free any owned memory).
+            match take_cstr(fv.field) {
+                Ok(field) => {
+                    match CxxString::take(fv.value) {
+                        Some(value) => {
+                            out.insert(field, value);
+                        }
+                        None => {
+                            if err.is_none() {
+                                err = Some(Exception::new("CxxString::take returned null".to_string()));
+                            }
+                        }
+                    }
+                }
+                Err(e) => {
+                    // record first error
+                    if err.is_none() {
+                        err = Some(e);
+                    }
+                    // still try to take value to free it if present
+                    let _ = CxxString::take(fv.value);
+                }
+            }
         }
         SWSSFieldValueArray_free(arr);
     }
-    out
+
+    match err {
+        Some(e) => Err(e),
+        None => Ok(out),
+    }
 }
 
 /// Takes ownership of an `SWSSKeyOpFieldValuesArray` and turns it into a native representation.
-pub(crate) unsafe fn take_key_op_field_values_array(kfvs: SWSSKeyOpFieldValuesArray) -> Vec<KeyOpFieldValues> {
+pub(crate) unsafe fn take_key_op_field_values_array(kfvs: SWSSKeyOpFieldValuesArray) -> Result<Vec<KeyOpFieldValues>> {
     let mut out = Vec::with_capacity(kfvs.len as usize);
+    let mut err: Option<Exception> = None;
+
     if !kfvs.data.is_null() {
         unsafe {
             let entries = slice::from_raw_parts(kfvs.data, kfvs.len as usize);
             for kfv in entries {
-                let key = take_cstr(kfv.key);
+                // attempt to get key
+                let key_res = take_cstr(kfv.key);
                 let operation = KeyOperation::from_raw(kfv.operation);
-                let field_values = take_field_value_array(kfv.fieldValues);
-                out.push(KeyOpFieldValues {
-                    key,
-                    operation,
-                    field_values,
-                });
+
+                // attempt to get field_values
+                let field_values_res = take_field_value_array(kfv.fieldValues);
+
+                match (key_res, field_values_res) {
+                    (Ok(key), Ok(field_values)) => {
+                        out.push(KeyOpFieldValues { key, operation, field_values });
+                    }
+                    (kres, fvres) => {
+                        // record first error, if any
+                        if err.is_none() {
+                            if let Err(e) = kres { err = Some(e); }
+                            else if let Err(e) = fvres { err = Some(e); }
+                        }
+                        // continue to next entry to ensure C resources are freed
+                    }
+                }
             }
             SWSSKeyOpFieldValuesArray_free(kfvs);
         };
     }
-    out
+
+    match err {
+        Some(e) => Err(e),
+        None => Ok(out),
+    }
 }
 
 /// Takes ownership of an `SWSSStringArray` and turns it into a native representation.
-pub(crate) unsafe fn take_string_array(arr: SWSSStringArray) -> Vec<String> {
-    let out = if !arr.data.is_null() {
+pub(crate) unsafe fn take_string_array(arr: SWSSStringArray) -> Result<Vec<String>> {
+    if !arr.data.is_null() {
         let entries = slice::from_raw_parts(arr.data, arr.len as usize);
-        Vec::from_iter(entries.iter().map(|&s| take_cstr(s)))
+        let mut out = Vec::with_capacity(entries.len());
+        let mut err: Option<Exception> = None;
+
+        for &s in entries {
+            match take_cstr(s) {
+                Ok(string) => out.push(string),
+                Err(e) => {
+                    err = Some(e);
+                    break;
+                }
+            }
+        }
+
+        // Free the array before returning error or success.
+        SWSSStringArray_free(arr);
+
+        match err {
+            Some(e) => Err(e),
+            None => Ok(out),
+        }
     } else {
-        Vec::new()
-    };
-    SWSSStringArray_free(arr);
-    out
+        SWSSStringArray_free(arr);
+        Ok(Vec::new())
+    }
 }
+
 
 pub(crate) fn make_field_value_array<I, F, V>(fvs: I) -> Result<(SWSSFieldValueArray, KeepAlive)>
 where

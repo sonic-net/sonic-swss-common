@@ -29,7 +29,7 @@ impl ConsumerStateTable {
     pub fn pops(&self) -> Result<Vec<KeyOpFieldValues>> {
         unsafe {
             let arr = swss_try!(p_arr => SWSSConsumerStateTable_pops(self.ptr, p_arr))?;
-            Ok(take_key_op_field_values_array(arr))
+            take_key_op_field_values_array(arr)
         }
     }
 
