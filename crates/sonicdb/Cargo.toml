@@ -1,0 +1,20 @@
+[package]
+name = "sonicdb"
+description = "SONiC DB"
+categories = ["network-programming"]
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+edition.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# internal dependencies
+swss-common = { path = "../swss-common" }
+
+[lints]
+workspace = true
