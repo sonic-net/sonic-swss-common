@@ -306,8 +306,9 @@ pub(crate) unsafe fn take_string_array(arr: SWSSStringArray) -> Result<Vec<Strin
             match take_cstr(s) {
                 Ok(string) => out.push(string),
                 Err(e) => {
-                    err = Some(e);
-                    break;
+                    if err.is_none() {
+                        err = Some(e);
+                    }
                 }
             }
         }
@@ -348,7 +349,9 @@ where
 
     let arr = SWSSFieldValueArray {
         data: data.as_mut_ptr(),
-        len: data.len().try_into().map_err(|_| Exception::new("field value array length doesn't fit target type".to_string()))?,
+        len: data.len().try_into().map_err(|_| Exception::new(
+            format!("field value array length {} exceeds maximum for target type", data.len())
+        ))?,
     };
     k.keep(data);
 
@@ -376,7 +379,9 @@ where
 
     let arr = SWSSKeyOpFieldValuesArray {
         data: data.as_mut_ptr(),
-        len: data.len().try_into().map_err(|_| Exception::new("key-op field values array length doesn't fit target type".to_string()))?,
+        len: data.len().try_into().map_err(|_| Exception::new(
+            format!("key-op field values array length {} exceeds maximum for target type", data.len())
+        ))?,
     };
     k.keep(Box::new(data));
 
@@ -392,3 +397,109 @@ impl KeepAlive {
         self.0.push(Box::new(t))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::ffi::CString;
+
+    // Helper function to create a C string pointer from a Rust string.
+    fn make_c_string(s: &str) -> *const libc::c_char {
+        let c_str = CString::new(s).expect("CString::new failed");
+        let ptr = c_str.as_ptr();
+        // Leak the CString so we can pass ownership to take_cstr.
+        std::mem::forget(c_str);
+        ptr
+    }
+
+    #[test]
+    fn test_take_cstr_valid_utf8() {
+        let c_ptr = make_c_string("Hello, World!");
+        let result = unsafe { take_cstr(c_ptr) };
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "Hello, World!");
+    }
+
+    #[test]
+    fn test_take_cstr_invalid_utf8() {
+        // Create an invalid UTF-8 sequence by manually crafting a C string
+        let invalid_bytes: Vec<u8> = vec![0xFF, 0xFE, 0x00];
+        let ptr = unsafe {
+            let buf = libc::malloc(invalid_bytes.len() + 1) as *mut u8;
+            if buf.is_null() {
+                panic!("malloc failed");
+            }
+            std::ptr::copy_nonoverlapping(invalid_bytes.as_ptr(), buf, invalid_bytes.len());
+            *buf.add(invalid_bytes.len()) = 0; // null terminator
+            buf as *const libc::c_char
+        };
+
+        let result = unsafe { take_cstr(ptr) };
+
+        // Should be an error due to invalid UTF-8
+        assert!(result.is_err());
+
+        // Verify the error message indicates UTF-8 issue
+        let err = result.unwrap_err();
+        assert!(err.to_string().contains("invalid UTF-8"));
+
+    }
+
+    #[test]
+    fn test_take_string_array_empty() {
+        let arr = SWSSStringArray {
+            data: std::ptr::null_mut(),
+            len: 0,
+        };
+
+        let result = unsafe { take_string_array(arr) };
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().len(), 0);
+    }
+
+    #[test]
+    fn test_take_string_array_invalid_utf8() {
+        // Create an invalid UTF-8 sequence by manually crafting a C string
+        let invalid_bytes: Vec<u8> = vec![0xFF, 0xFE, 0x00];
+        let invalid_ptr = unsafe {
+            let buf = libc::malloc(invalid_bytes.len() + 1) as *mut u8;
+            if buf.is_null() {
+                panic!("malloc failed");
+            }
+            std::ptr::copy_nonoverlapping(invalid_bytes.as_ptr(), buf, invalid_bytes.len());
+            *buf.add(invalid_bytes.len()) = 0; // null terminator
+            buf as *const libc::c_char
+        };
+
+        // Create a valid UTF-8 string
+        let valid_ptr = make_c_string("valid string");
+
+        // Allocate the array pointer with malloc to hold two strings
+        let arr_data = unsafe {
+            let data_ptr = libc::malloc(std::mem::size_of::<*const libc::c_char>() * 2) as *mut *const libc::c_char;
+            if data_ptr.is_null() {
+                panic!("malloc failed");
+            }
+            *data_ptr = invalid_ptr;
+            *data_ptr.add(1) = valid_ptr;
+            data_ptr
+        };
+
+        let arr = SWSSStringArray {
+            data: arr_data,
+            len: 2,
+        };
+
+        let result = unsafe { take_string_array(arr) };
+
+        // Should be an error due to invalid UTF-8 in the first string
+        assert!(result.is_err());
+
+        // Verify the error message indicates UTF-8 issue
+        let err = result.unwrap_err();
+        assert!(err.to_string().contains("invalid UTF-8"));
+    }
+}
+
