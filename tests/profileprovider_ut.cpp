@@ -11,14 +11,6 @@ static string profile_key = "TEST_INTERFACE";
 static string profile_field = "profile";
 static string profile_value = "value";
 
-const string config_file = "./tests/redis_multi_db_ut_config/database_config.json";
-const string global_config_file = "./tests/redis_multi_db_ut_config/database_global.json";
-
-static void reloadConfig() {
-    SonicDBConfig::reset();
-    SonicDBConfig::initializeGlobalConfig(global_config_file);
-}
-
 void clearDB(const string &dbName)
 {
     DBConnector db(dbName, 0, true);
@@ -44,7 +36,6 @@ void initializeProfileDB()
 
 TEST(DECORATOR, GetConfigs)
 {
-    reloadConfig();
     initializeProfileDB();
 
     DBConnector db("CONFIG_DB", 0, true);
@@ -65,7 +56,6 @@ TEST(DECORATOR, GetConfigs)
 
 TEST(DECORATOR, DeleteAndRevertProfile)
 {
-    reloadConfig();
     initializeProfileDB();
 
     DBConnector db("CONFIG_DB", 0, true);
