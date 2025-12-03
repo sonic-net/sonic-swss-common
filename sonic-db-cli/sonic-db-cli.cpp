@@ -208,12 +208,12 @@ void parseCliArguments(
     Options &options)
 {
     // Parse argument with getopt https://man7.org/linux/man-pages/man3/getopt.3.html
-    const char* short_options = "hsn:c:";
+    const char* short_options = "hsnc";
     static struct option long_options[] = {
-       {"help",        no_argument, NULL,  'h' },
-       {"unixsocket",  no_argument, NULL,  's' },
-       {"namespace",   required_argument, NULL,  'n' },
-       {"container_name",    required_argument, NULL,  'c' },
+       {"help",        optional_argument, NULL,  'h' },
+       {"unixsocket",  optional_argument, NULL,  's' },
+       {"namespace",   optional_argument, NULL,  'n' },
+       {"container_name",    optional_argument, NULL,  'c' },
        // The last element of the array has to be filled with zeros.
        {0,          0,       0,  0 }
     };
@@ -235,9 +235,10 @@ void parseCliArguments(
                     break;
 
                 case 'n':
-                    if (optarg)
+                    if (optind < argc)
                     {
-                        options.m_namespace = optarg;
+                        options.m_namespace = argv[optind];
+                        optind++;
                     }
                     else
                     {
@@ -246,9 +247,10 @@ void parseCliArguments(
                     break;
 
                 case 'c':
-                    if (optarg)
+                    if (optind < argc)
                     {
-                        options.m_container_name = optarg;
+                        options.m_container_name = argv[optind];
+                        optind++;
                     }
                     else
                     {
