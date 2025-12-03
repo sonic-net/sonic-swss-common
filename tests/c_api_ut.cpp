@@ -28,13 +28,6 @@ static char LOG_LEVEL_FOR_TEST[32] = "";
 static char LOG_OUTPUT_FOR_TEST[32] = "";
 static const char* LOG_NAME_FOR_TEST = "test";
 
-const string config_file = "./tests/redis_multi_db_ut_config/database_config.json";
-const string global_config_file = "./tests/redis_multi_db_ut_config/database_global.json";
-static void reloadConfig() {
-    SonicDBConfig::reset();
-    SonicDBConfig::initializeGlobalConfig(global_config_file);
-}
-
 static void clearDB() {
     DBConnector db("TEST_DB", 0, true);
     RedisReply r(&db, "FLUSHALL", REDIS_REPLY_STATUS);
@@ -106,7 +99,6 @@ struct SWSSStringManager {
 };
 
 TEST(c_api, ConfigDBConnector) {
-    reloadConfig();
     clearDB();
     SWSSStringManager sm;
 
@@ -239,7 +231,6 @@ void logOutputNotify(const char* component, const char* outputStr)
 }
 
 TEST(c_api, DBConnector) {
-    reloadConfig();
     clearDB();
     SWSSStringManager sm;
 
@@ -308,7 +299,6 @@ TEST(c_api, DBConnector) {
 }
 
 TEST(c_api, Table) {
-    reloadConfig();
     clearDB();
     SWSSStringManager sm;
 
@@ -369,7 +359,6 @@ TEST(c_api, Table) {
 }
 
 TEST(c_api, ConsumerProducerStateTables) {
-    reloadConfig();
     clearDB();
     SWSSStringManager sm;
 
@@ -456,7 +445,6 @@ TEST(c_api, ConsumerProducerStateTables) {
 }
 
 TEST(c_api, SubscriberStateTable) {
-    reloadConfig();
     clearDB();
     SWSSStringManager sm;
 
@@ -498,7 +486,6 @@ TEST(c_api, SubscriberStateTable) {
 }
 
 TEST(c_api, ZmqConsumerProducerStateTable) {
-    reloadConfig();
     clearDB();
     SWSSStringManager sm;
 
@@ -628,7 +615,6 @@ TEST(c_api, ZmqConsumerProducerStateTable) {
 }
 
 TEST(c_api, EventPublisher) {
-    reloadConfig();
     SWSSStringManager sm;
 
     // Test EventPublisher creation
@@ -698,7 +684,7 @@ TEST(c_api, exceptions) {
 }
 
 TEST(c_api, Logger) {
-    reloadConfig();
+    
     clearDB();
     SWSSStringManager sm;
 
