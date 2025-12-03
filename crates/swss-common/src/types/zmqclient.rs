@@ -9,7 +9,7 @@ pub struct ZmqClient {
 
 impl ZmqClient {
     pub fn new(endpoint: &str) -> Result<Self> {
-        let endpoint = cstr(endpoint);
+        let endpoint = cstr(endpoint)?;
         let ptr = unsafe { swss_try!(p_zc => SWSSZmqClient_new(endpoint.as_ptr(), p_zc))? };
         Ok(Self { ptr })
     }
@@ -27,9 +27,9 @@ impl ZmqClient {
     where
         I: IntoIterator<Item = KeyOpFieldValues>,
     {
-        let db_name = cstr(db_name);
-        let table_name = cstr(table_name);
-        let (kfvs, _k) = make_key_op_field_values_array(kfvs);
+        let db_name = cstr(db_name)?;
+        let table_name = cstr(table_name)?;
+        let (kfvs, _k) = make_key_op_field_values_array(kfvs)?;
         unsafe {
             swss_try!(SWSSZmqClient_sendMsg(
                 self.ptr,
