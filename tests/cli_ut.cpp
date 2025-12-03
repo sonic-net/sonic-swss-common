@@ -14,7 +14,6 @@ using namespace std;
 const string not_exist_config_file = "./tests/redis_multi_db_ut_config/database_config_not_exist.json";
 const string config_file = "./tests/redis_multi_db_ut_config/database_config.json";
 const string global_config_file = "./tests/redis_multi_db_ut_config/database_global.json";
-const string container_config_file = "./tests/redis_multi_db_ut_config/database_config6.json";
 
 int sonic_db_cli(int argc, char** argv)
 {
@@ -26,12 +25,8 @@ int sonic_db_cli(int argc, char** argv)
         }
     };
 
-    auto initializeConfig = [](const string& container_name = "")
+    auto initializeConfig = []()
     {
-        if (!container_name.empty()){
-            SonicDBConfig::initialize(container_config_file);
-        }
-
         if (!SonicDBConfig::isInit())
         {
             SonicDBConfig::initialize(config_file);
@@ -84,7 +79,7 @@ void generateTestData(char* ns, char* database)
     args[1] = "-n";
     args[2] = ns;
     args[3] = database;
-
+    
     args[4] = "EVAL";
     args[5] = "local i=0 while (i<100000) do i=i+1 redis.call('SET', i, i) end";
     args[6] = "0";
@@ -110,13 +105,13 @@ TEST(sonic_db_cli, test_cli_hscan_commands)
     args[5] = "testvalue";
     output = runCli(6, args);
     EXPECT_EQ("1\n", output);
-
+    
     // hgetall from test db
     args[2] = "HGETALL";
     args[3] = "testkey";
     output = runCli(4, args);
     EXPECT_EQ("{'testfield': 'testvalue'}\n", output);
-
+    
     // hscan from test db
     args[2] = "HSCAN";
     args[3] = "testkey";
@@ -129,7 +124,7 @@ TEST(sonic_db_cli, test_cli_hscan_commands)
     args[3] = "notexistkey";
     output = runCli(4, args);
     EXPECT_EQ("{}\n", output);
-
+    
     // hscan from test db
     args[2] = "HSCAN";
     args[3] = "notexistkey";
@@ -173,7 +168,7 @@ TEST(sonic_db_cli, test_cli_pop_commands)
     args[8] = "e";
     output = runCli(9, args);
     EXPECT_EQ("5\n", output);
-
+    
     // pop from test db
     args[2] = "blpop";
     args[3] = "list1";
@@ -200,7 +195,7 @@ TEST(sonic_db_cli, test_cli_expire_commands)
     args[4] = "test";
     output = runCli(5, args);
     EXPECT_EQ("True\n", output);
-
+    
     // pop from test db
     args[2] = "expire";
     args[3] = "testkey";
@@ -297,7 +292,7 @@ TEST(sonic_db_cli, test_cli_ping_cmd_no_config)
         SonicDBConfig::initializeGlobalConfig(not_exist_config_file);
     };
 
-    auto initializeConfig = [](const string& container_name = "")
+    auto initializeConfig = []()
     {
         SonicDBConfig::initialize(not_exist_config_file);
     };
@@ -359,20 +354,20 @@ TEST(sonic_db_cli, test_cli_run_cmd)
     char *args[5];
     args[0] = "sonic-db-cli";
     args[1] = "TEST_DB";
-
+    
     // set key to test DB
     args[2] = "SET";
     args[3] = "testkey";
     args[4] = "testvalue";
     auto output = runCli(5, args);
     EXPECT_EQ("True\n", output);
-
+    
     // get key from test db
     args[2] = "GET";
     args[3] = "testkey";
     output = runCli(4, args);
     EXPECT_EQ("testvalue\n", output);
-
+    
     // get keys from test db
     args[2] = "keys";
     args[3] = "*";
@@ -387,20 +382,20 @@ TEST(sonic_db_cli, test_cli_multi_ns_cmd)
     args[1] = "-n";
     args[2] = "asic2";
     args[3] = "TEST_DB";
-
+    
     // set key to test DB
     args[4] = "SET";
     args[5] = "testkey";
     args[6] = "testvalue";
     auto output = runCli(7, args);
     EXPECT_EQ("True\n", output);
-
+    
     // get key from test db
     args[4] = "GET";
     args[5] = "testkey";
     output = runCli(6, args);
     EXPECT_EQ("testvalue\n", output);
-
+    
     // get keys from test db
     args[4] = "keys";
     args[5] = "*";
@@ -416,14 +411,14 @@ TEST(sonic_db_cli, test_cli_unix_socket_cmd)
     args[2] = "-n";
     args[3] = "asic2";
     args[4] = "TEST_DB";
-
+    
     // set key to test DB
     args[5] = "SET";
     args[6] = "testkey";
     args[7] = "testvalue";
     auto output = runCli(8, args);
     EXPECT_EQ("True\n", output);
-
+    
     // get key from test db
     args[5] = "GET";
     args[6] = "testkey";
@@ -438,7 +433,7 @@ TEST(sonic_db_cli, test_cli_eval_cmd)
     args[1] = "-n";
     args[2] = "asic2";
     args[3] = "TEST_DB";
-
+    
     // run eval command: EVAL "return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}" 2 k1 k2 v1 v2
     args[4] = "EVAL";
     args[5] = "return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}";
@@ -514,50 +509,12 @@ TEST(sonic_db_cli, test_parallel_cmd) {
     EXPECT_TRUE(parallen_time < sequential_time);
 }
 
-TEST(sonic_db_cli, test_cli_run_dpu_cmd)
-{
-    char *args[7];
-    args[0] = "sonic-db-cli";
-    args[1] = "-c";
-    args[2] = "dpu0";
-    args[3] = "DPU_TEST_DB";
-
-    // set key to dpu test DB
-    args[4] = "SET";
-    args[5] = "testkey";
-    args[6] = "testvalue";
-    auto output = runCli(7, args);
-    EXPECT_EQ("True\n", output);
-
-    // get key from dpu test db
-    args[4] = "GET";
-    args[5] = "testkey";
-    output = runCli(6, args);
-    EXPECT_EQ("testvalue\n", output);
-
-    // dpu and namespace flags are used together, should return -1 exit code
-    args[1] = "-n";
-    args[2] = "asic2";
-    args[3] = "-c";
-    args[4] = "dpu0";
-    args[5] = "DPU_TEST_DB";
-    output = runCli(6, args, -1);
-
-    // dpu and unixsocket flags are used together, should return -1 exit code
-    args[1] = "-s";
-    args[2] = "asic2";
-    args[3] = "-c";
-    args[4] = "dpu0";
-    args[5] = "DPU_TEST_DB";
-    output = runCli(6, args, -1);
-}
-
 TEST(sonic_db_cli, test_cli_not_throw_exception)
 {
     char *args[5];
     args[0] = "sonic-db-cli";
     args[1] = "TEST_DB";
-
+    
     // set key to test DB
     args[2] = "SET";
     args[3] = "testkey";
@@ -569,7 +526,7 @@ TEST(sonic_db_cli, test_cli_not_throw_exception)
         throw std::system_error();
     };
 
-    auto initializeConfig = [](const string& container_name = "")
+    auto initializeConfig = []()
     {
         throw std::system_error();
     };

@@ -1,38 +1,18 @@
 #include <future>
-#include <fstream>
 #include <iostream>
 #include <getopt.h>
 #include <list>
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/find.hpp>
 #include "common/redisreply.h"
-#include <nlohmann/json.hpp>
 #include "sonic-db-cli.h"
 
 using namespace swss;
 using namespace std;
 
-void initializeGlobalConfig()
-{
-    SonicDBConfig::initializeGlobalConfig(SonicDBConfig::DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE);
-}
-
-void initializeConfig(const string& container_name = "")
-{
-    if(container_name.empty())
-    {
-        SonicDBConfig::initialize(SonicDBConfig::DEFAULT_SONIC_DB_CONFIG_FILE);
-    }
-    else
-    {
-        auto path = getContainerFilePath(container_name, SONIC_DB_CONFIG_DIR, SonicDBConfig::DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE);
-        SonicDBConfig::initialize(path);
-    }
-};
-
 void printUsage()
 {
-    cout << "usage: sonic-db-cli [-h] [-s] [-n NAMESPACE] [-c CONTAINER_NAME] db_or_op [cmd [cmd ...]]" << endl;
+    cout << "usage: sonic-db-cli [-h] [-s] [-n NAMESPACE] db_or_op [cmd [cmd ...]]" << endl;
     cout << endl;
     cout << "SONiC DB CLI:" << endl;
     cout << endl;
@@ -45,8 +25,6 @@ void printUsage()
     cout << "  -s, --unixsocket      Override use of tcp_port and use unixsocket" << endl;
     cout << "  -n NAMESPACE, --namespace NAMESPACE" << endl;
     cout << "                        Namespace string to use asic0/asic1.../asicn" << endl;
-    cout << "  -c CONTAINER_NAME, --container_name CONTAINER_NAME" << endl;
-    cout << "                        Container name for accessing container database instead of default dpu0/dpu1.../dpu3" << endl;
     cout << endl;
     cout << "**sudo** needed for commands accesing a different namespace [-n], or using unixsocket connection [-s]" << endl;
     cout << endl;
@@ -138,7 +116,7 @@ int handleAllInstances(
     {
         return 1;
     }
-
+    
     if (operation == "PING")
     {
         cout << "PONG" << endl;
@@ -208,16 +186,15 @@ void parseCliArguments(
     Options &options)
 {
     // Parse argument with getopt https://man7.org/linux/man-pages/man3/getopt.3.html
-    const char* short_options = "hsn:c:";
+    const char* short_options = "hsn";
     static struct option long_options[] = {
-       {"help",        no_argument, NULL,  'h' },
-       {"unixsocket",  no_argument, NULL,  's' },
-       {"namespace",   required_argument, NULL,  'n' },
-       {"container_name",    required_argument, NULL,  'c' },
+       {"help",        optional_argument, NULL,  'h' },
+       {"unixsocket",  optional_argument, NULL,  's' },
+       {"namespace",   optional_argument, NULL,  'n' },
        // The last element of the array has to be filled with zeros.
        {0,          0,       0,  0 }
     };
-
+    
     // prevent getopt_long print "invalid option" message.
     opterr = 0;
     while(optind < argc)
@@ -235,9 +212,10 @@ void parseCliArguments(
                     break;
 
                 case 'n':
-                    if (optarg)
+                    if (optind < argc)
                     {
-                        options.m_namespace = optarg;
+                        options.m_namespace = argv[optind];
+                        optind++;
                     }
                     else
                     {
@@ -245,29 +223,9 @@ void parseCliArguments(
                     }
                     break;
 
-                case 'c':
-                    if (optarg)
-                    {
-                        options.m_container_name = optarg;
-                    }
-                    else
-                    {
-                        throw invalid_argument("container_name value option used but container name is missing.");
-                    }
-                    break;
-
                 default:
                    // argv contains unknown argument
                    throw invalid_argument("Unknown argument:" + string(argv[optind]));
-            }
-
-            if(!options.m_namespace.empty() && !options.m_container_name.empty())
-            {
-                throw invalid_argument("container_name and namespace flags cannot be used together.");
-            }
-            else if(options.m_unixsocket && !options.m_container_name.empty())
-            {
-                throw invalid_argument("container_name and unixsocket flags cannot be used together.");
             }
         }
         else
@@ -290,7 +248,7 @@ int sonic_db_cli(
     int argc,
     char** argv,
     function<void()> initializeGlobalConfig,
-    function<void(const string&)> initializeConfig)
+    function<void()> initializeConfig)
 {
     Options options;
     try
@@ -317,9 +275,6 @@ int sonic_db_cli(
         return 0;
     }
 
-    // Need to reset SonicDBConfig to remove information from other database config files
-    SonicDBConfig::reset();
-
     if (!options.m_db_or_op.empty())
     {
         auto dbOrOperation = options.m_db_or_op;
@@ -338,7 +293,10 @@ int sonic_db_cli(
         {
             auto commands = options.m_cmd;
 
-            initializeConfig(options.m_container_name);
+            if (netns.empty())
+            {
+                initializeConfig();
+            }
 
             return executeCommands(dbOrOperation, commands, netns, useUnixSocket);
         }
@@ -350,9 +308,11 @@ int sonic_db_cli(
             // sonic-db-cli catch all possible exceptions and handle it as a failure case which not return 'OK' or 'PONG'
             try
             {
-
-                // When database_config.json does not exist, sonic-db-cli will ignore exception and return 1.
-                initializeConfig(options.m_container_name);
+                if (netns.empty())
+                {
+                    // When database_config.json does not exist, sonic-db-cli will ignore exception and return 1.
+                    initializeConfig();
+                }
 
                 return handleAllInstances(netns, dbOrOperation, useUnixSocket);
             }
@@ -385,7 +345,7 @@ int cli_exception_wrapper(
     int argc,
     char** argv,
     function<void()> initializeGlobalConfig,
-    function<void(const string&)> initializeConfig)
+    function<void()> initializeConfig)
 {
     try
     {
@@ -420,32 +380,4 @@ string getCommandName(vector<string>& commands)
     }
 
     return boost::to_upper_copy<string>(commands[0]);
-}
-
-string getContainerFilePath(const string& container_name, const string& config_directory, const string& global_config_file)
-{
-    using json = nlohmann::json;
-    ifstream i(global_config_file);
-    json global_config = json::parse(i);
-    for (auto& element : global_config["INCLUDES"])
-    {
-        if (element["container_name"] == container_name)
-        {
-            auto relative_path = to_string(element["include"]);
-            
-            // remove the trailing " from the relative path (JSON string quotes)
-            if (relative_path.front() == '"' && relative_path.back() == '"') {
-                relative_path = relative_path.substr(1, relative_path.size() - 2);
-            }
-            
-            // remove all preceding "../" sequences from the relative path
-            while (relative_path.substr(0, 3) == "../") {
-                relative_path = relative_path.substr(3);
-            }
-            std::stringstream path_stream;
-            path_stream <<  config_directory << "/" << relative_path;
-            return path_stream.str();
-        }
-    }
-    throw invalid_argument("container name " + container_name + " not found in global config file");
 }
