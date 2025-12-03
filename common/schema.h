@@ -418,6 +418,11 @@ after libswsscommon deb make.
 #define CFG_L2MC_MROUTER_TABLE_NAME                 "L2MC_MROUTER"
 #define CFG_L2MC_STATIC_TABLE_NAME                  "L2MC_STATIC_MEMBER"
 #define CFG_L2MC_STATIC_GROUP_TABLE                 "L2MC_STATIC_GROUP"
+
+#define CFG_MLD_L2MC_TABLE_NAME                         "MLD_L2MC"
+#define CFG_MLD_L2MC_MROUTER_TABLE_NAME                 "MLD_L2MC_MROUTER"
+#define CFG_MLD_L2MC_STATIC_TABLE_NAME                  "MLD_L2MC_STATIC_MEMBER"
+#define CFG_MLD_L2MC_STATIC_GROUP_TABLE                 "MLD_L2MC_STATIC_GROUP"
 /***** STATE DATABASE *****/
 
 #define STATE_SWITCH_CAPABILITY_TABLE_NAME          "SWITCH_CAPABILITY"
