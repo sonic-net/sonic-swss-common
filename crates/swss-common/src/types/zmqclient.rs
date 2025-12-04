@@ -43,7 +43,11 @@ impl ZmqClient {
 
 impl Drop for ZmqClient {
     fn drop(&mut self) {
-        unsafe { swss_try!(SWSSZmqClient_free(self.ptr)).expect("Dropping ZmqClient") };
+        unsafe {
+            if let Err(e) = swss_try!(SWSSZmqClient_free(self.ptr)) {
+                eprintln!("Error dropping ZmqClient: {}", e);
+            }
+        }
     }
 }
 

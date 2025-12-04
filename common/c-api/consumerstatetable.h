@@ -26,7 +26,7 @@ SWSSResult SWSSConsumerStateTable_pops(SWSSConsumerStateTable tbl, SWSSKeyOpFiel
 // Callers must NOT read/write on the fd, it may only be used for epoll or similar.
 // After the fd becomes readable, SWSSConsumerStateTable_readData must be used to
 // reset the fd and read data into internal data structures.
-SWSSResult SWSSConsumerStateTable_getFd(SWSSConsumerStateTable tbl, uint32_t *outFd);
+SWSSResult SWSSConsumerStateTable_getFd(SWSSConsumerStateTable tbl, int32_t *outFd);
 
 // Block until data is available to read or until a timeout elapses.
 // A timeout of 0 means the call will return immediately.
