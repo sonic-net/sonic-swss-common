@@ -2,6 +2,7 @@
 
 #include <string>
 #include <deque>
+#include <list>
 #include <condition_variable>
 #include "asyncdbupdater.h"
 #include "consumertablebase.h"
@@ -74,7 +75,7 @@ private:
 
     std::mutex m_receivedQueueMutex;
 
-    std::queue<std::shared_ptr<KeyOpFieldsValuesTuple>> m_receivedOperationQueue;
+    std::queue<std::shared_ptr<KeyOpFieldsValuesTuple>, std::list<std::shared_ptr<KeyOpFieldsValuesTuple>>> m_receivedOperationQueue;
 
     swss::SelectableEvent m_selectableEvent;
 
