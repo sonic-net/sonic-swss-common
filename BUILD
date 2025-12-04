@@ -30,6 +30,7 @@ cc_library(
     includes = [
         "common",
     ],
+    linkopts = ["-lboost_serialization"],
     # Approach 1:
     deps = [
         "@bookworm//libhiredis-dev:libhiredis",
