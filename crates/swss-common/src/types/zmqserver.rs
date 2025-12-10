@@ -17,7 +17,7 @@ pub struct ZmqServer {
 
 impl ZmqServer {
     pub fn new(endpoint: &str) -> Result<Self> {
-        let endpoint = cstr(endpoint);
+        let endpoint = cstr(endpoint)?;
         let ptr = unsafe { swss_try!(p_zs => SWSSZmqServer_new(endpoint.as_ptr(), p_zs))? };
         Ok(Self {
             ptr,
