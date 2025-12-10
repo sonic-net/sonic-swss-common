@@ -36,7 +36,8 @@ impl SubscriberStateTable {
     }
 
     pub fn read_data(&self, timeout: Duration, interrupt_on_signal: bool) -> Result<SelectResult> {
-        let timeout_ms = timeout.as_millis().try_into().unwrap();
+        let timeout_ms: u32 = timeout.as_millis().try_into()
+            .map_err(|_| Exception::new("Invalid timeout value"))?;
         let res = unsafe {
             swss_try!(p_res => {
                 SWSSSubscriberStateTable_readData(self.ptr, timeout_ms, interrupt_on_signal as u8, p_res)
@@ -50,7 +51,10 @@ impl SubscriberStateTable {
         // as long as the DbConnector does.
         unsafe {
             let fd = swss_try!(p_fd => SWSSSubscriberStateTable_getFd(self.ptr, p_fd))?;
-            let fd = BorrowedFd::borrow_raw(fd.try_into().unwrap());
+            if fd == -1 {
+                return Err(Exception::new("Invalid file descriptor: -1"));
+            }
+            let fd = BorrowedFd::borrow_raw(fd);
             Ok(fd)
         }
     }
@@ -70,7 +74,11 @@ impl SubscriberStateTable {
 
 impl Drop for SubscriberStateTable {
     fn drop(&mut self) {
-        unsafe { swss_try!(SWSSSubscriberStateTable_free(self.ptr)).expect("Dropping SubscriberStateTable") };
+        unsafe {
+            if let Err(e) = swss_try!(SWSSSubscriberStateTable_free(self.ptr)) {
+                eprintln!("Error dropping SubscriberStateTable: {}", e);
+            }
+        }
     }
 }
 
