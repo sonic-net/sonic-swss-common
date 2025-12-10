@@ -94,7 +94,11 @@ impl Table {
 
 impl Drop for Table {
     fn drop(&mut self) {
-        unsafe { swss_try!(SWSSTable_free(self.ptr)).expect("Dropping Table") };
+        unsafe {
+            if let Err(e) = swss_try!(SWSSTable_free(self.ptr)) {
+                eprintln!("Error dropping Table: {}", e);
+            }
+        }
     }
 }
 

@@ -29,7 +29,7 @@ SWSSResult SWSSZmqConsumerStateTable_pops(SWSSZmqConsumerStateTable tbl,
 // Callers must NOT read/write on fd, it may only be used for epoll or similar.
 // After the fd becomes readable, SWSSZmqConsumerStateTable_readData must be used to
 // reset the fd and read data into internal data structures.
-SWSSResult SWSSZmqConsumerStateTable_getFd(SWSSZmqConsumerStateTable tbl, uint32_t *outFd);
+SWSSResult SWSSZmqConsumerStateTable_getFd(SWSSZmqConsumerStateTable tbl, int32_t *outFd);
 
 // Block until data is available to read or until a timeout elapses.
 // A timeout of 0 means the call will return immediately.
