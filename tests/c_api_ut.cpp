@@ -369,7 +369,7 @@ TEST(c_api, ConsumerProducerStateTables) {
     SWSSConsumerStateTable cst;
     SWSSConsumerStateTable_new(db, "mytable", nullptr, nullptr, &cst);
 
-    uint32_t fd;
+    int32_t fd;
     SWSSConsumerStateTable_getFd(cst, &fd);
 
     SWSSKeyOpFieldValuesArray arr;
@@ -453,7 +453,7 @@ TEST(c_api, SubscriberStateTable) {
     SWSSSubscriberStateTable sst;
     SWSSSubscriberStateTable_new(db, "mytable", nullptr, nullptr, &sst);
 
-    uint32_t fd;
+    int32_t fd;
     SWSSSubscriberStateTable_getFd(sst, &fd);
 
     SWSSSelectResult result;
@@ -506,7 +506,7 @@ TEST(c_api, ZmqConsumerProducerStateTable) {
     SWSSZmqConsumerStateTable cst;
     SWSSZmqConsumerStateTable_new(db, "mytable", srv, nullptr, nullptr, &cst);
 
-    uint32_t fd;
+    int32_t fd;
     SWSSZmqConsumerStateTable_getFd(cst, &fd);
 
     const SWSSDBConnectorOpaque *dbConnector;
