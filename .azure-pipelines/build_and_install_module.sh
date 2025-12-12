@@ -54,8 +54,10 @@ build_and_install_kmodule()
             "can be loaded into the kernel or function correctly. If possible, please update your kernel and reboot " \
             "your system so that it's running the matching kernel version." >&2
         echo "Continuing with the build anyways" >&2
+        apt-get source "linux-image-unsigned-${KERNEL_RELEASE}"
+    else
+        apt-get source "linux-image-unsigned-${KERNEL_RELEASE}=${KERNEL_PACKAGE_VERSION}"
     fi
-    apt-get source "linux-image-unsigned-${KERNEL_RELEASE}"
 
     # Recover the original apt sources list
     cp /etc/apt/sources.list.bk /etc/apt/sources.list
