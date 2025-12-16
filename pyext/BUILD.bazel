@@ -1,7 +1,14 @@
 load("@rules_pkg//:pkg.bzl", "pkg_deb", "pkg_tar")
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_shared_library")
-load("@sonic-build-infra//swig:gen.bzl", "swig_gen")
-load(":py_native_library.bzl", "py_native_library")
+load("@sonic-build-infra//swig:defs.bzl", "swig_gen", "swig_lib_deb")
+load("@sonic-build-infra//python:py_native_library.bzl", "py_native_library")
+
+# Extract SWIG library files from apt package for hermetic builds
+swig_lib_deb(
+    name = "swig_lib",
+    data = "@bookworm//swig",
+    strip_prefix = "usr/share/swig4.0",
+)
 
 swig_gen(
     name = "swsscommon_pyy",
@@ -11,36 +18,8 @@ swig_gen(
     hdrs = [
        "//:hdrs",
     ],
+    swig_lib = ":swig_lib",
 )
-
-# TODO: move this to a .bzl file
-# genrule(
-#     name = "swsscommon_py_wrap",
-#     srcs = [
-#         "swsscommon.i",
-#         "//:hdrs",
-#     ],
-#     outs = [
-#         "py3/swsscommon_wrap.cpp",
-#         "py3/swsscommon.py",
-#     ],
-#     cmd = """
-#         echo $(locations @bookworm//swig:swig) | xargs -n1 tar xf
-#         PATH=./usr/bin:$$PATH
-#         export SWIG_LIB=.$$(swig -swiglib)
-#         SWIG_FLAG="-Wall -c++ -python -keyword"
-#         # TODO: required for 64 bit architectures
-#         SWIG_FLAG="$$SWIG_FLAG -DSWIGWORDSIZE64"
-#         ls $$SWIG_LIB/python/
-#         SWSS_INCLUDES=$$(for FILE in $(locations //:hdrs); do dirname "$$FILE"; done | sort -u | sed 's/^/-I/')
-#         swig -v $$SWIG_FLAG  \
-#             $$SWSS_INCLUDES \
-#             -o $(location py3/swsscommon_wrap.cpp) \
-#             $(location swsscommon.i)
-#     """,
-#     tools = ["@bookworm//swig"],
-#     toolchains = []
-# )
 
 cc_library(
     name = "swsscommonwrap",

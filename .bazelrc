@@ -1,2 +1,6 @@
 common --check_direct_dependencies=off
 common --noincompatible_disallow_empty_glob
+
+# Custom registry for swig 4.1.0
+common --registry=https://raw.githubusercontent.com/thesayyn/bazel-central-registry/main/
+common --registry=https://bcr.bazel.build/
