@@ -48,18 +48,25 @@ use std::{
     str::FromStr,
 };
 
-pub(crate) fn cstr(s: impl AsRef<[u8]>) -> CString {
-    CString::new(s.as_ref()).expect("Bytes being converted to a C string already contains a null byte")
+pub(crate) fn cstr(s: impl AsRef<[u8]>) -> Result<CString> {
+    CString::new(s.as_ref())
+        .map_err(|e| Exception::new(format!("String contains null byte at position {}", e.nul_position())))
 }
 
 /// Take a malloc'd c string and convert it to a native String
-pub(crate) unsafe fn take_cstr(p: *const libc::c_char) -> String {
-    let s = CStr::from_ptr(p)
-        .to_str()
-        .expect("C string being converted to Rust String contains invalid UTF-8")
-        .to_string();
+/// If any string fails to convert, returns an error and frees all allocated memory.
+pub(crate) unsafe fn take_cstr(p: *const libc::c_char) -> Result<String> {
+    let cstr = CStr::from_ptr(p);
+    // Convert to Rust String, capturing UTF-8 conversion errors.
+    let result: Result<String> = match cstr.to_str() {
+        Ok(s) => Ok(s.to_string()),
+        Err(_) => Err(Exception::new("C string being converted to Rust String contains invalid UTF-8".to_string())),
+    };
+
+    // Free the original C string in all cases to avoid leaks.
     libc::free(p as *mut libc::c_void);
-    s
+
+    result
 }
 
 /// Rust version of the return type from `swss::Select::select`.
@@ -204,55 +211,123 @@ impl Ord for KeyOpFieldValues {
 }
 
 /// Takes ownership of an `SWSSFieldValueArray` and turns it into a native representation.
-pub(crate) unsafe fn take_field_value_array(arr: SWSSFieldValueArray) -> FieldValues {
+/// If any entry fails to convert, returns an error and frees all allocated memory.
+pub(crate) unsafe fn take_field_value_array(arr: SWSSFieldValueArray) -> Result<FieldValues> {
     let mut out = HashMap::with_capacity(arr.len as usize);
+    let mut err: Option<Exception> = None;
+
     if !arr.data.is_null() {
         let entries = slice::from_raw_parts(arr.data, arr.len as usize);
         for fv in entries {
-            let field = take_cstr(fv.field);
-            let value = CxxString::take(fv.value).unwrap();
-            out.insert(field, value);
+            // Try to convert the field name. If it fails, remember the error but
+            // continue and still attempt to take the value (to free any owned memory).
+            match take_cstr(fv.field) {
+                Ok(field) => {
+                    match CxxString::take(fv.value) {
+                        Some(value) => {
+                            out.insert(field, value);
+                        }
+                        None => {
+                            if err.is_none() {
+                                err = Some(Exception::new("CxxString::take returned null".to_string()));
+                            }
+                        }
+                    }
+                }
+                Err(e) => {
+                    // record first error
+                    if err.is_none() {
+                        err = Some(e);
+                    }
+                    // still try to take value to free it if present
+                    let _ = CxxString::take(fv.value);
+                }
+            }
         }
         SWSSFieldValueArray_free(arr);
     }
-    out
+
+    match err {
+        Some(e) => Err(e),
+        None => Ok(out),
+    }
 }
 
 /// Takes ownership of an `SWSSKeyOpFieldValuesArray` and turns it into a native representation.
-pub(crate) unsafe fn take_key_op_field_values_array(kfvs: SWSSKeyOpFieldValuesArray) -> Vec<KeyOpFieldValues> {
+/// If any entry fails to convert, returns an error and frees all allocated memory.
+pub(crate) unsafe fn take_key_op_field_values_array(kfvs: SWSSKeyOpFieldValuesArray) -> Result<Vec<KeyOpFieldValues>> {
     let mut out = Vec::with_capacity(kfvs.len as usize);
+    let mut err: Option<Exception> = None;
+
     if !kfvs.data.is_null() {
         unsafe {
             let entries = slice::from_raw_parts(kfvs.data, kfvs.len as usize);
             for kfv in entries {
-                let key = take_cstr(kfv.key);
+                // attempt to get key
+                let key_res = take_cstr(kfv.key);
                 let operation = KeyOperation::from_raw(kfv.operation);
-                let field_values = take_field_value_array(kfv.fieldValues);
-                out.push(KeyOpFieldValues {
-                    key,
-                    operation,
-                    field_values,
-                });
+
+                // attempt to get field_values
+                let field_values_res = take_field_value_array(kfv.fieldValues);
+
+                match (key_res, field_values_res) {
+                    (Ok(key), Ok(field_values)) => {
+                        out.push(KeyOpFieldValues { key, operation, field_values });
+                    }
+                    (kres, fvres) => {
+                        // record first error, if any
+                        if err.is_none() {
+                            if let Err(e) = kres { err = Some(e); }
+                            else if let Err(e) = fvres { err = Some(e); }
+                        }
+                        // continue to next entry to ensure C resources are freed
+                    }
+                }
             }
             SWSSKeyOpFieldValuesArray_free(kfvs);
         };
     }
-    out
+
+    match err {
+        Some(e) => Err(e),
+        None => Ok(out),
+    }
 }
 
 /// Takes ownership of an `SWSSStringArray` and turns it into a native representation.
-pub(crate) unsafe fn take_string_array(arr: SWSSStringArray) -> Vec<String> {
-    let out = if !arr.data.is_null() {
+/// If any string fails to convert, returns an error and frees all allocated memory.
+pub(crate) unsafe fn take_string_array(arr: SWSSStringArray) -> Result<Vec<String>> {
+    if !arr.data.is_null() {
         let entries = slice::from_raw_parts(arr.data, arr.len as usize);
-        Vec::from_iter(entries.iter().map(|&s| take_cstr(s)))
+        let mut out = Vec::with_capacity(entries.len());
+        let mut err: Option<Exception> = None;
+
+        for &s in entries {
+            match take_cstr(s) {
+                Ok(string) => out.push(string),
+                Err(e) => {
+                    if err.is_none() {
+                        err = Some(e);
+                    }
+                }
+            }
+        }
+
+        // Free the array before returning error or success.
+        SWSSStringArray_free(arr);
+
+        match err {
+            Some(e) => Err(e),
+            None => Ok(out),
+        }
     } else {
-        Vec::new()
-    };
-    SWSSStringArray_free(arr);
-    out
+        SWSSStringArray_free(arr);
+        Ok(Vec::new())
+    }
 }
 
-pub(crate) fn make_field_value_array<I, F, V>(fvs: I) -> (SWSSFieldValueArray, KeepAlive)
+
+pub(crate) fn make_field_value_array<I, F, V>(fvs: I) -> Result<(SWSSFieldValueArray, KeepAlive)>
 where
     I: IntoIterator<Item = (F, V)>,
     F: AsRef<[u8]>,
@@ -262,7 +337,7 @@ where
     let mut data = Vec::new();
 
     for (field, value) in fvs {
-        let field = cstr(field);
+        let field = cstr(field)?;
         let value_cxxstring: CxxString = value.into();
         let value_rawswssstring: RawMutableSWSSString = value_cxxstring.into_raw();
         data.push(SWSSFieldValueTuple {
@@ -274,14 +349,16 @@ where
 
     let arr = SWSSFieldValueArray {
         data: data.as_mut_ptr(),
-        len: data.len().try_into().unwrap(),
+        len: data.len().try_into().map_err(|_| Exception::new(
+            format!("field value array length {} exceeds maximum for target type", data.len())
+        ))?,
     };
     k.keep(data);
 
-    (arr, k)
+    Ok((arr, k))
 }
 
-pub(crate) fn make_key_op_field_values_array<I>(kfvs: I) -> (SWSSKeyOpFieldValuesArray, KeepAlive)
+pub(crate) fn make_key_op_field_values_array<I>(kfvs: I) -> Result<(SWSSKeyOpFieldValuesArray, KeepAlive)>
 where
     I: IntoIterator<Item = KeyOpFieldValues>,
 {
@@ -289,9 +366,9 @@ where
     let mut data = Vec::new();
 
     for kfv in kfvs {
-        let key = cstr(kfv.key);
+        let key = cstr(kfv.key)?;
         let operation = kfv.operation.as_raw();
-        let (field_values, arr_k) = make_field_value_array(kfv.field_values);
+        let (field_values, arr_k) = make_field_value_array(kfv.field_values)?;
         data.push(SWSSKeyOpFieldValues {
             key: key.as_ptr(),
             operation,
@@ -302,11 +379,13 @@ where
 
     let arr = SWSSKeyOpFieldValuesArray {
         data: data.as_mut_ptr(),
-        len: data.len().try_into().unwrap(),
+        len: data.len().try_into().map_err(|_| Exception::new(
+            format!("key-op field values array length {} exceeds maximum for target type", data.len())
+        ))?,
     };
     k.keep(Box::new(data));
 
-    (arr, k)
+    Ok((arr, k))
 }
 
 /// Helper struct to keep rust-owned data alive while it is in use by C++
@@ -318,3 +397,109 @@ impl KeepAlive {
         self.0.push(Box::new(t))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::ffi::CString;
+
+    // Helper function to create a C string pointer from a Rust string.
+    fn make_c_string(s: &str) -> *const libc::c_char {
+        let c_str = CString::new(s).expect("CString::new failed");
+        let ptr = c_str.as_ptr();
+        // Leak the CString so we can pass ownership to take_cstr.
+        std::mem::forget(c_str);
+        ptr
+    }
+
+    #[test]
+    fn test_take_cstr_valid_utf8() {
+        let c_ptr = make_c_string("Hello, World!");
+        let result = unsafe { take_cstr(c_ptr) };
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "Hello, World!");
+    }
+
+    #[test]
+    fn test_take_cstr_invalid_utf8() {
+        // Create an invalid UTF-8 sequence by manually crafting a C string
+        let invalid_bytes: Vec<u8> = vec![0xFF, 0xFE, 0x00];
+        let ptr = unsafe {
+            let buf = libc::malloc(invalid_bytes.len() + 1) as *mut u8;
+            if buf.is_null() {
+                panic!("malloc failed");
+            }
+            std::ptr::copy_nonoverlapping(invalid_bytes.as_ptr(), buf, invalid_bytes.len());
+            *buf.add(invalid_bytes.len()) = 0; // null terminator
+            buf as *const libc::c_char
+        };
+
+        let result = unsafe { take_cstr(ptr) };
+
+        // Should be an error due to invalid UTF-8
+        assert!(result.is_err());
+
+        // Verify the error message indicates UTF-8 issue
+        let err = result.unwrap_err();
+        assert!(err.to_string().contains("invalid UTF-8"));
+
+    }
+
+    #[test]
+    fn test_take_string_array_empty() {
+        let arr = SWSSStringArray {
+            data: std::ptr::null_mut(),
+            len: 0,
+        };
+
+        let result = unsafe { take_string_array(arr) };
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().len(), 0);
+    }
+
+    #[test]
+    fn test_take_string_array_invalid_utf8() {
+        // Create an invalid UTF-8 sequence by manually crafting a C string
+        let invalid_bytes: Vec<u8> = vec![0xFF, 0xFE, 0x00];
+        let invalid_ptr = unsafe {
+            let buf = libc::malloc(invalid_bytes.len() + 1) as *mut u8;
+            if buf.is_null() {
+                panic!("malloc failed");
+            }
+            std::ptr::copy_nonoverlapping(invalid_bytes.as_ptr(), buf, invalid_bytes.len());
+            *buf.add(invalid_bytes.len()) = 0; // null terminator
+            buf as *const libc::c_char
+        };
+
+        // Create a valid UTF-8 string
+        let valid_ptr = make_c_string("valid string");
+
+        // Allocate the array pointer with malloc to hold two strings
+        let arr_data = unsafe {
+            let data_ptr = libc::malloc(std::mem::size_of::<*const libc::c_char>() * 2) as *mut *const libc::c_char;
+            if data_ptr.is_null() {
+                panic!("malloc failed");
+            }
+            *data_ptr = invalid_ptr;
+            *data_ptr.add(1) = valid_ptr;
+            data_ptr
+        };
+
+        let arr = SWSSStringArray {
+            data: arr_data,
+            len: 2,
+        };
+
+        let result = unsafe { take_string_array(arr) };
+
+        // Should be an error due to invalid UTF-8 in the first string
+        assert!(result.is_err());
+
+        // Verify the error message indicates UTF-8 issue
+        let err = result.unwrap_err();
+        assert!(err.to_string().contains("invalid UTF-8"));
+    }
+}
+

@@ -14,7 +14,7 @@ impl ConfigDBConnector {
     /// Create a new ConfigDBConnector.
     pub fn new(use_unix_socket_path: bool, netns: Option<String>) -> Result<ConfigDBConnector> {
         let netns_str = netns.unwrap_or_default();
-        let netns_cstr = cstr(&netns_str);
+        let netns_cstr = cstr(&netns_str)?;
 
         let ptr = unsafe {
             swss_try!(p_config_db => SWSSConfigDBConnector_new(
@@ -48,8 +48,8 @@ impl ConfigDBConnector {
 
     /// Get a single entry from a table.
     pub fn get_entry(&self, table: &str, key: &str) -> Result<HashMap<String, CxxString>> {
-        let table_cstr = cstr(table);
-        let key_cstr = cstr(key);
+        let table_cstr = cstr(table)?;
+        let key_cstr = cstr(key)?;
 
         unsafe {
             let arr = swss_try!(p_arr => SWSSConfigDBConnector_get_entry(
@@ -58,13 +58,13 @@ impl ConfigDBConnector {
                 key_cstr.as_ptr(),
                 p_arr
             ))?;
-            Ok(take_field_value_array(arr))
+            take_field_value_array(arr)
         }
     }
 
     /// Get all keys from a table.
     pub fn get_keys(&self, table: &str, split: bool) -> Result<Vec<String>> {
-        let table_cstr = cstr(table);
+        let table_cstr = cstr(table)?;
 
         unsafe {
             let arr = swss_try!(p_arr => SWSSConfigDBConnector_get_keys(
@@ -73,14 +73,14 @@ impl ConfigDBConnector {
                 split as u8,
                 p_arr
             ))?;
-            Ok(take_string_array(arr))
+            take_string_array(arr)
         }
     }
 
     /// Get entire table as key-value pairs.
     /// Returns a HashMap where keys are table keys and values are field-value maps.
     pub fn get_table(&self, table: &str) -> Result<HashMap<String, HashMap<String, CxxString>>> {
-        let table_cstr = cstr(table);
+        let table_cstr = cstr(table)?;
 
         unsafe {
             let arr = swss_try!(p_arr => SWSSConfigDBConnector_get_table(
@@ -89,7 +89,7 @@ impl ConfigDBConnector {
                 p_arr
             ))?;
 
-            let kfvs = take_key_op_field_values_array(arr);
+            let kfvs = take_key_op_field_values_array(arr)?;
             let mut table_map = HashMap::new();
 
             for kfv in kfvs {
@@ -107,9 +107,9 @@ impl ConfigDBConnector {
         F: AsRef<[u8]>,
         V: Into<CxxString>,
     {
-        let table_cstr = cstr(table);
-        let key_cstr = cstr(key);
-        let (fv_array, _keep_alive) = make_field_value_array(data);
+        let table_cstr = cstr(table)?;
+        let key_cstr = cstr(key)?;
+        let (fv_array, _keep_alive) = make_field_value_array(data)?;
 
         unsafe {
             swss_try!(SWSSConfigDBConnector_set_entry(
@@ -128,9 +128,9 @@ impl ConfigDBConnector {
         F: AsRef<[u8]>,
         V: Into<CxxString>,
     {
-        let table_cstr = cstr(table);
-        let key_cstr = cstr(key);
-        let (fv_array, _keep_alive) = make_field_value_array(data);
+        let table_cstr = cstr(table)?;
+        let key_cstr = cstr(key)?;
+        let (fv_array, _keep_alive) = make_field_value_array(data)?;
 
         unsafe {
             swss_try!(SWSSConfigDBConnector_mod_entry(
@@ -144,7 +144,7 @@ impl ConfigDBConnector {
 
     /// Delete an entire table.
     pub fn delete_table(&self, table: &str) -> Result<()> {
-        let table_cstr = cstr(table);
+        let table_cstr = cstr(table)?;
 
         unsafe {
             swss_try!(SWSSConfigDBConnector_delete_table(
@@ -168,7 +168,7 @@ impl ConfigDBConnector {
     /// This allows direct Redis operations on the underlying database.
     /// Returns a borrowed reference to the underlying Redis client.
     pub fn get_redis_client(&self, db_name: &str) -> Result<BorrowedDbConnector> {
-        let db_name_cstr = cstr(db_name);
+        let db_name_cstr = cstr(db_name)?;
 
         unsafe {
             let db_connector_ptr = swss_try!(p_db => SWSSConfigDBConnector_get_redis_client(
