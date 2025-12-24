@@ -18,9 +18,6 @@ parameters:
   type: number
   default: 90
 
-- name: sonic_slave
-  type: string
-
 - name: debian_version
   type: string
 
