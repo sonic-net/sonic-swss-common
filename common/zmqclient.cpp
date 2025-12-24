@@ -139,6 +139,7 @@ void ZmqClient::sendMsg(
                 serializedlen);
     }
 
+    SWSS_LOG_DEBUG("Test debug");
     SWSS_LOG_DEBUG("sending: %d", serializedlen);
     int zmq_err = 0;
     int retry_delay = 10;
