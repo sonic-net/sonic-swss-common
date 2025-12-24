@@ -16,17 +16,18 @@ using namespace std;
 namespace swss {
 
 ZmqClient::ZmqClient(const std::string& endpoint)
-:ZmqClient(endpoint, "")
+    : ZmqClient(endpoint, "")
 {
 }
 
 ZmqClient::ZmqClient(const std::string& endpoint, const std::string& vrf)
+    : m_waitTimeMs(0), m_oneToOneSync(false)
 {
     initialize(endpoint, vrf);
 }
 
 ZmqClient::ZmqClient(const std::string& endpoint, uint32_t waitTimeMs)
-: m_waitTimeMs(waitTimeMs)
+    : m_waitTimeMs(waitTimeMs), m_oneToOneSync(false)
 {
     initialize(endpoint);
 }
@@ -90,17 +91,26 @@ void ZmqClient::connect()
         zmq_ctx_destroy(m_context);
     }
     
-    // ZMQ Client/Server are n:1 mapping, so need use PUSH/PULL pattern http://api.zeromq.org/master:zmq-socket
     m_context = zmq_ctx_new();
-    m_socket = zmq_socket(m_context, ZMQ_PUSH);
-    
+    if (m_oneToOneSync)
+    {
+        m_socket = zmq_socket(m_context, ZMQ_REQ);
+    }
+    else
+    {
+        m_socket = zmq_socket(m_context, ZMQ_PUSH);
+    }
+
     // timeout all pending send package, so zmq will not block in dtor of this class: http://api.zeromq.org/master:zmq-setsockopt
     int linger = 0;
     zmq_setsockopt(m_socket, ZMQ_LINGER, &linger, sizeof(linger));
 
-    // Increase send buffer for use all bandwidth: http://api.zeromq.org/4-2:zmq-setsockopt
-    int high_watermark = MQ_WATERMARK;
-    zmq_setsockopt(m_socket, ZMQ_SNDHWM, &high_watermark, sizeof(high_watermark));
+    if (!m_oneToOneSync)
+    {
+        // Increase send buffer for use all bandwidth: http://api.zeromq.org/4-2:zmq-setsockopt
+        int high_watermark = MQ_WATERMARK;
+        zmq_setsockopt(m_socket, ZMQ_SNDHWM, &high_watermark, sizeof(high_watermark));
+    }
 
     if (!m_vrf.empty())
     {
@@ -109,6 +119,7 @@ void ZmqClient::connect()
 
     SWSS_LOG_NOTICE("connect to zmq endpoint: %s", m_endpoint.c_str());
     int rc = zmq_connect(m_socket, m_endpoint.c_str());
+
     if (rc != 0)
     {
         m_connected = false;
@@ -150,7 +161,14 @@ void ZmqClient::sendMsg(
             std::lock_guard<std::mutex> lock(m_socketMutex);
 
             // Use none block mode to use all bandwidth: http://api.zeromq.org/2-1%3Azmq-send
-            rc = zmq_send(m_socket, m_sendbuffer.data(), serializedlen, ZMQ_NOBLOCK);
+            if (m_oneToOneSync)
+            {
+                rc = zmq_send(m_socket, m_sendbuffer.data(), serializedlen, 0);
+            }
+            else
+            {
+                rc = zmq_send(m_socket, m_sendbuffer.data(), serializedlen, ZMQ_NOBLOCK);
+            }
         }
         if (rc >= 0)
         {
@@ -202,11 +220,68 @@ void ZmqClient::sendMsg(
     throw system_error(make_error_code(errc::io_error), message);
 }
 
-// TODO: To be implemented later, required for ZMQ_CLIENT & ZMQ_SERVER
-// socket types in response path.
 bool ZmqClient::wait(
-    const std::string &dbName, const std::string &tableName,
-    const std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> &kcos) {
-  return false;
+    std::string& dbName, std::string& tableName,
+    std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> &kcos) {
+
+    SWSS_LOG_ENTER();
+
+    if (!m_oneToOneSync)
+    {
+        return false;
+    }
+
+    zmq_pollitem_t items [1] = { };
+    items[0].socket = m_socket;
+    items[0].events = ZMQ_POLLIN;
+
+    int rc;
+
+    for (int i = 0; true; ++i)
+    {
+        rc = zmq_poll(items, 1, (int)m_waitTimeMs);
+
+        if (rc == 0)
+        {
+            SWSS_LOG_ERROR("zmq_poll timed out");
+            return false;
+        }
+        if (rc > 0)
+        {
+            break;
+        }
+        if (zmq_errno() == EINTR && i <= MQ_MAX_RETRY)
+        {
+            continue;
+        }
+        SWSS_LOG_THROW("zmq_poll failed, zmqerrno: %d", zmq_errno());
+    }
+
+    for (int i = 0; true; ++i)
+    {
+        rc = zmq_recv(m_socket, m_sendbuffer.data(), m_sendbuffer.size(), 0);
+
+        if (rc < 0)
+        {
+            if (zmq_errno() == EINTR && i <= MQ_MAX_RETRY)
+            {
+                continue;
+            }
+            SWSS_LOG_THROW("zmq_recv failed, zmqerrno: %d", zmq_errno());
+        }
+        if (rc >= (int)m_sendbuffer.size())
+        {
+            SWSS_LOG_THROW(
+                "zmq_recv message was truncated (over %d bytes, received %d), increase buffer size, message DROPPED",
+                (int)m_sendbuffer.size(), rc);
+        }
+        break;
+    }
+
+    m_sendbuffer.at(rc) = 0; // make sure that we end string with zero before parse
+    kcos.clear();
+    BinarySerializer::deserializeBuffer(m_sendbuffer.data(), m_sendbuffer.size(), dbName, tableName, kcos);
+
+  return true;
 }
 }

@@ -7,7 +7,11 @@ using namespace swss;
 using namespace std;
 
 SWSSResult SWSSZmqClient_new(const char *endpoint, SWSSZmqClient *outClient) {
-    SWSSTry(*outClient = (SWSSZmqClient) new ZmqClient(endpoint));
+    SWSSTry(
+        *outClient = reinterpret_cast<SWSSZmqClient>(
+            new swss::ZmqClient(std::string(endpoint), 0)
+        )
+    );
 }
 
 SWSSResult SWSSZmqClient_free(SWSSZmqClient zmqc) {
