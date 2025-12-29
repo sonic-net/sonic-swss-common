@@ -22,7 +22,7 @@ impl SonicV2Connector {
     ) -> Result<SonicV2Connector> {
 
         let netns_str = namespace.unwrap_or_default();
-        let netns_cstr = cstr(&netns_str);
+        let netns_cstr = cstr(&netns_str)?;
 
         let ptr = unsafe {
             swss_try!(p_connector => SWSSSonicV2Connector_new(
@@ -57,7 +57,7 @@ impl SonicV2Connector {
 
     /// Connect to a specific database.
     pub fn connect(&self, db_name: &str, retry_on: bool) -> Result<()> {
-        let db_name_cstr = cstr(db_name);
+        let db_name_cstr = cstr(db_name)?;
 
         unsafe {
             swss_try!(SWSSSonicV2Connector_connect(
@@ -70,7 +70,7 @@ impl SonicV2Connector {
 
     /// Close connection to a specific database.
     pub fn close_db(&self, db_name: &str) -> Result<()> {
-        let db_name_cstr = cstr(db_name);
+        let db_name_cstr = cstr(db_name)?;
 
         unsafe {
             swss_try!(SWSSSonicV2Connector_close_db(
@@ -94,13 +94,13 @@ impl SonicV2Connector {
                 self.ptr,
                 p_arr
             ))?;
-            Ok(take_string_array(arr))
+            take_string_array(arr)
         }
     }
 
     /// Get database ID for a given database name.
     pub fn get_dbid(&self, db_name: &str) -> Result<i32> {
-        let db_name_cstr = cstr(db_name);
+        let db_name_cstr = cstr(db_name)?;
 
         unsafe {
             let db_id = swss_try!(p_dbid => SWSSSonicV2Connector_get_dbid(
@@ -114,7 +114,7 @@ impl SonicV2Connector {
 
     /// Get database separator for a given database name.
     pub fn get_db_separator(&self, db_name: &str) -> Result<String> {
-        let db_name_cstr = cstr(db_name);
+        let db_name_cstr = cstr(db_name)?;
 
         unsafe {
             let separator_str = swss_try!(p_sep => SWSSSonicV2Connector_get_db_separator(
@@ -133,7 +133,7 @@ impl SonicV2Connector {
 
     /// Get Redis client for a specific database.
     pub fn get_redis_client(&self, db_name: &str) -> Result<BorrowedDbConnector> {
-        let db_name_cstr = cstr(db_name);
+        let db_name_cstr = cstr(db_name)?;
 
         unsafe {
             let db_connector_ptr = swss_try!(p_db => SWSSSonicV2Connector_get_redis_client(
@@ -148,9 +148,9 @@ impl SonicV2Connector {
 
     /// Publish a message to a channel.
     pub fn publish(&self, db_name: &str, channel: &str, message: &str) -> Result<i64> {
-        let db_name_cstr = cstr(db_name);
-        let channel_cstr = cstr(channel);
-        let message_cstr = cstr(message);
+        let db_name_cstr = cstr(db_name)?;
+        let channel_cstr = cstr(channel)?;
+        let message_cstr = cstr(message)?;
 
         unsafe {
             let result = swss_try!(p_result => SWSSSonicV2Connector_publish(
@@ -166,8 +166,8 @@ impl SonicV2Connector {
 
     /// Check if a key exists.
     pub fn exists(&self, db_name: &str, key: &str) -> Result<bool> {
-        let db_name_cstr = cstr(db_name);
-        let key_cstr = cstr(key);
+        let db_name_cstr = cstr(db_name)?;
+        let key_cstr = cstr(key)?;
 
         unsafe {
             let exists = swss_try!(p_exists => SWSSSonicV2Connector_exists(
@@ -182,8 +182,8 @@ impl SonicV2Connector {
 
     /// Get all keys matching a pattern.
     pub fn keys(&self, db_name: &str, pattern: Option<&str>, blocking: bool) -> Result<Vec<String>> {
-        let db_name_cstr = cstr(db_name);
-        let pattern_cstr = pattern.map(|p| cstr(p));
+        let db_name_cstr = cstr(db_name)?;
+        let pattern_cstr = pattern.map(|p| cstr(p)).transpose()?;
         let pattern_ptr = pattern_cstr.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());
 
         unsafe {
@@ -194,15 +194,15 @@ impl SonicV2Connector {
                 blocking as u8,
                 p_arr
             ))?;
-            Ok(take_string_array(arr))
+            take_string_array(arr)
         }
     }
 
     /// Get a single field value from a hash.
     pub fn get(&self, db_name: &str, hash: &str, key: &str, blocking: bool) -> Result<Option<String>> {
-        let db_name_cstr = cstr(db_name);
-        let hash_cstr = cstr(hash);
-        let key_cstr = cstr(key);
+        let db_name_cstr = cstr(db_name)?;
+        let hash_cstr = cstr(hash)?;
+        let key_cstr = cstr(key)?;
 
         unsafe {
             let value = swss_try!(p_value => SWSSSonicV2Connector_get(
@@ -228,9 +228,9 @@ impl SonicV2Connector {
 
     /// Check if a field exists in a hash.
     pub fn hexists(&self, db_name: &str, hash: &str, key: &str) -> Result<bool> {
-        let db_name_cstr = cstr(db_name);
-        let hash_cstr = cstr(hash);
-        let key_cstr = cstr(key);
+        let db_name_cstr = cstr(db_name)?;
+        let hash_cstr = cstr(hash)?;
+        let key_cstr = cstr(key)?;
 
         unsafe {
             let exists = swss_try!(p_exists => SWSSSonicV2Connector_hexists(
@@ -246,8 +246,8 @@ impl SonicV2Connector {
 
     /// Get all field-value pairs from a hash.
     pub fn get_all(&self, db_name: &str, hash: &str, blocking: bool) -> Result<HashMap<String, CxxString>> {
-        let db_name_cstr = cstr(db_name);
-        let hash_cstr = cstr(hash);
+        let db_name_cstr = cstr(db_name)?;
+        let hash_cstr = cstr(hash)?;
 
         unsafe {
             let arr = swss_try!(p_arr => SWSSSonicV2Connector_get_all(
@@ -257,7 +257,7 @@ impl SonicV2Connector {
                 blocking as u8,
                 p_arr
             ))?;
-            Ok(take_field_value_array(arr))
+            take_field_value_array(arr)
         }
     }
 
@@ -268,9 +268,9 @@ impl SonicV2Connector {
         F: AsRef<[u8]>,
         V: Into<CxxString>,
     {
-        let db_name_cstr = cstr(db_name);
-        let key_cstr = cstr(key);
-        let (fv_array, _keep_alive) = make_field_value_array(values);
+        let db_name_cstr = cstr(db_name)?;
+        let key_cstr = cstr(key)?;
+        let (fv_array, _keep_alive) = make_field_value_array(values)?;
 
         unsafe {
             swss_try!(SWSSSonicV2Connector_hmset(
@@ -284,10 +284,10 @@ impl SonicV2Connector {
 
     /// Set a single field value in a hash.
     pub fn set(&self, db_name: &str, hash: &str, key: &str, value: &str, blocking: bool) -> Result<i64> {
-        let db_name_cstr = cstr(db_name);
-        let hash_cstr = cstr(hash);
-        let key_cstr = cstr(key);
-        let value_cstr = cstr(value);
+        let db_name_cstr = cstr(db_name)?;
+        let hash_cstr = cstr(hash)?;
+        let key_cstr = cstr(key)?;
+        let value_cstr = cstr(value)?;
 
         unsafe {
             let result = swss_try!(p_result => SWSSSonicV2Connector_set(
@@ -305,8 +305,8 @@ impl SonicV2Connector {
 
     /// Delete a key.
     pub fn del(&self, db_name: &str, key: &str, blocking: bool) -> Result<i64> {
-        let db_name_cstr = cstr(db_name);
-        let key_cstr = cstr(key);
+        let db_name_cstr = cstr(db_name)?;
+        let key_cstr = cstr(key)?;
 
         unsafe {
             let result = swss_try!(p_result => SWSSSonicV2Connector_del(
@@ -322,8 +322,8 @@ impl SonicV2Connector {
 
     /// Delete all keys matching a pattern.
     pub fn delete_all_by_pattern(&self, db_name: &str, pattern: &str) -> Result<()> {
-        let db_name_cstr = cstr(db_name);
-        let pattern_cstr = cstr(pattern);
+        let db_name_cstr = cstr(db_name)?;
+        let pattern_cstr = cstr(pattern)?;
 
         unsafe {
             swss_try!(SWSSSonicV2Connector_delete_all_by_pattern(

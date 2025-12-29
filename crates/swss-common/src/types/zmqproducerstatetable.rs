@@ -11,7 +11,7 @@ pub struct ZmqProducerStateTable {
 
 impl ZmqProducerStateTable {
     pub fn new(db: DbConnector, table_name: &str, zmqc: ZmqClient, db_persistence: bool) -> Result<Self> {
-        let table_name = cstr(table_name);
+        let table_name = cstr(table_name)?;
         let db_persistence = db_persistence as u8;
         let ptr = unsafe {
             swss_try!(p_zpst =>
@@ -31,13 +31,13 @@ impl ZmqProducerStateTable {
         F: AsRef<[u8]>,
         V: Into<CxxString>,
     {
-        let key = cstr(key);
-        let (arr, _k) = make_field_value_array(fvs);
+        let key = cstr(key)?;
+        let (arr, _k) = make_field_value_array(fvs)?;
         unsafe { swss_try!(SWSSZmqProducerStateTable_set(self.ptr, key.as_ptr(), arr)) }
     }
 
     pub fn del(&self, key: &str) -> Result<()> {
-        let key = cstr(key);
+        let key = cstr(key)?;
         unsafe { swss_try!(SWSSZmqProducerStateTable_del(self.ptr, key.as_ptr())) }
     }
 
