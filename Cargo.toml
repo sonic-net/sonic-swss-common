@@ -3,6 +3,8 @@ resolver = '2'
 members = [
     "crates/swss-common",
     "crates/swss-common-testing",
+    "crates/sonicdb",
+    "crates/sonicdb-derive",
 ]
 exclude = []
 
@@ -48,6 +50,13 @@ getset = "0.1"
 lazy_static = "1.4"
 serial_test = "3.0"
 
+# procedure macro
+syn = "2.0"         # For parsing Rust code
+quote = "1.0"       # For generating Rust code
+proc-macro2 = "1.0" # For working with procedural macros
+
 # Internal dependencies
 swss-common = { version = "0.1.0", path = "crates/swss-common" }
 swss-common-testing = { version = "0.1.0", path = "crates/swss-common-testing" }
+sonicdb = { version = "0.1.0", path = "crates/sonicdb" }
+sonicdb-derive = { version = "0.1.0", path = "crates/sonicdb-derive" }
