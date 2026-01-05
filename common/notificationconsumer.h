@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 #include <queue>
+#include <unordered_map>
+#include <list>
 
 #include <hiredis/hiredis.h>
 
@@ -17,6 +19,54 @@
 namespace swss {
 
 static constexpr size_t DEFAULT_NC_POP_BATCH_SIZE = 2048;
+
+template <typename T>
+class Queue
+{
+private:
+    std::list<T> dq;
+    std::unordered_map<T, typename std::list<T>::iterator> map;
+
+public:
+    void push(const T& value)
+    {
+        auto it = map.find(value);
+        if (it != map.end())
+            dq.erase(it->second);
+        dq.push_back(value);
+        map[value] = --dq.end();
+    }
+
+    void pop()
+    {
+        if (dq.empty())
+            return;
+        map.erase(dq.front());
+        dq.pop_front();
+    }
+
+    T front() const
+    {
+        if (dq.empty())
+            throw std::runtime_error("Queue is empty");
+        return dq.front();
+    }
+
+    size_t size() const {
+        return dq.size();
+    }
+
+    void swap(Queue& other)
+    {
+        std::swap(dq, other.dq);
+        std::swap(map, other.map);
+    }
+
+    bool empty() const
+    {
+        return dq.empty();
+    }
+};
 
 class NotificationConsumer : public Selectable
 {
@@ -55,7 +105,7 @@ private:
     swss::DBConnector *m_db;
     swss::DBConnector *m_subscribe;
     std::string m_channel;
-    std::queue<std::string> m_queue;
+    Queue<std::string> m_queue;
 };
 
 }
