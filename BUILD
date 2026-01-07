@@ -53,6 +53,9 @@ cc_library(
     #     "@swig//:swig",
     # ],
     visibility = ["//visibility:public"],
+    # Force all symbols to be included when linking into shared library
+    # This is required for the consolidated .so to export all symbols needed by SWIG bindings
+    alwayslink = True,
 )
 
 cc_library(
@@ -64,4 +67,54 @@ cc_library(
     include_prefix = "swss",
     strip_include_prefix = "common",
     deps = [":common"],
+)
+
+
+# Consolidated shared library for cgo to avoid argument list too long
+# The :common library has alwayslink=True to ensure all symbols are exported
+cc_binary(
+    name = "libswsscommon_consolidated.so",
+    srcs = [
+        # Include static libraries directly to force static linking and bypass linker scripts
+        "@@rules_distroless++apt+bookworm_libbsd-dev-amd64_0.11.7-2//:usr/lib/x86_64-linux-gnu/libbsd.a",
+        "@@rules_distroless++apt+bookworm_libmd-dev-amd64_1.0.4-2//:usr/lib/x86_64-linux-gnu/libmd.a",
+    ],
+    linkshared = True,
+    linkopts = [
+        "-static-libstdc++",
+        "-static-libgcc",
+        # Allow undefined symbols from external runtime deps (hiredis, zmq, etc.)
+        # These are resolved at runtime when the .so is loaded
+        "-Wl,--allow-shlib-undefined",
+        "-Wl,--undefined-version",
+        # Exclude libbsd from dynamic linking - we use static .a files above
+        "-Wl,--exclude-libs,libbsd.a",
+        "-Wl,--exclude-libs,libmd.a",
+    ],
+    deps = [":common"],
+)
+
+# Alias for compatibility with existing references
+alias(
+    name = "swsscommon_base",
+    actual = ":common",
+)
+
+# Filegroups for swig bindings and other assets
+filegroup(
+    name = "all_hdrs",
+    srcs = glob([
+        "common/*.h",
+        "common/*.hpp",
+    ], allow_empty = True),
+)
+
+filegroup(
+    name = "swig_template",
+    srcs = ["//pyext:swsscommon.i"],
+)
+
+filegroup(
+    name = "all_luas",
+    srcs = glob(["common/*.lua"]),
 )

@@ -3,6 +3,8 @@ load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_shared_library")
 load("@sonic-build-infra//swig:gen.bzl", "swig_gen")
 load(":py_native_library.bzl", "py_native_library")
 
+exports_files(["swsscommon.i"])
+
 swig_gen(
     name = "swsscommon_pyy",
     interface = "swsscommon.i",
