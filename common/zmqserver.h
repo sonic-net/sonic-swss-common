@@ -30,9 +30,12 @@ public:
     /* The default value of pop batch size is 128 */
     static constexpr int DEFAULT_POP_BATCH_SIZE = 128;
 
+    // If oneToOneSync is set to non-zero, it will enable one-to-one sync with
+    // the client. It will use ZMQ_REQ and ZMQ_REP socket type. There can only
+    // be one client and one server for a ZMQ socket.
     ZmqServer(const std::string& endpoint);
     ZmqServer(const std::string& endpoint, const std::string& vrf);
-    ZmqServer(const std::string& endpoint, const std::string& vrf, bool lazyBind);
+    ZmqServer(const std::string& endpoint, const std::string& vrf, bool lazyBind, bool oneToOneSync = false);
     ~ZmqServer();
 
     void registerMessageHandler(
@@ -40,12 +43,14 @@ public:
                                 const std::string tableName,
                                 ZmqMessageHandler* handler);
 
+    // This method should only be used in one-to-one sync mode with the client.
     void sendMsg(const std::string& dbName, const std::string& tableName,
         const std::vector<swss::KeyOpFieldsValuesTuple>& values);
 
     void bind();
 
 private:
+
     void handleReceivedData(const char* buffer, const size_t size);
 
     void startMqPollThread();
@@ -67,6 +72,10 @@ private:
     void* m_context;
 
     void* m_socket;
+
+    bool m_oneToOneSync;
+
+    bool m_allowZmqPoll;
 
     std::map<std::string, std::map<std::string, ZmqMessageHandler*>> m_HandlerMap;
 };
