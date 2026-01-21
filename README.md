@@ -111,7 +111,6 @@ For example:
 >
 >       Signed-off-by: user@dev.null
 
-
 * Each developer should fork this repository and [add the team as a Contributor](https://help.github.com/articles/adding-collaborators-to-a-personal-repository)
 * Push your changes to your private fork and do "pull-request" to this repository
 * Use a pull request to do code review
