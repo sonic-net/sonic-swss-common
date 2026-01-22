@@ -1,6 +1,7 @@
     #ifndef __DBCONNECTOR__
 #define __DBCONNECTOR__
 
+#include <iterator>
 #include <string>
 #include <vector>
 #include <unordered_map>
