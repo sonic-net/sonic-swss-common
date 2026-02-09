@@ -10,6 +10,8 @@ swig_lib_deb(
     strip_prefix = "usr/share/swig4.0",
 )
 
+exports_files(["swsscommon.i"])
+
 swig_gen(
     name = "swsscommon_pyy",
     interface = "swsscommon.i",
