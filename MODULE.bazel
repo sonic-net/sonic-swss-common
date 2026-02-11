@@ -49,7 +49,11 @@ apt.sources_list(
 
 apt.install(
     dependency_set = "bookworm",
-    target_release = "bookworm",
+    suites = [
+      "bookworm",
+      "bookworm-security",
+      "bookworm-updates",
+    ],
     packages = [
         "nlohmann-json3-dev",
         "libhiredis-dev",

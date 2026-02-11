@@ -1,0 +1,19 @@
+cc_library(
+  name = "sonicdbcli",
+  srcs = ["sonic-db-cli.cpp"],
+  hdrs = ["sonic-db-cli.h"],
+  deps = ["//:libswsscommon"],
+  # TODO BL: flags
+  # sonic_db_cli_sonic_db_cli_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON)
+  # sonic_db_cli_sonic_db_cli_CPPFLAGS = $(DBGFLAGS) $(AM_CPPFLAGS) $(CFLAGS_COMMON)
+)
+
+cc_binary(
+  name = "sonic-db-cli",
+  srcs = ["main.cpp"],
+  deps = [":sonicdbcli"],
+  visibility = ["//visibility:public"],
+  # TODO BL: flags
+  # sonic_db_cli_sonic_db_cli_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON)
+  # sonic_db_cli_sonic_db_cli_CPPFLAGS = $(DBGFLAGS) $(AM_CPPFLAGS) $(CFLAGS_COMMON)
+)
