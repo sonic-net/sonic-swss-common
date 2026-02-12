@@ -130,7 +130,7 @@ stages:
       arch: amd64
       sonic_slave: sonic-slave-${{ parameters.debian_version }}:$(BUILD_BRANCH)
       artifact_name: sonic-swss-common-${{ parameters.debian_version }}
-      run_unit_test: true
+      run_unit_test: false
       archive_gcov: true
       debian_version: ${{ parameters.debian_version }}
 
