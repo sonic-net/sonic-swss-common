@@ -1,4 +1,5 @@
 load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
+load("//:always_link_transition.bzl", "alwayslink_cc_binary")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -86,6 +87,8 @@ cc_library(
     visibility = ["//visibility:public"],
     # Force all symbols to be included when linking into shared library
     # This is required for the consolidated .so to export all symbols needed by SWIG bindings
+    # However, some builds like `sonic-swss` will refuse to link if they are always linked,
+    # because symbols in `libcommon.a` will conflict with test mocks. Hence, the select()
     alwayslink = select({
       ":alwayslink_true": True,
       ":alwayslink_false": False,
@@ -103,11 +106,10 @@ cc_library(
     deps = [":common"],
 )
 
-
 # Consolidated shared library for cgo to avoid argument list too long
 # The :common library has alwayslink=True to ensure all symbols are exported
 cc_binary(
-    name = "libswsscommon_consolidated.so",
+    name = "libswsscommon_consolidated_base",
     srcs = [
         # Include static libraries directly to force static linking and bypass linker scripts
         "@@rules_distroless++apt+bookworm_libbsd-dev-amd64_0.11.7-2//:usr/lib/x86_64-linux-gnu/libbsd.a",
@@ -127,6 +129,13 @@ cc_binary(
     ],
     deps = [":common"],
 )
+
+# If we're building the consolidated binary, we always want to link it.
+alwayslink_cc_binary(
+  name = "libswsscommon_consolidated.so",
+  binary = "libswsscommon_consolidated_base",
+)
+
 
 # Alias for compatibility with existing references
 alias(
