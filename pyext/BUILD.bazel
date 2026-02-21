@@ -1,7 +1,7 @@
 load("@rules_pkg//:pkg.bzl", "pkg_deb", "pkg_tar")
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_shared_library")
-load("@sonic-build-infra//swig:defs.bzl", "swig_gen", "swig_lib_deb")
-load("@sonic-build-infra//python:py_native_library.bzl", "py_native_library")
+load("@sonic_build_infra//swig:defs.bzl", "swig_gen", "swig_lib_deb")
+load("@sonic_build_infra//python:py_native_library.bzl", "py_native_library")
 
 # Extract SWIG library files from apt package for hermetic builds
 swig_lib_deb(

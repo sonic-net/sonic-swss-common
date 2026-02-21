@@ -13,14 +13,14 @@ local_path_override(
     path = "../rules_distroless"
 )
 
-bazel_dep(name = "sonic-build-infra", version = "0.0.0")
+bazel_dep(name = "sonic-build-infra", version = "0.0.0", repo_name = "sonic_build_infra")
 local_path_override(
     module_name = "sonic-build-infra",
     path = "../sonic-build-infra"
 )
 
 
-register_toolchains("@sonic-build-infra//toolchains/gcc:host_gcc_toolchain")
+register_toolchains("@sonic_build_infra//toolchains/gcc:host_gcc_toolchain")
 
 
 

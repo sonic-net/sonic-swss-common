@@ -161,3 +161,5 @@ filegroup(
     name = "all_luas",
     srcs = glob(["common/*.lua"]),
 )
+
+# TODO(bazel-ready): CFLAGS_COMMON is not respected yet in many of these targets.
