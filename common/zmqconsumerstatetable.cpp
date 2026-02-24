@@ -51,23 +51,21 @@ ZmqConsumerStateTable::ZmqConsumerStateTable(DBConnector *db, const std::string 
 
 void ZmqConsumerStateTable::handleReceivedData(const std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> &kcos)
 {
-    for (auto kco : kcos)
+    if (m_asyncDBUpdater != nullptr)
     {
-        std::shared_ptr<KeyOpFieldsValuesTuple> clone = nullptr;
-        if (m_asyncDBUpdater != nullptr)
+        for (auto kco : kcos)
         {
+            std::shared_ptr<KeyOpFieldsValuesTuple> clone = nullptr;
             // clone before put to received queue, because received data may change by consumer.
             clone = std::make_shared<KeyOpFieldsValuesTuple>(*kco);
-        }
-
-        {
-            std::lock_guard<std::mutex> lock(m_receivedQueueMutex);
-            m_receivedOperationQueue.push(kco);
-        }
-
-        if (m_asyncDBUpdater != nullptr)
-        {
             m_asyncDBUpdater->update(clone);
+        }
+    }
+    {
+        std::lock_guard<std::mutex> lock(m_receivedQueueMutex);
+        for (auto kco : kcos)
+        {
+            m_receivedOperationQueue.push(kco);
         }
     }
     m_selectableEvent.notify(); // will release epoll
