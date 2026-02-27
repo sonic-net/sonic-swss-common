@@ -1,0 +1,94 @@
+module(name = "sonic-swss-common")
+
+bazel_dep(name = "googletest", version = "1.11.0", repo_name = "com_google_googletest")
+bazel_dep(name = "glog", version = "0.5.0", repo_name = "com_github_google_glog")
+bazel_dep(name = "rules_python", version = "1.7.0")
+bazel_dep(name = "rules_cc", version = "0.2.8")
+bazel_dep(name = "rules_distroless", version = "0.0.0")
+bazel_dep(name = "rules_pkg", version = "1.1.0")
+bazel_dep(name = "bazel_skylib", version = "1.8.2")
+
+local_path_override(
+    module_name = "rules_distroless",
+    path = "../rules_distroless"
+)
+
+bazel_dep(name = "sonic-build-infra", version = "0.0.0", repo_name = "sonic_build_infra")
+local_path_override(
+    module_name = "sonic-build-infra",
+    path = "../sonic-build-infra"
+)
+
+
+register_toolchains("@sonic_build_infra//toolchains/gcc:host_gcc_toolchain")
+
+
+
+apt = use_extension("@rules_distroless//apt:extensions.bzl", "apt")
+
+apt.sources_list(
+    architectures = ["amd64"],
+    components = ["main"],
+    suites = ["bookworm", "bookworm-updates"],
+    uris = ["https://snapshot.debian.org/archive/debian/20251001T023456Z"],
+)
+
+apt.sources_list(
+    architectures = ["amd64"],
+    components = ["main"],
+    suites = ["bookworm-security"],
+    uris = ["https://snapshot.debian.org/archive/debian-security/20251001T023456Z"],
+)
+
+
+
+# sudo apt-get install -y
+# make libtool m4 autoconf dh-exec debhelper cmake pkg-config
+# nlohmann-json3-dev libhiredis-dev libnl-3-dev libnl-genl-3-dev
+# libnl-route-3-dev libnl-nf-3-dev swig3.0 libpython2.7-dev libboost-dev
+# libboost-serialization-dev uuid-dev libzmq3-dev
+
+apt.install(
+    dependency_set = "bookworm",
+    suites = [
+      "bookworm",
+      "bookworm-security",
+      "bookworm-updates",
+    ],
+    packages = [
+        "nlohmann-json3-dev",
+        "libhiredis-dev",
+        "libnl-3-dev",
+        "libnl-genl-3-dev",
+        "libnl-route-3-dev",
+        "libnl-nf-3-dev",
+        "libboost-dev",
+        "libboost-serialization-dev",
+        "uuid-dev",
+        "libzmq3-dev",
+        "libyang2-dev",
+        "swig",
+        "python3-dev"
+
+        # These seem to be unused
+        # "swig3.0",
+        # "libpython2.7-dev",
+        # "libgtest-dev",
+        # "libgmock-dev",
+    ]
+)
+
+apt.lock(into = ":packages.lock")
+
+use_repo(apt, "bookworm")
+
+# bazel_dep(name = "googletest", version = "1.11.0", repo_name = "com_google_googletest")
+# bazel_dep(name = "glog", version = "0.5.0", repo_name = "com_github_google_glog")
+# bazel_dep(name = "nlohmann_json", version = "3.12.0")
+# bazel_dep(name = "boost.algorithm", version = "1.87.0")
+# bazel_dep(name = "boost.serialization", version = "1.87.0")
+# bazel_dep(name = "libuuid", version = "2.39.3.bcr.1")
+# bazel_dep(name = "libzmq", version = "4.3.5.bcr.3")
+# bazel_dep(name = "swig", version = "4.3.0")
+# bazel_dep(name = "abseil-cpp", version = "20210324.2")
+# bazel_dep(name = "gflags", version = "2.2.2")
