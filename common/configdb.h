@@ -65,6 +65,8 @@ func NewConfigDBConnector(a ...interface{}) *ConfigDBConnector {
             if namespace is None:
                 namespace = ''
             super(ConfigDBConnector, self).__init__(use_unix_socket_path = use_unix_socket_path, namespace = namespace)
+            # Initialize pubsub lazily to avoid accessing unconnected database
+            self.pubsub = None
 
             # Trick: to achieve static/instance method "overload", we must use initize the function in ctor
             # ref: https://stackoverflow.com/a/28766809/2514803
@@ -97,9 +99,6 @@ func NewConfigDBConnector(a ...interface{}) *ConfigDBConnector {
         ## Note: callback is difficult to implement by SWIG C++, so keep in python
         def listen(self, init_data_handler=None):
             ## Start listen Redis keyspace event. Pass a callback function to `init` to handle initial table data.
-            self.pubsub = self.get_redis_client(self.db_name).pubsub()
-            self.pubsub.psubscribe("__keyspace@{}__:*".format(self.get_dbid(self.db_name)))
-
             # Build a cache of data for all subscribed tables that will recieve the initial table data so we dont send duplicate event notifications
             init_data = {tbl: self.get_table(tbl) for tbl in self.handlers if init_data_handler or self.fire_init_data[tbl]}
 
@@ -208,7 +207,13 @@ func NewConfigDBConnector(a ...interface{}) *ConfigDBConnector {
                 handler = self.handlers[table]
                 handler(table, key, data)
 
+        def _ensure_pubsub(self):
+            if self.pubsub is None:
+                self.pubsub = self.get_redis_client(self.db_name).pubsub()
+
         def subscribe(self, table, handler, fire_init_data=False):
+            self._ensure_pubsub()
+            self.pubsub.psubscribe("__keyspace@{}__:{}*".format(self.get_dbid(self.db_name), table))
             self.handlers[table] = handler
             self.fire_init_data[table] = fire_init_data
 

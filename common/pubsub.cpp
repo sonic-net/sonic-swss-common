@@ -2,29 +2,34 @@
 #include "dbconnector.h"
 #include "logger.h"
 #include "redisreply.h"
+#include <iostream>
 
 using namespace std;
 using namespace swss;
 
 PubSub::PubSub(DBConnector *parent)
-    : m_parentConnector(parent)
+    : RedisSelect(parent, 0), m_parentConnector(parent)
 {
 }
 
 void PubSub::psubscribe(const std::string &pattern)
 {
-    if (m_subscribe)
+    RedisSelect::psubscribe(pattern);
+    if (p_subscribe_count == 0)
     {
-        m_select.removeSelectable(this);
+        m_select.addSelectable(this);
     }
-    RedisSelect::psubscribe(m_parentConnector, pattern);
-    m_select.addSelectable(this);
+    p_subscribe_count++;
 }
 
 void PubSub::punsubscribe(const std::string &pattern)
 {
     RedisSelect::punsubscribe(pattern);
-    m_select.removeSelectable(this);
+    p_subscribe_count--;
+    if (p_subscribe_count == 0)
+    {
+        m_select.removeSelectable(this);
+    }
 }
 
 uint64_t PubSub::readData()
