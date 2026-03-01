@@ -8,7 +8,7 @@ using namespace std;
 
 SWSSResult SWSSZmqClient_new(const char *endpoint, SWSSZmqClient *outClient) {
   SWSSTry(*outClient = reinterpret_cast<SWSSZmqClient>(
-              new swss::ZmqClient(std::string(endpoint), 0)));
+              new swss::ZmqClient(std::string(endpoint), std::string(""))));
 }
 
 SWSSResult SWSSZmqClient_free(SWSSZmqClient zmqc) {

@@ -33,9 +33,10 @@ public:
     // If oneToOneSync is set to non-zero, it will enable one-to-one sync with
     // the client. It will use ZMQ_REQ and ZMQ_REP socket type. There can only
     // be one client and one server for a ZMQ socket.
+    ZmqServer(const std::string& endpoint);
     ZmqServer(const std::string& endpoint, const std::string& vrf);
     ZmqServer(const std::string& endpoint, const std::string& vrf, bool lazyBind);
-    ZmqServer(const std::string& endpoint, bool oneToOneSync = false);
+    ZmqServer(const std::string& endpoint, const std::string& vrf, bool lazyBind, bool oneToOneSync);
     ~ZmqServer();
 
     void registerMessageHandler(

@@ -12,25 +12,39 @@ using namespace std;
 
 namespace swss {
 
+ZmqServer::ZmqServer(const std::string& endpoint)
+    : ZmqServer(endpoint, "", false, false)
+{
+}
+
 ZmqServer::ZmqServer(const std::string& endpoint, const std::string& vrf)
-    : ZmqServer(endpoint, vrf, false)
+    : ZmqServer(endpoint, vrf, false, false)
 {
 }
 
 ZmqServer::ZmqServer(const std::string& endpoint, const std::string& vrf,
                      bool lazyBind)
+      : ZmqServer(endpoint, vrf, lazyBind, false)
+  {
+  }
+
+ZmqServer::ZmqServer(const std::string& endpoint, const std::string& vrf,
+                     bool lazyBind, bool oneToOneSync)
     : m_mqPollThread(nullptr),
       m_endpoint(endpoint),
       m_vrf(vrf),
       m_context(nullptr),
-      m_socket(nullptr) {
+      m_socket(nullptr),
+      m_oneToOneSync(oneToOneSync),
+      m_allowZmqPoll(true)
+ {
   if (!lazyBind) {
     bind();
   }
 
   SWSS_LOG_DEBUG("ZmqServer ctor endpoint: %s", endpoint.c_str());
 }
-
+/*
 ZmqServer::ZmqServer(const std::string& endpoint, bool oneToOneSync)
     : m_mqPollThread(nullptr),
       m_endpoint(endpoint),
@@ -41,7 +55,7 @@ ZmqServer::ZmqServer(const std::string& endpoint, bool oneToOneSync)
   bind();
   SWSS_LOG_DEBUG("ZmqServer ctor endpoint (for oneToOneSync enabled) : %s",
                  endpoint.c_str());
-}
+} */
 
 ZmqServer::~ZmqServer()
 {

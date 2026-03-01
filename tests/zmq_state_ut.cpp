@@ -208,7 +208,7 @@ static void consumerWorker(string tableName, string endpoint, bool dbPersistence
     cout << "Consumer thread started: " << tableName << endl;
     
     DBConnector db(TEST_DB, 0, true);
-    ZmqServer server(endpoint, 0);
+    ZmqServer server(endpoint);
     ZmqConsumerStateTable c(&db, tableName, server, 128, 0, dbPersistence);
     Select cs;
     cs.addSelectable(&c);
@@ -457,7 +457,7 @@ TEST(ZmqProducerStateTableDeleteAfterSend, test)
     std::string pullEndpoint = "tcp://*:1234";
     std::string testKey = "testKey";
 
-    ZmqServer server(pullEndpoint, 0);
+    ZmqServer server(pullEndpoint);
 
     DBConnector db(TEST_DB, 0, true);
     ZmqClient client(pushEndpoint, 0);
@@ -482,7 +482,7 @@ static bool zmq_done = false;
 static void zmqConsumerWorker(string tableName, string endpoint) {
   cout << "Consumer thread started: " << tableName << endl;
   DBConnector db(TEST_DB, 0, true);
-  ZmqServer server(endpoint, true);
+  ZmqServer server(endpoint, "", false, true);
   ZmqConsumerStateTable c(&db, tableName, server, 128, 0, false);
   Select cs;
   cs.addSelectable(&c);
@@ -569,7 +569,7 @@ TEST(ZmqOneToOneSyncServerError, test) {
   std::string pullEndpoint = "tcp://*:1234";
 
   DBConnector db(TEST_DB, 0, true);
-  ZmqServer server(pullEndpoint, true);
+  ZmqServer server(pullEndpoint, "", false, true);
   ZmqConsumerStateTable c(&db, testTableName, server);
 
   std::vector<swss::KeyOpFieldsValuesTuple> values;
@@ -587,7 +587,7 @@ TEST(ZmqServerLazzyBind, test)
     std::string pushEndpoint = "tcp://localhost:1234";
     std::string pullEndpoint = "tcp://*:1234";
     DBConnector db(TEST_DB, 0, true);
-    ZmqClient client(pushEndpoint, 3000);
+    ZmqClient client(pushEndpoint, 0);
     ZmqProducerStateTable p(&db, testTableName, client, true);
     std::vector<KeyOpFieldsValuesTuple> kcos;
     auto testKey = "testkey";
@@ -597,7 +597,7 @@ TEST(ZmqServerLazzyBind, test)
 
     // initialize ZMQ server with lazzy bind
     DBConnector server_db(TEST_DB, 0, true);
-    ZmqServer server(pullEndpoint, "", true);
+    ZmqServer server(pullEndpoint, "", true, false);
     ZmqConsumerStateTable c(&db, testTableName, server, 128, 0, false);
     server.bind();
 
@@ -649,7 +649,7 @@ TEST_P(ZmqConsumerStateTablePopSize, test)
     thread *consumerThread = new thread([&]() {
         cout << "Consumer thread started" << endl;
         DBConnector db(TEST_DB, 0, true);
-        ZmqServer server(pullEndpoint, "", false);
+        ZmqServer server(pullEndpoint, "", false, false);
         Selectable* c = new ZmqConsumerStateTable(&db, testTableName, server, params.batchSize, 0, false);
         Select cs;
         cs.addSelectable(c);
