@@ -1,5 +1,6 @@
 load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
 load("//:always_link_transition.bzl", "alwayslink_cc_binary")
+load("//bazel:flags.bzl", "CXXFLAGS_COMMON", "DBGFLAGS")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -163,3 +164,17 @@ filegroup(
 )
 
 # TODO(bazel-ready): CFLAGS_COMMON is not respected yet in many of these targets.
+
+cc_binary(
+    name = "swssloglevel",
+    srcs = [
+        "common/loglevel.cpp",
+        "common/loglevel_util.cpp",
+        "common/loglevel.h",
+    ],
+    deps = ["libswsscommon"],
+    linkopts = [
+        "-Wl,-z,now",
+    ],
+    cxxopts = CXXFLAGS_COMMON,
+)

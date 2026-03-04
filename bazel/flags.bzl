@@ -55,7 +55,7 @@ CXXFLAGS_COMMON = CXXFLAGS_COMMON_MAKEFILE + CXXFLAGS_COMMON_BAZEL
 
 DBGFLAGS = select({
     "@sonic_build_infra//:debug_enabled": [
-        "-ggdb", "-DDEBUG", "-gdwarf-5",
+        "-ggdb", "-gdwarf-5",
     ],
-    "//conditions:default": ["-g", "-DNDEBUG"],
+    "//conditions:default": ["-g"],
 })
