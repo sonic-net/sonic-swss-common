@@ -1,4 +1,6 @@
 load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
+load("@rules_distroless//distroless:defs.bzl", "flatten")
+load("@tar.bzl", "mtree_mutate", "mtree_spec", "tar")
 load("//:always_link_transition.bzl", "alwayslink_cc_binary")
 load("//bazel:flags.bzl", "CXXFLAGS_COMMON", "DBGFLAGS")
 
@@ -177,4 +179,54 @@ cc_binary(
         "-Wl,-z,now",
     ],
     cxxopts = CXXFLAGS_COMMON,
+    linkstatic = True,
+)
+
+# libswsscommon deb-style distribution package
+# Matches debian/libswsscommon.install:
+#   usr/lib/*/lib*.so.*
+#   usr/share/swss/*.lua
+#   var/run/redis/sonic-db/database_config.json
+#   usr/bin/swssloglevel
+
+mtree_spec(
+    name = "dist_lua_mtree_base",
+    srcs = [":all_luas"],
+)
+
+mtree_mutate(
+    name = "dist_lua_mtree",
+    mtree = ":dist_lua_mtree_base",
+    strip_prefix = "common",
+    package_dir = "usr/share/swss",
+)
+
+tar(
+    name = "dist_lua",
+    srcs = [":all_luas"],
+    mtree = ":dist_lua_mtree",
+)
+
+# Loose files: shared library, config, and binaries
+tar(
+    name = "dist_loose",
+    srcs = [
+        ":libswsscommon_consolidated.so",
+        "common/database_config.json",
+        ":swssloglevel",
+    ],
+    mtree = [
+        "usr/lib/x86_64-linux-gnu/libswsscommon.so type=file content=$(location :libswsscommon_consolidated.so)",
+        "var/run/redis/sonic-db/database_config.json type=file content=$(location common/database_config.json)",
+        "usr/bin/swssloglevel type=file mode=0755 content=$(location :swssloglevel)",
+    ],
+)
+
+flatten(
+    name = "libswsscommon_pkg",
+    tars = [
+        ":dist_lua",
+        ":dist_loose",
+    ],
+    visibility = ["//visibility:public"],
 )
