@@ -24,10 +24,13 @@ local_path_override(
     path = "../sonic-build-infra"
 )
 
+bazel_dep(name = "libnl3", version = "3.7.0")
+local_path_override(
+    module_name = "libnl3",
+    path = "../sonic-buildimage/src/libnl3",
+)
 
 register_toolchains("@sonic_build_infra//toolchains/gcc:host_gcc_toolchain")
-
-
 
 apt = use_extension("@rules_distroless//apt:extensions.bzl", "apt")
 
@@ -49,9 +52,9 @@ apt.sources_list(
 
 # sudo apt-get install -y
 # make libtool m4 autoconf dh-exec debhelper cmake pkg-config
-# nlohmann-json3-dev libhiredis-dev libnl-3-dev libnl-genl-3-dev
-# libnl-route-3-dev libnl-nf-3-dev swig3.0 libpython2.7-dev libboost-dev
+# nlohmann-json3-dev libhiredis-dev swig3.0 libpython2.7-dev libboost-dev
 # libboost-serialization-dev uuid-dev libzmq3-dev
+# libnl-3-dev libnl-genl-3-dev libnl-route-3-dev libnl-nf-3-dev -> @libnl3 module
 
 apt.install(
     dependency_set = "bookworm",
@@ -63,10 +66,6 @@ apt.install(
     packages = [
         "nlohmann-json3-dev",
         "libhiredis-dev",
-        "libnl-3-dev",
-        "libnl-genl-3-dev",
-        "libnl-route-3-dev",
-        "libnl-nf-3-dev",
         "libboost-dev",
         "libboost-serialization-dev",
         "uuid-dev",

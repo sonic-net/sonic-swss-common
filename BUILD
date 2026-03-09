@@ -16,9 +16,9 @@ swss_common_hdrs = glob([
 swss_common_deps = [
     "@bookworm//libhiredis-dev:libhiredis",
     "@bookworm//nlohmann-json3-dev:nlohmann-json3",
-    "@bookworm//libnl-3-dev:libnl-3",
-    "@bookworm//libnl-route-3-dev:libnl-route-3",
-    "@bookworm//libnl-nf-3-dev:libnl-nf-3",
+    "@libnl3//:libnl_3",
+    "@libnl3//:libnl_route_3",
+    "@libnl3//:libnl_nf_3",
     "@bookworm//libyang2-dev:libyang2",
     "@bookworm//libzmq3-dev:libzmq3",
     "@bookworm//uuid-dev:uuid",
