@@ -23,6 +23,15 @@ bool RestartWaiter::waitAdvancedBootDone(
     return isAdvancedBootInProgress(stateDb) ? doWait(stateDb, maxWaitSec) : true;
 }
 
+bool RestartWaiter::waitWarmBootStarted(
+    unsigned int maxWaitSec,
+    unsigned int dbTimeout,
+    bool isTcpConn)
+{
+    DBConnector stateDb(STATE_DB_NAME, dbTimeout, isTcpConn);
+    return doWait(stateDb, maxWaitSec, "true");
+}
+
 bool RestartWaiter::waitWarmBootDone(
     unsigned int maxWaitSec,
     unsigned int dbTimeout,
@@ -54,12 +63,15 @@ bool RestartWaiter::waitFastBootDone(
 }
 
 bool RestartWaiter::doWait(DBConnector &stateDb,
-                           unsigned int maxWaitSec)
+                           unsigned int maxWaitSec,
+                           const std::string &targetValue)
 {
-    RedisTableWaiter::ConditionFunc condFunc = [](const std::string &value) -> bool {
+    RedisTableWaiter::ConditionFunc condFunc = [&targetValue](const std::string &value) -> bool {
         std::string copy = value;
         boost::to_lower(copy);
-        return copy == "false";
+        std::string target = targetValue;
+        boost::to_lower(target); 
+        return copy == target;
     };
     return RedisTableWaiter::waitUntilFieldSet(stateDb,
                                                STATE_WARM_RESTART_ENABLE_TABLE_NAME,
