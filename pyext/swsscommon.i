@@ -265,6 +265,10 @@ T castSelectableObj(swss::Selectable *temp)
 %newobject swss::DBConnector::newConnector;
 
 %include "schema.h"
+%ignore swss::SonicDBConfig::DEFAULT_SONIC_DB_CONFIG_FILE;
+%ignore swss::SonicDBConfig::DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE;
+%ignore swss::RedisContext::DEFAULT_UNIXSOCKET;
+%ignore swss::DBConnector::DEFAULT_UNIXSOCKET;
 %include "dbconnector.h"
 #ifdef ENABLE_YANG_MODULES
 %include "defaultvalueprovider.h"
@@ -279,6 +283,7 @@ T castSelectableObj(swss::Selectable *temp)
 %include "redisreply.h"
 %include "redisselect.h"
 %include "redistran.h"
+%ignore swss::ConfigDBConnector_Native::INIT_INDICATOR;
 %include "configdb.h"
 %include "zmqserver.h"
 %include "zmqclient.h"
