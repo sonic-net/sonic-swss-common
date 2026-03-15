@@ -34,7 +34,7 @@ public:
 private:
     static bool doWait(swss::DBConnector &stateDb,
                        unsigned int maxWaitSec,
-                       const std::string &targetValue = "false");
+                       const std::string &bootEnabledTarget = "false");
 };
 
 }

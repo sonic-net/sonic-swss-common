@@ -29,6 +29,8 @@ bool RestartWaiter::waitWarmBootStarted(
     bool isTcpConn)
 {
     DBConnector stateDb(STATE_DB_NAME, dbTimeout, isTcpConn);
+    // bootEnabledTarget = "true" means wait for RESTART_ENABLE_FIELD to be set to "true",
+    // which indicates warm reboot has started.
     return doWait(stateDb, maxWaitSec, "true");
 }
 
@@ -64,12 +66,12 @@ bool RestartWaiter::waitFastBootDone(
 
 bool RestartWaiter::doWait(DBConnector &stateDb,
                            unsigned int maxWaitSec,
-                           const std::string &targetValue)
+                           const std::string &bootEnabledTarget)
 {
-    RedisTableWaiter::ConditionFunc condFunc = [&targetValue](const std::string &value) -> bool {
+    RedisTableWaiter::ConditionFunc condFunc = [&bootEnabledTarget](const std::string &value) -> bool {
         std::string copy = value;
         boost::to_lower(copy);
-        std::string target = targetValue;
+        std::string target = bootEnabledTarget;
         boost::to_lower(target); 
         return copy == target;
     };
