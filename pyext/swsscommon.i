@@ -53,6 +53,7 @@
 #include "status_code_util.h"
 #include "redis_table_waiter.h"
 #include "restart_waiter.h"
+#include "zmqclient.h"
 #include "zmqserver.h"
 #include "zmqconsumerstatetable.h"
 #include "zmqproducerstatetable.h"
