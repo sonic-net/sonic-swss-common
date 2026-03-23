@@ -127,12 +127,6 @@ void ZmqClient::connect()
         int keepalive_cnt = 3;   // number of failed probes before connection is considered dead
         zmq_setsockopt(m_socket, ZMQ_TCP_KEEPALIVE_CNT, &keepalive_cnt, sizeof(keepalive_cnt));
 
-        // ZMQ_IMMEDIATE: only queue messages to completed connections.
-        // Prevents the first message from being sent over a not-yet-reconnected
-        // peer, which would result in silent message loss.
-        int immediate = 1;
-        zmq_setsockopt(m_socket, ZMQ_IMMEDIATE, &immediate, sizeof(immediate));
-
     }
 
     if (!m_vrf.empty())
