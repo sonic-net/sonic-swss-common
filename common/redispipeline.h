@@ -32,18 +32,38 @@ public:
         lastHeartBeat = std::chrono::steady_clock::now();
     }
 
-    ~RedisPipeline() {
-        if (m_ownerTid == gettid())
+    ~RedisPipeline() noexcept {
+        try 
         {
-            // call flush from different thread will trigger race condition issue.
-            flush();
-        }
-        else
-        {
-            SWSS_LOG_NOTICE("RedisPipeline dtor is called from another thread, possibly due to exit(), Database: %s", getDbName().c_str());
-        }
+            std::string dbName = getDbName();
+            
+            if (m_ownerTid == gettid())
+            {
+                // call flush from different thread will trigger race condition issue.
+                try
+                {
+                    flush();
+                }
+                catch (const std::exception& e)
+                {
+                    SWSS_LOG_ERROR("Exception during RedisPipeline flush in destructor: %s, Database: %s", e.what(), dbName.c_str());
+                }
+            }
+            else
+            {
+                SWSS_LOG_NOTICE("RedisPipeline dtor is called from another thread, possibly due to exit(), Database: %s", dbName.c_str());
+            }
 
-        delete m_db;
+            delete m_db;
+        }
+        catch (const std::exception& e)
+        {
+            fprintf(stderr, "Exception during RedisPipeline destructor: %s\n", e.what());
+        }
+        catch (...)
+        {
+            fprintf(stderr, "Unknown exception during RedisPipeline destructor\n");
+        }
     }
 
     redisReply *push(const RedisCommand& command, int expectedType)

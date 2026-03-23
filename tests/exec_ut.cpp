@@ -9,7 +9,7 @@ TEST(EXEC, result)
 {
     string cmd1 = "cat /proc/cpuinfo  | grep processor | wc -l";
     string cmd2 = "nproc --all";
-    string cmd3 = "lscpu | egrep '^CPU\\(' | rev | cut -d' ' -f1 | rev";
+    string cmd3 = "lscpu | egrep '^CPU\\(s\\):' | rev | cut -d' ' -f1 | rev";
 
     string result1;
     int ret = exec(cmd1, result1);

@@ -1,0 +1,20 @@
+{
+    "INCLUDES" : [
+        {
+            "include" : "database_config.json"
+        },
+        {
+            "container_name" : "dpu0",
+            "include" : "../redis_multi_db_ut_config/database_config4.json"
+        },
+        {
+            "container_name" : "dpu1",
+            "include" : "../redis_multi_db_ut_config/non_existent.json"
+        },
+        {
+            "container_name" : "dpu2",
+            "include" : "../redis_multi_db_ut_config/database_config5.json"
+        }
+    ],
+    "VERSION" : "1.0"
+}

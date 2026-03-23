@@ -6,6 +6,10 @@ parameters:
 - name: log_artifact_name
   type: string
 
+- name: debian_version
+  type: string
+  default: bookworm
+
 - name: sonic_buildimage_ubuntu22_04
   type: string
   default: '$(BUILD_BRANCH)'
@@ -43,6 +47,21 @@ jobs:
     inputs:
       source: specific
       project: build
+      pipeline: Azure.sonic-buildimage.common_libs
+      runVersion: 'latestFromBranch'
+      runBranch: 'refs/heads/$(BUILD_BRANCH)'
+      path: $(Build.ArtifactStagingDirectory)/download
+      artifact: common-lib
+      patterns: |
+        target/debs/${{ parameters.debian_version }}/libyang-*_1.0*.deb
+        target/debs/${{ parameters.debian_version }}/libyang_1.0*.deb
+        target/debs/${{ parameters.debian_version }}/libyang-cpp_*.deb
+        target/debs/${{ parameters.debian_version }}/python3-yang_*.deb
+    displayName: "Download libyang from common lib"
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      source: specific
+      project: build
       pipeline: sonic-net.sonic-buildimage-ubuntu22.04
       artifact: sonic-buildimage.amd64.ubuntu22_04
       runVersion: 'latestFromBranch'
@@ -53,7 +72,7 @@ jobs:
   - script: |
       set -ex
       # install packages for vs test
-      sudo pip3 install pytest flaky exabgp docker redis
+      sudo pip3 install pytest flaky exabgp docker
 
       # install packages for kvm test
       sudo apt-get -o DPkg::Lock::Timeout=600 install -y libvirt-clients \
@@ -65,21 +84,24 @@ jobs:
           python3-libvirt \
           libzmq3-dev \
           libzmq5 \
-          libboost-serialization1.74.0 \
-          libboost1.74-dev \
-          libboost-dev \
           libhiredis0.14 \
-          libyang-dev \
+          libpcre3-dev \
           uuid-dev \
           net-tools \
           bridge-utils \
-          vlan
+          python3-redis
 
       sudo sonic-swss-common/.azure-pipelines/build_and_install_module.sh
 
+      # Install libyang packages from downloaded artifacts
+      sudo dpkg -i $(Build.ArtifactStagingDirectory)/download/target/debs/${{ parameters.debian_version }}/libyang-*_1.0*.deb \
+                   $(Build.ArtifactStagingDirectory)/download/target/debs/${{ parameters.debian_version }}/libyang_1.0*.deb \
+                   $(Build.ArtifactStagingDirectory)/download/target/debs/${{ parameters.debian_version }}/libyang-cpp_*.deb \
+                   $(Build.ArtifactStagingDirectory)/download/target/debs/${{ parameters.debian_version }}/python3-yang_*.deb
+
       sudo dpkg -i $(Build.ArtifactStagingDirectory)/download/libprotobuf*_amd64.deb $(Build.ArtifactStagingDirectory)/download/libprotobuf-lite*_amd64.deb $(Build.ArtifactStagingDirectory)/download/python3-protobuf*_amd64.deb 
       sudo dpkg -i $(Build.ArtifactStagingDirectory)/download/libdashapi*.deb
-      sudo dpkg -i --force-confask,confnew $(Build.ArtifactStagingDirectory)/download/libswsscommon_1.0.0_amd64.deb || apt-get install -f
+      sudo dpkg -i --force-confask,confnew $(Build.ArtifactStagingDirectory)/download/libswsscommon_1.0.0_amd64.deb || sudo apt-get install -y -f
       sudo dpkg -i $(Build.ArtifactStagingDirectory)/download/python3-swsscommon_1.0.0_amd64.deb
     displayName: "Install dependencies"
 

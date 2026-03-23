@@ -13,8 +13,8 @@ SWSSResult SWSSSonicDBConfig_initialize(const char *path) {
     SWSSTry(SonicDBConfig::initialize(path));
 }
 
-SWSSResult SWSSSonicDBConfig_initializeGlobalConfig(const char *path) {
-    SWSSTry(SonicDBConfig::initializeGlobalConfig(path));
+SWSSResult SWSSSonicDBConfig_initializeGlobalConfig(const char *path, uint8_t ignore_nonexistent) {
+    SWSSTry(SonicDBConfig::initializeGlobalConfig(path, ignore_nonexistent));
 }
 
 SWSSResult SWSSDBConnector_new_tcp(int32_t dbId, const char *hostname, uint16_t port,

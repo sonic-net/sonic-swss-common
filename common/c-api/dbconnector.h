@@ -12,7 +12,7 @@ extern "C" {
 
 SWSSResult SWSSSonicDBConfig_initialize(const char *path);
 
-SWSSResult SWSSSonicDBConfig_initializeGlobalConfig(const char *path);
+SWSSResult SWSSSonicDBConfig_initializeGlobalConfig(const char *path, uint8_t ignore_nonexistent);
 
 typedef struct SWSSDBConnectorOpaque *SWSSDBConnector;
 
