@@ -67,6 +67,14 @@ TEST(RestartWaiter, successFastReboot)
     t.join();
 }
 
+TEST(RestartWaiter, successWarmRebootStarted)
+{
+    set_reboot_status("false");
+    thread t(set_reboot_status, "true", 3);
+    EXPECT_TRUE(RestartWaiter::waitWarmBootStarted());
+    t.join();
+}
+
 TEST(RestartWaiter, timeout)
 {
     set_reboot_status("true");
@@ -77,6 +85,7 @@ TEST(RestartWaiter, timeout)
     EXPECT_FALSE(RestartWaiter::waitFastBootDone(1));
 
     set_reboot_status("false");
+    EXPECT_FALSE(RestartWaiter::waitWarmBootStarted(1));
 }
 
 TEST(RestartWaiter, successNoDelay)
@@ -87,6 +96,9 @@ TEST(RestartWaiter, successNoDelay)
 
     FastBootHelper helper;
     EXPECT_TRUE(RestartWaiter::waitFastBootDone());
+
+    set_reboot_status("true");
+    EXPECT_TRUE(RestartWaiter::waitWarmBootStarted());
 }
 
 TEST(RestartWaiter, successNoKey)
@@ -99,6 +111,14 @@ TEST(RestartWaiter, successNoKey)
 
     FastBootHelper helper;
     EXPECT_TRUE(RestartWaiter::waitFastBootDone());
+}
+
+TEST(RestartWaiter, waitWarmBootStartedNoKeyTimesOut)
+{
+    DBConnector db("STATE_DB", 0);
+    string key = string(STATE_WARM_RESTART_ENABLE_TABLE_NAME) + string("|system");
+    db.del({key});
+    EXPECT_FALSE(RestartWaiter::waitWarmBootStarted(1));
 }
 
 TEST(RestartWaiter, waitWarmButFastInProgress)
