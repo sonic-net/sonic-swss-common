@@ -153,9 +153,9 @@ redisReply *RedisReply::releaseChild(size_t index)
 
 void RedisReply::checkStatus(const char *status)
 {
-    if (strcmp(m_reply->str, status) != 0)
+    if (!m_reply->str || strcmp(m_reply->str, status) != 0)
     {
-        SWSS_LOG_ERROR("Redis reply %s != %s", m_reply->str, status);
+        SWSS_LOG_ERROR("Redis reply %s != %s", m_reply->str ? m_reply->str : "(null)", status);
 
         throw system_error(make_error_code(errc::io_error),
                            "Invalid return code");
