@@ -110,11 +110,13 @@ void ZmqClient::connect()
         int high_watermark = MQ_WATERMARK;
         zmq_setsockopt(m_socket, ZMQ_SNDHWM, &high_watermark, sizeof(high_watermark));
 
-        // Enable TCP keepalive to detect dead connections (e.g. DPU power-off).
-        // Without keepalive, a stale TCP connection persists indefinitely, and the
-        // first message sent after peer restart is silently lost on the dead connection.
-        // Keepalive probes will detect the dead peer within ~8s (5s idle + 3x1s probes),
-        // triggering ZMQ to reconnect before any new data is sent.
+        /*
+         * Enable TCP keepalive to detect dead connections (e.g. DPU power-off).
+         * Without keepalive, a stale TCP connection persists indefinitely, and the
+         * first message sent after peer restart is silently lost on the dead connection.
+         * Keepalive probes will detect the dead peer within ~10s (5s idle + 5x1s probes),
+         * triggering ZMQ to reconnect before any new data is sent.
+         */
         int keepalive = 1;
         zmq_setsockopt(m_socket, ZMQ_TCP_KEEPALIVE, &keepalive, sizeof(keepalive));
 
@@ -124,7 +126,7 @@ void ZmqClient::connect()
         int keepalive_intvl = 1; // seconds between probes
         zmq_setsockopt(m_socket, ZMQ_TCP_KEEPALIVE_INTVL, &keepalive_intvl, sizeof(keepalive_intvl));
 
-        int keepalive_cnt = 3;   // number of failed probes before connection is considered dead
+        int keepalive_cnt = 5;   // number of failed probes before connection is considered dead
         zmq_setsockopt(m_socket, ZMQ_TCP_KEEPALIVE_CNT, &keepalive_cnt, sizeof(keepalive_cnt));
 
     }

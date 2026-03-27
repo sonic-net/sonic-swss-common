@@ -90,8 +90,10 @@ void ZmqServer::bind()
         zmq_setsockopt(m_socket, ZMQ_RCVHWM, &high_watermark, sizeof(high_watermark));
     }
 
-    // Enable TCP keepalive on the server socket as defense-in-depth.
-    // This allows the server to detect and clean up stale client connections.
+    /*
+     * Enable TCP keepalive on the server socket as defense-in-depth.
+     * This allows the server to detect and clean up stale client connections.
+     */
     int keepalive = 1;
     zmq_setsockopt(m_socket, ZMQ_TCP_KEEPALIVE, &keepalive, sizeof(keepalive));
 
@@ -101,7 +103,7 @@ void ZmqServer::bind()
     int keepalive_intvl = 1;
     zmq_setsockopt(m_socket, ZMQ_TCP_KEEPALIVE_INTVL, &keepalive_intvl, sizeof(keepalive_intvl));
 
-    int keepalive_cnt = 3;
+    int keepalive_cnt = 5;
     zmq_setsockopt(m_socket, ZMQ_TCP_KEEPALIVE_CNT, &keepalive_cnt, sizeof(keepalive_cnt));
 
     if (!m_vrf.empty())
