@@ -31,6 +31,14 @@ local_path_override(
     path = "../sonic-buildimage/src/libnl3",
 )
 
+# TODO(bazel-ready): replace with new version of rules_m4 when this merges:
+#  https://github.com/jmillikin/rules_m4/pull/23
+git_override(
+    module_name = "rules_m4",
+    commit = "54e35332761523b8b8c7e7a17c8fd3733e53e3e7",
+    remote = "https://github.com/blorente/rules_m4",
+)
+
 register_toolchains("@sonic_build_infra//toolchains/gcc:host_gcc_toolchain")
 
 apt = use_extension("@rules_distroless//apt:extensions.bzl", "apt")
