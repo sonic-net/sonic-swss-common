@@ -230,3 +230,14 @@ flatten(
     ],
     visibility = ["//visibility:public"],
 )
+
+tar(
+    name = "sonic-db-cli_pkg",
+    srcs = [
+        "//sonic-db-cli:sonic-db-cli",
+    ],
+    mtree = [
+        "usr/bin/sonic-db-cli type=file mode=0755 content=$(location //sonic-db-cli:sonic-db-cli)",
+    ],
+    visibility = ["//visibility:public"],
+)
