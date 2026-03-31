@@ -57,10 +57,14 @@ go_library(
     clinkopts = ["-fuse-ld=bfd"],
     importpath = "github.com/sonic-net/sonic-swss-common/goext",
     visibility = ["//visibility:public"],
+    # TODO(bazel-ready): Restore when gnmi builds
+    tags = ["manual"],
 )
 
 go_test(
     name = "swsscommon_test",
     srcs = ["swsscommon_test.go"],
     embed = [":swsscommon"],
+    # TODO(bazel-ready): Restore when gnmi builds
+    tags = ["manual"],
 )
