@@ -30,7 +30,7 @@ local_path_override(
 bazel_dep(name = "libnl3", version = "3.7.0")
 local_path_override(
     module_name = "libnl3",
-    path = "../sonic-buildimage/src/libnl3",
+    path = "../libnl3",
 )
 
 # TODO(bazel-ready): replace with new version of rules_m4 when this merges:
