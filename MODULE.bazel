@@ -1,6 +1,7 @@
 # Keep bazel_compatibility in sync with sonic-buildimage's .bazelversion.
 module(
     name = "sonic-swss-common",
+    version = "0.0.0",
     bazel_compatibility = [">=8.5.1", "<=8.5.1"],
 )
 
@@ -22,16 +23,8 @@ git_override(
 )
 
 bazel_dep(name = "sonic-build-infra", version = "0.0.0", repo_name = "sonic_build_infra")
-local_path_override(
-    module_name = "sonic-build-infra",
-    path = "../sonic-build-infra"
-)
 
 bazel_dep(name = "libnl3", version = "3.7.0")
-local_path_override(
-    module_name = "libnl3",
-    path = "../libnl3",
-)
 
 # TODO(bazel-ready): replace with new version of rules_m4 when this merges:
 #  https://github.com/jmillikin/rules_m4/pull/23
@@ -58,8 +51,6 @@ apt.sources_list(
     suites = ["bookworm-security"],
     uris = ["https://snapshot.debian.org/archive/debian-security/20251001T023456Z"],
 )
-
-
 
 # sudo apt-get install -y
 # make libtool m4 autoconf dh-exec debhelper cmake pkg-config

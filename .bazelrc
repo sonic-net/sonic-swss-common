@@ -1,6 +1,9 @@
 common --check_direct_dependencies=off
 common --noincompatible_disallow_empty_glob
 
+# TODO(bazel-ready): This assumes this repo is a submodule of sonic-buildimage.
+common --registry=file://%workspace%/../../tools/bazel/registry
+
 # Custom registry for swig 4.1.0
 common --registry=https://raw.githubusercontent.com/thesayyn/bazel-central-registry/main/
 common --registry=https://bcr.bazel.build/
