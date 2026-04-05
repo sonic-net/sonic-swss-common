@@ -139,7 +139,6 @@ alwayslink_cc_binary(
   binary = "libswsscommon_consolidated_base",
 )
 
-
 # Alias for compatibility with existing references
 alias(
     name = "swsscommon_base",
