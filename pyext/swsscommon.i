@@ -267,7 +267,10 @@ T castSelectableObj(swss::Selectable *temp)
 %include "schema.h"
 // Fix SWIG-generated wrapper code for static constexpr const char* members.
 // SWIG generates `char *result` for const char* variables, causing a const
-// correctness error in C++. Use %naturalvar to wrap by value (std::string).
+// correctness error in C++.
+// - Python: %naturalvar wraps by value (std::string), preserving class attributes.
+// - Go: %naturalvar doesn't help, so use %extend/_get() + %ignore instead.
+#ifdef SWIGGO
 %extend swss::SonicDBConfig {
     static const char *DEFAULT_SONIC_DB_CONFIG_FILE_get() {
         return swss::SonicDBConfig::DEFAULT_SONIC_DB_CONFIG_FILE;
@@ -290,6 +293,12 @@ T castSelectableObj(swss::Selectable *temp)
     }
 }
 %ignore swss::DBConnector::DEFAULT_UNIXSOCKET;
+#else
+%naturalvar swss::SonicDBConfig::DEFAULT_SONIC_DB_CONFIG_FILE;
+%naturalvar swss::SonicDBConfig::DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE;
+%naturalvar swss::RedisContext::DEFAULT_UNIXSOCKET;
+%naturalvar swss::DBConnector::DEFAULT_UNIXSOCKET;
+#endif
 %include "dbconnector.h"
 #ifdef ENABLE_YANG_MODULES
 %include "defaultvalueprovider.h"
@@ -304,12 +313,16 @@ T castSelectableObj(swss::Selectable *temp)
 %include "redisreply.h"
 %include "redisselect.h"
 %include "redistran.h"
+#ifdef SWIGGO
 %extend swss::ConfigDBConnector_Native {
     static const char *INIT_INDICATOR_get() {
         return swss::ConfigDBConnector_Native::INIT_INDICATOR;
     }
 }
 %ignore swss::ConfigDBConnector_Native::INIT_INDICATOR;
+#else
+%naturalvar swss::ConfigDBConnector_Native::INIT_INDICATOR;
+#endif
 %include "configdb.h"
 %include "zmqserver.h"
 %include "zmqclient.h"
