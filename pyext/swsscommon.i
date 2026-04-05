@@ -265,11 +265,31 @@ T castSelectableObj(swss::Selectable *temp)
 %newobject swss::DBConnector::newConnector;
 
 %include "schema.h"
-// TODO(bazel-ignore): These were added for gnmi, we may need to restore them if they break things.
-// %ignore swss::SonicDBConfig::DEFAULT_SONIC_DB_CONFIG_FILE;
-// %ignore swss::SonicDBConfig::DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE;
-// %ignore swss::RedisContext::DEFAULT_UNIXSOCKET;
-// %ignore swss::DBConnector::DEFAULT_UNIXSOCKET;
+// Fix SWIG-generated wrapper code for static constexpr const char* members.
+// SWIG generates `char *result` for const char* variables, causing a const
+// correctness error in C++. Use %naturalvar to wrap by value (std::string).
+%extend swss::SonicDBConfig {
+    static const char *DEFAULT_SONIC_DB_CONFIG_FILE_get() {
+        return swss::SonicDBConfig::DEFAULT_SONIC_DB_CONFIG_FILE;
+    }
+    static const char *DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE_get() {
+        return swss::SonicDBConfig::DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE;
+    }
+}
+%ignore swss::SonicDBConfig::DEFAULT_SONIC_DB_CONFIG_FILE;
+%ignore swss::SonicDBConfig::DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE;
+%extend swss::RedisContext {
+    static const char *DEFAULT_UNIXSOCKET_get() {
+        return swss::RedisContext::DEFAULT_UNIXSOCKET;
+    }
+}
+%ignore swss::RedisContext::DEFAULT_UNIXSOCKET;
+%extend swss::DBConnector {
+    static const char *DEFAULT_UNIXSOCKET_get() {
+        return swss::DBConnector::DEFAULT_UNIXSOCKET;
+    }
+}
+%ignore swss::DBConnector::DEFAULT_UNIXSOCKET;
 %include "dbconnector.h"
 #ifdef ENABLE_YANG_MODULES
 %include "defaultvalueprovider.h"
@@ -284,8 +304,12 @@ T castSelectableObj(swss::Selectable *temp)
 %include "redisreply.h"
 %include "redisselect.h"
 %include "redistran.h"
-// TODO(bazel-ignore): These were added for gnmi, we may need to restore them if they break things.
-// %ignore swss::ConfigDBConnector_Native::INIT_INDICATOR;
+%extend swss::ConfigDBConnector_Native {
+    static const char *INIT_INDICATOR_get() {
+        return swss::ConfigDBConnector_Native::INIT_INDICATOR;
+    }
+}
+%ignore swss::ConfigDBConnector_Native::INIT_INDICATOR;
 %include "configdb.h"
 %include "zmqserver.h"
 %include "zmqclient.h"
