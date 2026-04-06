@@ -38,8 +38,8 @@ SWSSResult SWSSConsumerStateTable_pops(SWSSConsumerStateTable tbl,
     });
 }
 
-SWSSResult SWSSConsumerStateTable_getFd(SWSSConsumerStateTable tbl, int32_t *outFd) {
-    SWSSTry(*outFd = ((ConsumerStateTable *)tbl)->getFd());
+SWSSResult SWSSConsumerStateTable_getFd(SWSSConsumerStateTable tbl, uint32_t *outFd) {
+    SWSSTry(*outFd = numeric_cast<uint32_t>(((ConsumerStateTable *)tbl)->getFd()));
 }
 
 SWSSResult SWSSConsumerStateTable_readData(SWSSConsumerStateTable tbl, uint32_t timeout_ms,
