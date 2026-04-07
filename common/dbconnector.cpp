@@ -716,7 +716,8 @@ DBConnector::DBConnector(const string& dbName, unsigned int timeout_ms, bool isT
     }
     else if (SonicDBConfig::getDbSock(dbName, m_key).empty())
     {
-        SWSS_LOG_WARN("Unix socket path for DB %s is empty, falling back to TCP connection", dbName.c_str());
+        SWSS_LOG_WARN("Unix socket path for DB %s in context %s is empty, falling back to TCP connection",
+                      dbName.c_str(), m_key.toString().c_str());
         initContext(SonicDBConfig::getDbHostname(dbName, m_key).c_str(), SonicDBConfig::getDbPort(dbName, m_key), ptv);
     }
     else
