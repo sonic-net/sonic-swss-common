@@ -63,3 +63,15 @@ TEST(DBConnector, access_dpu_db_from_dpu)
     DBConnector db("DPU_APPL_DB", 0, true, key);
     TestDPUDatabase(db);
 }
+
+TEST(DBConnector, tcp_fallback_on_empty_unix_socket)
+{
+    // database_config5.json (dpu1) has remote-redis instance with an empty
+    // unix_socket_path. Passing isTcpConn=false should fall back to TCP.
+    SonicDBKey key;
+    key.containerName = "dpu1";
+    EXPECT_TRUE(SonicDBConfig::getDbSock("DPU_APPL_DB", key).empty());
+    DBConnector db("DPU_APPL_DB", 0, false, key);
+    EXPECT_EQ(db.getDbId(), SonicDBConfig::getDbId("DPU_APPL_DB", key));
+    TestDPUDatabase(db);
+}
