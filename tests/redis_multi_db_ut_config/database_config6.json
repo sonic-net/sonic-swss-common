@@ -1,0 +1,22 @@
+{
+    "INSTANCES": {
+        "redis":{
+            "hostname" : "127.0.0.1",
+            "port": 6379,
+            "unix_socket_path": "/var/run/redis/redis.sock"
+        },
+        "remote-redis":{
+            "hostname" : "127.0.0.1",
+            "port": 6379,
+            "unix_socket_path": ""
+        }
+    },
+    "DATABASES" : {
+        "DPU_TEST_DB" : {
+            "id" : 0,
+            "separator": ":",
+            "instance" : "redis"
+        }
+    },
+    "VERSION" : "1.0"
+}
