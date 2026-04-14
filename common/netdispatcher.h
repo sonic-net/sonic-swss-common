@@ -61,14 +61,18 @@ namespace swss
 
             NetMsg* getCallback(int nlmsg_type);
 
+            NetMsg* getRawCallback(int nlmsg_type);
+
         private:
 
             /** nl_msg_parse callback API */
             static void nlCallback(struct nl_object *obj, void *context);
 
+            void onNetlinkMessageRaw(struct nl_msg *msg);
+
             std::map<int, NetMsg*> m_handlers;
 
-            std::map<int, NetMsg * > m_rawhandlers;
+            std::map<int, NetMsg*> m_rawhandlers;
 
             /** Mutex protecting register, unregister and get callback methods. */
             std::mutex m_mutex;
