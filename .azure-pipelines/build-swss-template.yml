@@ -133,6 +133,7 @@ jobs:
   - script: |
       set -ex
       rm ../*.deb || true
+      sudo sed -i 's/SubscriberStateTable::SubscriberStateTable.*/SubscriberStateTable::SubscriberStateTable(DBConnector *db, const std::string \&tableName, int popBatchSize, int pri, bool update_only)/g' orchagent/p4orch/tests/fake_subscriberstatetable.cpp
       ./autogen.sh
       dpkg-buildpackage -us -uc -b -j$(nproc)
       mv ../*.deb $(Build.ArtifactStagingDirectory)
