@@ -6,7 +6,7 @@
 #include <vector>
 #include "table.h"
 
-#define MQ_RESPONSE_MAX_COUNT (16*1024*1024)
+#define MQ_RESPONSE_MAX_COUNT (32*1024*1024)
 #define MQ_SIZE 100
 #define MQ_MAX_RETRY 10
 #define MQ_POLL_TIMEOUT (1000)
