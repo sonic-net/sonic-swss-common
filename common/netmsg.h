@@ -1,7 +1,6 @@
 #pragma once
 
 #include <netlink/netlink.h>
-#include "logger.h"
 
 namespace swss
 {
@@ -11,10 +10,9 @@ namespace swss
             /* Called by NetDispatcher when netmsg matches filters */
             virtual void onMsg(int nlmsg_type, struct nl_object *obj) = 0;
 
-            /* Called by NetDispatcher when raw msg is send for matches filters */
-            virtual void onMsgRaw(struct nlmsghdr *hdr)
-            {
-                SWSS_LOG_WARN("onMsgRaw called on base NetMsg class for nlmsg_type %d - subclass should override this method", hdr->nlmsg_type);
-            }
+            /* Called by NetDispatcher when raw netlink msg matches filters.
+             * Default implementation logs at DEBUG level. Subclasses that
+             * register via registerRawMessageHandler should override this. */
+            virtual void onMsgRaw(struct nlmsghdr *hdr);
     };
 }
