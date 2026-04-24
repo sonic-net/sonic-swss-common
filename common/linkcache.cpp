@@ -41,6 +41,10 @@ LinkCache::LinkCache()
 
 LinkCache::~LinkCache()
 {
+    if (m_link_cache != NULL)
+    {
+        nl_cache_free(m_link_cache);
+    }
     if (m_nl_sock != NULL)
     {
         nl_close(m_nl_sock);
