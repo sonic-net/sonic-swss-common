@@ -1,5 +1,7 @@
 #include "gtest/gtest.h"
 #include "common/componentstats.h"
+#include "common/dbconnector.h"
+#include "common/table.h"
 
 #include <atomic>
 #include <chrono>
@@ -8,6 +10,32 @@
 #include <vector>
 
 using namespace swss;
+
+namespace
+{
+
+// Poll Redis up to timeoutMs waiting for the writer thread to flush.
+bool waitForFlush(Table& tbl,
+                  const std::string& key,
+                  const std::string& field,
+                  const std::string& expected,
+                  int timeoutMs = 5000)
+{
+    using namespace std::chrono;
+    auto deadline = steady_clock::now() + milliseconds(timeoutMs);
+    std::string value;
+    while (steady_clock::now() < deadline)
+    {
+        if (tbl.hget(key, field, value) && value == expected)
+        {
+            return true;
+        }
+        std::this_thread::sleep_for(milliseconds(50));
+    }
+    return false;
+}
+
+} // namespace
 
 // These tests focus on the in-process behavior (no Redis required).
 // The writer thread's DB connect attempts will fail and be retried silently;
@@ -119,4 +147,94 @@ TEST(ComponentStats, StopIsIdempotent)
     auto s = ComponentStats::create("UT_STOP");
     s->stop();
     s->stop();  // should not crash or hang
+}
+
+// --- Writer-thread / Redis integration tests ---------------------------------
+// These use the local Redis instance that the swss-common test harness brings
+// up (the same one used by redis_ut.cpp). They cover the writer-thread paths
+// that the in-memory tests above cannot reach.
+
+TEST(ComponentStats, WriterFlushesToRedis)
+{
+    auto s = ComponentStats::create("UT_FLUSH", "TEST_DB", 1);
+    s->increment("e1", "SET", 3);
+    s->increment("e1", "DEL", 1);
+    s->setValue("e1", "GAUGE", 42);
+
+    DBConnector db("TEST_DB", 0, true);
+    Table tbl(&db, "UT_FLUSH_STATS");
+
+    EXPECT_TRUE(waitForFlush(tbl, "e1", "SET", "3"));
+    EXPECT_TRUE(waitForFlush(tbl, "e1", "DEL", "1"));
+    EXPECT_TRUE(waitForFlush(tbl, "e1", "GAUGE", "42"));
+
+    // A second round of changes should be picked up by the dirty-tracking
+    // path on the next flush.
+    s->increment("e1", "SET", 7);
+    EXPECT_TRUE(waitForFlush(tbl, "e1", "SET", "10"));
+
+    s->stop();
+    tbl.del("e1");
+}
+
+TEST(ComponentStats, WriterSkipsUnchangedEntities)
+{
+    // Exercise the "no change since last flush" branch in writerThread.
+    auto s = ComponentStats::create("UT_NOCHANGE", "TEST_DB", 1);
+    s->increment("e", "X", 1);
+
+    DBConnector db("TEST_DB", 0, true);
+    Table tbl(&db, "UT_NOCHANGE_STATS");
+    ASSERT_TRUE(waitForFlush(tbl, "e", "X", "1"));
+
+    // Overwrite Redis directly; if the writer thread re-flushed an unchanged
+    // entity it would clobber our value back to "1".
+    std::vector<FieldValueTuple> sentinel = {{"X", "999"}};
+    tbl.set("e", sentinel);
+
+    // Wait for at least two flush intervals to give the writer thread a
+    // chance to re-flush. With dirty-tracking it must stay at "999".
+    std::this_thread::sleep_for(std::chrono::milliseconds(2500));
+
+    std::string value;
+    ASSERT_TRUE(tbl.hget("e", "X", value));
+    EXPECT_EQ("999", value);
+
+    s->stop();
+    tbl.del("e");
+}
+
+TEST(ComponentStats, DestructorStopsThread)
+{
+    // Let the shared_ptr go out of scope: the destructor must call stop()
+    // and join the writer thread cleanly.
+    {
+        auto s = ComponentStats::create("UT_DTOR", "TEST_DB", 1);
+        s->increment("e", "X", 1);
+    }
+    // If the destructor failed to join, the test process would hang or
+    // crash on later teardown; reaching this line is the assertion.
+    SUCCEED();
+}
+
+TEST(ComponentStats, ConnectRetryOnBadDb)
+{
+    // Use a database name that does not exist in the test config so the
+    // writer thread's DBConnector construction throws, exercising the
+    // catch + retry path.
+    auto s = ComponentStats::create("UT_BADDB", "DOES_NOT_EXIST_DB", 1);
+    s->increment("e", "X", 1);
+
+    // Give the writer thread time to attempt at least one connect.
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+    // In-memory state is still readable even though Redis is unreachable.
+    EXPECT_EQ(1U, s->get("e", "X"));
+
+    // stop() must wake the cv_wait inside the retry loop and return
+    // promptly without hanging.
+    auto start = std::chrono::steady_clock::now();
+    s->stop();
+    auto elapsed = std::chrono::steady_clock::now() - start;
+    EXPECT_LT(elapsed, std::chrono::seconds(2));
 }
