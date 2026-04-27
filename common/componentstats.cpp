@@ -44,17 +44,30 @@ std::shared_ptr<ComponentStats> ComponentStats::create(
     uint32_t intervalSec)
 {
     const std::string key = toUpper(componentName);
+    const uint32_t effectiveInterval = intervalSec == 0 ? 1 : intervalSec;
 
     std::lock_guard<std::mutex> lock(registryMutex());
     auto& slot = registry()[key];
     if (auto existing = slot.lock())
     {
+        // First call wins. Warn if a later caller passes different params
+        // so the inconsistency is at least visible in syslog.
+        if (existing->m_dbName != dbName ||
+            existing->m_intervalSec != effectiveInterval)
+        {
+            SWSS_LOG_WARN("ComponentStats[%s]: ignoring later create() with "
+                          "db=%s interval=%us; live instance uses db=%s "
+                          "interval=%us",
+                          key.c_str(),
+                          dbName.c_str(), effectiveInterval,
+                          existing->m_dbName.c_str(), existing->m_intervalSec);
+        }
         return existing;
     }
 
     // std::make_shared cannot access the private constructor; use new + wrap.
     std::shared_ptr<ComponentStats> inst(
-        new ComponentStats(key, dbName, intervalSec));
+        new ComponentStats(key, dbName, effectiveInterval));
     slot = inst;
     return inst;
 }
@@ -125,9 +138,12 @@ ComponentStats::getOrCreateCounter(EntityStats& e, const std::string& metric)
     auto it = e.metrics.find(metric);
     if (it == e.metrics.end())
     {
-        it = e.metrics.emplace(metric, std::make_unique<Counter>()).first;
+        // std::map::emplace constructs Counter in place; no move required.
+        it = e.metrics.emplace(std::piecewise_construct,
+                               std::forward_as_tuple(metric),
+                               std::forward_as_tuple()).first;
     }
-    return *it->second;
+    return it->second;
 }
 
 void ComponentStats::increment(const std::string& entity,
@@ -167,7 +183,7 @@ uint64_t ComponentStats::get(const std::string& entity, const std::string& metri
     if (eit == m_entities.end()) return 0;
     auto mit = eit->second.metrics.find(metric);
     if (mit == eit->second.metrics.end()) return 0;
-    return mit->second->value.load(std::memory_order_relaxed);
+    return mit->second.value.load(std::memory_order_relaxed);
 }
 
 ComponentStats::CounterSnapshot
@@ -179,7 +195,7 @@ ComponentStats::getAll(const std::string& entity)
     if (eit == m_entities.end()) return snap;
     for (const auto& kv : eit->second.metrics)
     {
-        snap[kv.first] = kv.second->value.load(std::memory_order_relaxed);
+        snap[kv.first] = kv.second.value.load(std::memory_order_relaxed);
     }
     return snap;
 }
@@ -224,6 +240,10 @@ void ComponentStats::writerThread()
             }
         }
 
+        // Defensive: the connect-retry loop above only exits via `break`
+        // (m_table set) or via m_running becoming false (in which case the
+        // m_running check at the top of this loop already broke out). This
+        // line therefore should not normally be reached.
         if (!m_table) continue;
 
         std::vector<std::string> keys;
@@ -254,7 +274,7 @@ void ComponentStats::writerThread()
                 {
                     row.emplace_back(
                         mkv.first,
-                        std::to_string(mkv.second->value.load(std::memory_order_relaxed)));
+                        std::to_string(mkv.second.value.load(std::memory_order_relaxed)));
                 }
                 keys.push_back(name);
                 values.push_back(std::move(row));
