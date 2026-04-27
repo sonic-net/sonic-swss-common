@@ -23,7 +23,10 @@ class Table;
  * where each field is a user-defined metric name (e.g. SET, DEL, GET, ERROR…).
  *
  * Design goals:
- *   - Lock-free hot path: increment() / setValue() use std::atomic operations.
+ *   - Lock-free counter update: once an entity/metric pair has been seen,
+ *     increment() / setValue() update the counter with std::atomic ops.
+ *     The first reference to a new entity or metric still takes m_mutex
+ *     to insert into the maps.
  *   - Deferred DB connection: the DBConnector is created inside the writer
  *     thread rather than the constructor, so early-startup callers (singleton
  *     initialization before Redis is ready) do not crash.
@@ -31,11 +34,16 @@ class Table;
  *     whose counters changed since the last flush.
  *   - Stable references: std::map is used instead of unordered_map so that
  *     references returned by getOrCreateEntity() remain valid after later
- *     inserts (unordered_map can rehash and invalidate them).
+ *     inserts (unordered_map can rehash and invalidate them). DO NOT change
+ *     m_entities to a container that can invalidate references on insert,
+ *     and do not add an erase API without revisiting the locking model.
  *   - Clean shutdown: the destructor uses condition_variable::notify_all() to
  *     wake the writer thread immediately instead of waiting up to interval.
  *
  * Thread safety: all public methods are safe to call from any thread.
+ *
+ * Component naming is ASCII-only and case-insensitive; "swss" and "SWSS"
+ * resolve to the same singleton with a Redis prefix of "SWSS_STATS".
  */
 class ComponentStats
 {
@@ -48,11 +56,14 @@ public:
      *
      * @param componentName  Used as the Redis key prefix, upper-cased.
      *                       For example, "swss" produces keys like
-     *                       "SWSS_STATS:<entity>".
+     *                       "SWSS_STATS:<entity>". ASCII only.
      * @param dbName         Redis logical DB name (default: "COUNTERS_DB").
-     * @param intervalSec    Writer thread flush period in seconds.
-     * @return A shared instance. Repeated calls with the same componentName
-     *         return the same underlying singleton.
+     * @param intervalSec    Writer thread flush period in seconds. A value
+     *                       of 0 is clamped to 1.
+     * @return A shared instance. The FIRST call for a given componentName
+     *         (case-insensitive) wins: dbName and intervalSec from later
+     *         calls are ignored, and a warning is logged if they differ
+     *         from the live instance's values.
      */
     static std::shared_ptr<ComponentStats> create(
         const std::string& componentName,
@@ -79,8 +90,10 @@ public:
     /// Snapshot all metrics for an entity. Returns empty map if unknown.
     CounterSnapshot getAll(const std::string& entity);
 
-    /// Globally enable / disable recording. Hot-path calls become no-ops when
-    /// disabled; the writer thread keeps running but has nothing to flush.
+    /// Globally enable / disable recording. While disabled, increment() and
+    /// setValue() become no-ops; existing in-memory counters are preserved
+    /// and the writer thread keeps running (it just has nothing new to
+    /// flush, so previously-flushed values stay in Redis as-is).
     /// Intended to be wired to a CONFIG_DB knob if runtime control is desired.
     void setEnabled(bool on);
     bool isEnabled() const;
@@ -103,8 +116,12 @@ private:
 
     struct EntityStats
     {
-        // Map of metric name -> counter. std::map keeps references stable.
-        std::map<std::string, std::unique_ptr<Counter>> metrics;
+        // Map of metric name -> counter. std::map keeps references and
+        // iterators stable across inserts, which lets the hot path keep a
+        // Counter& after releasing m_mutex. Counter is non-movable
+        // (std::atomic), but std::map::emplace constructs in place so we do
+        // not need an extra unique_ptr indirection.
+        std::map<std::string, Counter> metrics;
         // Incremented whenever any counter on this entity changes.
         std::atomic<uint64_t> version{0};
 
@@ -119,6 +136,9 @@ private:
 
     // Returns a stable reference. Safe to keep after the lock is released
     // because std::map does not invalidate element references on insert.
+    // INVARIANT: no code path may erase from m_entities or from
+    // EntityStats::metrics while a reference returned here might still be
+    // in use on another thread.
     EntityStats& getOrCreateEntity(const std::string& entity);
     Counter&     getOrCreateCounter(EntityStats& e, const std::string& metric);
 
