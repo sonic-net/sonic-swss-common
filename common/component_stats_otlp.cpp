@@ -45,10 +45,21 @@ opentelemetry::common::SystemTimestamp toSystemTimestamp(uint64_t unixNano)
 
 struct OtlpSink::Impl
 {
-    Config                                          config;
-    sdk_resource::Resource                          resource;
+    // Per-series state needed to convert cumulative counters into the delta
+    // points that Geneva mdm requires. Keyed by "<entity>\x1f<metric>".
+    struct SeriesState
+    {
+        uint64_t                              lastValue = 0;
+        opentelemetry::common::SystemTimestamp lastEndTs;
+        bool                                  hasLastEndTs = false;
+    };
+
+    Config                                           config;
+    sdk_resource::Resource                           resource;
     std::unique_ptr<sdk_scope::InstrumentationScope> scope;
     std::unique_ptr<sdk_metrics::PushMetricExporter> exporter;
+    std::unordered_map<std::string, SeriesState>     series;
+    opentelemetry::common::SystemTimestamp           creationTs;
     bool                                             stopped = false;
 
     explicit Impl(Config c)
@@ -58,7 +69,8 @@ struct OtlpSink::Impl
               {"service.instance.id", config.serviceInstanceId},
               {"sonic.component",     config.componentName},
           })),
-          scope(makeScope())
+          scope(makeScope()),
+          creationTs(toSystemTimestamp(config.startTimeUnixNano))
     {
         otlp_exporter::OtlpGrpcMetricExporterOptions opts;
         opts.endpoint            = config.endpoint;
@@ -79,17 +91,24 @@ struct OtlpSink::Impl
             return true;
         }
 
-        const auto startTs = toSystemTimestamp(config.startTimeUnixNano);
-        const auto endTs   = opentelemetry::common::SystemTimestamp{std::chrono::system_clock::now()};
+        const auto endTs = opentelemetry::common::SystemTimestamp{std::chrono::system_clock::now()};
 
         // Group data points by full metric name. Each metric carries one
         // PointDataAttributes per entity, which keeps "entity" as a label
         // rather than as part of the metric name.
+        //
+        // For Sum points we emit DELTA temporality (Geneva mdm rejects
+        // CUMULATIVE), so we maintain a per-series cache of the last
+        // cumulative value and the last end_ts. delta = current - last; on
+        // counter reset (current < last) we treat current as the delta and
+        // restart the window at creationTs.
         std::unordered_map<std::string, sdk_metrics::MetricData> byMetric;
 
         for (const auto& dp : points)
         {
             const std::string fullName = "sonic." + config.componentName + "." + dp.metric;
+            const std::string seriesKey = dp.entity + "\x1f" + dp.metric;
+            auto& state = series[seriesKey];
 
             auto it = byMetric.find(fullName);
             if (it == byMetric.end())
@@ -102,8 +121,11 @@ struct OtlpSink::Impl
                     ? sdk_metrics::InstrumentType::kCounter
                     : sdk_metrics::InstrumentType::kGauge;
                 md.instrument_descriptor.value_type_  = sdk_metrics::InstrumentValueType::kLong;
-                md.aggregation_temporality            = sdk_metrics::AggregationTemporality::kCumulative;
-                md.start_ts                           = startTs;
+                // Gauge ignores temporality; Sum requires DELTA for mdm.
+                md.aggregation_temporality            = dp.isMonotonic
+                    ? sdk_metrics::AggregationTemporality::kDelta
+                    : sdk_metrics::AggregationTemporality::kUnspecified;
+                md.start_ts                           = state.hasLastEndTs ? state.lastEndTs : creationTs;
                 md.end_ts                             = endTs;
                 it = byMetric.emplace(fullName, std::move(md)).first;
             }
@@ -113,8 +135,12 @@ struct OtlpSink::Impl
 
             if (dp.isMonotonic)
             {
+                const uint64_t delta = (dp.value >= state.lastValue)
+                    ? (dp.value - state.lastValue)
+                    : dp.value;  // counter reset: treat current as delta
+
                 sdk_metrics::SumPointData spd;
-                spd.value_        = static_cast<int64_t>(dp.value);
+                spd.value_        = static_cast<int64_t>(delta);
                 spd.is_monotonic_ = true;
                 pda.point_data    = std::move(spd);
             }
@@ -128,6 +154,10 @@ struct OtlpSink::Impl
             }
 
             it->second.point_data_attr_.push_back(std::move(pda));
+
+            state.lastValue    = dp.value;
+            state.lastEndTs    = endTs;
+            state.hasLastEndTs = true;
         }
 
         sdk_metrics::ScopeMetrics scopeMetrics;

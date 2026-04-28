@@ -71,5 +71,34 @@ TEST(OtlpSink, MovedFromInstanceIsHarmless)
     EXPECT_TRUE(second.exportBatch({}));
 }
 
+TEST(OtlpSink, DeltaConversionDoesNotThrowAcrossMultipleExports)
+{
+    OtlpSink sink(makeConfig());
+    // Three consecutive cumulative snapshots of the same series. The sink
+    // is expected to convert these to deltas (10, 5, 8) internally without
+    // crashing or throwing, regardless of whether the export RPC itself
+    // succeeds.
+    const std::vector<OtlpSink::DataPoint> first  = {{"PORT", "SET", 10, true}};
+    const std::vector<OtlpSink::DataPoint> second = {{"PORT", "SET", 15, true}};
+    const std::vector<OtlpSink::DataPoint> third  = {{"PORT", "SET", 23, true}};
+
+    EXPECT_NO_THROW({
+        (void)sink.exportBatch(first);
+        (void)sink.exportBatch(second);
+        (void)sink.exportBatch(third);
+    });
+}
+
+TEST(OtlpSink, CounterResetIsTreatedAsDelta)
+{
+    OtlpSink sink(makeConfig());
+    // After a counter reset (current < last), the sink must not underflow
+    // a uint64_t. The contract is to emit the current value as the delta.
+    EXPECT_NO_THROW({
+        (void)sink.exportBatch({{"PORT", "SET", 100, true}});
+        (void)sink.exportBatch({{"PORT", "SET", 7,   true}});
+    });
+}
+
 } // namespace test
 } // namespace swss

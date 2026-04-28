@@ -49,9 +49,11 @@ public:
         // every intervalSec (default 1 s) and must not block the next tick.
         std::chrono::milliseconds exportTimeout{500};
 
-        // Cumulative-sum start time. Captured once in the ComponentStats
-        // constructor; advances on every container restart, which is the
-        // OTel-defined signal for counter reset.
+        // Wall-clock time at which this sink was constructed, used as the
+        // start_time of the very first delta export per (entity, metric).
+        // Subsequent exports use the previous export's end_time as their
+        // start_time, which is the OTLP-defined contract for delta
+        // temporality.
         uint64_t startTimeUnixNano = 0;
     };
 
@@ -60,6 +62,11 @@ public:
     //   Final OTel metric name is "sonic.<componentName>.<metric>".
     //   The entity is exported as a data-point attribute, never as part of
     //   the metric name, so dashboards can pivot freely.
+    //
+    //   value is always the *cumulative* in-memory counter from
+    //   ComponentStats. The sink converts cumulative → delta internally
+    //   (Geneva mdm only accepts AGGREGATION_TEMPORALITY_DELTA), so callers
+    //   never have to track per-sample state.
     struct DataPoint
     {
         std::string entity;
