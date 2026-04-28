@@ -35,8 +35,8 @@ SWSSResult SWSSZmqConsumerStateTable_pops(SWSSZmqConsumerStateTable tbl,
     });
 }
 
-SWSSResult SWSSZmqConsumerStateTable_getFd(SWSSZmqConsumerStateTable tbl, int32_t *outFd) {
-    SWSSTry(*outFd = ((ZmqConsumerStateTable *)tbl)->getFd());
+SWSSResult SWSSZmqConsumerStateTable_getFd(SWSSZmqConsumerStateTable tbl, uint32_t *outFd) {
+    SWSSTry(*outFd = numeric_cast<uint32_t>(((ZmqConsumerStateTable *)tbl)->getFd()));
 }
 
 SWSSResult SWSSZmqConsumerStateTable_readData(SWSSZmqConsumerStateTable tbl, uint32_t timeout_ms,
