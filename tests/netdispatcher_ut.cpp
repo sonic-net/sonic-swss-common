@@ -102,13 +102,16 @@ TEST(NetDispatcherTest, GetRawCallbackRegistered)
     NetDispatcher &dispatcher = NetDispatcher::getInstance();
     TestNetMsg handler;
 
+    /* Not registered: getRawCallback returns nullptr */
+    EXPECT_EQ(dispatcher.getRawCallback(4000), nullptr);
+
+    /* Registered: returns the same pointer */
     dispatcher.registerRawMessageHandler(4000, &handler);
+    EXPECT_EQ(dispatcher.getRawCallback(4000), &handler);
 
-    /* Simulate onNetlinkMessageRaw by calling it indirectly through onNetlinkMessage
-     * when no parsed handler exists for this type. */
-
-    /* Cleanup */
+    /* After unregister: nullptr again */
     dispatcher.unregisterRawMessageHandler(4000);
+    EXPECT_EQ(dispatcher.getRawCallback(4000), nullptr);
 }
 
 TEST(NetDispatcherTest, OnNetlinkMessageFallbackToRaw)

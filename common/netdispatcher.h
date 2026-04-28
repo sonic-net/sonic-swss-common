@@ -37,7 +37,6 @@ namespace swss
              */
             void unregisterRawMessageHandler(int nlmsg_type);
 
-
             /** Called by NetLink or FpmLink classes as indication of new packet arrival. */
             void onNetlinkMessage(struct nl_msg *msg);
 

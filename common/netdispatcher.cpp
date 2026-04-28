@@ -75,18 +75,13 @@ void NetDispatcher::onNetlinkMessageRaw(struct nl_msg *msg)
 {
     struct nlmsghdr *nlmsghdr = nlmsg_hdr(msg);
 
-    /* Hold the mutex during the callback invocation to ensure the callback
-     * object remains valid (not unregistered) for the duration of onMsgRaw.
-     * This matches the lifetime guarantee provided by onNetlinkMessage. */
-    MUTEX;
-
-    auto it = m_rawhandlers.find(nlmsghdr->nlmsg_type);
+    auto callback = getRawCallback(nlmsghdr->nlmsg_type);
 
     /* Drop not registered messages */
-    if (it == m_rawhandlers.end())
+    if (callback == nullptr)
         return;
 
-    it->second->onMsgRaw(nlmsghdr);
+    callback->onMsgRaw(nlmsghdr);
 }
 
 NetMsg* NetDispatcher::getCallback(int nlmsg_type)
