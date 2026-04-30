@@ -13,6 +13,10 @@ public:
                                      unsigned int dbTimeout = 0,
                                      bool isTcpConn = false);
 
+    static bool waitWarmBootStarted(unsigned int maxWaitSec = 86400,
+                                    unsigned int dbTimeout = 0,
+                                    bool isTcpConn = false);
+
     static bool waitWarmBootDone(unsigned int maxWaitSec = 180,
                                     unsigned int dbTimeout = 0,
                                     bool isTcpConn = false);
@@ -29,7 +33,8 @@ public:
 
 private:
     static bool doWait(swss::DBConnector &stateDb,
-                       unsigned int maxWaitSec);
+                       unsigned int maxWaitSec,
+                       const std::string &bootEnabledTarget = "false");
 };
 
 }
