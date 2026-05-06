@@ -74,6 +74,7 @@ common_libswsscommon_la_SOURCES = \
     common/ipaddresses.cpp           \
     common/macaddress.cpp            \
     common/netdispatcher.cpp         \
+    common/netmsg.cpp                \
     common/netlink.cpp               \
     common/nfnetlink.cpp             \
     common/notificationconsumer.cpp  \
