@@ -11,6 +11,7 @@ tests_tests_SOURCES = tests/redis_ut.cpp                \
                       tests/tokenize_ut.cpp             \
                       tests/json_ut.cpp                 \
                       tests/ntf_ut.cpp                  \
+                      tests/netdispatcher_ut.cpp         \
                       tests/ipaddress_ut.cpp            \
                       tests/ipprefix_ut.cpp             \
                       tests/macaddress_ut.cpp           \
