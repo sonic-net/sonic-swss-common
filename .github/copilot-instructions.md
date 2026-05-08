@@ -100,6 +100,11 @@ tests/tests
 - **Testing**: Add tests for new public APIs
 - **ABI compatibility**: Be careful about breaking ABI — this library is linked by many components
 - **SWIG bindings**: If adding new C++ APIs, update SWIG interface files in `pyext/` if Python access is needed
+- **PR description template**: Fill out all sections of the [PR template](pull_request_template.md) when submitting a pull request:
+  - **What I did**: Summarize the change being made
+  - **Why I did it**: Explain motivation and context for the change
+  - **How I verified it**: Provide steps or commands to test the change
+  - **Details if related**: Include any additional context, links, or related information
 
 ## Common Patterns
 
