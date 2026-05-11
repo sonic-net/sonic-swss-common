@@ -13,7 +13,7 @@ TEST(RedisReply, check_status_handles_null_status_string)
     reply->type = REDIS_REPLY_STATUS;
     reply->str = nullptr;
 
-    swss::RedisReply redisReply(reply);
+    swss::RedisReply statusReply(reply);
 
-    EXPECT_THROW(redisReply.checkStatusOK(), std::system_error);
+    EXPECT_THROW(statusReply.checkStatusOK(), std::system_error);
 }
