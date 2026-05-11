@@ -22,6 +22,12 @@ class ZmqMessageHandler
 public:
     virtual ~ZmqMessageHandler() {};
     virtual void handleReceivedData(const std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos) = 0;
+    /*
+     * Called by ZmqRouteServer::mqPollThread once the socket is drained
+     * (zmq_recv returned EAGAIN). Handlers use this to wake their consumer at
+     * most once per burst rather than once per message. Default is no-op.
+     */
+    virtual void notifyPending() {}
 };
 
 class ZmqServer
@@ -37,7 +43,7 @@ public:
     ZmqServer(const std::string& endpoint, const std::string& vrf);
     ZmqServer(const std::string& endpoint, const std::string& vrf, bool lazyBind);
     ZmqServer(const std::string& endpoint, const std::string& vrf, bool lazyBind, bool oneToOneSync);
-    ~ZmqServer();
+    virtual ~ZmqServer();
 
     void registerMessageHandler(
                                 const std::string dbName,
@@ -50,33 +56,38 @@ public:
 
     void bind();
 
-private:
-    void handleReceivedData(const char* buffer, const size_t size);
+protected:
+    ZmqMessageHandler * handleReceivedData(const char* buffer, const size_t size);
 
-    void startMqPollThread();
-
-    void mqPollThread();
-    
-    ZmqMessageHandler* findMessageHandler(const std::string dbName, const std::string tableName);
+    virtual void mqPollThread();
 
     std::vector<char> m_buffer;
 
     volatile bool m_runThread;
 
+private:
+    void startMqPollThread();
+
+    ZmqMessageHandler* findMessageHandler(const std::string dbName, const std::string tableName);
+
     std::shared_ptr<std::thread> m_mqPollThread;
 
+protected:
     std::string m_endpoint;
 
+private:
     std::string m_vrf;
 
     void* m_context;
 
+protected:
     void* m_socket;
 
     bool m_oneToOneSync = false;
 
     bool m_allowZmqPoll;
 
+private:
     std::map<std::string, std::map<std::string, ZmqMessageHandler*>> m_HandlerMap;
 };
 

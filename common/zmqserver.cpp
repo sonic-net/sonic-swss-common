@@ -160,7 +160,7 @@ ZmqMessageHandler* ZmqServer::findMessageHandler(
     return tableMappingIter->second;
 }
 
-void ZmqServer::handleReceivedData(const char* buffer, const size_t size)
+ZmqMessageHandler* ZmqServer::handleReceivedData(const char* buffer, const size_t size)
 {
     std::string dbName;
     std::string tableName;
@@ -171,10 +171,11 @@ void ZmqServer::handleReceivedData(const char* buffer, const size_t size)
     auto handler = findMessageHandler(dbName, tableName);
     if (handler == nullptr) {
         SWSS_LOG_WARN("ZmqServer can't find handler for received message: %s", buffer);
-        return;
+        return nullptr;
     }
 
     handler->handleReceivedData(kcos);
+    return handler;
 }
 
 void ZmqServer::startMqPollThread()
@@ -245,7 +246,7 @@ void ZmqServer::mqPollThread()
         SWSS_LOG_DEBUG("zmq received %d bytes", rc);
 
         // deserialize and write to redis:
-        handleReceivedData(m_buffer.data(), rc);
+        (void)handleReceivedData(m_buffer.data(), rc);
         while (m_oneToOneSync && !m_allowZmqPoll) {
           usleep(10);
         }
