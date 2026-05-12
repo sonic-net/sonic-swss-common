@@ -523,6 +523,9 @@ after libswsscommon deb make.
 #define STATE_OPER_PORT_TABLE_NAME             "OPER_PORT"
 
 /***** MONITOR LINK GROUP TABLES *****/
+// Produced by MonitorLinkGroupMgr (intfmgrd); consumed by PortMgr/TeamMgr.
+// CFG_MONITOR_LINK_GROUP_TABLE_NAME is auto-generated into cfg_schema.h
+// from sonic-monitor-link-group.yang, not added here.
 #define STATE_MONITOR_LINK_GROUP_STATE_TABLE_NAME  "MONITOR_LINK_GROUP_STATE"
 #define STATE_MONITOR_LINK_GROUP_MEMBER_TABLE_NAME "MONITOR_LINK_GROUP_MEMBER"
 
