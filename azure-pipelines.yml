@@ -147,7 +147,6 @@ stages:
           target/debs/${{ parameters.debian_version }}/libyang-cpp_*.deb
           target/debs/${{ parameters.debian_version }}/python3-yang_*.deb
           target/debs/${{ parameters.debian_version }}/libyang3_3*.deb
-          target/debs/${{ parameters.debian_version }}/python3-libyang_*.deb
       displayName: "Download yang deb from amd64 common lib"
     - script: |
         set -ex
@@ -155,11 +154,14 @@ stages:
                      $(Build.ArtifactStagingDirectory)/download/target/debs/${{ parameters.debian_version }}/libyang-*_1.0*.deb \
                      $(Build.ArtifactStagingDirectory)/download/target/debs/${{ parameters.debian_version }}/libyang-cpp_*.deb \
                      $(Build.ArtifactStagingDirectory)/download/target/debs/${{ parameters.debian_version }}/python3-yang_*.deb
-        # libyang3 + python3-libyang are required because sonic-yang-mgmt
-        # (sonic-net/sonic-buildimage#26584) was ported from libyang1 to libyang3
-        # Python bindings; gen_cfg_schema.py now does `import libyang` (v3).
-        sudo dpkg -i $(Build.ArtifactStagingDirectory)/download/target/debs/${{ parameters.debian_version }}/libyang3_3*.deb \
-                     $(Build.ArtifactStagingDirectory)/download/target/debs/${{ parameters.debian_version }}/python3-libyang_*.deb
+        # libyang3 system library is needed because sonic-yang-mgmt
+        # (sonic-net/sonic-buildimage#26584) was ported from libyang1 to libyang3.
+        sudo dpkg -i $(Build.ArtifactStagingDirectory)/download/target/debs/${{ parameters.debian_version }}/libyang3_3*.deb
+        # The matching python3-libyang .deb from common-lib targets Debian
+        # bookworm's Python 3.11; the Microsoft-hosted ubuntu-22.04 agent ships
+        # Python 3.10, so install the CESNET libyang Python binding from PyPI
+        # instead -- it provides manylinux wheels that work on Python 3.10.
+        sudo pip3 install 'libyang==3.1.0'
       workingDirectory: $(Build.ArtifactStagingDirectory)
       displayName: "Install yang deb from common lib"
     - task: DownloadPipelineArtifact@2
