@@ -84,6 +84,7 @@ jobs:
         target/debs/${{ parameters.debian_version }}/libyang-cpp_*.deb
         target/debs/${{ parameters.debian_version }}/python3-yang_*.deb
         target/debs/${{ parameters.debian_version }}/libyang3_3*.deb
+        target/debs/${{ parameters.debian_version }}/libyang-dev_3*.deb
         target/debs/${{ parameters.debian_version }}/python3-libyang_*.deb
     displayName: "Download libyang from ${{ parameters.arch }} common lib"
     condition: ne('${{ parameters.debian_version }}', 'trixie')
@@ -105,21 +106,46 @@ jobs:
         target/debs/${{ parameters.debian_version }}/libyang-cpp_*.deb
         target/debs/${{ parameters.debian_version }}/python3-yang_*.deb
         target/debs/${{ parameters.debian_version }}/libyang3_3*.deb
+        target/debs/${{ parameters.debian_version }}/libyang-dev_3*.deb
         target/debs/${{ parameters.debian_version }}/python3-libyang_*.deb
         target/debs/${{ parameters.debian_version }}/libpcre*.deb
     displayName: "Download libyang from ${{ parameters.arch }} common lib"
     condition: eq('${{ parameters.debian_version }}', 'trixie')
   - script: |
       set -ex
-      sudo dpkg -i $(find ./download -name *.deb)
-      # Debian trixie's pinned common-lib artifact may not include
-      # python3-libyang yet, but trixie itself ships it in its apt repos.
-      # Install it from apt as a fallback so gen_cfg_schema.py's
-      # ``import libyang`` succeeds.
-      if [ "${{ parameters.debian_version }}" = "trixie" ]; then
-        if ! dpkg -s python3-libyang >/dev/null 2>&1; then
-          sudo apt-get update
-          sudo apt-get install -y python3-libyang
+      # Exclude libyang-dev_3*.deb from the dpkg install: it has the same
+      # package name (``libyang-dev``) as the libyang1 libyang-dev that the
+      # C++ compile still needs. We'll instead extract it into a private
+      # sysroot below for the Python binding build.
+      find ./download -name '*.deb' ! -name 'libyang-dev_3*.deb' -print0 \
+        | xargs -0 sudo dpkg -i
+      # The trixie common-lib pin (pipelineId 926659) predates
+      # sonic-net/sonic-buildimage#26584 and doesn't ship
+      # python3-libyang_*.deb. trixie's own apt repo doesn't have a
+      # ``python3-libyang`` package either, so fall back to building the
+      # CESNET libyang Python binding from PyPI sdist. We build against a
+      # local sysroot extracted from libyang3 + libyang-dev_3*.deb because
+      # the libyang1 ``libyang-dev`` we just installed has a clashing
+      # ``libyang.so`` symlink that would otherwise make the linker pick up
+      # the v1 ABI -- which is missing symbols like ``lyplg_ext_parse_log``
+      # that the v3 Python binding needs.
+      if ! python3 -c 'import libyang' 2>/dev/null; then
+        DEBS=./download/target/debs/${{ parameters.debian_version }}
+        LIBYANG3_DEV_DEB=$(ls $DEBS/libyang-dev_3*.deb 2>/dev/null | head -n1 || true)
+        LIBYANG3_DEB=$(ls $DEBS/libyang3_3*.deb 2>/dev/null | head -n1 || true)
+        if [ -n "$LIBYANG3_DEV_DEB" ] && [ -n "$LIBYANG3_DEB" ]; then
+          SYSROOT=/tmp/libyang3-sysroot
+          sudo rm -rf $SYSROOT
+          sudo mkdir -p $SYSROOT
+          sudo dpkg-deb -x $LIBYANG3_DEB $SYSROOT
+          sudo dpkg-deb -x $LIBYANG3_DEV_DEB $SYSROOT
+          sudo apt-get install -y python3-cffi python3-setuptools python3-wheel python3-dev pkg-config || true
+          sudo CFLAGS="-I$SYSROOT/usr/include" \
+               LDFLAGS="-L$SYSROOT/usr/lib/x86_64-linux-gnu -Wl,-rpath,/usr/lib/x86_64-linux-gnu" \
+               pip3 install --no-build-isolation 'libyang==3.1.0'
+        else
+          sudo apt-get install -y python3-cffi python3-setuptools python3-wheel python3-dev pkg-config || true
+          sudo pip3 install --no-build-isolation 'libyang==3.1.0'
         fi
       fi
     workingDirectory: $(Build.ArtifactStagingDirectory)
