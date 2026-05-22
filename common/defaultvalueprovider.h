@@ -53,7 +53,7 @@ public:
     TableInfoDict(TableDefaultValueMapping &tableDefaultValueMapping);
 
 private:
-    // Mapping: key value -> field -> default 
+    // Mapping: key value -> field -> default
     std::map<std::string, FieldDefaultValueMappingPtr> m_defaultValueMapping;
 
     bool FoundFieldMappingByKey(const std::string &key, FieldDefaultValueMapping ** foundMappingPtr);
@@ -65,7 +65,7 @@ public:
     TableInfoSingleList(TableDefaultValueMapping &tableDefaultValueMapping);
 
 private:
-    // Mapping: field -> default 
+    // Mapping: field -> default
     FieldDefaultValueMappingPtr m_defaultValueMapping;
 
     bool FoundFieldMappingByKey(const std::string &key, FieldDefaultValueMapping ** foundMappingPtr);
@@ -77,7 +77,7 @@ public:
     TableInfoMultipleList(TableDefaultValueMapping &tableDefaultValueMapping);
 
 private:
-    // Mapping: key field count -> field -> default 
+    // Mapping: key field count -> field -> default
     std::map<int, FieldDefaultValueMappingPtr> m_defaultValueMapping;
 
     bool FoundFieldMappingByKey(const std::string &key, FieldDefaultValueMapping ** foundMappingPtr);
@@ -86,17 +86,17 @@ private:
 class DefaultValueHelper
 {
 public:
-    static int BuildTableDefaultValueMapping(struct lys_node* table, TableDefaultValueMapping& tableDefaultValueMapping);
+    static int BuildTableDefaultValueMapping(const struct lysc_node* table, TableDefaultValueMapping& tableDefaultValueMapping);
 
-    static std::shared_ptr<KeySchema> GetKeySchema(struct lys_node* table_child_node);
+    static std::shared_ptr<KeySchema> GetKeySchema(const struct lysc_node* table_child_node);
 
-    static FieldDefaultValueMappingPtr GetDefaultValueInfo(struct lys_node* tableChildNode);
+    static FieldDefaultValueMappingPtr GetDefaultValueInfo(const struct lysc_node* tableChildNode);
 
-    static void GetDefaultValueInfoForChoice(struct lys_node_choice* choiceNode, std::shared_ptr<FieldDefaultValueMapping> fieldMapping);
+    static void GetDefaultValueInfoForChoice(const struct lysc_node_choice* choiceNode, std::shared_ptr<FieldDefaultValueMapping> fieldMapping);
 
-    static void GetDefaultValueInfoForLeaf(struct lys_node_leaf* leafNode, std::shared_ptr<FieldDefaultValueMapping> fieldMapping);
+    static void GetDefaultValueInfoForLeaf(const struct lysc_node_leaf* leafNode, std::shared_ptr<FieldDefaultValueMapping> fieldMapping);
 
-    static void GetDefaultValueInfoForLeaflist(struct lys_node_leaflist *listNode, std::shared_ptr<FieldDefaultValueMapping> fieldMapping);
+    static void GetDefaultValueInfoForLeaflist(const struct lysc_node_leaflist *listNode, std::shared_ptr<FieldDefaultValueMapping> fieldMapping);
 };
 
 class DefaultValueProvider
@@ -121,11 +121,11 @@ private:
     // The table name to table default value info mapping
     std::map<std::string, std::shared_ptr<TableInfoBase> > m_defaultValueMapping;
 
-    
+
     void LoadModule(const std::string &name, const std::string &path, struct ly_ctx *context);
 
     // Load default value info from yang model and append to default value mapping
-    void AppendTableInfoToMapping(struct lys_node* table);
+    void AppendTableInfoToMapping(const struct lysc_node* table);
 
     std::shared_ptr<TableInfoBase> FindDefaultValueInfo(const std::string &table);
 
