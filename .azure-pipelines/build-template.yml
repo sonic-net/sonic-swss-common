@@ -112,6 +112,16 @@ jobs:
   - script: |
       set -ex
       sudo dpkg -i $(find ./download -name *.deb)
+      # Debian trixie's pinned common-lib artifact may not include
+      # python3-libyang yet, but trixie itself ships it in its apt repos.
+      # Install it from apt as a fallback so gen_cfg_schema.py's
+      # ``import libyang`` succeeds.
+      if [ "${{ parameters.debian_version }}" = "trixie" ]; then
+        if ! dpkg -s python3-libyang >/dev/null 2>&1; then
+          sudo apt-get update
+          sudo apt-get install -y python3-libyang
+        fi
+      fi
     workingDirectory: $(Build.ArtifactStagingDirectory)
     displayName: "Install libyang from common lib"
   - task: DownloadPipelineArtifact@2
