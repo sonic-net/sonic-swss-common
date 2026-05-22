@@ -147,21 +147,37 @@ stages:
           target/debs/${{ parameters.debian_version }}/libyang-cpp_*.deb
           target/debs/${{ parameters.debian_version }}/python3-yang_*.deb
           target/debs/${{ parameters.debian_version }}/libyang3_3*.deb
+          target/debs/${{ parameters.debian_version }}/libyang-dev_3*.deb
       displayName: "Download yang deb from amd64 common lib"
     - script: |
         set -ex
-        sudo dpkg -i $(Build.ArtifactStagingDirectory)/download/target/debs/${{ parameters.debian_version }}/libyang_1.0*.deb \
-                     $(Build.ArtifactStagingDirectory)/download/target/debs/${{ parameters.debian_version }}/libyang-*_1.0*.deb \
-                     $(Build.ArtifactStagingDirectory)/download/target/debs/${{ parameters.debian_version }}/libyang-cpp_*.deb \
-                     $(Build.ArtifactStagingDirectory)/download/target/debs/${{ parameters.debian_version }}/python3-yang_*.deb
+        DEBS=$(Build.ArtifactStagingDirectory)/download/target/debs/${{ parameters.debian_version }}
+        sudo dpkg -i $DEBS/libyang_1.0*.deb \
+                     $DEBS/libyang-*_1.0*.deb \
+                     $DEBS/libyang-cpp_*.deb \
+                     $DEBS/python3-yang_*.deb
         # libyang3 system library is needed because sonic-yang-mgmt
         # (sonic-net/sonic-buildimage#26584) was ported from libyang1 to libyang3.
-        sudo dpkg -i $(Build.ArtifactStagingDirectory)/download/target/debs/${{ parameters.debian_version }}/libyang3_3*.deb
-        # The matching python3-libyang .deb from common-lib targets Debian
-        # bookworm's Python 3.11; the Microsoft-hosted ubuntu-22.04 agent ships
-        # Python 3.10, so install the CESNET libyang Python binding from PyPI
-        # instead -- it provides manylinux wheels that work on Python 3.10.
-        sudo pip3 install 'libyang==3.1.0'
+        sudo dpkg -i $DEBS/libyang3_3*.deb
+        # We can't dpkg-install python3-libyang_3*.deb here: the bookworm-built
+        # deb requires Python >= 3.11, but Microsoft-hosted ubuntu-22.04 ships
+        # Python 3.10. PyPI doesn't publish a binary wheel for libyang either,
+        # so we build the CESNET libyang Python binding from sdist against a
+        # local sysroot extracted from libyang-dev_3*.deb (we can't install
+        # that .deb system-wide because it has the same package name as the
+        # libyang1 libyang-dev that our C++ compile still needs).
+        SYSROOT=/tmp/libyang3-sysroot
+        sudo rm -rf $SYSROOT
+        sudo mkdir -p $SYSROOT
+        sudo dpkg-deb -x $DEBS/libyang-dev_3*.deb $SYSROOT
+        # Use --no-build-isolation so the sdist's cffi build picks up the
+        # system python3-cffi (1.15) instead of pulling an incompatible
+        # cffi 2.0 into an isolated overlay (where it would mismatch the
+        # system _cffi_backend.so).
+        sudo apt-get install -y python3-cffi python3-setuptools python3-wheel python3-dev pkg-config
+        sudo CFLAGS="-I$SYSROOT/usr/include" \
+             LDFLAGS="-L$SYSROOT/usr/lib/x86_64-linux-gnu -Wl,-rpath,/usr/lib/x86_64-linux-gnu" \
+             pip3 install --no-build-isolation 'libyang==3.1.0'
       workingDirectory: $(Build.ArtifactStagingDirectory)
       displayName: "Install yang deb from common lib"
     - task: DownloadPipelineArtifact@2

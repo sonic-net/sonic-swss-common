@@ -58,6 +58,7 @@ jobs:
         target/debs/${{ parameters.debian_version }}/libyang-cpp_*.deb
         target/debs/${{ parameters.debian_version }}/python3-yang_*.deb
         target/debs/${{ parameters.debian_version }}/libyang3_3*.deb
+        target/debs/${{ parameters.debian_version }}/libyang-dev_3*.deb
     displayName: "Download libyang from common lib"
   - task: DownloadPipelineArtifact@2
     inputs:
@@ -95,17 +96,29 @@ jobs:
       sudo sonic-swss-common/.azure-pipelines/build_and_install_module.sh
 
       # Install libyang packages from downloaded artifacts
-      sudo dpkg -i $(Build.ArtifactStagingDirectory)/download/target/debs/${{ parameters.debian_version }}/libyang-*_1.0*.deb \
-                   $(Build.ArtifactStagingDirectory)/download/target/debs/${{ parameters.debian_version }}/libyang_1.0*.deb \
-                   $(Build.ArtifactStagingDirectory)/download/target/debs/${{ parameters.debian_version }}/libyang-cpp_*.deb \
-                   $(Build.ArtifactStagingDirectory)/download/target/debs/${{ parameters.debian_version }}/python3-yang_*.deb
+      DEBS=$(Build.ArtifactStagingDirectory)/download/target/debs/${{ parameters.debian_version }}
+      sudo dpkg -i $DEBS/libyang-*_1.0*.deb \
+                   $DEBS/libyang_1.0*.deb \
+                   $DEBS/libyang-cpp_*.deb \
+                   $DEBS/python3-yang_*.deb
       # libyang3 system library is needed because sonic-yang-mgmt
       # (sonic-net/sonic-buildimage#26584) was ported from libyang1 to libyang3.
-      sudo dpkg -i $(Build.ArtifactStagingDirectory)/download/target/debs/${{ parameters.debian_version }}/libyang3_3*.deb
-      # Use the CESNET libyang Python binding from PyPI (manylinux wheel) so
-      # we don't depend on the bookworm-built python3-libyang .deb, which
-      # requires Python >= 3.11 and won't install on ubuntu-22.04 (Python 3.10).
-      sudo pip3 install 'libyang==3.1.0'
+      sudo dpkg -i $DEBS/libyang3_3*.deb
+      # Build the CESNET libyang Python binding from sdist against a local
+      # sysroot extracted from libyang-dev_3*.deb. We can't dpkg-install
+      # python3-libyang_3*.deb directly (bookworm-built; requires Python >=3.11
+      # while this pool may run Python 3.10), nor can we install
+      # libyang-dev_3*.deb system-wide (same package name as the libyang1
+      # libyang-dev that other components still need). PyPI doesn't publish a
+      # binary wheel for libyang, so a from-source build is the only option.
+      SYSROOT=/tmp/libyang3-sysroot
+      sudo rm -rf $SYSROOT
+      sudo mkdir -p $SYSROOT
+      sudo dpkg-deb -x $DEBS/libyang-dev_3*.deb $SYSROOT
+      sudo apt-get install -y python3-cffi python3-setuptools python3-wheel python3-dev pkg-config
+      sudo CFLAGS="-I$SYSROOT/usr/include" \
+           LDFLAGS="-L$SYSROOT/usr/lib/x86_64-linux-gnu -Wl,-rpath,/usr/lib/x86_64-linux-gnu" \
+           pip3 install --no-build-isolation 'libyang==3.1.0'
 
       sudo dpkg -i $(Build.ArtifactStagingDirectory)/download/libprotobuf*_amd64.deb $(Build.ArtifactStagingDirectory)/download/libprotobuf-lite*_amd64.deb $(Build.ArtifactStagingDirectory)/download/python3-protobuf*_amd64.deb 
       sudo dpkg -i $(Build.ArtifactStagingDirectory)/download/libdashapi*.deb
