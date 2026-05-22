@@ -163,12 +163,14 @@ stages:
         # deb requires Python >= 3.11, but Microsoft-hosted ubuntu-22.04 ships
         # Python 3.10. PyPI doesn't publish a binary wheel for libyang either,
         # so we build the CESNET libyang Python binding from sdist against a
-        # local sysroot extracted from libyang-dev_3*.deb (we can't install
-        # that .deb system-wide because it has the same package name as the
-        # libyang1 libyang-dev that our C++ compile still needs).
+        # local sysroot extracted from libyang3 + libyang-dev_3*.deb (we can't
+        # install libyang-dev_3*.deb system-wide because it has the same
+        # package name as the libyang1 libyang-dev that our C++ compile still
+        # needs, and its `libyang.so` symlink would otherwise mask v1's).
         SYSROOT=/tmp/libyang3-sysroot
         sudo rm -rf $SYSROOT
         sudo mkdir -p $SYSROOT
+        sudo dpkg-deb -x $DEBS/libyang3_3*.deb $SYSROOT
         sudo dpkg-deb -x $DEBS/libyang-dev_3*.deb $SYSROOT
         # Use --no-build-isolation so the sdist's cffi build picks up the
         # system python3-cffi (1.15) instead of pulling an incompatible

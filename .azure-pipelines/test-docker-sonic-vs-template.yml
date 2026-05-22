@@ -105,15 +105,17 @@ jobs:
       # (sonic-net/sonic-buildimage#26584) was ported from libyang1 to libyang3.
       sudo dpkg -i $DEBS/libyang3_3*.deb
       # Build the CESNET libyang Python binding from sdist against a local
-      # sysroot extracted from libyang-dev_3*.deb. We can't dpkg-install
-      # python3-libyang_3*.deb directly (bookworm-built; requires Python >=3.11
-      # while this pool may run Python 3.10), nor can we install
-      # libyang-dev_3*.deb system-wide (same package name as the libyang1
-      # libyang-dev that other components still need). PyPI doesn't publish a
-      # binary wheel for libyang, so a from-source build is the only option.
+      # sysroot extracted from libyang3 + libyang-dev_3*.deb. We can't dpkg-
+      # install python3-libyang_3*.deb directly (bookworm-built; requires
+      # Python >= 3.11 while this pool may run Python 3.10), nor can we
+      # install libyang-dev_3*.deb system-wide (same package name as the
+      # libyang1 libyang-dev that other components still need; its
+      # `libyang.so` symlink would otherwise mask v1's). PyPI doesn't publish
+      # a binary wheel for libyang, so a from-source build is the only option.
       SYSROOT=/tmp/libyang3-sysroot
       sudo rm -rf $SYSROOT
       sudo mkdir -p $SYSROOT
+      sudo dpkg-deb -x $DEBS/libyang3_3*.deb $SYSROOT
       sudo dpkg-deb -x $DEBS/libyang-dev_3*.deb $SYSROOT
       sudo apt-get install -y python3-cffi python3-setuptools python3-wheel python3-dev pkg-config
       sudo CFLAGS="-I$SYSROOT/usr/include" \
