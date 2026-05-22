@@ -218,7 +218,7 @@ void ComponentStats::writerThread()
         }
         catch (const std::exception& e)
         {
-            SWSS_LOG_WARN("ComponentStats[%s]: DB connect failed: %s. Retrying…",
+            SWSS_LOG_WARN("ComponentStats[%s]: DB connect failed: %s. Retrying...",
                           m_component.c_str(), e.what());
             std::unique_lock<std::mutex> lock(m_mutex);
             m_cv.wait_for(lock, std::chrono::seconds(m_intervalSec),
@@ -227,6 +227,7 @@ void ComponentStats::writerThread()
     }
 
     std::unordered_map<std::string, uint64_t> lastVersions;
+    int consecutiveWriteFailures = 0;
 
     while (true)
     {
@@ -283,16 +284,60 @@ void ComponentStats::writerThread()
 
         // Write outside the lock so that increment() / setValue() stay
         // responsive while Redis round-trips are in flight.
+        //
+        // If Redis goes away (restart, socket reset, ...), every set() will
+        // throw and we'd otherwise log forever without recovering. After a
+        // few consecutive failures we drop m_table/m_db and fall back into
+        // the connect-retry loop above so a healthy Redis is picked back up.
+        static constexpr int kMaxConsecutiveWriteFailures = 3;
         for (size_t i = 0; i < keys.size(); ++i)
         {
             try
             {
                 m_table->set(keys[i], values[i]);
+                consecutiveWriteFailures = 0;
             }
             catch (const std::exception& e)
             {
-                SWSS_LOG_WARN("ComponentStats[%s]: write failed for %s: %s",
-                              m_component.c_str(), keys[i].c_str(), e.what());
+                ++consecutiveWriteFailures;
+                SWSS_LOG_WARN("ComponentStats[%s]: write failed for %s: %s (%d in a row)",
+                              m_component.c_str(), keys[i].c_str(), e.what(),
+                              consecutiveWriteFailures);
+            }
+        }
+
+        if (consecutiveWriteFailures >= kMaxConsecutiveWriteFailures)
+        {
+            SWSS_LOG_WARN("ComponentStats[%s]: %d consecutive write failures; "
+                          "dropping Redis connection and reconnecting",
+                          m_component.c_str(), consecutiveWriteFailures);
+            m_table.reset();
+            m_db.reset();
+            consecutiveWriteFailures = 0;
+            // Force any entities we already had marked clean to be re-flushed
+            // once the new connection comes up, so Redis converges with the
+            // current in-memory state instead of being stale from before the
+            // outage.
+            lastVersions.clear();
+
+            // Re-enter the bounded connect-retry loop.
+            while (m_running.load(std::memory_order_relaxed) && !m_table)
+            {
+                try
+                {
+                    m_db = std::make_shared<DBConnector>(m_dbName, 0);
+                    m_table = std::make_unique<Table>(m_db.get(), m_tableName);
+                    SWSS_LOG_NOTICE("ComponentStats[%s]: reconnected to Redis",
+                                    m_component.c_str());
+                }
+                catch (const std::exception& e)
+                {
+                    SWSS_LOG_WARN("ComponentStats[%s]: DB reconnect failed: %s. Retrying...",
+                                  m_component.c_str(), e.what());
+                    std::unique_lock<std::mutex> lock(m_mutex);
+                    m_cv.wait_for(lock, std::chrono::seconds(m_intervalSec),
+                                  [this]{ return !m_running.load(std::memory_order_relaxed); });
+                }
             }
         }
     }

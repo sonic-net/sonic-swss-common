@@ -192,16 +192,21 @@ TEST(ComponentStats, WriterSkipsUnchangedEntities)
     std::vector<FieldValueTuple> sentinel = {{"X", "999"}};
     tbl.set("e", sentinel);
 
-    // Wait for at least two flush intervals to give the writer thread a
-    // chance to re-flush. With dirty-tracking it must stay at "999".
-    std::this_thread::sleep_for(std::chrono::milliseconds(2500));
+    // Dirty a *different* entity and wait for it to land in Redis. This
+    // proves the writer thread is alive and went through at least one flush
+    // cycle after we planted the sentinel -- otherwise a hung writer would
+    // also leave "999" intact and the test would falsely pass.
+    s->increment("other", "Y", 5);
+    ASSERT_TRUE(waitForFlush(tbl, "other", "Y", "5"));
 
+    // The unchanged entity "e" must not have been re-written by the writer.
     std::string value;
     ASSERT_TRUE(tbl.hget("e", "X", value));
     EXPECT_EQ("999", value);
 
     s->stop();
     tbl.del("e");
+    tbl.del("other");
 }
 
 TEST(ComponentStats, DestructorStopsThread)

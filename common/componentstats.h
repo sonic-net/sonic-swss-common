@@ -20,7 +20,7 @@ class Table;
  *
  * Each instance writes counters to a Redis hash of the form:
  *     <COMPONENT>_STATS:<entity>
- * where each field is a user-defined metric name (e.g. SET, DEL, GET, ERROR…).
+ * where each field is a user-defined metric name (e.g. SET, DEL, GET, ERROR...).
  *
  * Design goals:
  *   - Lock-free counter update: once an entity/metric pair has been seen,
@@ -91,9 +91,10 @@ public:
     CounterSnapshot getAll(const std::string& entity);
 
     /// Globally enable / disable recording. While disabled, increment() and
-    /// setValue() become no-ops; existing in-memory counters are preserved
-    /// and the writer thread keeps running (it just has nothing new to
-    /// flush, so previously-flushed values stay in Redis as-is).
+    /// setValue() become no-ops; existing in-memory counters are preserved.
+    /// The writer thread keeps running and may still flush entities that
+    /// were already marked dirty before setEnabled(false) -- disabling does
+    /// not abort in-flight flushes. Re-enabling resumes normal recording.
     /// Intended to be wired to a CONFIG_DB knob if runtime control is desired.
     void setEnabled(bool on);
     bool isEnabled() const;
