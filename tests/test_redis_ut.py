@@ -42,6 +42,7 @@ def test_ProducerTable():
 
 def test_ProducerStateTable():
     db = swsscommon.DBConnector("APPL_DB", 0, True)
+    db.flushdb()
     ps = swsscommon.ProducerStateTable(db, "abc")
     cs = swsscommon.ConsumerStateTable(db, "abc")
     fvs = swsscommon.FieldValuePairs([('a','b')])
