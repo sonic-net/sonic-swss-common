@@ -139,7 +139,7 @@ jobs:
           sudo mkdir -p $SYSROOT
           sudo dpkg-deb -x $LIBYANG3_DEB $SYSROOT
           sudo dpkg-deb -x $LIBYANG3_DEV_DEB $SYSROOT
-          sudo apt-get install -y python3-cffi python3-setuptools python3-wheel python3-dev pkg-config dpkg-dev || true
+          sudo apt-get install -y python3-cffi python3-setuptools python3-wheel python3-dev pkg-config dpkg-dev libpcre2-dev || true
           MULTIARCH=$(dpkg-architecture -qDEB_HOST_MULTIARCH 2>/dev/null || gcc -print-multiarch)
           sudo CFLAGS="-I$SYSROOT/usr/include" \
                LDFLAGS="-L$SYSROOT/usr/lib/$MULTIARCH -Wl,-rpath,/usr/lib/$MULTIARCH" \

@@ -117,7 +117,7 @@ jobs:
       sudo mkdir -p $SYSROOT
       sudo dpkg-deb -x $DEBS/libyang3_3*.deb $SYSROOT
       sudo dpkg-deb -x $DEBS/libyang-dev_3*.deb $SYSROOT
-      sudo apt-get install -y python3-cffi python3-setuptools python3-wheel python3-dev pkg-config
+      sudo apt-get install -y python3-cffi python3-setuptools python3-wheel python3-dev pkg-config libpcre2-dev
       sudo CFLAGS="-I$SYSROOT/usr/include" \
            LDFLAGS="-L$SYSROOT/usr/lib/x86_64-linux-gnu -Wl,-rpath,/usr/lib/x86_64-linux-gnu" \
            pip3 install --no-build-isolation 'libyang==3.1.0'

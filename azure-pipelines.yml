@@ -176,7 +176,7 @@ stages:
         # system python3-cffi (1.15) instead of pulling an incompatible
         # cffi 2.0 into an isolated overlay (where it would mismatch the
         # system _cffi_backend.so).
-        sudo apt-get install -y python3-cffi python3-setuptools python3-wheel python3-dev pkg-config
+        sudo apt-get install -y python3-cffi python3-setuptools python3-wheel python3-dev pkg-config libpcre2-dev
         sudo CFLAGS="-I$SYSROOT/usr/include" \
              LDFLAGS="-L$SYSROOT/usr/lib/x86_64-linux-gnu -Wl,-rpath,/usr/lib/x86_64-linux-gnu" \
              pip3 install --no-build-isolation 'libyang==3.1.0'
