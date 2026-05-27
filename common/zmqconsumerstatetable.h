@@ -21,8 +21,6 @@ public:
 
     ZmqConsumerStateTable(DBConnector *db, const std::string &tableName, ZmqServer &zmqServer, int popBatchSize = DEFAULT_POP_BATCH_SIZE, int pri = 0, bool dbPersistence = false);
 
-    ~ZmqConsumerStateTable() override;
-
     /* Get multiple pop elements */
     void pops(std::deque<KeyOpFieldsValuesTuple> &vkco, const std::string &prefix = EMPTY_PREFIX);
 
@@ -83,13 +81,7 @@ private:
 
     DBConnector *m_db;
 
-    // Cached at construction time so the destructor can call
-    // m_handlerRegistry->removeHandler() without dereferencing m_db.
-    std::string m_dbName;
-
-    // Co-owned with the ZmqServer that created us. Lets the destructor
-    // unregister cleanly even if the ZmqServer has already been destroyed.
-    std::shared_ptr<ZmqHandlerRegistry> m_handlerRegistry;
+    ZmqServer& m_zmqServer;
 
     std::unique_ptr<AsyncDBUpdater> m_asyncDBUpdater;
 
