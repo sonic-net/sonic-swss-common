@@ -197,7 +197,11 @@ private:
     // Reader/writer mutex guarding the *structure* of m_entities and each
     // EntityStats::metrics. Counter *values* are atomics and do not need
     // this lock.
-    mutable std::shared_mutex m_structMutex;
+    //
+    // shared_timed_mutex (rather than shared_mutex) so the code compiles
+    // under -std=c++14, which is what swss-common's build uses today;
+    // shared_mutex is C++17-only. The timed-wait API is not used.
+    mutable std::shared_timed_mutex m_structMutex;
     std::mutex              m_cvMutex;    // pairs with m_cv for waits
     std::condition_variable m_cv;         // wakes writer on stop()
     std::map<std::string, EntityStats> m_entities;

@@ -154,7 +154,7 @@ ComponentStats::lookupOrCreate(const std::string& entity,
     // without serializing against each other, which is what makes the hot
     // path effectively lock-free after the first call for (entity, metric).
     {
-        std::shared_lock<std::shared_mutex> rlock(m_structMutex);
+        std::shared_lock<std::shared_timed_mutex> rlock(m_structMutex);
         auto eit = m_entities.find(entity);
         if (eit != m_entities.end())
         {
@@ -171,7 +171,7 @@ ComponentStats::lookupOrCreate(const std::string& entity,
     // Slow path: upgrade to an exclusive lock and insert. A racing thread
     // may have inserted the same key in the meantime; the second find()
     // covers that case so we never construct twice.
-    std::unique_lock<std::shared_mutex> wlock(m_structMutex);
+    std::unique_lock<std::shared_timed_mutex> wlock(m_structMutex);
     auto eit = m_entities.find(entity);
     if (eit == m_entities.end())
     {
@@ -222,14 +222,14 @@ void ComponentStats::setValue(const std::string& entity,
     // fetch_add after setValue's store. Callers that need strict gauge
     // semantics must not mix increment() and setValue() on the same metric
     // (see header doc).
-    std::unique_lock<std::shared_mutex> wlock(m_structMutex);
+    std::unique_lock<std::shared_timed_mutex> wlock(m_structMutex);
     ref.counter.value.store(value, std::memory_order_relaxed);
     ref.entity.version.fetch_add(1, std::memory_order_release);
 }
 
 uint64_t ComponentStats::get(const std::string& entity, const std::string& metric)
 {
-    std::shared_lock<std::shared_mutex> rlock(m_structMutex);
+    std::shared_lock<std::shared_timed_mutex> rlock(m_structMutex);
     auto eit = m_entities.find(entity);
     if (eit == m_entities.end()) return 0;
     auto mit = eit->second.metrics.find(metric);
@@ -241,7 +241,7 @@ ComponentStats::CounterSnapshot
 ComponentStats::getAll(const std::string& entity)
 {
     CounterSnapshot snap;
-    std::shared_lock<std::shared_mutex> rlock(m_structMutex);
+    std::shared_lock<std::shared_timed_mutex> rlock(m_structMutex);
     auto eit = m_entities.find(entity);
     if (eit == m_entities.end()) return snap;
     for (const auto& kv : eit->second.metrics)
@@ -260,7 +260,7 @@ size_t ComponentStats::flushDirty(
     std::vector<std::vector<FieldValueTuple>> values;
 
     {
-        std::shared_lock<std::shared_mutex> rlock(m_structMutex);
+        std::shared_lock<std::shared_timed_mutex> rlock(m_structMutex);
         for (const auto& entry : m_entities)
         {
             const std::string& name = entry.first;
