@@ -276,6 +276,9 @@ size_t ComponentStats::flushDirty(
             {
                 continue; // no change since last flush
             }
+            // Provisionally record the version we're about to write. If
+            // the write below fails we roll this entry back so the next
+            // periodic pass retries it.
             lastVersions[name] = curVer;
 
             std::vector<FieldValueTuple> row;
@@ -292,7 +295,13 @@ size_t ComponentStats::flushDirty(
     }
 
     // Write outside the lock so that increment() / setValue() stay
-    // responsive while Redis round-trips are in flight.
+    // responsive while Redis round-trips are in flight. Per-entity
+    // try/catch: a single failed write must not abort the rest of the
+    // batch — any entity skipped here would have its lastVersions entry
+    // set above and would be silently "unchanged" on the next cycle.
+    // Each failed entity's lastVersions slot is rolled back so the next
+    // periodic pass retries that one entity.
+    size_t failures = 0;
     for (size_t i = 0; i < keys.size(); ++i)
     {
         try
@@ -303,11 +312,17 @@ size_t ComponentStats::flushDirty(
         {
             SWSS_LOG_WARN("ComponentStats[%s]: write failed for %s: %s",
                           m_component.c_str(), keys[i].c_str(), e.what());
-            // Propagate the failure to the caller via lastVersions rollback
-            // so the next periodic pass retries this entity.
             lastVersions.erase(keys[i]);
-            throw;
+            ++failures;
         }
+    }
+    if (failures > 0)
+    {
+        // Signal partial failure to writerThread without losing the
+        // count of how many entities were actually written.
+        throw std::runtime_error("flushDirty: " + std::to_string(failures) +
+                                 " of " + std::to_string(keys.size()) +
+                                 " writes failed");
     }
     return keys.size();
 }
