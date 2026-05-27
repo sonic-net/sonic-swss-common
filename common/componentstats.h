@@ -5,8 +5,10 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <shared_mutex>
 #include <string>
 #include <thread>
+#include <unordered_map>
 #include <vector>
 #include <cstdint>
 
@@ -23,24 +25,31 @@ class Table;
  * where each field is a user-defined metric name (e.g. SET, DEL, GET, ERROR...).
  *
  * Design goals:
- *   - Lock-free counter update: once an entity/metric pair has been seen,
- *     increment() / setValue() update the counter with std::atomic ops.
- *     The first reference to a new entity or metric still takes m_mutex
- *     to insert into the maps.
+ *   - Effectively lock-free hot path on cache hit. After the first use of a
+ *     given (entity, metric) pair, increment() / setValue() only takes a
+ *     shared (reader) lock on the structural mutex for lookup, then mutates
+ *     atomics. Concurrent readers do not serialize against each other.
+ *     The first reference to a new entity or metric still takes the
+ *     structural mutex in exclusive mode to insert into the maps.
  *   - Deferred DB connection: the DBConnector is created inside the writer
  *     thread rather than the constructor, so early-startup callers (singleton
  *     initialization before Redis is ready) do not crash.
  *   - Version-based dirty tracking: the writer thread only pushes entities
  *     whose counters changed since the last flush.
  *   - Stable references: std::map is used instead of unordered_map so that
- *     references returned by getOrCreateEntity() remain valid after later
+ *     references returned by the structural lookup remain valid after later
  *     inserts (unordered_map can rehash and invalidate them). DO NOT change
  *     m_entities to a container that can invalidate references on insert,
  *     and do not add an erase API without revisiting the locking model.
  *   - Clean shutdown: the destructor uses condition_variable::notify_all() to
- *     wake the writer thread immediately instead of waiting up to interval.
+ *     wake the writer thread immediately, then the writer performs one final
+ *     dirty-flush pass before exiting so no in-memory updates are lost.
  *
  * Thread safety: all public methods are safe to call from any thread.
+ *
+ * Mixing increment() and setValue() on the same metric from different threads
+ * is supported but the gauge semantics of setValue() take precedence — see
+ * the setValue() doc for the exact ordering guarantee.
  *
  * Component naming is ASCII-only and case-insensitive; "swss" and "SWSS"
  * resolve to the same singleton with a Redis prefix of "SWSS_STATS".
@@ -78,8 +87,19 @@ public:
                    const std::string& metric,
                    uint64_t n = 1);
 
-    /// Overwrite the metric with an absolute value. Useful for gauge-style
-    /// stats (e.g. queue depth) that are not monotonically increasing.
+    /// Overwrite the metric with an absolute value (gauge semantics).
+    ///
+    /// Takes the structural mutex in exclusive mode so that the value-store
+    /// and the per-entity version bump are observed atomically by the
+    /// writer thread, and so concurrent setValue() calls on the same metric
+    /// are serialized.
+    ///
+    /// IMPORTANT: mixing setValue() (gauge) and increment() (counter) on
+    /// the *same* metric from concurrent threads is best-effort only.
+    /// An increment() landing after setValue() releases its lock will be
+    /// observed by the writer as `value + n` rather than `value`, because
+    /// the increment's atomic fetch_add executes outside the lock. Use
+    /// either gauge-style or counter-style on a given metric, not both.
     void setValue(const std::string& entity,
                   const std::string& metric,
                   uint64_t value);
@@ -100,6 +120,9 @@ public:
     bool isEnabled() const;
 
     /// Stop the writer thread. Called automatically by the destructor.
+    /// Before exiting, the writer thread runs one final flush pass so that
+    /// any counters updated after the last periodic flush are persisted to
+    /// Redis (provided the DB connection is still alive).
     void stop();
 
     // Non-copyable / non-movable (singleton-ish usage)
@@ -119,7 +142,7 @@ private:
     {
         // Map of metric name -> counter. std::map keeps references and
         // iterators stable across inserts, which lets the hot path keep a
-        // Counter& after releasing m_mutex. Counter is non-movable
+        // Counter& after releasing m_structMutex. Counter is non-movable
         // (std::atomic), but std::map::emplace constructs in place so we do
         // not need an extra unique_ptr indirection.
         std::map<std::string, Counter> metrics;
@@ -131,19 +154,37 @@ private:
         EntityStats& operator=(const EntityStats&) = delete;
     };
 
+    // Bundle returned by lookupOrCreate(). Both references are stable for
+    // the lifetime of this ComponentStats (std::map never invalidates
+    // references on insert and this class exposes no erase API).
+    struct CounterRef
+    {
+        EntityStats& entity;
+        Counter&     counter;
+    };
+
     ComponentStats(const std::string& componentName,
                    const std::string& dbName,
                    uint32_t intervalSec);
 
-    // Returns a stable reference. Safe to keep after the lock is released
-    // because std::map does not invalidate element references on insert.
+    // Combined lookup-or-create for (entity, metric).
+    //
+    // Fast path: takes a shared lock and returns existing references — N
+    // concurrent callers do not serialize against each other.
+    // Slow path: on cache miss, upgrades to an exclusive lock to insert.
+    //
     // INVARIANT: no code path may erase from m_entities or from
-    // EntityStats::metrics while a reference returned here might still be
-    // in use on another thread.
-    EntityStats& getOrCreateEntity(const std::string& entity);
-    Counter&     getOrCreateCounter(EntityStats& e, const std::string& metric);
+    // EntityStats::metrics while a CounterRef might still be in use on
+    // another thread.
+    CounterRef lookupOrCreate(const std::string& entity,
+                              const std::string& metric);
 
     void writerThread();
+
+    // One snapshot + flush pass over m_entities. Used by both the periodic
+    // writer loop and the final-flush pass on shutdown. Returns the number
+    // of entities written.
+    size_t flushDirty(std::unordered_map<std::string, uint64_t>& lastVersions);
 
     const std::string m_component;   // already upper-cased
     const std::string m_tableName;   // "<COMPONENT>_STATS"
@@ -153,8 +194,12 @@ private:
     std::atomic<bool> m_enabled{true};
     std::atomic<bool> m_running{true};
 
-    mutable std::mutex      m_mutex;       // guards m_entities structure
-    std::condition_variable m_cv;          // wakes writer on stop()
+    // Reader/writer mutex guarding the *structure* of m_entities and each
+    // EntityStats::metrics. Counter *values* are atomics and do not need
+    // this lock.
+    mutable std::shared_mutex m_structMutex;
+    std::mutex              m_cvMutex;    // pairs with m_cv for waits
+    std::condition_variable m_cv;         // wakes writer on stop()
     std::map<std::string, EntityStats> m_entities;
 
     std::shared_ptr<DBConnector>  m_db;    // created in writerThread

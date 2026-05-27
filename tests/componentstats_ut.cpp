@@ -52,6 +52,7 @@ TEST(ComponentStats, IncrementBasic)
     EXPECT_EQ(1U, s->get("entity_a", "DEL"));
     EXPECT_EQ(0U, s->get("entity_a", "UNKNOWN"));
     EXPECT_EQ(0U, s->get("unknown_entity", "SET"));
+    s->stop();
 }
 
 TEST(ComponentStats, IncrementByN)
@@ -64,6 +65,7 @@ TEST(ComponentStats, IncrementByN)
     // n=0 is a no-op
     s->increment("e", "COMPLETE", 0);
     EXPECT_EQ(8U, s->get("e", "COMPLETE"));
+    s->stop();
 }
 
 TEST(ComponentStats, SetValueOverwrites)
@@ -72,6 +74,7 @@ TEST(ComponentStats, SetValueOverwrites)
     s->increment("e", "GAUGE", 10);
     s->setValue("e", "GAUGE", 3);
     EXPECT_EQ(3U, s->get("e", "GAUGE"));
+    s->stop();
 }
 
 TEST(ComponentStats, GetAllReturnsAllMetrics)
@@ -88,6 +91,7 @@ TEST(ComponentStats, GetAllReturnsAllMetrics)
     EXPECT_EQ(3U, all["C"]);
 
     EXPECT_TRUE(s->getAll("missing").empty());
+    s->stop();
 }
 
 TEST(ComponentStats, MultipleEntitiesIndependent)
@@ -97,6 +101,7 @@ TEST(ComponentStats, MultipleEntitiesIndependent)
     s->increment("e2", "X", 20);
     EXPECT_EQ(10U, s->get("e1", "X"));
     EXPECT_EQ(20U, s->get("e2", "X"));
+    s->stop();
 }
 
 TEST(ComponentStats, DisabledIsNoOp)
@@ -110,6 +115,7 @@ TEST(ComponentStats, DisabledIsNoOp)
     s->setEnabled(true);
     s->increment("e", "X", 1);
     EXPECT_EQ(6U, s->get("e", "X"));
+    s->stop();
 }
 
 TEST(ComponentStats, SameComponentReturnsSameInstance)
@@ -119,6 +125,7 @@ TEST(ComponentStats, SameComponentReturnsSameInstance)
     EXPECT_EQ(a.get(), b.get());
     a->increment("e", "X", 7);
     EXPECT_EQ(7U, b->get("e", "X"));
+    a->stop();
 }
 
 TEST(ComponentStats, ConcurrentIncrementsAreExact)
@@ -140,6 +147,35 @@ TEST(ComponentStats, ConcurrentIncrementsAreExact)
     for (auto& t : ts) t.join();
 
     EXPECT_EQ(static_cast<uint64_t>(kThreads) * kOps, s->get("hot", "SET"));
+    s->stop();
+}
+
+TEST(ComponentStats, ConcurrentIncrementAndSetValueDoNotCrash)
+{
+    // Mixing increment() and setValue() on the same metric from multiple
+    // threads must be safe (setValue now takes an exclusive lock so the
+    // store + version bump are observed atomically; increment() keeps its
+    // shared-lock fast path). This test pounds both code paths at once.
+    auto s = ComponentStats::create("UT_MIXED");
+    std::atomic<bool> stop{false};
+
+    std::thread incr([&]{
+        while (!stop.load()) s->increment("e", "M");
+    });
+    std::thread setv([&]{
+        for (int i = 0; i < 1000 && !stop.load(); ++i)
+            s->setValue("e", "M", i);
+    });
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    stop = true;
+    incr.join();
+    setv.join();
+
+    // Value is non-deterministic (race between setValue and increment) but
+    // must be readable without UB.
+    (void)s->get("e", "M");
+    s->stop();
 }
 
 TEST(ComponentStats, StopIsIdempotent)
@@ -209,6 +245,37 @@ TEST(ComponentStats, WriterSkipsUnchangedEntities)
     tbl.del("other");
 }
 
+TEST(ComponentStats, FinalFlushOnShutdown)
+{
+    // Updates landing between the last periodic flush and stop() must NOT
+    // be silently dropped: writerThread runs one final flush pass on
+    // shutdown. Use a long interval so a periodic flush cannot race the
+    // stop() call.
+    auto s = ComponentStats::create("UT_FINAL", "TEST_DB", 60);
+
+    DBConnector db("TEST_DB", 0, true);
+    Table tbl(&db, "UT_FINAL_STATS");
+    tbl.del("e");
+
+    s->increment("e", "LATE", 7);
+    s->setValue("e", "GAUGE_LATE", 99);
+
+    // Sanity-check Redis is empty before stop() — we should NOT have seen a
+    // periodic flush land yet given the 60s interval.
+    std::string value;
+    EXPECT_FALSE(tbl.hget("e", "LATE", value));
+
+    // stop() triggers the final flush in writerThread before join.
+    s->stop();
+
+    ASSERT_TRUE(tbl.hget("e", "LATE", value));
+    EXPECT_EQ("7", value);
+    ASSERT_TRUE(tbl.hget("e", "GAUGE_LATE", value));
+    EXPECT_EQ("99", value);
+
+    tbl.del("e");
+}
+
 TEST(ComponentStats, DestructorStopsThread)
 {
     // Let the shared_ptr go out of scope: the destructor must call stop()
@@ -220,6 +287,37 @@ TEST(ComponentStats, DestructorStopsThread)
     // If the destructor failed to join, the test process would hang or
     // crash on later teardown; reaching this line is the assertion.
     SUCCEED();
+}
+
+TEST(ComponentStats, RegistryPrunesExpiredInstances)
+{
+    // Creating and releasing many uniquely-named instances must not leak
+    // the static registry (every entry becomes an expired weak_ptr; the
+    // next create() prunes them).
+    //
+    // We can't observe registry size directly, but we can verify the
+    // process doesn't trip over the prune logic and that a recreated
+    // component still resolves to a fresh instance after the original is
+    // released.
+    ComponentStats* firstPtr = nullptr;
+    {
+        auto s1 = ComponentStats::create("UT_PRUNE");
+        firstPtr = s1.get();
+        s1->stop();
+    } // s1 released here, registry slot is expired
+
+    // Create some unrelated instances to trigger pruning.
+    for (int i = 0; i < 10; ++i)
+    {
+        auto tmp = ComponentStats::create("UT_PRUNE_TMP_" + std::to_string(i));
+        tmp->stop();
+    }
+
+    // Re-create the original name: must get a fresh instance (different
+    // pointer) because the previous one was already destroyed.
+    auto s2 = ComponentStats::create("UT_PRUNE");
+    EXPECT_NE(firstPtr, s2.get());
+    s2->stop();
 }
 
 TEST(ComponentStats, ConnectRetryOnBadDb)

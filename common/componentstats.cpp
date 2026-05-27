@@ -36,6 +36,25 @@ std::map<std::string, std::weak_ptr<ComponentStats>>& registry()
     return r;
 }
 
+// Drop entries whose shared_ptr has been released. Called from create()
+// under registryMutex() so long-running processes that cycle through
+// distinct component names don't leak the registry map.
+void pruneExpiredRegistryLocked()
+{
+    auto& r = registry();
+    for (auto it = r.begin(); it != r.end(); )
+    {
+        if (it->second.expired())
+        {
+            it = r.erase(it);
+        }
+        else
+        {
+            ++it;
+        }
+    }
+}
+
 } // namespace
 
 std::shared_ptr<ComponentStats> ComponentStats::create(
@@ -47,6 +66,11 @@ std::shared_ptr<ComponentStats> ComponentStats::create(
     const uint32_t effectiveInterval = intervalSec == 0 ? 1 : intervalSec;
 
     std::lock_guard<std::mutex> lock(registryMutex());
+
+    // Reclaim any slots whose ComponentStats has already been destroyed
+    // before we (possibly) insert a new one.
+    pruneExpiredRegistryLocked();
+
     auto& slot = registry()[key];
     if (auto existing = slot.lock())
     {
@@ -66,6 +90,8 @@ std::shared_ptr<ComponentStats> ComponentStats::create(
     }
 
     // std::make_shared cannot access the private constructor; use new + wrap.
+    // effectiveInterval is already clamped above, so the constructor receives
+    // a sane value and does not need to clamp again.
     std::shared_ptr<ComponentStats> inst(
         new ComponentStats(key, dbName, effectiveInterval));
     slot = inst;
@@ -78,7 +104,7 @@ ComponentStats::ComponentStats(const std::string& componentName,
     : m_component(componentName)
     , m_tableName(componentName + "_STATS")
     , m_dbName(dbName)
-    , m_intervalSec(intervalSec == 0 ? 1 : intervalSec)
+    , m_intervalSec(intervalSec)
 {
     SWSS_LOG_ENTER();
     m_thread = std::make_unique<std::thread>(&ComponentStats::writerThread, this);
@@ -96,6 +122,11 @@ void ComponentStats::stop()
     if (!m_running.exchange(false))
     {
         return; // already stopped
+    }
+    {
+        std::lock_guard<std::mutex> lock(m_cvMutex);
+        // ensure the writer observes m_running==false even if it just
+        // entered the wait_for above.
     }
     m_cv.notify_all();
     if (m_thread && m_thread->joinable())
@@ -115,35 +146,48 @@ bool ComponentStats::isEnabled() const
     return m_enabled.load(std::memory_order_relaxed);
 }
 
-ComponentStats::EntityStats&
-ComponentStats::getOrCreateEntity(const std::string& entity)
+ComponentStats::CounterRef
+ComponentStats::lookupOrCreate(const std::string& entity,
+                               const std::string& metric)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    auto it = m_entities.find(entity);
-    if (it == m_entities.end())
+    // Fast path: shared lock, lookup only. N concurrent readers proceed
+    // without serializing against each other, which is what makes the hot
+    // path effectively lock-free after the first call for (entity, metric).
     {
-        it = m_entities.emplace(std::piecewise_construct,
-                                std::forward_as_tuple(entity),
-                                std::forward_as_tuple()).first;
+        std::shared_lock<std::shared_mutex> rlock(m_structMutex);
+        auto eit = m_entities.find(entity);
+        if (eit != m_entities.end())
+        {
+            auto mit = eit->second.metrics.find(metric);
+            if (mit != eit->second.metrics.end())
+            {
+                // std::map references stay valid across later inserts,
+                // so returning them after rlock release is safe.
+                return CounterRef{eit->second, mit->second};
+            }
+        }
     }
-    // std::map never invalidates references to existing elements on insert,
-    // so returning this reference after the lock is released is safe.
-    return it->second;
-}
 
-ComponentStats::Counter&
-ComponentStats::getOrCreateCounter(EntityStats& e, const std::string& metric)
-{
-    std::lock_guard<std::mutex> lock(m_mutex);
-    auto it = e.metrics.find(metric);
-    if (it == e.metrics.end())
+    // Slow path: upgrade to an exclusive lock and insert. A racing thread
+    // may have inserted the same key in the meantime; the second find()
+    // covers that case so we never construct twice.
+    std::unique_lock<std::shared_mutex> wlock(m_structMutex);
+    auto eit = m_entities.find(entity);
+    if (eit == m_entities.end())
+    {
+        eit = m_entities.emplace(std::piecewise_construct,
+                                 std::forward_as_tuple(entity),
+                                 std::forward_as_tuple()).first;
+    }
+    auto mit = eit->second.metrics.find(metric);
+    if (mit == eit->second.metrics.end())
     {
         // std::map::emplace constructs Counter in place; no move required.
-        it = e.metrics.emplace(std::piecewise_construct,
-                               std::forward_as_tuple(metric),
-                               std::forward_as_tuple()).first;
+        mit = eit->second.metrics.emplace(std::piecewise_construct,
+                                          std::forward_as_tuple(metric),
+                                          std::forward_as_tuple()).first;
     }
-    return it->second;
+    return CounterRef{eit->second, mit->second};
 }
 
 void ComponentStats::increment(const std::string& entity,
@@ -154,12 +198,11 @@ void ComponentStats::increment(const std::string& entity,
     {
         return;
     }
-    auto& e = getOrCreateEntity(entity);
-    auto& c = getOrCreateCounter(e, metric);
-    c.value.fetch_add(n, std::memory_order_relaxed);
-    // Release ordering pairs with the acquire in writerThread() so that counter
-    // writes become visible before the version bump.
-    e.version.fetch_add(1, std::memory_order_release);
+    auto ref = lookupOrCreate(entity, metric);
+    ref.counter.value.fetch_add(n, std::memory_order_relaxed);
+    // Release ordering pairs with the acquire in writerThread() so that the
+    // counter write becomes visible before the version bump.
+    ref.entity.version.fetch_add(1, std::memory_order_release);
 }
 
 void ComponentStats::setValue(const std::string& entity,
@@ -170,15 +213,23 @@ void ComponentStats::setValue(const std::string& entity,
     {
         return;
     }
-    auto& e = getOrCreateEntity(entity);
-    auto& c = getOrCreateCounter(e, metric);
-    c.value.store(value, std::memory_order_relaxed);
-    e.version.fetch_add(1, std::memory_order_release);
+    auto ref = lookupOrCreate(entity, metric);
+    // Take the structural lock in exclusive mode so that this setValue's
+    // store and version-bump are observed atomically with respect to other
+    // setValue() callers and to writer-thread snapshots. Note this does
+    // NOT fully serialise against concurrent increment(): an increment
+    // whose lookup races ahead of this lock can still land its atomic
+    // fetch_add after setValue's store. Callers that need strict gauge
+    // semantics must not mix increment() and setValue() on the same metric
+    // (see header doc).
+    std::unique_lock<std::shared_mutex> wlock(m_structMutex);
+    ref.counter.value.store(value, std::memory_order_relaxed);
+    ref.entity.version.fetch_add(1, std::memory_order_release);
 }
 
 uint64_t ComponentStats::get(const std::string& entity, const std::string& metric)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::shared_lock<std::shared_mutex> rlock(m_structMutex);
     auto eit = m_entities.find(entity);
     if (eit == m_entities.end()) return 0;
     auto mit = eit->second.metrics.find(metric);
@@ -190,7 +241,7 @@ ComponentStats::CounterSnapshot
 ComponentStats::getAll(const std::string& entity)
 {
     CounterSnapshot snap;
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::shared_lock<std::shared_mutex> rlock(m_structMutex);
     auto eit = m_entities.find(entity);
     if (eit == m_entities.end()) return snap;
     for (const auto& kv : eit->second.metrics)
@@ -200,6 +251,67 @@ ComponentStats::getAll(const std::string& entity)
     return snap;
 }
 
+size_t ComponentStats::flushDirty(
+    std::unordered_map<std::string, uint64_t>& lastVersions)
+{
+    if (!m_table) return 0;
+
+    std::vector<std::string> keys;
+    std::vector<std::vector<FieldValueTuple>> values;
+
+    {
+        std::shared_lock<std::shared_mutex> rlock(m_structMutex);
+        for (const auto& entry : m_entities)
+        {
+            const std::string& name = entry.first;
+            const EntityStats& stats = entry.second;
+
+            // Acquire pairs with release in increment()/setValue(),
+            // guaranteeing we see all counter updates performed before
+            // the version bump we're about to read.
+            uint64_t curVer = stats.version.load(std::memory_order_acquire);
+
+            auto vit = lastVersions.find(name);
+            if (vit != lastVersions.end() && vit->second == curVer)
+            {
+                continue; // no change since last flush
+            }
+            lastVersions[name] = curVer;
+
+            std::vector<FieldValueTuple> row;
+            row.reserve(stats.metrics.size());
+            for (const auto& mkv : stats.metrics)
+            {
+                row.emplace_back(
+                    mkv.first,
+                    std::to_string(mkv.second.value.load(std::memory_order_relaxed)));
+            }
+            keys.push_back(name);
+            values.push_back(std::move(row));
+        }
+    }
+
+    // Write outside the lock so that increment() / setValue() stay
+    // responsive while Redis round-trips are in flight.
+    for (size_t i = 0; i < keys.size(); ++i)
+    {
+        try
+        {
+            m_table->set(keys[i], values[i]);
+        }
+        catch (const std::exception& e)
+        {
+            SWSS_LOG_WARN("ComponentStats[%s]: write failed for %s: %s",
+                          m_component.c_str(), keys[i].c_str(), e.what());
+            // Propagate the failure to the caller via lastVersions rollback
+            // so the next periodic pass retries this entity.
+            lastVersions.erase(keys[i]);
+            throw;
+        }
+    }
+    return keys.size();
+}
+
 void ComponentStats::writerThread()
 {
     SWSS_LOG_ENTER();
@@ -207,7 +319,8 @@ void ComponentStats::writerThread()
                     m_component.c_str());
 
     // Defer the DB connection: early-startup containers may call create()
-    // before Redis is reachable. Retry on failure with a bounded back-off.
+    // before Redis is reachable. Retry on failure until Redis is up or
+    // stop() is requested.
     while (m_running.load(std::memory_order_relaxed))
     {
         try
@@ -220,7 +333,7 @@ void ComponentStats::writerThread()
         {
             SWSS_LOG_WARN("ComponentStats[%s]: DB connect failed: %s. Retrying...",
                           m_component.c_str(), e.what());
-            std::unique_lock<std::mutex> lock(m_mutex);
+            std::unique_lock<std::mutex> lock(m_cvMutex);
             m_cv.wait_for(lock, std::chrono::seconds(m_intervalSec),
                           [this]{ return !m_running.load(std::memory_order_relaxed); });
         }
@@ -228,11 +341,12 @@ void ComponentStats::writerThread()
 
     std::unordered_map<std::string, uint64_t> lastVersions;
     int consecutiveWriteFailures = 0;
+    static constexpr int kMaxConsecutiveWriteFailures = 3;
 
     while (true)
     {
         {
-            std::unique_lock<std::mutex> lock(m_mutex);
+            std::unique_lock<std::mutex> lock(m_cvMutex);
             m_cv.wait_for(lock, std::chrono::seconds(m_intervalSec),
                           [this]{ return !m_running.load(std::memory_order_relaxed); });
             if (!m_running.load(std::memory_order_relaxed))
@@ -241,69 +355,18 @@ void ComponentStats::writerThread()
             }
         }
 
-        // Defensive: the connect-retry loop above only exits via `break`
-        // (m_table set) or via m_running becoming false (in which case the
-        // m_running check at the top of this loop already broke out). This
-        // line therefore should not normally be reached.
         if (!m_table) continue;
 
-        std::vector<std::string> keys;
-        std::vector<std::vector<FieldValueTuple>> values;
-
+        try
         {
-            std::lock_guard<std::mutex> lock(m_mutex);
-            for (const auto& entry : m_entities)
-            {
-                const std::string& name = entry.first;
-                const EntityStats& stats = entry.second;
-
-                // Acquire pairs with release in increment()/setValue(),
-                // guaranteeing we see all counter updates performed before
-                // the version bump we're about to read.
-                uint64_t curVer = stats.version.load(std::memory_order_acquire);
-
-                auto vit = lastVersions.find(name);
-                if (vit != lastVersions.end() && vit->second == curVer)
-                {
-                    continue; // no change since last flush
-                }
-                lastVersions[name] = curVer;
-
-                std::vector<FieldValueTuple> row;
-                row.reserve(stats.metrics.size());
-                for (const auto& mkv : stats.metrics)
-                {
-                    row.emplace_back(
-                        mkv.first,
-                        std::to_string(mkv.second.value.load(std::memory_order_relaxed)));
-                }
-                keys.push_back(name);
-                values.push_back(std::move(row));
-            }
+            flushDirty(lastVersions);
+            consecutiveWriteFailures = 0;
         }
-
-        // Write outside the lock so that increment() / setValue() stay
-        // responsive while Redis round-trips are in flight.
-        //
-        // If Redis goes away (restart, socket reset, ...), every set() will
-        // throw and we'd otherwise log forever without recovering. After a
-        // few consecutive failures we drop m_table/m_db and fall back into
-        // the connect-retry loop above so a healthy Redis is picked back up.
-        static constexpr int kMaxConsecutiveWriteFailures = 3;
-        for (size_t i = 0; i < keys.size(); ++i)
+        catch (const std::exception&)
         {
-            try
-            {
-                m_table->set(keys[i], values[i]);
-                consecutiveWriteFailures = 0;
-            }
-            catch (const std::exception& e)
-            {
-                ++consecutiveWriteFailures;
-                SWSS_LOG_WARN("ComponentStats[%s]: write failed for %s: %s (%d in a row)",
-                              m_component.c_str(), keys[i].c_str(), e.what(),
-                              consecutiveWriteFailures);
-            }
+            ++consecutiveWriteFailures;
+            SWSS_LOG_WARN("ComponentStats[%s]: flush failed (%d in a row)",
+                          m_component.c_str(), consecutiveWriteFailures);
         }
 
         if (consecutiveWriteFailures >= kMaxConsecutiveWriteFailures)
@@ -334,11 +397,33 @@ void ComponentStats::writerThread()
                 {
                     SWSS_LOG_WARN("ComponentStats[%s]: DB reconnect failed: %s. Retrying...",
                                   m_component.c_str(), e.what());
-                    std::unique_lock<std::mutex> lock(m_mutex);
+                    std::unique_lock<std::mutex> lock(m_cvMutex);
                     m_cv.wait_for(lock, std::chrono::seconds(m_intervalSec),
                                   [this]{ return !m_running.load(std::memory_order_relaxed); });
                 }
             }
+        }
+    }
+
+    // Final flush on shutdown. Without this, any counter updates that
+    // happened after the last periodic flush would be silently dropped
+    // when the writer thread exits. Best-effort: if Redis is already
+    // gone, log and move on -- stop() must not block on a dead Redis.
+    if (m_table)
+    {
+        try
+        {
+            size_t n = flushDirty(lastVersions);
+            if (n > 0)
+            {
+                SWSS_LOG_NOTICE("ComponentStats[%s] final flush wrote %zu entities",
+                                m_component.c_str(), n);
+            }
+        }
+        catch (const std::exception& e)
+        {
+            SWSS_LOG_WARN("ComponentStats[%s] final flush failed: %s",
+                          m_component.c_str(), e.what());
         }
     }
 
