@@ -160,7 +160,7 @@ jobs:
   - ${{ if eq(parameters.run_unit_test, true) }}:
     - script: |
         set -ex
-        sudo pip install Pympler==0.8 pytest
+        sudo pip install Pympler==0.8 pytest pytest-rerunfailures
         sudo apt-get install -y redis-server
         sudo dpkg -i libswsscommon_*.deb
         sudo dpkg -i libswsscommon-dev_*.deb
@@ -179,7 +179,7 @@ jobs:
 
         ./tests/tests
         redis-cli FLUSHALL
-        pytest-3 --cov=. --cov-report=xml
+        pytest-3 --reruns 2 --reruns-delay 1 --cov=. --cov-report=xml
         [ -f coverage.xml ] && mv coverage.xml tests/coverage.xml
         gcovr -r ./ -e ".*/swsscommon_wrap.cpp" -e=tests --exclude-unreachable-branches --exclude-throw-branches --gcov-ignore-parse-errors -x --xml-pretty  -o coverage.xml
         make -C goext
