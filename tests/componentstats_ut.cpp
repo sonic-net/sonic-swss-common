@@ -295,28 +295,37 @@ TEST(ComponentStats, RegistryPrunesExpiredInstances)
     // the static registry (every entry becomes an expired weak_ptr; the
     // next create() prunes them).
     //
-    // We can't observe registry size directly, but we can verify the
-    // process doesn't trip over the prune logic and that a recreated
-    // component still resolves to a fresh instance after the original is
-    // released.
-    ComponentStats* firstPtr = nullptr;
+    // We can't observe the registry size directly, and we cannot compare
+    // raw pointers across re-creations either: the allocator is free to
+    // recycle the same address for the second instance after the first
+    // one's storage is freed (which is what actually happens in practice
+    // on glibc). Instead, verify the *singleton* property end-to-end:
+    // after the original UT_PRUNE shared_ptr is released and a churn of
+    // unrelated names triggers a prune cycle, re-creating UT_PRUNE must
+    // start over from a zero counter -- if the old in-memory state had
+    // survived (e.g. because the registry never pruned and somehow kept
+    // the instance alive), the counter increment below would observe a
+    // non-zero starting value.
     {
         auto s1 = ComponentStats::create("UT_PRUNE");
-        firstPtr = s1.get();
+        s1->increment("e", "X", 7);
+        EXPECT_EQ(7U, s1->get("e", "X"));
         s1->stop();
-    } // s1 released here, registry slot is expired
+    } // s1 released here; registry slot becomes expired weak_ptr.
 
-    // Create some unrelated instances to trigger pruning.
+    // Create some unrelated instances to drive create() through the prune
+    // path. Each call to pruneExpiredRegistryLocked() inside create()
+    // should reap the now-expired UT_PRUNE slot.
     for (int i = 0; i < 10; ++i)
     {
         auto tmp = ComponentStats::create("UT_PRUNE_TMP_" + std::to_string(i));
         tmp->stop();
     }
 
-    // Re-create the original name: must get a fresh instance (different
-    // pointer) because the previous one was already destroyed.
+    // Re-create UT_PRUNE. Because the old instance was destroyed, the
+    // new one must start with empty in-memory state.
     auto s2 = ComponentStats::create("UT_PRUNE");
-    EXPECT_NE(firstPtr, s2.get());
+    EXPECT_EQ(0U, s2->get("e", "X"));
     s2->stop();
 }
 
