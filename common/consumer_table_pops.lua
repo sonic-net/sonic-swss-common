@@ -93,7 +93,12 @@ for i = n, 1, -3 do
        op == 'stats_capability_query' or
        op == 'stats_capability_response' or
        op == 'stats_st_capability_query' or
-       op == 'stats_st_capability_response' then
+       op == 'stats_st_capability_response' or
+       op == 'start_poll' or
+       op == 'stop_poll' or
+       op == 'set_counter_group' or
+       op == 'del_counter_group' or
+       op == 'counter_response' then
 
     -- do not modify db entries when spotted those commands, they are used to
     -- trigger actions or get data synchronously from database
