@@ -12,7 +12,7 @@ using namespace std;
 
 void printUsage()
 {
-    cout << "usage: sonic-db-cli [-h] [-s] [-n NAMESPACE] db_or_op [cmd [cmd ...]]" << endl;
+    cout << "usage: sonic-db-cli [-h] [-s] [-j] [-n NAMESPACE] db_or_op [cmd [cmd ...]]" << endl;
     cout << endl;
     cout << "SONiC DB CLI:" << endl;
     cout << endl;
@@ -23,6 +23,7 @@ void printUsage()
     cout << "optional arguments:" << endl;
     cout << "  -h, --help            show this help message and exit" << endl;
     cout << "  -s, --unixsocket      Override use of tcp_port and use unixsocket" << endl;
+    cout << "  -j, --json            Print command result as JSON" << endl;
     cout << "  -n NAMESPACE, --namespace NAMESPACE" << endl;
     cout << "                        Namespace string to use asic0/asic1.../asicn" << endl;
     cout << endl;
@@ -133,7 +134,8 @@ int executeCommands(
     const string& db_name,
     vector<string>& commands,
     const string& netns,
-    bool useUnixSocket)
+    bool useUnixSocket,
+    bool useJson)
 {
     shared_ptr<DBConnector> client = nullptr;
     try
@@ -169,7 +171,14 @@ int executeCommands(
         with these changes, it is enough for us to mimic redis-cli in SONiC so far since no application uses tty mode redis-cli output
         */
         auto commandName = getCommandName(commands);
-        cout << RedisReply::to_string(reply.getContext(), commandName) << endl;
+        if (useJson)
+        {
+            cout << RedisReply::to_json_string(reply.getContext(), commandName) << endl;
+        }
+        else
+        {
+            cout << RedisReply::to_string(reply.getContext(), commandName) << endl;
+        }
     }
     catch (const std::system_error& e)
     {
@@ -186,10 +195,11 @@ void parseCliArguments(
     Options &options)
 {
     // Parse argument with getopt https://man7.org/linux/man-pages/man3/getopt.3.html
-    const char* short_options = "hsn";
+    const char* short_options = "hsjn";
     static struct option long_options[] = {
        {"help",        optional_argument, NULL,  'h' },
        {"unixsocket",  optional_argument, NULL,  's' },
+       {"json",        optional_argument, NULL,  'j' },
        {"namespace",   optional_argument, NULL,  'n' },
        // The last element of the array has to be filled with zeros.
        {0,          0,       0,  0 }
@@ -209,6 +219,10 @@ void parseCliArguments(
 
                 case 's':
                     options.m_unixsocket = true;
+                    break;
+
+                case 'j':
+                    options.m_json = true;
                     break;
 
                 case 'n':
@@ -298,7 +312,7 @@ int sonic_db_cli(
                 initializeConfig();
             }
 
-            return executeCommands(dbOrOperation, commands, netns, useUnixSocket);
+            return executeCommands(dbOrOperation, commands, netns, useUnixSocket, options.m_json);
         }
         else if (dbOrOperation == "PING"
                 || dbOrOperation == "SAVE"

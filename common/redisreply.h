@@ -98,6 +98,8 @@ public:
 
     static std::string to_string(redisReply *reply, std::string command = std::string());
 
+    static std::string to_json_string(redisReply *reply, std::string command = std::string());
+
 private:
     void checkStatus(const char *status);
     void checkReply();
