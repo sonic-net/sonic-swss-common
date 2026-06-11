@@ -106,6 +106,10 @@ jobs:
   - script: |
       set -ex
       sudo dpkg -i $(find ./download -name *.deb)
+      # common-lib doesn't publish python3-libyang (LIBYANG3_PY3 isn't in
+      # slave.mk's lib-packages), so install the CFFI bindings from PyPI;
+      # they link against the libyang3 we just installed.
+      sudo pip3 install --no-build-isolation 'libyang==3.3.0'
     workingDirectory: $(Build.ArtifactStagingDirectory)
     displayName: "Install libyang from common lib"
   - task: DownloadPipelineArtifact@2
