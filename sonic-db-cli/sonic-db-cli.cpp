@@ -199,7 +199,7 @@ void parseCliArguments(
     static struct option long_options[] = {
        {"help",        optional_argument, NULL,  'h' },
        {"unixsocket",  optional_argument, NULL,  's' },
-       {"json",        optional_argument, NULL,  'j' },
+       {"json",        no_argument,       NULL,  'j' },
        {"namespace",   optional_argument, NULL,  'n' },
        // The last element of the array has to be filled with zeros.
        {0,          0,       0,  0 }
