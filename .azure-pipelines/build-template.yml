@@ -108,6 +108,13 @@ jobs:
       sudo dpkg -i $(find ./download -name *.deb)
     workingDirectory: $(Build.ArtifactStagingDirectory)
     displayName: "Install libyang from common lib"
+  - script: |
+      set -ex
+      sudo apt-get install -y python3-cffi
+      sudo pip3 install --no-build-isolation 'libyang==3.3.0'
+    workingDirectory: $(Build.ArtifactStagingDirectory)
+    displayName: "Install libyang python bindings"
+    condition: ne('${{ parameters.debian_version }}', 'trixie')
   - task: DownloadPipelineArtifact@2
     inputs:
       source: specific
