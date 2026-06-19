@@ -418,3 +418,37 @@ TEST(Notifications, ConsumerMaybeLogStatsCounterGate)
     EXPECT_EQ(stats.received, (uint64_t)kCount);
     EXPECT_EQ(stats.dropped_allowlist, 0u);
 }
+
+// ---------------------------------------------------------------------------
+// Exercise the unix-socket subscribe() path in NotificationConsumer.
+// All other tests connect via TCP (isTcpConn=true).  This test uses the
+// default unix-socket connection so the else-branch of subscribe() is hit.
+TEST(Notifications, SubscribeViaUnixSocket)
+{
+    SWSS_LOG_ENTER();
+
+    const std::string kChannel = "UNIX_SOCK_TEST_NOTIFICATIONS";
+    // isTcpConn defaults to false -> unix socket connection
+    swss::DBConnector dbNtf("ASIC_DB", 0);
+    swss::NotificationConsumer nc(&dbNtf, kChannel);
+
+    // Verify the consumer is functional: send one notification and receive it.
+    swss::DBConnector dbPub("ASIC_DB", 0);
+    swss::NotificationProducer producer(&dbPub, kChannel);
+
+    swss::Select s;
+    s.addSelectable(&nc);
+
+    std::vector<swss::FieldValueTuple> entry;
+    producer.send("op", "data", entry);
+
+    swss::Selectable *sel = nullptr;
+    int result = s.select(&sel, 2000 /* ms */);
+    ASSERT_EQ(result, swss::Select::OBJECT);
+
+    std::string op, data;
+    std::vector<swss::FieldValueTuple> values;
+    nc.pop(op, data, values);
+    EXPECT_EQ(op, "op");
+    EXPECT_EQ(data, "data");
+}
