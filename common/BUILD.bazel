@@ -1,0 +1,66 @@
+package(default_visibility = ["//visibility:public"])
+
+# Generated cfg_schema.h lives here in common/, matching common/Makefile.am
+# (BUILT_SOURCES = common/cfg_schema.h). schema.h #includes it unconditionally.
+#
+# When YANG modules are disabled (--//bazel:yang_modules=False) we emit the same
+# minimal stub that `./configure --disable-yangmodules` produces. The
+# CFG_*_TABLE_NAME macros the library itself uses remain defined inline in schema.h.
+#
+# TODO BL: real YANG-driven generation (gen_cfg_schema.py) is not wired into the
+# Bazel build yet — it needs the YANG toolchain (sonic-yang-mgmt / sonic-yang-models
+# / libyang3) in the sonic-buildimage registry plus a python toolchain. Until then,
+# building with YANG modules enabled (the default) is deliberately incompatible so it
+# fails loudly instead of silently shipping the stub. To build today, pass
+# --//bazel:yang_modules=False.
+genrule(
+    name = "cfg_schema_h",
+    outs = ["cfg_schema.h"],
+    cmd = """{
+echo '#ifndef CFG_SCHEMA_H'
+echo '#define CFG_SCHEMA_H'
+echo ''
+echo '// Minimal cfg_schema.h generated when YANG modules are disabled'
+echo '#ifdef __cplusplus'
+echo 'namespace swss {'
+echo '#endif'
+echo ''
+echo '#ifdef __cplusplus'
+echo '}'
+echo '#endif'
+echo '#endif'
+} > $@""",
+    target_compatible_with = select({
+        "//bazel:yang_modules_enabled": ["@platforms//:incompatible"],
+        "//conditions:default": [],
+    }),
+)
+
+# Library sources, excluding the standalone swssloglevel tool sources.
+filegroup(
+    name = "srcs",
+    srcs = glob(
+        ["*.cpp"],
+        exclude = ["loglevel.cpp", "loglevel_util.cpp"],
+    ),
+)
+
+# All library headers, including the generated cfg_schema.h.
+filegroup(
+    name = "hdrs",
+    srcs = glob(["*.h", "*.hpp"], allow_empty = True) + [":cfg_schema_h"],
+)
+
+# swssloglevel standalone tool sources.
+filegroup(
+    name = "loglevel_srcs",
+    srcs = ["loglevel.cpp", "loglevel_util.cpp", "loglevel.h"],
+)
+
+# Redis Lua scripts shipped in the libswsscommon package.
+filegroup(
+    name = "luas",
+    srcs = glob(["*.lua"]),
+)
+
+exports_files(["database_config.json"])
