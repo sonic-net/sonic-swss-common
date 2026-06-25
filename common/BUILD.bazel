@@ -7,12 +7,11 @@ package(default_visibility = ["//visibility:public"])
 # minimal stub that `./configure --disable-yangmodules` produces. The
 # CFG_*_TABLE_NAME macros the library itself uses remain defined inline in schema.h.
 #
-# TODO BL: real YANG-driven generation (gen_cfg_schema.py) is not wired into the
+# TODO(bazel-ready): real YANG-driven generation (gen_cfg_schema.py) is not wired into the
 # Bazel build yet — it needs the YANG toolchain (sonic-yang-mgmt / sonic-yang-models
-# / libyang3) in the sonic-buildimage registry plus a python toolchain. Until then,
-# building with YANG modules enabled (the default) is deliberately incompatible so it
-# fails loudly instead of silently shipping the stub. To build today, pass
-# --//bazel:yang_modules=False.
+# / libyang3) in the sonic-buildimage registry plus a python toolchain.
+# Until then, building with YANG modules enabled (the default) is deliberately incompatible so it
+# fails loudly. To build, pass --//bazel:yang_modules=False.
 genrule(
     name = "cfg_schema_h",
     outs = ["cfg_schema.h"],
@@ -41,20 +40,33 @@ filegroup(
     name = "srcs",
     srcs = glob(
         ["*.cpp"],
-        exclude = ["loglevel.cpp", "loglevel_util.cpp"],
+        exclude = [
+            "loglevel.cpp",
+            "loglevel_util.cpp",
+        ],
     ),
 )
 
 # All library headers, including the generated cfg_schema.h.
 filegroup(
     name = "hdrs",
-    srcs = glob(["*.h", "*.hpp"], allow_empty = True) + [":cfg_schema_h"],
+    srcs = glob(
+        [
+            "*.h",
+            "*.hpp",
+        ],
+        allow_empty = True,
+    ) + [":cfg_schema_h"],
 )
 
 # swssloglevel standalone tool sources.
 filegroup(
     name = "loglevel_srcs",
-    srcs = ["loglevel.cpp", "loglevel_util.cpp", "loglevel.h"],
+    srcs = [
+        "loglevel.cpp",
+        "loglevel.h",
+        "loglevel_util.cpp",
+    ],
 )
 
 # Redis Lua scripts shipped in the libswsscommon package.

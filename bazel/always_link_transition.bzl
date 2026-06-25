@@ -1,6 +1,8 @@
+"""Transition to force `//:alwayslink` on for a single `cc_binary`."""
+
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
-def _alwayslink_transition_impl(settings, attr):
+def _alwayslink_transition_impl(_settings, _attr):
     return {"//:alwayslink": True}
 
 alwayslink_transition = transition(
@@ -18,7 +20,7 @@ def _transitioned_cc_binary_impl(ctx):
     default_info = binary[DefaultInfo]
     files = default_info.files.to_list()
     if len(files) != 1:
-      fail("Please make sure that target {} produces exactly one file".format(ctx.label))
+        fail("Please make sure that target {} produces exactly one file".format(ctx.label))
 
     original_file = files[0]
 
@@ -53,8 +55,8 @@ so we must transition that particular target to change the setting.
 This is a temporary rule, which should go away as soon as we have a `cc_shared_library` implementation of libswsscommon.
     """,
     attrs = {
-      "binary": attr.label(
-        cfg = alwayslink_transition,
-      ),
+        "binary": attr.label(
+            cfg = alwayslink_transition,
+        ),
     },
 )

@@ -1,3 +1,5 @@
+"""Compiler and linker flags shared across the sonic-swss-common build."""
+
 # CXXFLAGS that we need for Bazel specifically. Not present in the Makefile
 CXXFLAGS_COMMON_BAZEL = [
     # TODO(bazel-ready): rules_distroless introduces a bunch of include directories that don't exist
@@ -55,7 +57,8 @@ CXXFLAGS_COMMON = CXXFLAGS_COMMON_MAKEFILE + CXXFLAGS_COMMON_BAZEL
 
 DBGFLAGS = select({
     "@sonic_build_infra//:debug_enabled": [
-        "-ggdb", "-gdwarf-5",
+        "-ggdb",
+        "-gdwarf-5",
     ],
     "//conditions:default": ["-g"],
 })

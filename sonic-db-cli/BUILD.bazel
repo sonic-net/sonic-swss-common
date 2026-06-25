@@ -1,17 +1,19 @@
-load("//bazel:flags.bzl", "DBGFLAGS", "CXXFLAGS_COMMON")
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("//bazel:flags.bzl", "CXXFLAGS_COMMON", "DBGFLAGS")
 
 cc_library(
-  name = "sonicdbcli",
-  srcs = ["sonic-db-cli.cpp"],
-  hdrs = ["sonic-db-cli.h"],
-  deps = ["//:libswsscommon"],
-  cxxopts = DBGFLAGS + CXXFLAGS_COMMON,
+    name = "sonicdbcli",
+    srcs = ["sonic-db-cli.cpp"],
+    hdrs = ["sonic-db-cli.h"],
+    cxxopts = DBGFLAGS + CXXFLAGS_COMMON,
+    deps = ["//:libswsscommon"],
 )
 
 cc_binary(
-  name = "sonic-db-cli",
-  srcs = ["main.cpp"],
-  deps = [":sonicdbcli"],
-  visibility = ["//visibility:public"],
-  cxxopts = DBGFLAGS + CXXFLAGS_COMMON,
+    name = "sonic-db-cli",
+    srcs = ["main.cpp"],
+    cxxopts = DBGFLAGS + CXXFLAGS_COMMON,
+    visibility = ["//visibility:public"],
+    deps = [":sonicdbcli"],
 )

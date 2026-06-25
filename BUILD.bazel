@@ -1,8 +1,10 @@
 load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@rules_distroless//distroless:defs.bzl", "flatten")
 load("@tar.bzl", "mtree_mutate", "mtree_spec", "tar")
 load("//bazel:always_link_transition.bzl", "alwayslink_cc_binary")
-load("//bazel:flags.bzl", "CXXFLAGS_COMMON", "DBGFLAGS")
+load("//bazel:flags.bzl", "CXXFLAGS_COMMON")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -11,16 +13,16 @@ exports_files(["LICENSE"])
 swss_common_hdrs = ["//common:hdrs"]
 
 swss_common_deps = [
-    "@bookworm//libhiredis-dev:libhiredis",
-    "@bookworm//nlohmann-json3-dev:nlohmann-json3",
+    "@trixie//libhiredis-dev:libhiredis",
+    "@trixie//nlohmann-json3-dev:nlohmann-json3",
     "@libnl3//:libnl_3",
     "@libnl3//:libnl_route_3",
     "@libnl3//:libnl_nf_3",
-    "@bookworm//libyang2-dev:libyang2",
-    "@bookworm//libzmq3-dev:libzmq3",
-    "@bookworm//uuid-dev:uuid",
-    "@bookworm//libboost-dev:libboost",
-    "@bookworm//libboost-serialization-dev:libboost-serialization",
+    "@trixie//libyang-dev:libyang",
+    "@trixie//libzmq3-dev:libzmq3",
+    "@trixie//uuid-dev:uuid",
+    "@trixie//libboost-dev:libboost",
+    "@trixie//libboost-serialization-dev:libboost-serialization",
 ]
 
 filegroup(
@@ -33,8 +35,8 @@ filegroup(
 # The symbols will come from the prebuilt .so file.
 # TODO Remove once the cc_shared_library version of swss_common works with rules_distroless.
 cc_library(
-  name = "common_deps",
-  deps = swss_common_deps,
+    name = "common_deps",
+    deps = swss_common_deps,
 )
 
 # Necessary for when we import swss_common as a dynamic .so file.
@@ -46,13 +48,13 @@ bool_flag(
 )
 
 config_setting(
-  name = "alwayslink_false",
-  flag_values = { ":alwayslink": "false" }
+    name = "alwayslink_false",
+    flag_values = {":alwayslink": "false"},
 )
 
 config_setting(
-  name = "alwayslink_true",
-  flag_values = { ":alwayslink": "true" }
+    name = "alwayslink_true",
+    flag_values = {":alwayslink": "true"},
 )
 
 cc_library(
@@ -67,8 +69,6 @@ cc_library(
         "common",
     ],
     linkopts = ["-lboost_serialization"],
-    # Approach 1:
-    deps = swss_common_deps,
     # Approach 2: BCR entries compiled from source
     # deps = [
     #     "@boost.algorithm",
@@ -78,13 +78,15 @@ cc_library(
     #     "@swig//:swig",
     # ],
     visibility = ["//visibility:public"],
+    # Approach 1:
+    deps = swss_common_deps,
     # Force all symbols to be included when linking into shared library
     # This is required for the consolidated .so to export all symbols needed by SWIG bindings
     # However, some builds like `sonic-swss` will refuse to link if they are always linked,
     # because symbols in `libcommon.a` will conflict with test mocks. Hence, the select()
     alwayslink = select({
-      ":alwayslink_true": True,
-      ":alwayslink_false": False,
+        ":alwayslink_true": True,
+        ":alwayslink_false": False,
     }),
 )
 
@@ -100,12 +102,6 @@ cc_library(
 # The :common library has alwayslink=True to ensure all symbols are exported
 cc_binary(
     name = "libswsscommon_consolidated_base",
-    srcs = [
-        # Include static libraries directly to force static linking and bypass linker scripts
-        "@@rules_distroless++apt+bookworm_libbsd-dev-amd64_0.11.7-2//:usr/lib/x86_64-linux-gnu/libbsd.a",
-        "@@rules_distroless++apt+bookworm_libmd-dev-amd64_1.0.4-2//:usr/lib/x86_64-linux-gnu/libmd.a",
-    ],
-    linkshared = True,
     linkopts = [
         "-static-libstdc++",
         "-static-libgcc",
@@ -113,17 +109,15 @@ cc_binary(
         # These are resolved at runtime when the .so is loaded
         "-Wl,--allow-shlib-undefined",
         "-Wl,--undefined-version",
-        # Exclude libbsd from dynamic linking - we use static .a files above
-        "-Wl,--exclude-libs,libbsd.a",
-        "-Wl,--exclude-libs,libmd.a",
     ],
+    linkshared = True,
     deps = [":common"],
 )
 
 # If we're building the consolidated binary, we always want to link it.
 alwayslink_cc_binary(
-  name = "libswsscommon_consolidated.so",
-  binary = "libswsscommon_consolidated_base",
+    name = "libswsscommon_consolidated.so",
+    binary = "libswsscommon_consolidated_base",
 )
 
 # Alias for compatibility with existing references
@@ -153,12 +147,12 @@ filegroup(
 cc_binary(
     name = "swssloglevel",
     srcs = ["//common:loglevel_srcs"],
-    deps = ["libswsscommon"],
+    cxxopts = CXXFLAGS_COMMON,
     linkopts = [
         "-Wl,-z,now",
     ],
-    cxxopts = CXXFLAGS_COMMON,
     linkstatic = True,
+    deps = ["libswsscommon"],
 )
 
 # libswsscommon deb-style distribution package
@@ -176,8 +170,8 @@ mtree_spec(
 mtree_mutate(
     name = "dist_lua_mtree",
     mtree = ":dist_lua_mtree_base",
-    strip_prefix = "common",
     package_dir = "usr/share/swss",
+    strip_prefix = "common",
 )
 
 tar(
@@ -186,19 +180,43 @@ tar(
     mtree = ":dist_lua_mtree",
 )
 
-# Loose files: shared library, config, and binaries
-tar(
+# Loose files: shared library, config, and binaries.
+#
+# The library lands in a multiarch directory, and tar()'s mtree attribute must be a
+# literal list rather than a select(). So we declare one tar per architecture and
+# select between them in the :dist_loose alias below.
+DIST_LOOSE_SRCS = [
+    ":libswsscommon_consolidated.so",
+    "//common:database_config.json",
+    ":swssloglevel",
+]
+
+DIST_LOOSE_COMMON_MTREE = [
+    "var/run/redis/sonic-db/database_config.json type=file content=$(location //common:database_config.json)",
+    "usr/bin/swssloglevel type=file mode=0755 content=$(location :swssloglevel)",
+]
+
+[
+    tar(
+        name = "dist_loose_" + cpu,
+        srcs = DIST_LOOSE_SRCS,
+        mtree = [
+            "usr/lib/{}/libswsscommon.so type=file content=$(location :libswsscommon_consolidated.so)".format(multiarch),
+        ] + DIST_LOOSE_COMMON_MTREE,
+        target_compatible_with = ["@platforms//cpu:" + cpu],
+    )
+    for cpu, multiarch in [
+        ("x86_64", "x86_64-linux-gnu"),
+        ("arm64", "aarch64-linux-gnu"),
+    ]
+]
+
+alias(
     name = "dist_loose",
-    srcs = [
-        ":libswsscommon_consolidated.so",
-        "//common:database_config.json",
-        ":swssloglevel",
-    ],
-    mtree = [
-        "usr/lib/x86_64-linux-gnu/libswsscommon.so type=file content=$(location :libswsscommon_consolidated.so)",
-        "var/run/redis/sonic-db/database_config.json type=file content=$(location //common:database_config.json)",
-        "usr/bin/swssloglevel type=file mode=0755 content=$(location :swssloglevel)",
-    ],
+    actual = select({
+        "@platforms//cpu:x86_64": ":dist_loose_x86_64",
+        "@platforms//cpu:arm64": ":dist_loose_arm64",
+    }),
 )
 
 flatten(
@@ -213,7 +231,7 @@ flatten(
 tar(
     name = "sonic-db-cli_pkg",
     srcs = [
-        "//sonic-db-cli:sonic-db-cli",
+        "//sonic-db-cli",
     ],
     mtree = [
         "usr/bin/sonic-db-cli type=file mode=0755 content=$(location //sonic-db-cli:sonic-db-cli)",
