@@ -149,7 +149,7 @@ void ProducerStateTable::set(const string &key, const vector<FieldValueTuple> &v
 
     args.insert(args.end(), values.size(), getStateHashPrefix() + getKeyName(key));
 
-    args.emplace_back("G");
+    args.emplace_back(SWSS_TABLE_UPDATE_NOTIFICATION);
     args.emplace_back(key);
     for (const auto& iv: values)
     {
@@ -185,7 +185,7 @@ void ProducerStateTable::del(const string &key, const string &op /*= DEL_COMMAND
     args.emplace_back(getKeySetName());
     args.emplace_back(getStateHashPrefix() + getKeyName(key));
     args.emplace_back(getDelKeySetName());
-    args.emplace_back("G");
+    args.emplace_back(SWSS_TABLE_UPDATE_NOTIFICATION);
     args.emplace_back(key);
     args.emplace_back("''");
     args.emplace_back("''");
@@ -228,7 +228,7 @@ void ProducerStateTable::set(const std::vector<KeyOpFieldsValuesTuple>& values)
     {
         args.emplace_back(kfvKey(value));
     }
-    args.emplace_back("G");
+    args.emplace_back(SWSS_TABLE_UPDATE_NOTIFICATION);
     for (const auto &value : values)
     {
         args.emplace_back(to_string(kfvFieldsValues(value).size()));
@@ -274,7 +274,7 @@ void ProducerStateTable::del(const std::vector<std::string>& keys)
     {
         args.emplace_back(key);
     }
-    args.emplace_back("G");
+    args.emplace_back(SWSS_TABLE_UPDATE_NOTIFICATION);
 
     // Invoke redis command
     RedisCommand command;
@@ -438,7 +438,7 @@ void ProducerStateTable::apply_temp_view()
     args.emplace_back(getDelKeySetName());
 
     vector<string> argvs;
-    argvs.emplace_back("G");
+    argvs.emplace_back(SWSS_TABLE_UPDATE_NOTIFICATION);
     argvs.emplace_back(to_string(keysToSet.size()));
     argvs.insert(argvs.end(), keysToSet.begin(), keysToSet.end());
     argvs.emplace_back(to_string(keysToDel.size()));

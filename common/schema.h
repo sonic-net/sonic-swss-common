@@ -9,6 +9,7 @@ namespace swss {
 
 /***** DATABASE *****/
 
+#define APPL_DB_NAME    "APPL_DB"
 #define APPL_DB         0
 #define ASIC_DB         1
 #define COUNTERS_DB     2
@@ -31,6 +32,15 @@ namespace swss {
 #define DPU_COUNTERS_DB     18
 #define EVENT_DB            19
 #define BMP_STATE_DB        20
+
+/***** TABLE NAMING *****/
+
+#define SWSS_TABLE_CHANNEL_SUFFIX           "_CHANNEL"
+#define SWSS_TABLE_CHANNEL_DB_SEPARATOR     "@"
+#define SWSS_TABLE_KEY_SET_SUFFIX           "_KEY_SET"
+#define SWSS_TABLE_DEL_SET_SUFFIX           "_DEL_SET"
+#define SWSS_TABLE_STATE_HASH_PREFIX        "_"
+#define SWSS_TABLE_UPDATE_NOTIFICATION      "G"
 
 /***** APPLICATION DATABASE *****/
 
@@ -55,6 +65,8 @@ namespace swss {
 #define APP_NEXTHOP_GROUP_TABLE_NAME      "NEXTHOP_GROUP_TABLE"
 #define APP_CLASS_BASED_NEXT_HOP_GROUP_TABLE_NAME "CLASS_BASED_NEXT_HOP_GROUP_TABLE"
 #define APP_EVPN_SPLIT_HORIZON_TABLE_NAME    "EVPN_SPLIT_HORIZON_TABLE"
+#define APP_EVPN_DF_TABLE_NAME               "EVPN_DF_TABLE"
+#define APP_EVPN_ES_BACKUP_NHG_TABLE_NAME    "EVPN_ES_BACKUP_NHG_TABLE"
 
 #define APP_P4RT_TABLE_NAME                   "P4RT_TABLE"
 #define APP_P4RT_TABLES_DEFINITION_TABLE_NAME "TABLES_DEFINITION_TABLE"
