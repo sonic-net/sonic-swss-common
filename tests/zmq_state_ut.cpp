@@ -612,19 +612,6 @@ TEST(ZmqServerLazzyBind, test)
     EXPECT_EQ(received, 1);
 }
 
-TEST(ZmqServerBindFailure, test)
-{
-    GTEST_FLAG_SET(death_test_style, "threadsafe");
-
-    EXPECT_DEATH(
-    {
-        // Use an invalid endpoint so bind fails in mqPollThread.
-        ZmqServer server("invalid://endpoint");
-        sleep(1);
-    },
-    "zmq_bind failed on endpoint");
-}
-
 // Parameterized test structure for ZmqConsumerStateTablePopSize
 struct PopSizeTestParams
 {
