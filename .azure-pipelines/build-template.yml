@@ -79,10 +79,9 @@ jobs:
       ${{ else }}:
         artifact: common-lib.${{ parameters.arch }}
       patterns: |
-        target/debs/${{ parameters.debian_version }}/libyang-*_1.0*.deb
-        target/debs/${{ parameters.debian_version }}/libyang_1.0*.deb
-        target/debs/${{ parameters.debian_version }}/libyang-cpp_*.deb
-        target/debs/${{ parameters.debian_version }}/python3-yang_*.deb
+        target/debs/${{ parameters.debian_version }}/libyang3_*.deb
+        target/debs/${{ parameters.debian_version }}/libyang-dev_3*.deb
+        target/debs/${{ parameters.debian_version }}/python3-libyang*.deb
     displayName: "Download libyang from ${{ parameters.arch }} common lib"
     condition: ne('${{ parameters.debian_version }}', 'trixie')
   - task: DownloadPipelineArtifact@2
@@ -90,24 +89,27 @@ jobs:
       source: specific
       project: build
       pipeline: Azure.sonic-buildimage.common_libs
-      runVersion: 'specific'
-      pipelineId: '926659'
+      runVersion: 'latestFromBranch'
+      runBranch: 'refs/heads/$(BUILD_BRANCH)'
       path: $(Build.ArtifactStagingDirectory)/download
       ${{ if eq(parameters.arch, 'amd64') }}:
         artifact: common-lib
       ${{ else }}:
         artifact: common-lib.${{ parameters.arch }}
       patterns: |
-        target/debs/${{ parameters.debian_version }}/libyang-*_1.0*.deb
-        target/debs/${{ parameters.debian_version }}/libyang_1.0*.deb
-        target/debs/${{ parameters.debian_version }}/libyang-cpp_*.deb
-        target/debs/${{ parameters.debian_version }}/python3-yang_*.deb
+        target/debs/${{ parameters.debian_version }}/libyang3_*.deb
+        target/debs/${{ parameters.debian_version }}/libyang-dev_3*.deb
+        target/debs/${{ parameters.debian_version }}/python3-libyang*.deb
         target/debs/${{ parameters.debian_version }}/libpcre*.deb
     displayName: "Download libyang from ${{ parameters.arch }} common lib"
     condition: eq('${{ parameters.debian_version }}', 'trixie')
   - script: |
       set -ex
       sudo dpkg -i $(find ./download -name *.deb)
+      # common-lib doesn't publish python3-libyang (LIBYANG3_PY3 isn't in
+      # slave.mk's lib-packages), so install the CFFI bindings from PyPI;
+      # they link against the libyang3 we just installed.
+      sudo pip3 install --no-build-isolation 'libyang==3.3.0'
     workingDirectory: $(Build.ArtifactStagingDirectory)
     displayName: "Install libyang from common lib"
   - task: DownloadPipelineArtifact@2
