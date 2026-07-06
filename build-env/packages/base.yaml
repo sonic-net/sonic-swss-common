@@ -15,7 +15,10 @@ packages:
   # sonic-specific patches and is downloaded from the common-libs artifact
   # instead -- see upstream-artifacts.yaml. Never apt-install libnl where
   # common-libs provides it (it does, for all arches).
-  - swig
+  # swig: the sonic-slave-* containers ship 'swig'; Ubuntu 22.04 (jammy, the one
+  # non-container CI job) needs 'swig4.0'. host_os selects the right one.
+  - { name: swig,    when: { host_os: { not: ubuntu-22.04 } } }
+  - { name: swig4.0, when: { host_os: ubuntu-22.04 } }
 
   # libyang Python (CFFI) bindings. common-lib ships the libyang3 C library DEBs
   # (see upstream-artifacts.yaml); the Python bindings come from PyPI and are
