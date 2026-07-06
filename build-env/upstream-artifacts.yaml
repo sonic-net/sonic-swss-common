@@ -9,8 +9,10 @@
 
 upstream:
   # ------------------------------------------------------------------ #
-  # libyang3 DEBs from the common-libs build (latest on the branch).
-  # (sonic-swss-common migrated to libyang3 in sonic-net/sonic-swss-common#1206.)
+  # SONiC-patched libnl + libyang3 DEBs from the common-libs build (latest on the
+  # branch). libnl carries sonic-specific patches, so it MUST come from here, not
+  # apt (see base.yaml). (sonic-swss-common migrated to libyang3 in
+  # sonic-net/sonic-swss-common#1206.)
   # ------------------------------------------------------------------ #
   - name: common-libs
     project: build
@@ -23,6 +25,17 @@ upstream:
       - { when: { arch: amd64 },        value: 'common-lib' }
       - { when: { arch: { not: amd64 } }, value: 'common-lib.{arch}' }
     debs:
+      # libnl (SONiC-patched, 3.x-0.2+b1sonicN): MUST come from common-libs, never
+      # apt -- carries sonic-specific patches. common-lib publishes the full libnl
+      # family for ALL arches (amd64/armhf/arm64). Broad globs pick up runtime +
+      # -dev + -dbgsym. libnl-cli is included so downstream consumers that need it
+      # (e.g. sonic-sairedis on arm) inherit it via the cascade.
+      - 'target/debs/{debian_version}/libnl-3*.deb'
+      - 'target/debs/{debian_version}/libnl-genl*.deb'
+      - 'target/debs/{debian_version}/libnl-route*.deb'
+      - 'target/debs/{debian_version}/libnl-nf*.deb'
+      - 'target/debs/{debian_version}/libnl-cli*.deb'
+      # libyang3 C library + dev headers + python3 bindings.
       - 'target/debs/{debian_version}/libyang3_*.deb'
       - 'target/debs/{debian_version}/libyang-dev_3*.deb'
       - 'target/debs/{debian_version}/python3-libyang*.deb'

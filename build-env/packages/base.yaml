@@ -10,10 +10,11 @@
 packages:
   # --- C/C++ build dependencies (installed today by build-template.yml) ------
   - libhiredis-dev
-  - libnl-3-dev
-  - libnl-genl-3-dev
-  - libnl-route-3-dev
-  - libnl-nf-3-dev
+  # NOTE: libnl is intentionally NOT apt-installed. The SONiC-patched libnl
+  # (libnl-{3,genl,route,nf,cli}-*, version 3.x-0.2+b1sonicN) carries
+  # sonic-specific patches and is downloaded from the common-libs artifact
+  # instead -- see upstream-artifacts.yaml. Never apt-install libnl where
+  # common-libs provides it (it does, for all arches).
   - swig
 
   # libyang Python (CFFI) bindings. common-lib ships the libyang3 C library DEBs
