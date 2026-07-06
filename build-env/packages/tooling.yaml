@@ -1,0 +1,15 @@
+# sonic-swss-common Build-stage-only tooling (does NOT cascade downstream).
+#
+# These are packages/config needed only by sonic-swss-common's own Build-stage
+# unit tests and coverage, not by repos that build against libswsscommon.
+# Consumed by `buildenv_setup --scope build`.
+
+packages:
+  - { name: Pympler==0.8, type: pip }   # used by the python unit tests
+  - { name: pytest, type: pip }
+
+post_install:
+  - name: mkdir-yang-models
+    script: |
+      sudo mkdir -p /usr/local/yang-models
+    scopes: [build]

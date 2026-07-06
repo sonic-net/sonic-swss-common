@@ -1,0 +1,47 @@
+# sonic-swss-common build dependencies (apt + pip).
+#
+# base.yaml CASCADES: repos downstream of sonic-swss-common (sonic-sairedis,
+# sonic-swss) that build against libswsscommon inherit everything declared here,
+# so it should list what is needed to build *and link against* this repo.
+#
+# Consumed by `buildenv_setup --scope build` (and, via the cascade, by the VS
+# test host under `--scope test`).
+
+packages:
+  # --- C/C++ build dependencies (installed today by build-template.yml) ------
+  - libhiredis-dev
+  - libnl-3-dev
+  - libnl-genl-3-dev
+  - libnl-route-3-dev
+  - libnl-nf-3-dev
+  - swig
+
+  # libyang Python (CFFI) bindings. common-lib ships the libyang3 C library DEBs
+  # (see upstream-artifacts.yaml); the Python bindings come from PyPI and are
+  # built against that system libyang3, so they must install AFTER the DEB
+  # (requires: libyang3) with build isolation disabled. Mirrors the
+  # `pip3 install --no-build-isolation libyang==3.3.0` step in build-template.yml.
+  - name: libyang==3.3.0
+    type: pip
+    pip_args: [--no-build-isolation]
+    requires: [libyang3]
+
+  # redis-server is required to run sonic-swss-common's unit tests during the
+  # Build stage, and by downstream VS test hosts. Kept in base.yaml (cascades)
+  # per the design; the test-config for it is applied via post_install below.
+  - redis-server
+
+post_install:
+  # Configure the system redis for sonic-swss-common's tests.
+  #
+  # NOTE (design finding F11): for now this single cascading script carries
+  # sonic-swss-common's *full* redis test-config. When sonic-sairedis /
+  # sonic-swss are onboarded, split it: keep the truly-common lines
+  # (unixsocket / unixsocketperm) here in the cascading base.yaml entry, and
+  # move the sonic-swss-common-specific deltas (notify-keyspace-events, the
+  # redis-server.sock -> redis.sock rename) into a NON-cascading tooling.yaml
+  # entry so they are not forced onto sonic-sairedis (which does not set them).
+  - name: configure-redis-for-tests
+    source: configure-redis-for-tests.sh
+    requires: [redis-server]        # run after redis-server is installed
+    scopes: [build, test]           # applied on the Build host AND the VS test host
