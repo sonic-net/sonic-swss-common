@@ -15,6 +15,9 @@ upstream:
   - name: common-libs
     project: build
     pipeline: Azure.sonic-buildimage.common_libs
+    branch: master          # TEMPORARY (PoC): pin to master — the common_libs
+                            # pipeline has no lawlee/ci-unify branch. Remove this
+                            # line before merge so it tracks BUILD_BRANCH again.
     cascade_optional: true
     artifact_name:
       - { when: { arch: amd64 },        value: 'common-lib' }
@@ -34,6 +37,9 @@ upstream:
   - name: sonic-buildimage-vs
     project: build
     pipeline: '142'
+    branch: master          # TEMPORARY (PoC): pin to master — pipeline 142 has no
+                            # lawlee/ci-unify branch. Remove before merge so it
+                            # tracks BUILD_BRANCH again.
     artifact_name: 'sonic-buildimage.vs'
     cascade_optional: true
     wheels:
