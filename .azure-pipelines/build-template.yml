@@ -50,7 +50,10 @@ jobs:
       vmImage: 'ubuntu-22.04'
 
   container:
-    image: sonicdev-microsoft.azurecr.io:443/sonic-slave-${{ parameters.debian_version }}:$(BUILD_BRANCH)-${{ parameters.arch }}
+    # TEMPORARY (PoC): pin the sonic-slave image tag to `master` instead of
+    # $(BUILD_BRANCH). Only master-tagged slave images are published; the
+    # lawlee/ci-unify feature branch has no image. Restore $(BUILD_BRANCH) before merge.
+    image: sonicdev-microsoft.azurecr.io:443/sonic-slave-${{ parameters.debian_version }}:master-${{ parameters.arch }}
 
   steps:
   - checkout: self
