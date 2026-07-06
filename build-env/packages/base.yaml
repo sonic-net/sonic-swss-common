@@ -36,16 +36,22 @@ packages:
   - redis-server
 
 post_install:
-  # Configure the system redis for sonic-swss-common's tests.
+  # Configure the system redis for tests.
   #
-  # NOTE (design finding F11): for now this single cascading script carries
-  # sonic-swss-common's *full* redis test-config. When sonic-sairedis /
-  # sonic-swss are onboarded, split it: keep the truly-common lines
-  # (unixsocket / unixsocketperm) here in the cascading base.yaml entry, and
-  # move the sonic-swss-common-specific deltas (notify-keyspace-events, the
-  # redis-server.sock -> redis.sock rename) into a NON-cascading tooling.yaml
-  # entry so they are not forced onto sonic-sairedis (which does not set them).
+  # scopes: [test] ONLY (deliberately NOT build). swss-common's Build stage must
+  # NOT bring up the unixsocket redis at build-env setup time: the Rust
+  # `logger_init_without_redis` test (crates/swss-common/tests/logger_fallback.rs)
+  # asserts logger init fails when redis is unreachable, and it runs during
+  # `cargo test`. If the unixsocket redis is already up, that test fails. So the
+  # Build stage runs this SAME script INLINE (see .azure-pipelines/build-template.yml)
+  # AFTER cargo and before the C++/pytest tests. Here the entry applies only to the
+  # VS test host (--scope test) via the base.yaml cascade.
+  #
+  # NOTE (design finding F11): this single script carries sonic-swss-common's full
+  # redis test-config. When sonic-swss onboards its VS Test stage, revisit whether
+  # to split the common lines (unixsocket/unixsocketperm) from the sonic-swss-common
+  # deltas (notify-keyspace-events, redis-server.sock -> redis.sock).
   - name: configure-redis-for-tests
     source: configure-redis-for-tests.sh
     requires: [redis-server]        # run after redis-server is installed
-    scopes: [build, test]           # applied on the Build host AND the VS test host
+    scopes: [test]                  # VS test host only; Build stage runs it inline

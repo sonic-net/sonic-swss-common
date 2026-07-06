@@ -87,17 +87,20 @@ jobs:
         sudo dpkg -i python3-swsscommon_*.deb
 
         ps aux
-        # The redis test-config is applied at build-env setup time (via the
-        # configure-redis-for-tests post_install hook), so the system redis is
-        # already running on the shared unixsocket. The Rust `logger_init_without_redis`
-        # test asserts that logger init FAILS when redis is unreachable, so stop the
-        # system redis around the cargo tests. Redis-dependent Rust tests spawn their
-        # own ephemeral redis (swss-common-testing), so they are unaffected; restart
-        # the system redis afterwards for the C++ / pytest tests below.
-        sudo service redis-server stop
+        # Run the Rust tests BEFORE bringing up the unixsocket redis. redis-server is
+        # installed (base.yaml) and running on TCP only at this point — the SONiC
+        # database_config unixsocket is NOT up yet — so the Rust
+        # `logger_init_without_redis` test (crates/swss-common/tests/logger_fallback.rs)
+        # correctly sees redis as unreachable and passes. Redis-dependent Rust tests
+        # spawn their own ephemeral redis via swss-common-testing, so they are fine.
         cargo test           --workspace --all-features
         cargo test --release --workspace --all-features
-        sudo service redis-server start
+
+        # Bring up the unixsocket redis for the C++ / pytest tests below. This is the
+        # same shared script buildenv_setup runs on the VS test host (via the
+        # configure-redis-for-tests post_install, scope test); the Build stage runs it
+        # INLINE here because it must happen AFTER cargo, not at build-env setup time.
+        ./build-env/configure-redis-for-tests.sh
 
         ./tests/tests
         redis-cli FLUSHALL
