@@ -113,6 +113,29 @@ def _pip_batches(pip_specs: List[Tuple[str, Tuple[str, ...]]]):
     return batches
 
 
+def _deb_install_groups(artifacts) -> List[dict]:
+    """Group every artifact's DEBs by install_env signature into single dpkg -i
+    calls (see run() step 3 for rationale). Returns groups ordered so that the
+    empty-install_env group (the usual library providers such as libnl/libyang3/
+    libswsscommon) is installed before any special-install_env group (e.g. vpp).
+    Within a group, dpkg_args are unioned and apt_fix_broken is ORed."""
+    deb_groups: "OrderedDict[tuple, dict]" = OrderedDict()
+    for art in artifacts:
+        env_sig = tuple(sorted((art.install_env or {}).items()))
+        for deb in art.deb_files:
+            dpkg_args, fix = art.deb_opts.get(deb, ([], False))
+            g = deb_groups.get(env_sig)
+            if g is None:
+                g = {"files": [], "args": [], "fix": False, "env": dict(art.install_env or {})}
+                deb_groups[env_sig] = g
+            g["files"].append(deb)
+            for a in dpkg_args:
+                if a not in g["args"]:
+                    g["args"].append(a)
+            g["fix"] = g["fix"] or fix
+    return [deb_groups[sig] for sig in sorted(deb_groups, key=len)]
+
+
 def run(
     ctx: Context,
     repo_dir: str,
@@ -168,17 +191,19 @@ def run(
     # 2. apt install
     executor.apt_install(apt_names)
 
-    # 3. upstream DEBs (dpkg -i), before pip (F6). Install each artifact's DEBs
-    #    in a single dpkg -i call so inter-DEB dependencies resolve regardless of
-    #    filename order (e.g. libyang-dev depends on libyang3).
-    for art in artifacts:
-        groups: "OrderedDict[tuple, List[str]]" = OrderedDict()
-        for deb in art.deb_files:
-            dpkg_args, fix = art.deb_opts.get(deb, ([], False))
-            groups.setdefault((tuple(dpkg_args), fix), []).append(deb)
-        for (dpkg_args, fix), files in groups.items():
-            executor.dpkg_install(files, dpkg_args=list(dpkg_args),
-                                  apt_fix_broken=fix, env=art.install_env)
+    # 3. upstream DEBs (dpkg -i), before pip (F6). Group DEBs across ALL artifacts
+    #    by their install_env signature and install each group in ONE dpkg -i call,
+    #    so inter-DEB dependencies resolve regardless of declaration/filename order
+    #    — including cross-artifact deps, e.g. libswsscommon (sonic-swss-common)
+    #    depends on libnl-nf-3-200 + libyang3 (common-libs). dpkg unpacks the whole
+    #    set before configuring, so it orders configuration itself. Only a differing
+    #    install_env forces a separate call (e.g. vpp needs VPP_INSTALL_SKIP_SYSCTL=1
+    #    during its maintainer scripts); dpkg_args are unioned and apt_fix_broken is
+    #    ORed within a group. Empty-install_env groups (the usual library providers)
+    #    install first, before any special-env group.
+    for g in _deb_install_groups(artifacts):
+        executor.dpkg_install(g["files"], dpkg_args=g["args"],
+                              apt_fix_broken=g["fix"], env=g["env"])
 
     # 4. pip packages + wheels
     for names, args in _pip_batches(pip_specs):
