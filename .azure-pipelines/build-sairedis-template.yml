@@ -89,11 +89,6 @@ jobs:
         docbook-utils \
         aspell-en \
         libhiredis-dev \
-        libnl-3-dev \
-        libnl-genl-3-dev \
-        libnl-route-3-dev \
-        libnl-nf-3-dev \
-        libnl-cli-3-dev \
         swig4.0 \
         libzmq3-dev
 
@@ -120,11 +115,20 @@ jobs:
       runBranch: 'refs/heads/master'
       path: $(Build.ArtifactStagingDirectory)/download
       artifact: common-lib
+      # libnl MUST come from common-lib (SONiC-patched 3.7.0-0.2+b1sonicN), not apt:
+      # the swss-common .deb built by the Build stage now depends on the +b1sonicN
+      # libnl (swss-common's build-env downloads it from common-lib), and apt only
+      # has the stock +b1 build, so `dpkg -i libswsscommon` would fail its libnl dep.
       patterns: |
+        target/debs/${{ parameters.debian_version }}/libnl-3*.deb
+        target/debs/${{ parameters.debian_version }}/libnl-genl*.deb
+        target/debs/${{ parameters.debian_version }}/libnl-route*.deb
+        target/debs/${{ parameters.debian_version }}/libnl-nf*.deb
+        target/debs/${{ parameters.debian_version }}/libnl-cli*.deb
         target/debs/${{ parameters.debian_version }}/libyang3_*.deb
         target/debs/${{ parameters.debian_version }}/libyang-dev_3*.deb
         target/debs/${{ parameters.debian_version }}/python3-libyang*.deb
-    displayName: "Download libyang from common lib"
+    displayName: "Download libnl + libyang from common lib"
   - script: |
       set -ex
       sudo dpkg -i $(find ./download -name *.deb)
