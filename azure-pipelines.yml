@@ -52,57 +52,9 @@ stages:
 - stage: Build
 
   jobs:
-  - job:
-    displayName: "amd64/ubuntu-22.04"
-    pool:
-      vmImage: 'ubuntu-22.04'
-
-    steps:
-    - script: |
-        set -ex
-        # Bootstrap the tool's own runtime deps (buildenv_setup needs PyYAML + requests).
-        sudo apt-get update
-        sudo apt-get install -qq -y python3-yaml python3-requests
-        # buildenv_setup lives in this repo's ci/ (sonic-swss-common hosts the shared
-        # tool), so run it straight from the checkout. --host-os ubuntu-22.04 selects
-        # the jammy package variants (swig4.0 + the vmImage build toolchain that the
-        # sonic-slave-* containers bake in); --debian-version selects which
-        # common-libs / sonic-buildimage artifacts to fetch (bookworm DEBs/wheels
-        # installed on jammy, as before). It apt/pip-installs deps, downloads +
-        # installs the SONiC libnl + libyang3 DEBs and the sonic-yang wheels, and runs
-        # the redis / yang-models post-install hooks.
-        PYTHONPATH=$(Build.SourcesDirectory)/ci python3 -m buildenv_setup \
-          --repo-dir $(Build.SourcesDirectory) \
-          --scope build \
-          --host-os ubuntu-22.04 \
-          --debian-version ${{ parameters.debian_version }} \
-          --branch $(BUILD_BRANCH)
-      displayName: "Set up build environment (buildenv_setup)"
-      env:
-        SYSTEM_ACCESSTOKEN: $(System.AccessToken)
-    - script: |
-        set -ex
-        # Special-case CLI-driven installs that don't fit the packages/*.yaml schema
-        # (see design doc): compile the gtest sources shipped by libgtest-dev, and
-        # install the bazelisk binary (provides `bazel`). libgtest-dev/libgmock-dev +
-        # cmake are apt-installed by buildenv_setup (packages/tooling.yaml, jammy).
-        cd /usr/src/gtest && sudo cmake . && sudo make
-        ARCH=$(dpkg --print-architecture)
-        sudo curl -fsSL -o /usr/local/bin/bazel \
-            https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-${ARCH}
-        sudo chmod 755 /usr/local/bin/bazel
-      displayName: "Compile gtest + install bazelisk"
-    - script: |
-        ./autogen.sh
-        dpkg-buildpackage -us -uc -Pnopython2 -b -j$(nproc) && cp ../*.deb .
-      displayName: "Compile sonic swss common"
-    - script: |
-        bazel build //...
-        bazel test //...
-      displayName: "Compile and test all Bazel targets"
-    - publish: $(System.DefaultWorkingDirectory)/
-      artifact: sonic-swss-common.amd64.ubuntu22_04
-      displayName: "Archive swss common debian packages"
+  - template: .azure-pipelines/build-ubuntu-template.yml
+    parameters:
+      debian_version: ${{ parameters.debian_version }}
 
   - template: .azure-pipelines/build-template.yml
     parameters:
