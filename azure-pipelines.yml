@@ -32,6 +32,10 @@ resources:
     type: github
     name: sonic-net/sonic-sairedis
     endpoint: sonic-net
+    # TEMPORARY (PoC): pin the sonic-sairedis resource ref to the POC branch so
+    # BuildSairedis reuses sairedis's build-template.yml + build-env from
+    # lawlee/ci-unify. Restore the default (drop this line) before merge.
+    ref: refs/heads/lawlee/ci-unify
   - repository: sonic-swss
     type: github
     name: sonic-net/sonic-swss
@@ -114,8 +118,14 @@ stages:
   dependsOn: Build
   condition: succeeded('Build')
   jobs:
-  - template: .azure-pipelines/build-sairedis-template.yml
+  # PoC: reuse sonic-sairedis's OWN build template (+ its buildenv_setup dependency
+  # cascade) instead of a swss-common-local copy. This is the build-template-reuse +
+  # dependency-inheritance demonstration: sairedis is built by its own template
+  # (referenced from the sonic-sairedis resource), inheriting swss-common's build
+  # environment via the cascade, all from swss-common's pipeline.
+  - template: .azure-pipelines/build-template.yml@sonic-sairedis
     parameters:
+      repo: sonic-sairedis
       arch: amd64
       swss_common_artifact_name: sonic-swss-common-${{ parameters.debian_version }}
       artifact_name: sonic-sairedis-${{ parameters.debian_version }}
