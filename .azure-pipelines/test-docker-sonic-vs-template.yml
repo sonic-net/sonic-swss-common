@@ -12,7 +12,9 @@ parameters:
 
 - name: sonic_buildimage_ubuntu22_04
   type: string
-  default: '$(BUILD_BRANCH)'
+  # TEMPORARY (PoC): pin to master; the sonic-buildimage-ubuntu22.04 pipeline has no
+  # lawlee/ci-unify branch. Restore '$(BUILD_BRANCH)' before merge.
+  default: 'master'
 
 jobs:
 - job:
@@ -31,7 +33,10 @@ jobs:
   - script: |
       set -ex
       cd sonic-swss
-      git checkout $(BUILD_BRANCH)
+      # TEMPORARY (PoC): check out `master` instead of $(BUILD_BRANCH). sonic-swss
+      # has no lawlee/ci-unify branch on the sonic-net remote. Restore $(BUILD_BRANCH)
+      # before merge.
+      git checkout master
     displayName: Set up sonic-swss branch
   - task: DownloadPipelineArtifact@2
     inputs:
@@ -49,7 +54,9 @@ jobs:
       project: build
       pipeline: Azure.sonic-buildimage.common_libs
       runVersion: 'latestFromBranch'
-      runBranch: 'refs/heads/$(BUILD_BRANCH)'
+      # TEMPORARY (PoC): pin to refs/heads/master; the common_libs pipeline has no
+      # lawlee/ci-unify branch. Restore refs/heads/$(BUILD_BRANCH) before merge.
+      runBranch: 'refs/heads/master'
       path: $(Build.ArtifactStagingDirectory)/download
       artifact: common-lib
       patterns: |

@@ -56,7 +56,9 @@ jobs:
       pipeline: sonic-net.sonic-dash-api
       artifact: sonic-dash-api
       runVersion: 'latestFromBranch'
-      runBranch: 'refs/heads/$(BUILD_BRANCH)'
+      # TEMPORARY (PoC): pin to refs/heads/master; sonic-dash-api has no
+      # lawlee/ci-unify branch. Restore refs/heads/$(BUILD_BRANCH) before merge.
+      runBranch: 'refs/heads/master'
       path: $(Build.ArtifactStagingDirectory)/download
       patterns: |
         libdashapi*.deb
@@ -68,7 +70,9 @@ jobs:
       pipeline: Azure.sonic-buildimage.official.vs
       artifact: sonic-buildimage.vs
       runVersion: 'latestFromBranch'
-      runBranch: 'refs/heads/$(BUILD_BRANCH)'
+      # TEMPORARY (PoC): pin to refs/heads/master; this base-image pipeline has no
+      # lawlee/ci-unify branch. Restore refs/heads/$(BUILD_BRANCH) before merge.
+      runBranch: 'refs/heads/master'
       path: $(Build.ArtifactStagingDirectory)/download
       patterns: '**/target/docker-sonic-vs.gz'
     displayName: "Download sonic-buildimage docker-sonic-vs"
