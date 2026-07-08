@@ -126,6 +126,10 @@ stages:
   - template: .azure-pipelines/build-template.yml@sonic-sairedis
     parameters:
       repo: sonic-sairedis
+      # Use THIS run's swss-common (built in the Build stage) for the cascade, not the
+      # latest completed external run -- so a swss-common change that breaks sairedis
+      # is caught here.
+      stage_swss_common: true
       arch: amd64
       swss_common_artifact_name: sonic-swss-common-${{ parameters.debian_version }}
       artifact_name: sonic-sairedis-${{ parameters.debian_version }}
