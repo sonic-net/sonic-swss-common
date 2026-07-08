@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set
 
 from .azp_client import ArtifactRef, AzpClient
-from .model import Context, Deb, Upstream, UpstreamFile, Wheel
+from .model import Context, Upstream, UpstreamFile
 from .predicates import evaluate, substitute
 
 log = logging.getLogger(__name__)

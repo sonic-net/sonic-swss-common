@@ -9,7 +9,7 @@ from buildenv_setup.cascade import (
     resolve_upstream_file,
 )
 from buildenv_setup.azp_client import ArtifactRef
-from buildenv_setup.model import Context, Deb, Upstream, UpstreamFile, Wheel
+from buildenv_setup.model import Context, Deb, Upstream, UpstreamFile
 
 BOOK_AMD = Context("amd64", "bookworm", "bookworm-container", "build", "master")
 TRIXIE = Context("amd64", "trixie", "trixie-container", "build", "master")

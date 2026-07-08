@@ -16,7 +16,7 @@ import logging
 import os
 import tempfile
 from collections import OrderedDict
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 from .azp_client import AzpClient
 from .cascade import collect_bundles, resolve_upstream_file
