@@ -76,6 +76,20 @@ jobs:
       path: $(Build.ArtifactStagingDirectory)/download
       patterns: '**/target/docker-sonic-vs.gz'
     displayName: "Download sonic-buildimage docker-sonic-vs"
+  # BuildSairedis reuses sonic-sairedis's build template -> vpp-enabled libsaivs.
+  # Download the SONiC platform-vpp debs so the cp step below copies them into the
+  # image, where the Dockerfile's vpp block installs them.
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      source: specific
+      project: build
+      pipeline: sonic-net.sonic-platform-vpp
+      artifact: vpp-bookworm
+      runVersion: 'latestFromBranch'
+      runBranch: 'refs/heads/master'
+      allowPartiallySucceededBuilds: true
+      path: $(Build.ArtifactStagingDirectory)/download
+    displayName: "Download sonic platform-vpp deb packages"
   - script: |
       set -ex
       echo $(Build.DefinitionName).$(Build.BuildNumber)

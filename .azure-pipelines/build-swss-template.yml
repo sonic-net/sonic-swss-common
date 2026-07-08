@@ -136,13 +136,36 @@ jobs:
       patterns: |
         libdashapi*.deb
     displayName: "Download sonic-dash-api"
+  # BuildSairedis now reuses sonic-sairedis's build template, which produces a
+  # vpp-enabled sonic-sairedis (libsaivs depends on vpp/libvppinfra). Download the
+  # SONiC platform-vpp packages so the vpp-dependent libsaivs can be configured.
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      source: specific
+      project: build
+      pipeline: sonic-net.sonic-platform-vpp
+      artifact: vpp-${{ parameters.debian_version }}
+      runVersion: 'latestFromBranch'
+      runBranch: 'refs/heads/master'
+      allowPartiallySucceededBuilds: true
+      path: $(Build.ArtifactStagingDirectory)/download
+    displayName: "Download sonic platform-vpp deb packages"
+    condition: eq('${{ parameters.arch }}', 'amd64')
 
   - script: |
       set -ex
+      # Install vpp first (VPP_INSTALL_SKIP_SYSCTL=1, in dependency order) so the
+      # vpp-dependent libsaivs from the reused sairedis build configures cleanly.
+      if ls download/vpp_*_${{ parameters.arch }}.deb >/dev/null 2>&1; then
+        for p in libvppinfra-dev libvppinfra vpp vpp-crypto-engines vpp-dbg vpp-dev \
+                 vpp-plugin-core vpp-plugin-devtools vpp-plugin-dpdk python3-vpp-api; do
+          sudo env VPP_INSTALL_SKIP_SYSCTL=1 dpkg -i download/${p}_*_${{ parameters.arch }}.deb
+        done
+      fi
       sudo dpkg -i $(find ./download -name *.deb)
       rm -rf download || true
     workingDirectory: $(Build.ArtifactStagingDirectory)
-    displayName: "Install libnl3, libyang, sonic swss common, and sairedis"
+    displayName: "Install libnl3, libyang, sonic swss common, sairedis, vpp"
   - script: |
       set -ex
       rm ../*.deb || true
