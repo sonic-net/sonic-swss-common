@@ -330,9 +330,14 @@ TEST(Notifications, LruDedupPolicyConstructorAndLabelPropagation)
     send("fdb_event");
     send("fdb_event");    // byte-identical to first -- LruDedup should collapse
 
-    // Drain so processReply is invoked.
+    // Drain so processReply is invoked. Both messages are delivered over Redis
+    // pub/sub, but the second reply may not have arrived by the time the first
+    // select() returns -- especially under load. LruDedup collapses the two
+    // byte-identical messages into a single queued item, so stopping at the first
+    // pop races the second reply and can observe received==1. Keep draining until
+    // both messages have been received (processReply'd), or we time out.
     size_t pops = 0;
-    for (int i = 0; i < 50 && pops == 0; ++i) {
+    for (int i = 0; i < 100 && nc.getStats().received < 2; ++i) {
         swss::Selectable *sel = nullptr;
         if (s.select(&sel, 100 /* ms */) == swss::Select::TIMEOUT) continue;
         std::deque<swss::KeyOpFieldsValuesTuple> vkco;
