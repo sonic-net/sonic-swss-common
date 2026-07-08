@@ -154,15 +154,10 @@ jobs:
 
   - script: |
       set -ex
-      # Install vpp first (VPP_INSTALL_SKIP_SYSCTL=1, in dependency order) so the
-      # vpp-dependent libsaivs from the reused sairedis build configures cleanly.
-      if ls download/vpp_*_${{ parameters.arch }}.deb >/dev/null 2>&1; then
-        for p in libvppinfra-dev libvppinfra vpp vpp-crypto-engines vpp-dbg vpp-dev \
-                 vpp-plugin-core vpp-plugin-devtools vpp-plugin-dpdk python3-vpp-api; do
-          sudo env VPP_INSTALL_SKIP_SYSCTL=1 dpkg -i download/${p}_*_${{ parameters.arch }}.deb
-        done
-      fi
-      sudo dpkg -i $(find ./download -name *.deb)
+      # Install everything in one dpkg -i so dependencies configure in the right order
+      # (libnl -> vpp -> libsaivs). VPP_INSTALL_SKIP_SYSCTL=1 lets vpp's postinst run
+      # in CI (BuildSairedis reuses sairedis's template -> vpp-enabled libsaivs).
+      sudo env VPP_INSTALL_SKIP_SYSCTL=1 dpkg -i $(find ./download -name *.deb)
       rm -rf download || true
     workingDirectory: $(Build.ArtifactStagingDirectory)
     displayName: "Install libnl3, libyang, sonic swss common, sairedis, vpp"
