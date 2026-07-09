@@ -212,10 +212,14 @@ def run(
         for wheel in art.wheel_files:
             executor.pip_install(wheel)
 
-    # 5. post_install (cascaded upstream first, then local base, then tooling)
+    # 5. post_install (cascaded upstream first, then local base, then tooling).
+    #    search_dirs lets an entry's source: resolve from a cascaded upstream bundle
+    #    when it isn't present locally, so a shared hook lives in one repo (the cascade
+    #    root) and consumers reuse it without copying the script body.
     ordered_post = cascaded_post + [p for f in local_files for p in f.post_install]
+    cascaded_build_envs = [os.path.join(a.bundle_dir, "build-env") for a in artifacts]
     for entry in select_post_install(ordered_post, ctx):
-        script = resolve_script(entry)
+        script = resolve_script(entry, search_dirs=cascaded_build_envs)
         log.info("post_install: %s", entry.name)
         executor.run_script(script)
 
