@@ -159,11 +159,15 @@ def collect_bundles(
     staged_dir: Optional[str] = None,
     required_staged: Optional[Set[str]] = None,
     _seen: Optional[Set[str]] = None,
+    _used_staged: Optional[Set[str]] = None,
 ) -> List[InstalledArtifact]:
     """Fetch/stage every resolved upstream, glob files, and recurse (cascade)."""
     required_staged = required_staged or set()
     seen = _seen if _seen is not None else set()
-    used_staged: Set[str] = getattr(collect_bundles, "_used", set()) if _seen is not None else set()
+    # Thread the used-staged accumulator explicitly through the recursion so a
+    # staged upstream referenced only via a NESTED bundle is still recorded as used
+    # (avoids a false "required staged upstream not used" error).
+    used_staged: Set[str] = _used_staged if _used_staged is not None else set()
 
     out: List[InstalledArtifact] = []
     for ru in resolve_upstream_file(upfile, ctx):
@@ -193,7 +197,7 @@ def collect_bundles(
                 collect_bundles(
                     load_upstream_file(nested_up), ctx,
                     client=client, work_dir=work_dir, staged_dir=staged_dir,
-                    required_staged=required_staged, _seen=seen,
+                    required_staged=required_staged, _seen=seen, _used_staged=used_staged,
                 )
             )
         elif not ru.cascade_optional:

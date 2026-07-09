@@ -15,7 +15,7 @@ Compatibility policy (design doc / F3):
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import yaml
 
@@ -61,6 +61,30 @@ def _as_entry(raw: Any) -> Dict[str, Any]:
     raise SchemaError(f"expected string or mapping, got {type(raw).__name__}: {raw!r}")
 
 
+def _as_str_list(value: Any, where: str, field: str) -> List[str]:
+    """Validate a YAML list-of-strings field. Rejects a bare string (which
+    ``list()`` would silently explode into characters) and any non-list, so a
+    schema mistake fails loudly instead of producing a broken command."""
+    if value is None:
+        return []
+    if isinstance(value, (str, bytes)) or not isinstance(value, (list, tuple)):
+        raise SchemaError(
+            f"{where}: {field!r} must be a list, got {type(value).__name__}: {value!r}"
+        )
+    return [str(v) for v in value]
+
+
+def _as_str_map(value: Any, where: str, field: str) -> Dict[str, str]:
+    """Validate a YAML mapping-of-strings field (e.g. install_env)."""
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        raise SchemaError(
+            f"{where}: {field!r} must be a mapping, got {type(value).__name__}: {value!r}"
+        )
+    return {str(k): str(v) for k, v in value.items()}
+
+
 # --------------------------------------------------------------------------- #
 # packages/*.yaml
 # --------------------------------------------------------------------------- #
@@ -91,8 +115,8 @@ def _parse_package(raw: Any, where: str) -> Package:
         type=ptype,
         when=entry.get("when"),
         apt_source=entry.get("apt_source"),
-        pip_args=list(entry.get("pip_args", []) or []),
-        requires=list(entry.get("requires", []) or []),
+        pip_args=_as_str_list(entry.get("pip_args"), where, "pip_args"),
+        requires=_as_str_list(entry.get("requires"), where, "requires"),
     )
 
 
@@ -108,9 +132,9 @@ def _parse_post_install(raw: dict, where: str, owner_build_env: str) -> PostInst
         name=raw["name"],
         source=raw.get("source"),
         script=raw.get("script"),
-        requires=list(raw.get("requires", []) or []),
+        requires=_as_str_list(raw.get("requires"), where, "requires"),
         when=raw.get("when"),
-        scopes=list(raw.get("scopes", ["build"]) or ["build"]),
+        scopes=_as_str_list(raw.get("scopes"), where, "scopes") or ["build"],
         owner_build_env=owner_build_env,
     )
 
@@ -146,9 +170,9 @@ def _parse_deb(raw: Any, where: str) -> Deb:
     return Deb(
         path=entry["path"],
         when=entry.get("when"),
-        dpkg_args=list(entry.get("dpkg_args", []) or []),
+        dpkg_args=_as_str_list(entry.get("dpkg_args"), where, "dpkg_args"),
         apt_fix_broken=entry.get("apt_fix_broken"),
-        scopes=list(entry["scopes"]) if entry.get("scopes") is not None else None,
+        scopes=_as_str_list(entry["scopes"], where, "scopes") if entry.get("scopes") is not None else None,
     )
 
 
@@ -162,7 +186,7 @@ def _parse_wheel(raw: Any, where: str) -> Wheel:
     return Wheel(
         path=entry["path"],
         when=entry.get("when"),
-        scopes=list(entry["scopes"]) if entry.get("scopes") is not None else None,
+        scopes=_as_str_list(entry["scopes"], where, "scopes") if entry.get("scopes") is not None else None,
     )
 
 
@@ -186,12 +210,12 @@ def _parse_upstream(raw: dict, where: str) -> Upstream:
         artifact_name=raw.get("artifact_name"),
         branch=raw.get("branch"),
         run_id=raw.get("run_id"),
-        result_filter=list(raw.get("result_filter", ["succeeded"]) or ["succeeded"]),
+        result_filter=_as_str_list(raw.get("result_filter"), where, "result_filter") or ["succeeded"],
         cascade_optional=bool(raw.get("cascade_optional", False)),
         when=raw.get("when"),
-        scopes=list(raw.get("scopes", ["build"]) or ["build"]),
-        install_env=dict(raw.get("install_env", {}) or {}),
-        dpkg_args=list(raw.get("dpkg_args", []) or []),
+        scopes=_as_str_list(raw.get("scopes"), where, "scopes") or ["build"],
+        install_env=_as_str_map(raw.get("install_env"), where, "install_env"),
+        dpkg_args=_as_str_list(raw.get("dpkg_args"), where, "dpkg_args"),
         apt_fix_broken=bool(raw.get("apt_fix_broken", False)),
         debs=[_parse_deb(d, f"{where}:debs") for d in (raw.get("debs") or [])],
         wheels=[_parse_wheel(w, f"{where}:wheels") for w in (raw.get("wheels") or [])],

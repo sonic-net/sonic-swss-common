@@ -187,6 +187,18 @@ class AzpClient:
             self._fetch_zip(url, extract_dir, subpath=None)
         return self._content_root(extract_dir, ref.artifact_name)
 
+    @staticmethod
+    def _safe_extractall(zf: zipfile.ZipFile, dest: str) -> None:
+        """Extract all members, rejecting any that would escape ``dest`` via an
+        absolute path or ``../`` traversal (zip-slip). Artifacts come from Azure
+        DevOps but are still untrusted input, so validate every member path."""
+        dest_abs = os.path.abspath(dest)
+        for member in zf.namelist():
+            target = os.path.abspath(os.path.join(dest, member))
+            if target != dest_abs and not target.startswith(dest_abs + os.sep):
+                raise AzpError(f"unsafe path in artifact zip (zip-slip): {member!r}")
+        zf.extractall(dest)
+
     def _fetch_zip(self, url: str, extract_dir: str, subpath: Optional[str]) -> None:
         dl_url = url
         if subpath:
@@ -198,7 +210,7 @@ class AzpClient:
         try:
             self._download(dl_url, zip_path)
             with zipfile.ZipFile(zip_path) as zf:
-                zf.extractall(extract_dir)
+                self._safe_extractall(zf, extract_dir)
         finally:
             if os.path.exists(zip_path):
                 os.remove(zip_path)

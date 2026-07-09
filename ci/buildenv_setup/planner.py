@@ -133,7 +133,11 @@ def _deb_install_groups(artifacts) -> List[dict]:
                 if a not in g["args"]:
                     g["args"].append(a)
             g["fix"] = g["fix"] or fix
-    return [deb_groups[sig] for sig in sorted(deb_groups, key=len)]
+    # Empty-install_env group first (the usual library providers, installed before
+    # any special-env group like vpp); all other groups keep their insertion order
+    # (sorted() is stable), so inter-DEB dependencies across special-env groups are
+    # not reordered.
+    return [g for sig, g in sorted(deb_groups.items(), key=lambda kv: 0 if not kv[0] else 1)]
 
 
 def run(
@@ -184,7 +188,7 @@ def run(
     # 1. apt sources + update
     for src in sources:
         from .apt_sources import register_commands
-        for cmd in register_commands(src):
+        for cmd in register_commands(src, use_sudo=bool(executor.sudo)):
             executor.run_script(cmd)
     executor.apt_update()
 

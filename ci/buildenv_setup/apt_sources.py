@@ -12,10 +12,13 @@ from typing import List
 from .model import AptSource
 
 
-def register_commands(src: AptSource) -> List[str]:
+def register_commands(src: AptSource, use_sudo: bool = True) -> List[str]:
+    # Privilege control lives here (via use_sudo, threaded from the Executor) so the
+    # CLI's --no-sudo flag is honoured and runs in root/minimal containers without sudo.
+    sudo = "sudo " if use_sudo else ""
     keyring = f"/usr/share/keyrings/{src.name}-archive-keyring.gpg"
     list_file = f"/etc/apt/sources.list.d/{src.name}.list"
     return [
-        f"curl -fsSL {src.gpg_key_url} | gpg --dearmor | sudo tee {keyring} > /dev/null",
-        f"curl -fsSL {src.list_url} | sudo tee {list_file} > /dev/null",
+        f"curl -fsSL {src.gpg_key_url} | gpg --dearmor | {sudo}tee {keyring} > /dev/null",
+        f"curl -fsSL {src.list_url} | {sudo}tee {list_file} > /dev/null",
     ]
