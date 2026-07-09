@@ -236,3 +236,27 @@ stages:
     parameters:
       log_artifact_name: log
       debian_version: ${{ parameters.debian_version }}
+
+- stage: BuildenvSetupUnitTests
+  # Runs the ci/buildenv_setup unit tests. Independent (dependsOn: []) so it runs in
+  # parallel and gates nothing else; its own result still contributes to the pipeline.
+  dependsOn: []
+  jobs:
+  - job:
+    displayName: "buildenv_setup unit tests"
+    pool:
+      vmImage: 'ubuntu-22.04'
+    steps:
+    - script: |
+        sudo pip3 install pytest pyyaml requests
+      displayName: "Install test dependencies"
+    - script: |
+        PYTHONPATH=. python3 -m pytest tests/ -v --junitxml=$(Build.ArtifactStagingDirectory)/buildenv_setup-tests.xml
+      workingDirectory: ci
+      displayName: "Run buildenv_setup unit tests"
+    - task: PublishTestResults@2
+      condition: succeededOrFailed()
+      inputs:
+        testResultsFormat: JUnit
+        testResultsFiles: '$(Build.ArtifactStagingDirectory)/buildenv_setup-tests.xml'
+        testRunTitle: 'buildenv_setup unit tests'
