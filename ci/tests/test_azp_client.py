@@ -7,7 +7,6 @@ import zipfile
 
 import pytest
 
-import buildenv_setup.azp_client as azp
 from buildenv_setup.azp_client import ArtifactRef, AzpClient, AzpError
 
 
@@ -75,14 +74,14 @@ def test_require_org_missing(monkeypatch):
 
 # -- _get retry/backoff ------------------------------------------------------ #
 def test_get_retries_on_server_error(monkeypatch):
-    monkeypatch.setattr(azp.time, "sleep", lambda s: None)  # no real backoff
+    monkeypatch.setattr("buildenv_setup.azp_client.time.sleep", lambda s: None)  # no real backoff
     c = _client([FakeResp(status=500), FakeResp({"ok": 1}, status=200)])
     resp = c._get("http://x")
     assert resp.json() == {"ok": 1}
 
 
 def test_get_raises_after_retries(monkeypatch):
-    monkeypatch.setattr(azp.time, "sleep", lambda s: None)
+    monkeypatch.setattr("buildenv_setup.azp_client.time.sleep", lambda s: None)
     c = _client([FakeResp(status=500), FakeResp(status=500), FakeResp(status=500)])
     with pytest.raises(AzpError):
         c._get("http://x")
