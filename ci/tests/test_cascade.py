@@ -165,3 +165,37 @@ def test_cascade_recurses_into_nested_bundle(tmp_path):
                            staged_dir=str(staged))
     names = {a.name for a in arts}
     assert names == {"sairedis", "sw-common"}   # cascade pulled in the nested upstream
+
+
+def test_required_staged_used_only_via_nested_bundle(tmp_path):
+    # Regression: a staged upstream referenced ONLY through a NESTED bundle must be
+    # recorded as "used" so it doesn't trip the required-staged check. Before the
+    # used_staged threading fix, the recursion's used-set was not shared with the
+    # top-level call, so 'sw-common' (reached only via sairedis's cascade) was
+    # wrongly reported unused.
+    staged = tmp_path / "staged"
+    sair = staged / "sairedis"
+    sair.mkdir(parents=True)
+    (sair / "libsairedis_1.0.deb").write_text("x")
+    nested_be = sair / "build-env"
+    nested_be.mkdir()
+    (nested_be / "upstream-artifacts.yaml").write_text(
+        "upstream:\n"
+        "  - name: sw-common\n"
+        "    pipeline: p\n"
+        "    cascade_optional: true\n"
+        "    artifact_name: a\n"
+        "    debs: [libswsscommon_1.0.deb]\n"
+    )
+    swc = staged / "sw-common"
+    swc.mkdir()
+    (swc / "libswsscommon_1.0.deb").write_text("x")
+
+    uf = UpstreamFile([Upstream(
+        name="sairedis", pipeline="p", cascade_optional=True, artifact_name="a",
+        debs=[Deb(path="libsairedis_1.0.deb")],
+    )])
+    # Requiring 'sw-common' (only reachable via the nested cascade) must NOT raise.
+    arts = collect_bundles(uf, BOOK_AMD, client=None, work_dir=str(tmp_path / "w"),
+                           staged_dir=str(staged), required_staged={"sw-common"})
+    assert {a.name for a in arts} == {"sairedis", "sw-common"}

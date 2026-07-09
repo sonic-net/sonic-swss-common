@@ -102,3 +102,18 @@ def test_deb_groups_union_dpkg_args_within_group():
     groups = _deb_install_groups([art])
     assert len(groups) == 1
     assert groups[0]["args"] == ["--force-confask", "--force-confnew"]
+
+
+def test_deb_groups_preserve_insertion_order_among_env_groups():
+    # Two DIFFERENT non-empty install_env groups: their relative order must follow
+    # insertion order (not be reordered by env-signature length), so inter-DEB deps
+    # across special-env groups aren't broken. Empty-env group still goes first.
+    envA = InstalledArtifact(name="a", bundle_dir="/a", deb_files=["/a/a.deb"],
+                             install_env={"A": "1"})
+    envB = InstalledArtifact(name="b", bundle_dir="/b", deb_files=["/b/b.deb"],
+                             install_env={"B": "1"})
+    plain = InstalledArtifact(name="p", bundle_dir="/p", deb_files=["/p/p.deb"])
+    groups = _deb_install_groups([envA, envB, plain])   # declared A, B, plain
+    assert groups[0]["files"] == ["/p/p.deb"]           # empty-env first
+    assert groups[1]["env"] == {"A": "1"}               # then insertion order A ...
+    assert groups[2]["env"] == {"B": "1"}               # ... then B

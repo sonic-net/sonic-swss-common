@@ -114,3 +114,158 @@ def test_upstream_missing_required_raises(tmp_path):
     """)
     with pytest.raises(schema.SchemaError):
         schema.load_upstream_file(path)
+
+
+# --------------------- list/map validation (fail-loud) ---------------------- #
+
+def test_package_pip_args_must_be_list(tmp_path):
+    path = _write(tmp_path, "base.yaml", """
+        packages:
+          - {name: libyang, type: pip, pip_args: "--no-build-isolation"}
+    """)
+    with pytest.raises(schema.SchemaError):
+        schema.load_packages_file(path, str(tmp_path))
+
+
+def test_package_requires_must_be_list(tmp_path):
+    path = _write(tmp_path, "base.yaml", """
+        packages:
+          - {name: libyang, type: pip, requires: libyang3}
+    """)
+    with pytest.raises(schema.SchemaError):
+        schema.load_packages_file(path, str(tmp_path))
+
+
+def test_post_install_scopes_must_be_list(tmp_path):
+    path = _write(tmp_path, "base.yaml", """
+        post_install:
+          - {name: x, script: "echo hi", scopes: build}
+    """)
+    with pytest.raises(schema.SchemaError):
+        schema.load_packages_file(path, str(tmp_path))
+
+
+def test_upstream_deb_dpkg_args_must_be_list(tmp_path):
+    path = _write(tmp_path, "up.yaml", """
+        upstream:
+          - name: u
+            pipeline: p
+            artifact_name: a
+            debs:
+              - {path: 'x_*.deb', dpkg_args: "--force-confnew"}
+    """)
+    with pytest.raises(schema.SchemaError):
+        schema.load_upstream_file(path)
+
+
+def test_upstream_deb_scopes_must_be_list(tmp_path):
+    path = _write(tmp_path, "up.yaml", """
+        upstream:
+          - name: u
+            pipeline: p
+            artifact_name: a
+            debs:
+              - {path: 'x_*.deb', scopes: test}
+    """)
+    with pytest.raises(schema.SchemaError):
+        schema.load_upstream_file(path)
+
+
+def test_upstream_install_env_must_be_mapping(tmp_path):
+    path = _write(tmp_path, "up.yaml", """
+        upstream:
+          - name: u
+            pipeline: p
+            artifact_name: a
+            install_env: [VPP_INSTALL_SKIP_SYSCTL=1]
+    """)
+    with pytest.raises(schema.SchemaError):
+        schema.load_upstream_file(path)
+
+
+def test_upstream_install_env_mapping_ok(tmp_path):
+    path = _write(tmp_path, "up.yaml", """
+        upstream:
+          - name: vpp
+            pipeline: p
+            artifact_name: a
+            install_env: {VPP_INSTALL_SKIP_SYSCTL: "1"}
+    """)
+    uf = schema.load_upstream_file(path)
+    assert uf.upstreams[0].install_env == {"VPP_INSTALL_SKIP_SYSCTL": "1"}
+
+
+# ------------------------- missing-field errors ----------------------------- #
+
+def test_top_level_must_be_mapping(tmp_path):
+    path = _write(tmp_path, "base.yaml", "- just\n- a\n- list\n")
+    with pytest.raises(schema.SchemaError):
+        schema.load_packages_file(path, str(tmp_path))
+
+
+def test_apt_source_missing_field(tmp_path):
+    path = _write(tmp_path, "base.yaml", """
+        apt_sources:
+          - {name: dotnet, list_url: u}
+        packages: []
+    """)
+    with pytest.raises(schema.SchemaError):
+        schema.load_packages_file(path, str(tmp_path))
+
+
+def test_package_missing_name(tmp_path):
+    path = _write(tmp_path, "base.yaml", """
+        packages:
+          - {type: pip}
+    """)
+    with pytest.raises(schema.SchemaError):
+        schema.load_packages_file(path, str(tmp_path))
+
+
+def test_package_invalid_type(tmp_path):
+    path = _write(tmp_path, "base.yaml", """
+        packages:
+          - {name: x, type: snap}
+    """)
+    with pytest.raises(schema.SchemaError):
+        schema.load_packages_file(path, str(tmp_path))
+
+
+def test_post_install_missing_name(tmp_path):
+    path = _write(tmp_path, "base.yaml", """
+        post_install:
+          - {script: "echo hi"}
+    """)
+    with pytest.raises(schema.SchemaError):
+        schema.load_packages_file(path, str(tmp_path))
+
+
+def test_post_install_source_and_script_mutually_exclusive(tmp_path):
+    path = _write(tmp_path, "base.yaml", """
+        post_install:
+          - {name: x, source: s.sh, script: "echo hi"}
+    """)
+    with pytest.raises(schema.SchemaError):
+        schema.load_packages_file(path, str(tmp_path))
+
+
+def test_upstream_missing_required_field(tmp_path):
+    path = _write(tmp_path, "up.yaml", """
+        upstream:
+          - {name: u}
+    """)
+    with pytest.raises(schema.SchemaError):
+        schema.load_upstream_file(path)
+
+
+def test_upstream_wheel_missing_path(tmp_path):
+    path = _write(tmp_path, "up.yaml", """
+        upstream:
+          - name: u
+            pipeline: p
+            artifact_name: a
+            wheels:
+              - {when: {arch: amd64}}
+    """)
+    with pytest.raises(schema.SchemaError):
+        schema.load_upstream_file(path)
