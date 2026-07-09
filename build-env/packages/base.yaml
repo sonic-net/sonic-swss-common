@@ -1,0 +1,59 @@
+# sonic-swss-common build dependencies (apt + pip).
+#
+# base.yaml CASCADES: repos downstream of sonic-swss-common (sonic-sairedis,
+# sonic-swss) that build against libswsscommon inherit everything declared here,
+# so it should list what is needed to build *and link against* this repo.
+#
+# Consumed by `buildenv_setup --scope build` (and, via the cascade, by the VS
+# test host under `--scope test`).
+
+packages:
+  # --- C/C++ build dependencies (installed today by build-template.yml) ------
+  - libhiredis-dev
+  # NOTE: libnl is intentionally NOT apt-installed. The SONiC-patched libnl
+  # (libnl-{3,genl,route,nf,cli}-*, version 3.x-0.2+b1sonicN) carries
+  # sonic-specific patches and is downloaded from the common-libs artifact
+  # instead -- see upstream-artifacts.yaml. Never apt-install libnl where
+  # common-libs provides it (it does, for all arches).
+  # swig: the sonic-slave-* containers ship 'swig'; Ubuntu 22.04 (jammy, the one
+  # non-container CI job) needs 'swig4.0'. host_os selects the right one.
+  - { name: swig,    when: { host_os: { not: ubuntu-22.04 } } }
+  - { name: swig4.0, when: { host_os: ubuntu-22.04 } }
+
+  # libyang Python (CFFI) bindings. common-lib ships the libyang3 C library DEBs
+  # (see upstream-artifacts.yaml); the Python bindings come from PyPI and are
+  # built against that system libyang3, so they must install AFTER the DEB
+  # (requires: libyang3) with build isolation disabled. Mirrors the
+  # `pip3 install --no-build-isolation libyang==3.3.0` step in build-template.yml.
+  - name: libyang==3.3.0
+    type: pip
+    pip_args: [--no-build-isolation]
+    requires: [libyang3]
+
+  # redis-server is required to run sonic-swss-common's unit tests during the
+  # Build stage, and by downstream VS test hosts. Kept in base.yaml (cascades)
+  # per the design; the test-config for it is applied via post_install below.
+  - redis-server
+
+post_install:
+  # Configure the system redis for tests.
+  #
+  # scopes: [test] ONLY (deliberately NOT build). swss-common's Build stage must
+  # NOT bring up the unixsocket redis at build-env setup time: the Rust
+  # `logger_init_without_redis` test (crates/swss-common/tests/logger_fallback.rs)
+  # asserts logger init fails when redis is unreachable, and it runs during
+  # `cargo test`. If the unixsocket redis is already up, that test fails. So the
+  # Build stage runs this SAME script INLINE (see .azure-pipelines/build-template.yml)
+  # AFTER cargo and before the C++/pytest tests. Here the entry applies only to the
+  # VS test host (--scope test) via the base.yaml cascade.
+  # configure-redis-for-tests.sh is the CANONICAL, shared redis test-config for the
+  # dataplane repos. It lives here (sonic-swss-common, the cascade root); downstream
+  # consumers (sonic-sairedis, sonic-swss) reuse the SAME script via the cascade
+  # rather than carrying their own -- buildenv_setup resolves a post_install source:
+  # from cascaded upstream build-env/ dirs when it isn't present locally. It sets
+  # `notify-keyspace-events AKE` (harmless for consumers that historically didn't set
+  # it; verified by their CI). No common/delta split.
+  - name: configure-redis-for-tests
+    source: configure-redis-for-tests.sh
+    requires: [redis-server]        # run after redis-server is installed
+    scopes: [test]                  # VS test host only; Build stage runs it inline

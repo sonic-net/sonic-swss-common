@@ -24,10 +24,8 @@ Given a repo's `build-env/` configuration, `buildenv_setup`:
 3. installs them (apt → upstream DEBs → pip/wheels, so DEBs precede pip), and
 4. runs the `post_install` configuration hooks.
 
-See `python3 -m buildenv_setup --help` for all flags. The declarative config schema
-(`packages/*.yaml`, `upstream-artifacts.yaml`, `post_install`) is defined and validated
-in [`schema.py`](./buildenv_setup/schema.py); each consumer repo carries its own
-`build-env/` configuration (added as each repo is onboarded).
+See `python3 -m buildenv_setup --help` for all flags, and
+[`../build-env/README.md`](../build-env/README.md) for the config schema in use.
 
 ## Layout
 
