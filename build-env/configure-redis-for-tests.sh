@@ -1,11 +1,14 @@
 #!/bin/bash
 #
-# Configure the system redis-server for sonic-swss-common's tests.
-# Applied via the `configure-redis-for-tests` post_install entry in
-# build-env/packages/base.yaml (scopes: build, test).
+# Canonical redis-server configuration for the dataplane repos' tests, shared via
+# the build-env cascade. sonic-swss-common owns this script; downstream consumers
+# (e.g. sonic-sairedis) reference `configure-redis-for-tests.sh` from their own
+# post_install and buildenv_setup resolves it from the cascaded sonic-swss-common
+# bundle (see post_install.resolve_script) -- so the body lives in exactly one place.
 #
-# This reproduces exactly the redis config that build-template.yml applied
-# inline before running the unit tests.
+# Reproduces exactly the redis config build-template.yml applied inline before the
+# unit tests. `notify-keyspace-events AKE` is required by sonic-swss-common /
+# sonic-swss and is harmless for sonic-sairedis (verified by sonic-sairedis CI).
 set -ex
 
 sudo sed -i  's/notify-keyspace-events ""/notify-keyspace-events AKE/' /etc/redis/redis.conf
