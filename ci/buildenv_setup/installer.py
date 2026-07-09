@@ -60,6 +60,7 @@ class Executor:
             prefix += ["env"] + [f"{k}={v}" for k, v in env.items()]
         argv = prefix + ["dpkg", "-i"] + (dpkg_args or []) + files
         if apt_fix_broken and not self.dry_run:
+            log.info("+ %s", " ".join(argv))
             try:
                 subprocess.run(argv, check=True, env={**os.environ})
             except subprocess.CalledProcessError:
