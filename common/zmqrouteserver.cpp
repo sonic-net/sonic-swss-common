@@ -1,6 +1,7 @@
 #include <zmq.h>
 #include <unordered_set>
 #include "logger.h"
+#include "binaryserializer.h"
 #include "zmqrouteserver.h"
 
 using namespace std;
@@ -94,7 +95,15 @@ void ZmqRouteServer::mqPollThread()
             m_buffer.at(rc) = 0;
             SWSS_LOG_DEBUG("zmq received %d bytes", rc);
 
-            if (auto* handler = handleReceivedData(m_buffer.data(), rc))
+            // Deserialize and dispatch here (rather than via the void
+            // ZmqServer::handleReceivedData) so we can capture the handler the
+            // message was dispatched to and coalesce notifyPending() per burst.
+            std::string dbName;
+            std::string tableName;
+            std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> kcos;
+            BinarySerializer::deserializeBuffer(m_buffer.data(), rc, dbName, tableName, kcos);
+
+            if (auto* handler = getHandlerRegistry()->dispatch(dbName, tableName, kcos))
             {
                 dirtyHandlers.insert(handler);
             }

@@ -104,11 +104,11 @@ public:
 
 protected:
     // Deserialize one received buffer and dispatch it to its registered
-    // handler via m_registry. Returns the handler that was invoked (nullptr
-    // if none matched) so burst-coalescing subclasses (ZmqRouteServer) can
-    // accumulate the touched handlers and defer notifyPending() until the
-    // socket drains. Exposed as protected for those subclasses.
-    ZmqMessageHandler* handleReceivedData(const char* buffer, const size_t size);
+    // handler via m_registry. Kept returning void to preserve API/ABI
+    // compatibility with sonic-swss test doubles that override this symbol.
+    // Burst-coalescing subclasses (ZmqRouteServer) that need the touched
+    // handler call m_registry->dispatch() directly via getHandlerRegistry().
+    void handleReceivedData(const char* buffer, const size_t size);
 
     // Virtual so ZmqRouteServer can replace the poll loop with a burst-
     // coalescing variant.

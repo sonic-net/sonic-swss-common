@@ -226,7 +226,7 @@ ZmqMessageHandler* ZmqServer::findMessageHandler(
     return nullptr;
 }
 
-ZmqMessageHandler* ZmqServer::handleReceivedData(const char* buffer, const size_t size)
+void ZmqServer::handleReceivedData(const char* buffer, const size_t size)
 {
     std::string dbName;
     std::string tableName;
@@ -234,10 +234,10 @@ ZmqMessageHandler* ZmqServer::handleReceivedData(const char* buffer, const size_
     BinarySerializer::deserializeBuffer(buffer, size, dbName, tableName, kcos);
 
     // Dispatch through the registry (which holds the handler's lifetime lock
-    // for the duration of the callback) and return the handler that was
-    // invoked so burst-coalescing callers (ZmqRouteServer) can defer
-    // notifyPending() until the socket drains.
-    return m_registry->dispatch(dbName, tableName, kcos);
+    // for the duration of the callback). The dispatched handler is returned
+    // by dispatch() for burst-coalescing callers, but the generic path here
+    // does not need it, so the return value is intentionally ignored.
+    m_registry->dispatch(dbName, tableName, kcos);
 }
 
 void ZmqServer::startMqPollThread()
