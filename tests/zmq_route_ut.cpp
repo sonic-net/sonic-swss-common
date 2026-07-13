@@ -245,3 +245,79 @@ TEST(ZmqRouteConsumerStateTable, NoIngressCallbackIsSafe)
     // SelectableEvent should fire from mqPollThread's post-burst notifyPending.
     EXPECT_EQ(sel.select(&out, 500), Select::OBJECT);
 }
+
+// Multiple burst transitions: two bursts separated by an idle gap must each
+// produce their own wakeup. The server fires notifyPending once per quiesced
+// burst and re-arms across the gap, so "send 10 -> quiesce -> send 10 ->
+// quiesce" yields two distinct wakeup phases rather than a single coalesced
+// one. We drain the first burst's wakeup(s) before the second burst so the two
+// phases are provably independent (the SelectableEvent's eventfd would
+// otherwise collapse them). Guards the burst-boundary re-arm behavior.
+TEST(ZmqRouteConsumerStateTable, MultipleBurstsEachWakeSeparately)
+{
+    const string tableName = "ZMQ_ROUTE_UT";
+    const string pushEndpoint = "tcp://localhost:1243";
+    const string pullEndpoint = "tcp://*:1243";
+    constexpr int BURST = 10;
+
+    DBConnector db(TEST_DB, 0, true);
+    ZmqRouteServer server(pullEndpoint, "", /*lazyBind=*/true);
+    ZmqRouteConsumerStateTable c(&db, tableName, server, 0, /*dbPersistence=*/false);
+
+    std::atomic<int> tuplesSeen{0};
+    c.setIngressCallback(
+        [&](const std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> &kcos) {
+            tuplesSeen += static_cast<int>(kcos.size());
+        });
+
+    server.bind();
+
+    Select sel;
+    sel.addSelectable(&c);
+
+    ZmqClient client(pushEndpoint, 0);
+    ZmqProducerStateTable p(&db, tableName, client, /*dbPersistence=*/false);
+
+    // Send BURST messages back-to-back starting at index `base`.
+    auto sendBurst = [&](int base) {
+        for (int i = 0; i < BURST; ++i)
+        {
+            vector<FieldValueTuple> fvs{{"idx", std::to_string(base + i)}};
+            p.set("burst_key_" + std::to_string(base + i), fvs);
+        }
+    };
+
+    // Wait until `expectedTuples` have reached the callback, then count every
+    // Select wakeup for this burst (a burst may internally quiesce more than
+    // once under CI scheduling, so we drain until the eventfd is empty).
+    auto waitAndDrainWakeups = [&](int expectedTuples) -> int {
+        EXPECT_TRUE(waitFor(5000, [&] { return tuplesSeen.load() >= expectedTuples; }));
+        int wakeups = 0;
+        Selectable *out = nullptr;
+        while (sel.select(&out, 200) == Select::OBJECT)
+        {
+            EXPECT_EQ(out, &c);
+            ++wakeups;
+        }
+        return wakeups;
+    };
+
+    // Burst 1 -> wait for delivery -> drain its wakeup(s).
+    sendBurst(0);
+    int wakeupsBurst1 = waitAndDrainWakeups(BURST);
+
+    // Idle gap well beyond BURST_QUIESCE_MS so burst 1 has fully settled and its
+    // wakeup has been drained before burst 2 starts.
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+    // Burst 2 -> wait for delivery -> drain its wakeup(s).
+    sendBurst(BURST);
+    int wakeupsBurst2 = waitAndDrainWakeups(2 * BURST);
+
+    // Each burst independently woke the consumer: the second burst produced a
+    // fresh wakeup only after the first was drained, proving the server re-arms
+    // notifyPending per burst (two burst transitions -> two wakeup phases).
+    EXPECT_GE(wakeupsBurst1, 1) << "first burst produced no wakeup";
+    EXPECT_GE(wakeupsBurst2, 1) << "second burst produced no fresh wakeup after the first drained";
+    EXPECT_EQ(tuplesSeen.load(), 2 * BURST);
+}
