@@ -233,6 +233,30 @@ void ConfigDBConnector_Native::mod_config(const map<string, map<string, map<stri
     }
 }
 
+// Write multiple tables into config db.
+//    Extra entries/fields in the db which are not in the data are kept.
+//    This version accepts an additional "order" parameter containing the table names
+//    to update in order.
+void ConfigDBConnector_Native::mod_config(const unordered_map<string, map<string, map<string, string>>>& data,
+                                          const vector<string>& order)
+{
+    for (auto const& table_name: order)
+    {
+        auto const& table_data_iter = data.find(table_name);
+        if (table_data_iter == data.end() || table_data_iter->second.empty() )
+        {
+            delete_table(table_name);
+            continue;
+        }
+        for (auto const& ie: table_data_iter->second)
+        {
+            string key = ie.first;
+            auto const& fvs = ie.second;
+            mod_entry(table_name, key, fvs);
+        }
+    }
+}
+
 // Read all config data.
 // Returns:
 //     Config data in a dictionary form of
@@ -423,6 +447,35 @@ void ConfigDBPipeConnector_Native::mod_config(const map<string, map<string, map<
     }
     pipe.exec();
 }
+
+// Write multiple tables into config db.
+//    Extra entries/fields in the db which are not in the data are kept.
+//    This version accepts an additional "order" parameter containing the table names
+//    to update in order.
+void ConfigDBPipeConnector_Native::mod_config(const unordered_map<string, map<string, map<string, string>>>& data,
+                                              const vector<string>& order)
+{
+    auto& client = get_redis_client(m_db_name);
+    DBConnector clientPipe(client);
+    RedisTransactioner pipe(&clientPipe);
+    pipe.multi();
+    for (auto const& table_name: order)
+    {
+        auto const& table_data_iter = data.find(table_name);
+        if (table_data_iter == data.end() || table_data_iter->second.empty() )
+        {
+            _delete_table(client, pipe, table_name);
+            continue;
+        }
+        for (auto const& it: table_data_iter->second)
+        {
+            auto& key = it.first;
+            _mod_entry(pipe, table_name, key, it.second);
+        }
+    }
+    pipe.exec();
+}
+
 
 // Read config data in batches of size REDIS_SCAN_BATCH_SIZE using Redis pipelines
 // Args:
