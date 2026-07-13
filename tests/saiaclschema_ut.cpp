@@ -41,17 +41,18 @@ TEST_P(StageTest, StringConversionIsConsistent)
     EXPECT_EQ(StageFromName(StageName(GetParam())), GetParam());
 }
 
-INSTANTIATE_TEST_CASE_P(SaiAclSchemaTest, StageTest, testing::Values(Stage::kLookup, Stage::kIngress, Stage::kEgress),
+INSTANTIATE_TEST_CASE_P(SaiAclSchemaTest, StageTest,
+                        testing::Values(Stage::kPreIngress, Stage::kIngress, Stage::kEgress),
                         [](const testing::TestParamInfo<StageTest::ParamType> &param_info) {
                             return StageName(param_info.param);
                         });
 
 TEST(SaiAclSchemaTest, MatchFieldSchemaByNameSucceeds)
 {
-    EXPECT_THAT(
-        MatchFieldSchemaByName("SAI_ACL_TABLE_ATTR_FIELD_SRC_IPV6"),
-        AllOf(Field(&MatchFieldSchema::stages, UnorderedElementsAre(Stage::kLookup, Stage::kIngress, Stage::kEgress)),
-              Field(&MatchFieldSchema::format, Format::kIPv6), Field(&MatchFieldSchema::bitwidth, 128)));
+    EXPECT_THAT(MatchFieldSchemaByName("SAI_ACL_TABLE_ATTR_FIELD_SRC_IPV6"),
+                AllOf(Field(&MatchFieldSchema::stages,
+                            UnorderedElementsAre(Stage::kPreIngress, Stage::kIngress, Stage::kEgress)),
+                      Field(&MatchFieldSchema::format, Format::kIPv6), Field(&MatchFieldSchema::bitwidth, 128)));
 }
 
 TEST(SaiAclSchemaTest, ActionSchemaByNameSucceeds)

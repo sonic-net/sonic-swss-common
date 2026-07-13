@@ -16,7 +16,7 @@ namespace acl
 // Enumeration of ACL stages.
 enum class Stage
 {
-    kLookup,
+    kPreIngress,
     kIngress,
     kEgress
 };
@@ -48,9 +48,9 @@ struct ActionSchema
 };
 
 // Returns the SAI stage enum matching the AppDB name.
-// "LOOKUP"  --> SAI_ACL_STAGE_LOOKUP (Not yet standard)
-// "INGRESS" --> SAI_ACL_STAGE_INGRESS
-// "EGRESS"  --> SAI_ACL_STAGE_EGRESS
+// "PRE_INGRESS"  --> SAI_ACL_STAGE_PRE_INGRESS
+// "INGRESS"      --> SAI_ACL_STAGE_INGRESS
+// "EGRESS"       --> SAI_ACL_STAGE_EGRESS
 //
 // Throws std::invalid_argument if the name does not match a stage.
 Stage StageFromName(const std::string &name);
@@ -78,7 +78,7 @@ const std::string &FormatName(Format format);
 // without schemas.
 const MatchFieldSchema &MatchFieldSchemaByName(const std::string &match_field_name);
 
-// Returns the schema for a action.
+// Returns the schema for an action.
 //
 // Throws std::invalid_argument for unknown actions and actions without schemas.
 const ActionSchema &ActionSchemaByName(const std::string &action_name);
