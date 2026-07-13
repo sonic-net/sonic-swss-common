@@ -544,6 +544,7 @@ after libswsscommon deb make.
 #define VLAN_PREFIX             "Vlan"
 
 #define SET_COMMAND "SET"
+#define HSET_COMMAND "HSET"
 #define DEL_COMMAND "DEL"
 #define EMPTY_PREFIX ""
 
