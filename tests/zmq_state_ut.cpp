@@ -6,6 +6,7 @@
 #include <csignal>
 #include <unistd.h>
 #include <zmq.hpp>
+#include <map>
 #include "gtest/gtest.h"
 #include "common/dbconnector.h"
 #include "common/notificationconsumer.h"
@@ -18,6 +19,8 @@
 #include "common/zmqproducerstatetable.h"
 #include "common/zmqconsumerstatetable.h"
 #include "common/binaryserializer.h"
+#include "common/asyncdbupdater.h"
+#include "common/schema.h"
 
 using namespace std;
 using namespace swss;
@@ -892,3 +895,58 @@ INSTANTIATE_TEST_CASE_P(
         PopSizeTestParams{-1, 384, 3, {128, 128, 128}}
     )
 );
+
+// Destroying the AsyncDBUpdater joins its writer thread, which drains the
+// queue before exiting, so all queued writes are committed once the object
+// goes out of scope.
+static std::map<std::string, std::string> readFields(Table &table, const std::string &key)
+{
+    std::vector<FieldValueTuple> values;
+    table.get(key, values);
+    return std::map<std::string, std::string>(values.begin(), values.end());
+}
+
+
+// HSET_COMMAND updates only the supplied fields and leaves the rest of the
+// object in place.
+TEST(AsyncDBUpdater, HsetCommandMergesFields)
+{
+    DBConnector db(TEST_DB, 0, true);
+    Table table(&db, "ASYNC_DB_UPDATER_UT");
+    table.del("key");
+    table.set("key", std::vector<FieldValueTuple>{{"a", "1"}, {"b", "2"}});
+
+    {
+        AsyncDBUpdater updater(&db, "ASYNC_DB_UPDATER_UT");
+        updater.update(std::make_shared<KeyOpFieldsValuesTuple>(
+            "key", HSET_COMMAND, std::vector<FieldValueTuple>{{"a", "9"}}));
+    }
+
+    auto fields = readFields(table, "key");
+    EXPECT_EQ(fields["a"], "9");
+    EXPECT_EQ(fields["b"], "2");
+
+    table.del("key");
+}
+
+// SET_COMMAND replaces the whole key: fields absent from the update are
+// removed. This is the semantics the ZMQ producer/consumer tables rely on.
+TEST(AsyncDBUpdater, SetCommandReplacesKey)
+{
+    DBConnector db(TEST_DB, 0, true);
+    Table table(&db, "ASYNC_DB_UPDATER_UT");
+    table.del("key");
+    table.set("key", std::vector<FieldValueTuple>{{"a", "1"}, {"b", "2"}});
+
+    {
+        AsyncDBUpdater updater(&db, "ASYNC_DB_UPDATER_UT");
+        updater.update(std::make_shared<KeyOpFieldsValuesTuple>(
+            "key", SET_COMMAND, std::vector<FieldValueTuple>{{"a", "9"}}));
+    }
+
+    auto fields = readFields(table, "key");
+    EXPECT_EQ(fields["a"], "9");
+    EXPECT_EQ(fields.count("b"), 0u);
+
+    table.del("key");
+}

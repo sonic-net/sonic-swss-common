@@ -12,6 +12,76 @@ using namespace std;
 
 namespace swss {
 
+void ZmqHandlerRegistry::registerHandler(
+    const std::string& dbName,
+    const std::string& tableName,
+    ZmqMessageHandler* handler)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    auto dbResult = m_handlers.insert(make_pair(dbName, map<string, ZmqMessageHandler*>()));
+    if (dbResult.second) {
+        SWSS_LOG_DEBUG("ZmqHandlerRegistry add mapping for db: %s", dbName.c_str());
+    }
+
+    auto tableResult = dbResult.first->second.insert(make_pair(tableName, handler));
+    if (tableResult.second) {
+        SWSS_LOG_DEBUG("ZmqHandlerRegistry register handler for db: %s, table: %s",
+                       dbName.c_str(), tableName.c_str());
+    }
+}
+
+void ZmqHandlerRegistry::removeHandler(
+    const std::string& dbName,
+    const std::string& tableName)
+{
+    // Take the same mutex that dispatch() holds across the callback. Once we
+    // acquire it, no callback into this (dbName, tableName) handler is in
+    // flight and no further one can start — making it safe for the caller to
+    // destroy the handler object after removeHandler() returns.
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    auto dbIter = m_handlers.find(dbName);
+    if (dbIter == m_handlers.end()) {
+        return;
+    }
+
+    dbIter->second.erase(tableName);
+    if (dbIter->second.empty()) {
+        m_handlers.erase(dbIter);
+    }
+
+    SWSS_LOG_DEBUG("ZmqHandlerRegistry removed handler for db: %s, table: %s",
+                   dbName.c_str(), tableName.c_str());
+}
+
+ZmqMessageHandler* ZmqHandlerRegistry::dispatch(
+    const std::string& dbName,
+    const std::string& tableName,
+    const std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos)
+{
+    // Hold the mutex for the duration of the callback. Concurrent
+    // removeHandler() on this (dbName, tableName) blocks until we return,
+    // so the handler cannot be destroyed mid-call.
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    auto dbIter = m_handlers.find(dbName);
+    if (dbIter == m_handlers.end()) {
+        SWSS_LOG_DEBUG("ZmqHandlerRegistry can't find any handler for db: %s", dbName.c_str());
+        return nullptr;
+    }
+
+    auto tableIter = dbIter->second.find(tableName);
+    if (tableIter == dbIter->second.end()) {
+        SWSS_LOG_DEBUG("ZmqHandlerRegistry can't find handler for db: %s, table: %s",
+                       dbName.c_str(), tableName.c_str());
+        return nullptr;
+    }
+
+    tableIter->second->handleReceivedData(kcos);
+    return tableIter->second;
+}
+
 ZmqServer::ZmqServer(const std::string& endpoint)
     : ZmqServer(endpoint, "", false, false)
 {
@@ -34,7 +104,8 @@ ZmqServer::ZmqServer(const std::string& endpoint, const std::string& vrf, bool l
     m_context(nullptr),
     m_socket(nullptr),
     m_oneToOneSync(oneToOneSync),
-    m_allowZmqPoll(true)
+    m_allowZmqPoll(true),
+    m_registry(std::make_shared<ZmqHandlerRegistry>())
 {
     if (!lazyBind)
     {
@@ -62,6 +133,11 @@ ZmqServer::~ZmqServer()
     {
         zmq_ctx_destroy(m_context);
     }
+
+    // m_registry's refcount drops here. If any registered handler still holds
+    // a reference, the registry survives until that handler is destroyed; its
+    // destructor will call removeHandler() safely against the surviving
+    // registry without touching this (now-gone) ZmqServer.
 }
 
 void ZmqServer::bind()
@@ -108,7 +184,7 @@ void ZmqServer::bind()
     }
 
     if (!m_vrf.empty())
-    {   
+    {
         zmq_setsockopt(m_socket, ZMQ_BINDTODEVICE, m_vrf.c_str(), m_vrf.length());
     }
 
@@ -130,34 +206,24 @@ void ZmqServer::registerMessageHandler(
                                     const std::string tableName,
                                     ZmqMessageHandler* handler)
 {
-    auto dbResult = m_HandlerMap.insert(pair<string, map<string, ZmqMessageHandler*>>(dbName, map<string, ZmqMessageHandler*>()));
-    if (dbResult.second) {
-        SWSS_LOG_DEBUG("ZmqServer add handler mapping for db: %s", dbName.c_str());
-    }
+    m_registry->registerHandler(dbName, tableName, handler);
+}
 
-    auto tableResult = dbResult.first->second.insert(pair<string, ZmqMessageHandler*>(tableName, handler));
-    if (tableResult.second) {
-        SWSS_LOG_DEBUG("ZmqServer register handler for db: %s, table: %s", dbName.c_str(), tableName.c_str());
-    }
+void ZmqServer::removeMessageHandler(
+                                    const std::string& dbName,
+                                    const std::string& tableName)
+{
+    m_registry->removeHandler(dbName, tableName);
 }
 
 ZmqMessageHandler* ZmqServer::findMessageHandler(
-                                                const std::string dbName,
-                                                const std::string tableName)
+    const std::string /*dbName*/,
+    const std::string /*tableName*/)
 {
-    auto dbMappingIter = m_HandlerMap.find(dbName);
-    if (dbMappingIter == m_HandlerMap.end()) {
-        SWSS_LOG_DEBUG("ZmqServer can't find any handler for db: %s", dbName.c_str());
-        return nullptr;
-    }
-
-    auto tableMappingIter = dbMappingIter->second.find(tableName);
-    if (tableMappingIter == dbMappingIter->second.end()) {
-        SWSS_LOG_DEBUG("ZmqServer can't find handler for db: %s, table: %s", dbName.c_str(), tableName.c_str());
-        return nullptr;
-    }
-
-    return tableMappingIter->second;
+    // Retained as a no-op for source compatibility with external test mocks
+    // that override this symbol at link time. Real dispatch lives in
+    // ZmqHandlerRegistry::dispatch().
+    return nullptr;
 }
 
 ZmqMessageHandler* ZmqServer::handleReceivedData(const char* buffer, const size_t size)
@@ -167,15 +233,11 @@ ZmqMessageHandler* ZmqServer::handleReceivedData(const char* buffer, const size_
     std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> kcos;
     BinarySerializer::deserializeBuffer(buffer, size, dbName, tableName, kcos);
 
-    // find handler
-    auto handler = findMessageHandler(dbName, tableName);
-    if (handler == nullptr) {
-        SWSS_LOG_WARN("ZmqServer can't find handler for received message: %s", buffer);
-        return nullptr;
-    }
-
-    handler->handleReceivedData(kcos);
-    return handler;
+    // Dispatch through the registry (which holds the handler's lifetime lock
+    // for the duration of the callback) and return the handler that was
+    // invoked so burst-coalescing callers (ZmqRouteServer) can defer
+    // notifyPending() until the socket drains.
+    return m_registry->dispatch(dbName, tableName, kcos);
 }
 
 void ZmqServer::startMqPollThread()

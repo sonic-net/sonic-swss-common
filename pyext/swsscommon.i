@@ -271,6 +271,13 @@ T castSelectableObj(swss::Selectable *temp)
 %include "dbconnector.h"
 #ifdef ENABLE_YANG_MODULES
 %include "cfg_schema.h"
+// DefaultValueHelper exposes libyang schema-node pointers (lys_node* /
+// lysc_node*) whose type names differ between libyang1 and libyang3.
+// SWIG's preprocessor cannot see <libyang/libyang.h>, so it always takes
+// the libyang1 branch of the version shim — generating bindings that fail
+// to compile against libyang3 headers. The helper is internal; no Python
+// caller uses it. Skip it so the generated wrappers stay version-agnostic.
+%ignore swss::DefaultValueHelper;
 %include "defaultvalueprovider.h"
 #endif
 %include "sonicv2connector.h"
@@ -348,6 +355,58 @@ std::vector<std::pair<std::string, std::vector<swss::FieldValueTuple>>> zmqWait(
 
 %include "producerstatetable.h"
 %include "zmqproducerstatetable.h"
+
+// Batched helpers for ZmqProducerStateTable. The native C++ overloads
+// (set/del/send taking std::vector<KeyOpFieldsValuesTuple>) are reachable
+// through SWIG only as opaque pointer types because std_vector.i does not
+// synthesize a default constructor for the underlying tuple element. These
+// %inline shims take parallel vectors of already-templated types and build
+// the tuple vector on the C++ side, which lets callers in Go / Python issue
+// a single batched ZMQ message.
+%inline %{
+namespace swss {
+static inline void zmqProducerBatchedSet(swss::ZmqProducerStateTable &p,
+                                         const std::vector<std::string> &keys,
+                                         const std::vector<std::vector<swss::FieldValueTuple>> &fvss)
+{
+    if (keys.size() != fvss.size())
+    {
+        throw std::invalid_argument("zmqProducerBatchedSet: keys.size() != fvss.size()");
+    }
+    std::vector<swss::KeyOpFieldsValuesTuple> kcos;
+    kcos.reserve(keys.size());
+    for (size_t i = 0; i < keys.size(); ++i)
+    {
+        kcos.emplace_back(keys[i], SET_COMMAND, fvss[i]);
+    }
+    p.set(kcos);
+}
+
+static inline void zmqProducerBatchedDel(swss::ZmqProducerStateTable &p,
+                                         const std::vector<std::string> &keys)
+{
+    p.del(keys);
+}
+
+static inline void zmqProducerBatchedSend(swss::ZmqProducerStateTable &p,
+                                          const std::vector<std::string> &keys,
+                                          const std::vector<std::string> &ops,
+                                          const std::vector<std::vector<swss::FieldValueTuple>> &fvss)
+{
+    if (keys.size() != ops.size() || keys.size() != fvss.size())
+    {
+        throw std::invalid_argument("zmqProducerBatchedSend: keys/ops/fvss size mismatch");
+    }
+    std::vector<swss::KeyOpFieldsValuesTuple> kcos;
+    kcos.reserve(keys.size());
+    for (size_t i = 0; i < keys.size(); ++i)
+    {
+        kcos.emplace_back(keys[i], ops[i], fvss[i]);
+    }
+    p.send(kcos);
+}
+} // namespace swss
+%}
 
 %apply std::string& OUTPUT {std::string &key};
 %apply std::string& OUTPUT {std::string &op};
