@@ -53,13 +53,9 @@ jobs:
       path: $(Build.ArtifactStagingDirectory)/download
       artifact: common-lib
       patterns: |
-        target/debs/${{ parameters.debian_version }}/libnl-3-200_*.deb
-        target/debs/${{ parameters.debian_version }}/libnl-genl-3-200_*.deb
-        target/debs/${{ parameters.debian_version }}/libnl-route-3-200_*.deb
-        target/debs/${{ parameters.debian_version }}/libnl-nf-3-200_*.deb
         target/debs/${{ parameters.debian_version }}/libyang3_*.deb
         target/debs/${{ parameters.debian_version }}/libyang-dev_3*.deb
-    displayName: "Download libnl + libyang from common lib"
+    displayName: "Download libyang from common lib"
   - task: DownloadPipelineArtifact@2
     inputs:
       source: specific
@@ -94,19 +90,6 @@ jobs:
           python3-redis
 
       sudo sonic-swss-common/.azure-pipelines/build_and_install_module.sh
-
-      # Install SONiC-patched libnl (3.7.0-0.2+b1sonicN) from common-lib BEFORE the
-      # swss-common deb. sonic-swss-common links against the SONiC libnl everywhere
-      # (build stages, this test host, the docker image), so the jammy swss-common
-      # .deb (built by the ubuntu-22.04 job against common-lib libnl) depends on the
-      # +b1sonicN libnl, which the 22.04 host's apt (stock +b1) does not satisfy. Use
-      # apt so the bookworm libnl runtime debs' deps resolve on the jammy host (same
-      # as the libyang install below).
-      sudo apt-get install -y \
-          $(Build.ArtifactStagingDirectory)/download/target/debs/${{ parameters.debian_version }}/libnl-3-200_*.deb \
-          $(Build.ArtifactStagingDirectory)/download/target/debs/${{ parameters.debian_version }}/libnl-genl-3-200_*.deb \
-          $(Build.ArtifactStagingDirectory)/download/target/debs/${{ parameters.debian_version }}/libnl-route-3-200_*.deb \
-          $(Build.ArtifactStagingDirectory)/download/target/debs/${{ parameters.debian_version }}/libnl-nf-3-200_*.deb
 
       # Install libyang packages from downloaded artifacts. Use apt rather
       # than `dpkg -i` so libyang-dev's libpcre2-dev dep is auto-resolved

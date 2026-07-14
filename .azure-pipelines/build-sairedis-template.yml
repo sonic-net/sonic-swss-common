@@ -83,13 +83,13 @@ jobs:
         docbook-utils \
         aspell-en \
         libhiredis-dev \
+        libnl-3-dev \
+        libnl-genl-3-dev \
+        libnl-route-3-dev \
+        libnl-nf-3-dev \
+        libnl-cli-3-dev \
         swig4.0 \
         libzmq3-dev
-      # libnl is intentionally NOT apt-installed here. sonic-swss-common now links
-      # against the SONiC-patched libnl (3.7.0-0.2+b1sonicN) from common-lib, so the
-      # libswsscommon .deb installed below Depends on >= +b1sonicN, which apt stock
-      # (+b1) does not satisfy. The full SONiC libnl family (runtime + -dev, used to
-      # build sonic-sairedis too) is downloaded from common-lib and installed below.
 
       sudo apt-get install -y redis-server
       sudo sed -ri 's/^# unixsocket/unixsocket/' /etc/redis/redis.conf
@@ -113,20 +113,15 @@ jobs:
       path: $(Build.ArtifactStagingDirectory)/download
       artifact: common-lib
       patterns: |
-        target/debs/${{ parameters.debian_version }}/libnl-3*.deb
-        target/debs/${{ parameters.debian_version }}/libnl-genl*.deb
-        target/debs/${{ parameters.debian_version }}/libnl-route*.deb
-        target/debs/${{ parameters.debian_version }}/libnl-nf*.deb
-        target/debs/${{ parameters.debian_version }}/libnl-cli*.deb
         target/debs/${{ parameters.debian_version }}/libyang3_*.deb
         target/debs/${{ parameters.debian_version }}/libyang-dev_3*.deb
         target/debs/${{ parameters.debian_version }}/python3-libyang*.deb
-    displayName: "Download libnl + libyang from common lib"
+    displayName: "Download libyang from common lib"
   - script: |
       set -ex
       sudo dpkg -i $(find ./download -name *.deb)
     workingDirectory: $(Build.ArtifactStagingDirectory)
-    displayName: "Install libnl + libyang from common lib"
+    displayName: "Install libyang from common lib"
   - task: DownloadPipelineArtifact@2
     inputs:
       artifact: ${{ parameters.swss_common_artifact_name }}

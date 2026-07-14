@@ -10,11 +10,15 @@
 packages:
   # --- C/C++ build dependencies (installed today by build-template.yml) ------
   - libhiredis-dev
-  # NOTE: libnl is intentionally NOT apt-installed. The SONiC-patched libnl
-  # (libnl-{3,genl,route,nf,cli}-*, version 3.x-0.2+b1sonicN) carries
-  # sonic-specific patches and is downloaded from the common-libs artifact
-  # instead -- see upstream-artifacts.yaml. Never apt-install libnl where
-  # common-libs provides it (it does, for all arches).
+  # libnl: apt-installed from the distro (STOCK, not SONiC-patched). This keeps the
+  # libswsscommon .deb's libnl Depends on the stock version, which is satisfied in
+  # every build/test/docker environment without a SONiC-libnl companion step. These
+  # are the same four -dev packages master's build-template.yml apt-installs; the
+  # sonic-slave-* containers and the ubuntu-22.04 vmImage both provide them.
+  - libnl-3-dev
+  - libnl-genl-3-dev
+  - libnl-route-3-dev
+  - libnl-nf-3-dev
   # swig: the sonic-slave-* containers ship 'swig'; Ubuntu 22.04 (jammy, the one
   # non-container CI job) needs 'swig4.0'. host_os selects the right one.
   - { name: swig,    when: { host_os: { not: ubuntu-22.04 } } }

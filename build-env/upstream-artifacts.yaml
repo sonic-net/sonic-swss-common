@@ -9,10 +9,12 @@
 
 upstream:
   # ------------------------------------------------------------------ #
-  # SONiC-patched libnl + libyang3 DEBs from the common-libs build (latest on the
-  # branch). libnl carries sonic-specific patches, so it MUST come from here, not
-  # apt (see base.yaml). (sonic-swss-common migrated to libyang3 in
-  # sonic-net/sonic-swss-common#1206.)
+  # libyang3 DEBs from the common-libs build (latest on the branch).
+  # (sonic-swss-common migrated to libyang3 in sonic-net/sonic-swss-common#1206.)
+  # NOTE: libnl is deliberately NOT downloaded here. sonic-swss-common builds
+  # against the STOCK apt libnl (apt-installed via base.yaml) to keep the
+  # libswsscommon .deb's libnl Depends on the stock version (satisfied everywhere
+  # without downstream companion changes). Only libyang3 comes from common-libs.
   # ------------------------------------------------------------------ #
   - name: common-libs
     project: build
@@ -29,16 +31,6 @@ upstream:
       - { when: { arch: amd64 },        value: 'common-lib' }
       - { when: { arch: { not: amd64 } }, value: 'common-lib.{arch}' }
     debs:
-      # libnl (SONiC-patched, 3.x-0.2+b1sonicN): MUST come from common-libs, never
-      # apt -- carries sonic-specific patches. common-lib publishes the full libnl
-      # family for ALL arches (amd64/armhf/arm64). Broad globs pick up runtime +
-      # -dev + -dbgsym. libnl-cli is included so downstream consumers that need it
-      # (e.g. sonic-sairedis on arm) inherit it via the cascade.
-      - 'target/debs/{debian_version}/libnl-3*.deb'
-      - 'target/debs/{debian_version}/libnl-genl*.deb'
-      - 'target/debs/{debian_version}/libnl-route*.deb'
-      - 'target/debs/{debian_version}/libnl-nf*.deb'
-      - 'target/debs/{debian_version}/libnl-cli*.deb'
       # libyang3 C library + dev headers. (python3-libyang deb is intentionally
       # NOT installed: the bookworm deb pins python3 >=3.11 so it won't install on
       # the ubuntu-22.04 job's python 3.10, and swss-common uses the pip
