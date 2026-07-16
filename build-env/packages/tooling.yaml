@@ -5,8 +5,10 @@
 # Consumed by `buildenv_setup --scope build`.
 
 packages:
-  - { name: Pympler==0.8, type: pip }   # used by the python unit tests
-  - { name: pytest, type: pip }
+  # NOTE: Pympler / pytest are intentionally NOT installed here — the sonic-slave
+  # build containers already provide them (python3-pympler / python3-pytest), and
+  # the Ubuntu 22.04 job runs the Bazel test suite (no pytest). Re-add here only
+  # if a build host is found that lacks them.
 
   # --- Ubuntu 22.04 (jammy) build toolchain ---------------------------------
   # sonic-swss-common has one CI job that runs directly on an Azure-hosted
