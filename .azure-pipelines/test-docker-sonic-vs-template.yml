@@ -72,7 +72,7 @@ jobs:
   - script: |
       set -ex
       # install packages for vs test
-      sudo pip3 install pytest flaky exabgp docker redis
+      sudo uv pip install --system pytest flaky exabgp docker redis
 
       # install packages for kvm test
       sudo apt-get -o DPkg::Lock::Timeout=600 install -y libvirt-clients \
