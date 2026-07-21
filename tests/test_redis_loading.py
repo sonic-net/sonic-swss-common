@@ -1,4 +1,5 @@
 import os
+import subprocess
 import time
 from swsscommon import swsscommon
 
@@ -9,8 +10,8 @@ REDIS_RECORD_COUNT = 2000000
 def wait_redis_ready():
     end_time = time.time() + TEST_TIMEOUT
     while time.time() < end_time:
-        result = os.popen(r'redis-cli ping').read()
-        if "PONG" in result:
+        result = subprocess.run(["redis-cli", "ping"], capture_output=True, text=True)
+        if "PONG" in result.stdout:
             break
         time.sleep(1)
 
@@ -25,8 +26,8 @@ def generate_redis_dump():
         id -= 1
         db.set("TEST_DB", "record:{}".format(id), "field", "value{}".format(id))
 
-    # create dump file
-    os.popen(r"redis-cli save")
+    # create dump file synchronously so it completes before any redis-server restart
+    subprocess.run(["redis-cli", "save"], check=True)
 
 
 def test_redis_loading_exception(capfd):
@@ -37,13 +38,13 @@ def test_redis_loading_exception(capfd):
     So this test only report error message when test failed, please developer run this test manually to verify this scenario.
     """
 
-    # cleanup redis data
-    os.popen(r"redis-cli FLUSHALL")
+    # cleanup redis data synchronously before writing the dump
+    subprocess.run(["redis-cli", "FLUSHALL"], check=True)
 
     generate_redis_dump()
 
     print("restart redis service")
-    os.popen(r"sudo service redis-server restart")
+    subprocess.run(["sudo", "service", "redis-server", "restart"])
 
     # write swss log to stderr, so capfd can capture it
     swsscommon.Logger.swssOutputNotify("", "STDERR")
@@ -63,9 +64,9 @@ def test_redis_loading_exception(capfd):
     # wait for redis load dataset finish
     wait_redis_ready()
 
-    # cleanup test data
-    os.popen(r"redis-cli FLUSHALL")
-    os.popen(r"redis-cli save")
+    # cleanup test data synchronously to prevent interference with subsequent tests
+    subprocess.run(["redis-cli", "FLUSHALL"], check=True)
+    subprocess.run(["redis-cli", "save"], check=True)
 
     captured_log = capfd.readouterr().err
     expected = 'WARN:- guard: RedisReply catches system_error: command: *2\\r\\n$4\\r\\nKEYS\\r\\n$4\\r\\ntest\\r\\n, reason: LOADING Redis is loading the dataset in memory'
