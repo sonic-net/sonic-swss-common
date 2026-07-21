@@ -188,11 +188,12 @@ int Select::select(Selectable **c, int timeout, bool interrupt_on_signal)
         ret = poll_descriptors(c, timeout, interrupt_on_signal);
     }
 
-    /* sleep 1s to throttle callers in a loop on error, e.g. redis
-        is down. without this it floods /var/log and pins the CPU. */
+    /* Sleep 1s to throttle callers in a loop on error (e.g., Redis is down).
+        Without this, it floods /var/log and pins the CPU. */
     if (ret == Select::ERROR)
     {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+         constexpr auto kErrorBackoff = std::chrono::seconds(1);
+         std::this_thread::sleep_for(kErrorBackoff);
     }
 
     return ret;
