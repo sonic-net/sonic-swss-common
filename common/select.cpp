@@ -2,6 +2,8 @@
 #include "common/logger.h"
 #include "common/select.h"
 #include <algorithm>
+#include <chrono>
+#include <thread>
 #include <stdio.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -175,15 +177,25 @@ int Select::select(Selectable **c, int timeout, bool interrupt_on_signal)
     /* check if we have some data */
     ret = poll_descriptors(c, 0);
 
-    /* return if we have data, we have an error or desired timeout was 0 */
-    if (ret != Select::TIMEOUT || timeout == 0)
+    /* return immediately if appropriate */
+    if (ret == Select::OBJECT || ret == Select::SIGNALINT || timeout == 0)
+    {
         return ret;
+    }
 
-    /* wait for data */
-    ret = poll_descriptors(c, timeout, interrupt_on_signal);
+    if (ret == Select::TIMEOUT)
+    {
+        ret = poll_descriptors(c, timeout, interrupt_on_signal);
+    }
+
+    /* sleep 1s to throttle callers in a loop on error, e.g. redis
+        is down. without this it floods /var/log and pins the CPU. */
+    if (ret == Select::ERROR)
+    {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
 
     return ret;
-
 }
 
 bool Select::isQueueEmpty()
