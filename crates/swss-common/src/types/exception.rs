@@ -59,36 +59,6 @@ impl Exception {
         }
     }
 
-    /// Create a new Exception with a custom message (for Rust-side errors).
-    /// Automatically captures the caller's file and line number using `#[track_caller]`.
-    /// 
-    /// # Example
-    /// ```
-    /// use swss_common::{Exception, Result};
-    /// 
-    /// fn validate_fd(fd: i32) -> Result<()> {
-    ///     if fd < 0 {
-    ///         return Err(Exception::new("Invalid file descriptor"));
-    ///     }
-    ///     Ok(())
-    /// }
-    /// 
-    /// // The exception will automatically include the location where it was created:
-    /// let result = validate_fd(-1);
-    /// assert!(result.is_err());
-    /// let err = result.unwrap_err();
-    /// assert_eq!(err.message(), "Invalid file descriptor");
-    /// // err.location() will be something like "src/types/exception.rs:70"
-    /// ```
-    #[track_caller]
-    pub fn new(message: impl Into<String>) -> Self {
-        let location = std::panic::Location::caller();
-        Self {
-            message: message.into(),
-            location: format!("{}:{}", location.file(), location.line()),
-        }
-    }
-
     /// Get an informational string about the error that occurred.
     pub fn message(&self) -> &str {
         &self.message

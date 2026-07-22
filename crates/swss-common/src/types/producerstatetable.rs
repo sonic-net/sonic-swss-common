@@ -58,11 +58,7 @@ impl ProducerStateTable {
 
 impl Drop for ProducerStateTable {
     fn drop(&mut self) {
-        unsafe {
-            if let Err(e) = swss_try!(SWSSProducerStateTable_free(self.ptr)) {
-                eprintln!("Error dropping ProducerStateTable: {}", e);
-            }
-        }
+        unsafe { swss_try!(SWSSProducerStateTable_free(self.ptr)).expect("Dropping ProducerStateTable") };
     }
 }
 
