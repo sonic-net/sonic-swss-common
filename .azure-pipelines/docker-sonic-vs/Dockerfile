@@ -15,6 +15,15 @@ RUN dpkg --purge python3-swsscommon sonic-db-cli libsaimetadata libsairedis libs
 
 RUN apt-get update
 
+# BuildSairedis reuses sonic-sairedis's build template, which produces a vpp-enabled
+# libsaivs (depends on vpp/libvppinfra). vpp's postinst sets sysctl keys that can't be
+# set during `docker build`, so temporarily stub sysctl with `true`, install the vpp
+# debs (copied into /debs), then restore sysctl.
+RUN cp /usr/sbin/sysctl /usr/sbin/sysctl.org
+RUN cp /usr/bin/true /usr/sbin/sysctl
+RUN apt install -y $(ls /debs/*.deb | grep vpp)
+RUN mv /usr/sbin/sysctl.org /usr/sbin/sysctl
+
 RUN apt install -y /debs/libdashapi_1.0.0_amd64.deb \
             /debs/libswsscommon_1.0.0_amd64.deb \
             /debs/python3-swsscommon_1.0.0_amd64.deb \
