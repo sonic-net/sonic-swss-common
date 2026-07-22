@@ -1,0 +1,45 @@
+# sonic-swss-common Build-stage-only tooling (does NOT cascade downstream).
+#
+# These are packages/config needed only by sonic-swss-common's own Build-stage
+# unit tests and coverage, not by repos that build against libswsscommon.
+# Consumed by `buildenv_setup --scope build`.
+
+packages:
+  # NOTE: Pympler / pytest are intentionally NOT installed here — the sonic-slave
+  # build containers already provide them (python3-pympler / python3-pytest), and
+  # the Ubuntu 22.04 job runs the Bazel test suite (no pytest). Re-add here only
+  # if a build host is found that lacks them.
+
+  # --- Ubuntu 22.04 (jammy) build toolchain ---------------------------------
+  # sonic-swss-common has one CI job that runs directly on an Azure-hosted
+  # ubuntu-22.04 vmImage (not inside a sonic-slave-* container), so it must apt-
+  # install the toolchain the containers bake in. Gated to that host only
+  # (host_os: ubuntu-22.04); build-stage tooling, so it does NOT cascade.
+  # (gcc/build-essential come pre-installed on the ubuntu-22.04 vmImage.)
+  - { name: make,                       type: apt, when: { host_os: ubuntu-22.04 } }
+  - { name: libtool,                    type: apt, when: { host_os: ubuntu-22.04 } }
+  - { name: m4,                         type: apt, when: { host_os: ubuntu-22.04 } }
+  - { name: autoconf,                   type: apt, when: { host_os: ubuntu-22.04 } }
+  - { name: dh-exec,                    type: apt, when: { host_os: ubuntu-22.04 } }
+  - { name: debhelper,                  type: apt, when: { host_os: ubuntu-22.04 } }
+  - { name: cmake,                      type: apt, when: { host_os: ubuntu-22.04 } }
+  - { name: pkg-config,                 type: apt, when: { host_os: ubuntu-22.04 } }
+  - { name: nlohmann-json3-dev,         type: apt, when: { host_os: ubuntu-22.04 } }
+  - { name: libpython3-dev,             type: apt, when: { host_os: ubuntu-22.04 } }
+  - { name: libboost-dev,               type: apt, when: { host_os: ubuntu-22.04 } }
+  - { name: libboost-serialization-dev, type: apt, when: { host_os: ubuntu-22.04 } }
+  - { name: uuid-dev,                   type: apt, when: { host_os: ubuntu-22.04 } }
+  - { name: libzmq3-dev,                type: apt, when: { host_os: ubuntu-22.04 } }
+  - { name: redis-tools,                type: apt, when: { host_os: ubuntu-22.04 } }
+  - { name: libgtest-dev,               type: apt, when: { host_os: ubuntu-22.04 } }
+  - { name: libgmock-dev,               type: apt, when: { host_os: ubuntu-22.04 } }
+  - { name: python3-pip,                type: apt, when: { host_os: ubuntu-22.04 } }
+  # python3-cffi: needed so `pip install --no-build-isolation libyang` uses the
+  # system cffi on jammy (avoids a cffi version mismatch); baked into containers.
+  - { name: python3-cffi,               type: apt, when: { host_os: ubuntu-22.04 } }
+
+post_install:
+  - name: mkdir-yang-models
+    script: |
+      sudo mkdir -p /usr/local/yang-models
+    scopes: [build]
