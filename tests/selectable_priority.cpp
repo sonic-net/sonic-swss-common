@@ -9,6 +9,9 @@
 #include "common/netlink.h"
 #include "gtest/gtest.h"
 
+#include <chrono>
+#include <stdexcept>
+
 
 using namespace std;
 using namespace swss;
@@ -246,4 +249,52 @@ TEST(Priority, priority_select_6)
     EXPECT_EQ(ret, Select::OBJECT);
     // we gave fair scheduler. we've read different selectables on the second read
     EXPECT_NE(selectcs1, selectcs2);
+}
+
+namespace {
+
+// An always-readable Selectable whose readData() throws, mimicking a dead Redis
+// connection and driving Select::select() down its ERROR path. SelectableEvent
+// provides the eventfd plumbing; notify() makes it readable.
+class ThrowingSelectable : public SelectableEvent
+{
+public:
+    ThrowingSelectable() { notify(); }
+    uint64_t readData() override { throw runtime_error("Unable to read redis reply"); }
+};
+
+// select() a failing selectable with the given timeout; return elapsed ms and
+// the result via ret.
+long long selectFailing(int timeout, int &ret)
+{
+    ThrowingSelectable bad;
+    Select s;
+    s.addSelectable(&bad);
+
+    Selectable *sel = nullptr;
+    auto start = chrono::steady_clock::now();
+    ret = s.select(&sel, timeout);
+    return chrono::duration_cast<chrono::milliseconds>(
+        chrono::steady_clock::now() - start).count();
+}
+
+}
+
+// On ERROR, select() backs off ~1s so callers that loop on ERROR can't spin and
+// flood the log when Redis is down.
+TEST(Select, error_backoff)
+{
+    int ret;
+    long long elapsedMs = selectFailing(1000, ret);
+    EXPECT_EQ(ret, Select::ERROR);
+    EXPECT_GE(elapsedMs, 900);
+}
+
+// timeout == 0 stays non-blocking: return ERROR immediately, with no backoff.
+TEST(Select, nonblocking_error_no_backoff)
+{
+    int ret;
+    long long elapsedMs = selectFailing(0, ret);
+    EXPECT_EQ(ret, Select::ERROR);
+    EXPECT_LT(elapsedMs, 500);
 }
