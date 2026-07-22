@@ -695,7 +695,7 @@ TEST_P(ZmqConsumerStateTablePopSize, test)
     }
 }
 
-INSTANTIATE_TEST_SUITE_P(
+INSTANTIATE_TEST_CASE_P(
     BatchSizeTests,
     ZmqConsumerStateTablePopSize,
     ::testing::Values(
