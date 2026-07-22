@@ -6,6 +6,7 @@
 #include <sstream>
 #include <functional>
 #include <boost/algorithm/string.hpp>
+#include <nlohmann/json.hpp>
 
 #include "common/logger.h"
 #include "common/redisreply.h"
@@ -289,6 +290,80 @@ string RedisReply::to_string(redisReply *reply, string command)
         SWSS_LOG_ERROR("invalid type %d for message", reply->type);
         return string();
     }
+}
+
+static nlohmann::ordered_json buildJsonDict(struct redisReply **element, size_t elements)
+{
+    if (elements%2 != 0)
+    {
+        throw system_error(make_error_code(errc::io_error),
+                           "Invalid result");
+    }
+
+    auto result = nlohmann::ordered_json::object();
+    for (unsigned int i = 0; i < elements; i += 2)
+    {
+        result[RedisReply::to_string(element[i])] = RedisReply::to_string(element[i + 1]);
+    }
+
+    return result;
+}
+
+static nlohmann::ordered_json buildJsonReply(redisReply *reply, const string& command)
+{
+    switch(reply->type)
+    {
+    case REDIS_REPLY_INTEGER:
+        return reply->integer;
+
+    case REDIS_REPLY_NIL:
+        return nullptr;
+
+    case REDIS_REPLY_STRING:
+    case REDIS_REPLY_ERROR:
+    case REDIS_REPLY_STATUS:
+        return string(reply->str, reply->len);
+
+    case REDIS_REPLY_ARRAY:
+    {
+        if (command == "HGETALL")
+        {
+            return buildJsonDict(reply->element, reply->elements);
+        }
+
+        if (command == "HSCAN" && reply->elements == 2)
+        {
+            auto result = nlohmann::ordered_json::array();
+            result.push_back(buildJsonReply(reply->element[0], string()));
+            result.push_back(buildJsonDict(reply->element[1]->element, reply->element[1]->elements));
+            return result;
+        }
+
+        auto result = nlohmann::ordered_json::array();
+        for (unsigned int i = 0; i < reply->elements; i++)
+        {
+            result.push_back(buildJsonReply(reply->element[i], string()));
+        }
+        return result;
+    }
+
+    default:
+        SWSS_LOG_ERROR("invalid type %d for message", reply->type);
+        return nullptr;
+    }
+}
+
+string RedisReply::to_json_string(redisReply *reply, string command)
+{
+    /*
+        JSON output mode for sonic-db-cli --json.
+        Unlike to_string(), this does not emulate redis-py output: replies map
+        directly to JSON types (integer -> number, nil -> null, status/error -> string),
+        except that HGETALL (and the field map element of HSCAN) become a JSON object.
+        Bytes that are not valid UTF-8 are replaced with U+FFFD rather than failing.
+    */
+    auto result = buildJsonReply(reply, command);
+    return result.dump(-1, ' ', false, nlohmann::ordered_json::error_handler_t::replace);
 }
 
 string RedisReply::formatReply(string command, long long integer)

@@ -147,6 +147,83 @@ TEST(sonic_db_cli, test_cli_hscan_commands)
     EXPECT_EQ("{'testfield': \"{'value': 'with qute'}\"}\n", output);
 }
 
+TEST(sonic_db_cli, test_cli_json_output)
+{
+    char *args[7];
+    args[0] = "sonic-db-cli";
+    args[1] = "-j";
+    args[2] = "TEST_DB";
+
+    // clear database, status reply becomes a JSON string
+    args[3] = "FLUSHDB";
+    auto output = runCli(4, args);
+    EXPECT_EQ("\"OK\"\n", output);
+
+    // hset to test DB, integer reply becomes a JSON number
+    args[3] = "HSET";
+    args[4] = "testkey";
+    args[5] = "testfield";
+    args[6] = "testvalue";
+    output = runCli(7, args);
+    EXPECT_EQ("1\n", output);
+
+    // hgetall from test db becomes a JSON object
+    args[3] = "HGETALL";
+    args[4] = "testkey";
+    output = runCli(5, args);
+    EXPECT_EQ("{\"testfield\":\"testvalue\"}\n", output);
+
+    // hgetall of a missing key becomes an empty JSON object
+    args[3] = "HGETALL";
+    args[4] = "notexistkey";
+    output = runCli(5, args);
+    EXPECT_EQ("{}\n", output);
+
+    // hscan from test db, cursor is a JSON string and fields a JSON object
+    args[3] = "HSCAN";
+    args[4] = "testkey";
+    args[5] = "0";
+    output = runCli(6, args);
+    EXPECT_EQ("[\"0\",{\"testfield\":\"testvalue\"}]\n", output);
+
+    // values with quote characters are escaped
+    args[3] = "HSET";
+    args[4] = "quotekey";
+    args[5] = "testfield";
+    args[6] = "va'l\"ue";
+    output = runCli(7, args);
+    EXPECT_EQ("1\n", output);
+
+    args[3] = "HGETALL";
+    args[4] = "quotekey";
+    output = runCli(5, args);
+    EXPECT_EQ("{\"testfield\":\"va'l\\\"ue\"}\n", output);
+
+    // get from test db becomes a quoted JSON string
+    args[3] = "GET";
+    args[4] = "notexistkey";
+    output = runCli(5, args);
+    EXPECT_EQ("null\n", output);
+
+    // keys from test db becomes a JSON array
+    args[3] = "DEL";
+    args[4] = "quotekey";
+    output = runCli(5, args);
+    EXPECT_EQ("1\n", output);
+
+    args[3] = "keys";
+    args[4] = "*";
+    output = runCli(5, args);
+    EXPECT_EQ("[\"testkey\"]\n", output);
+
+    // long option works as well
+    args[1] = "--json";
+    args[3] = "HGETALL";
+    args[4] = "testkey";
+    output = runCli(5, args);
+    EXPECT_EQ("{\"testfield\":\"testvalue\"}\n", output);
+}
+
 TEST(sonic_db_cli, test_cli_pop_commands)
 {
     char *args[10];
