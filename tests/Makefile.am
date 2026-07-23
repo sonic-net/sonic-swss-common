@@ -33,6 +33,7 @@ tests_tests_SOURCES = tests/redis_ut.cpp                \
                       tests/saiaclschema_ut.cpp         \
                       tests/countertable_ut.cpp         \
                       tests/timer_ut.cpp                \
+                      tests/config_ut.cpp               \
                       tests/cli_ut.cpp                  \
                       tests/events_common_ut.cpp        \
                       tests/events_service_ut.cpp       \
