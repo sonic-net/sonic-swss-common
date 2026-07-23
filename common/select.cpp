@@ -130,7 +130,16 @@ int Select::poll_descriptors(Selectable **c, unsigned int timeout, bool interrup
         }
         catch (const std::runtime_error& ex)
         {
-            SWSS_LOG_ERROR("readData error: %s", ex.what());
+            // Throttling by kErrorLogInterval avoids flooding /var/log and filling
+            // the partition from callers in a tight loop.
+            constexpr auto kErrorLogInterval = std::chrono::seconds(1);
+            static thread_local std::chrono::steady_clock::time_point lastErrorLog;
+            auto now = std::chrono::steady_clock::now();
+            if (now - lastErrorLog >= kErrorLogInterval)
+            {
+                SWSS_LOG_ERROR("readData error: %s", ex.what());
+                lastErrorLog = now;
+            }
             return Select::ERROR;
         }
         m_ready.insert(sel);
@@ -181,19 +190,17 @@ int Select::select(Selectable **c, int timeout, bool interrupt_on_signal)
     if (ret == Select::OBJECT || ret == Select::SIGNALINT || timeout == 0)
     {
         return ret;
-    }
-
-    if (ret == Select::TIMEOUT)
+    } else if (ret == Select::TIMEOUT)
     {
         ret = poll_descriptors(c, timeout, interrupt_on_signal);
-    }
-
-    /* Sleep 1s to throttle callers in a loop on error (e.g., Redis is down).
-        Without this, it floods /var/log and pins the CPU. */
-    if (ret == Select::ERROR)
+    } else if (ret == Select::ERROR)
     {
-         constexpr auto kErrorBackoff = std::chrono::seconds(1);
-         std::this_thread::sleep_for(kErrorBackoff);
+        // ERROR returns immediately, so a tight caller loop pins the CPU.
+        // Back off by the timeout capped at 1s; INFINITE (< 0) counts as the
+        // largest timeout, so it is capped to 1s.
+        constexpr int kMaxErrorBackoffMs = 1000;
+        int backoffMs = (timeout < 0 || timeout > kMaxErrorBackoffMs) ? kMaxErrorBackoffMs : timeout;
+        std::this_thread::sleep_for(std::chrono::milliseconds(backoffMs));
     }
 
     return ret;

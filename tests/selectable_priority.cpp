@@ -253,9 +253,7 @@ TEST(Priority, priority_select_6)
 
 namespace {
 
-// An always-readable Selectable whose readData() throws, mimicking a dead Redis
-// connection and driving Select::select() down its ERROR path. SelectableEvent
-// provides the eventfd plumbing; notify() makes it readable.
+// A selectable that always throws to test the ERROR path.
 class ThrowingSelectable : public SelectableEvent
 {
 public:
@@ -280,14 +278,26 @@ long long selectFailing(int timeout, int &ret)
 
 }
 
-// On ERROR, select() backs off ~1s so callers that loop on ERROR can't spin and
-// flood the log when Redis is down.
-TEST(Select, error_backoff)
+// On ERROR the backoff is the caller's timeout, capped at 1s. A sub-1s timeout
+// (300ms here) is below the cap, so the error surfaces after that exact timeout.
+TEST(Select, error_backoff_matches_timeout)
 {
     int ret;
-    long long elapsedMs = selectFailing(1000, ret);
+    long long elapsedMs = selectFailing(300, ret);
+    EXPECT_EQ(ret, Select::ERROR);
+    EXPECT_GE(elapsedMs, 250);
+    EXPECT_LT(elapsedMs, 900);
+}
+
+// A timeout above the 1s cap backs off by 1s, not the full timeout, bounding the
+// worst-case error-surfacing (and shutdown) latency during a redis outage.
+TEST(Select, error_backoff_capped_at_one_second)
+{
+    int ret;
+    long long elapsedMs = selectFailing(5000, ret);
     EXPECT_EQ(ret, Select::ERROR);
     EXPECT_GE(elapsedMs, 900);
+    EXPECT_LT(elapsedMs, 2000);
 }
 
 // timeout == 0 stays non-blocking: return ERROR immediately, with no backoff.
@@ -296,5 +306,17 @@ TEST(Select, nonblocking_error_no_backoff)
     int ret;
     long long elapsedMs = selectFailing(0, ret);
     EXPECT_EQ(ret, Select::ERROR);
-    EXPECT_LT(elapsedMs, 500);
+    EXPECT_LT(elapsedMs, 200);
+}
+
+// INFINITE (timeout < 0) has no caller timeout to honor, so it is treated as the
+// largest timeout and backs off by the 1s cap -- enough to avoid pinning the CPU
+// (and pacing per-iteration caller logging) in a tight infinite-select loop.
+TEST(Select, infinite_error_capped_at_one_second)
+{
+    int ret;
+    long long elapsedMs = selectFailing(-1, ret);
+    EXPECT_EQ(ret, Select::ERROR);
+    EXPECT_GE(elapsedMs, 900);
+    EXPECT_LT(elapsedMs, 2000);
 }
