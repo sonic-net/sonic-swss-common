@@ -28,6 +28,10 @@ namespace swss {
                 f.write('// #define CFG_{}_TABLE_NAME "{}"\n'.format(key, key))
             else:
                 f.write('#define CFG_{}_TABLE_NAME "{}"\n'.format(key, key))
+                if key == 'TEAMD':
+                    f.write(
+                        '#define CFG_TEAMD_MODE_TABLE_NAME CFG_TEAMD_TABLE_NAME\n'
+                    )
         f.write(footer)
 
 def main():
