@@ -9,6 +9,9 @@
 #include "common/netlink.h"
 #include "gtest/gtest.h"
 
+#include <chrono>
+#include <stdexcept>
+
 
 using namespace std;
 using namespace swss;
@@ -246,4 +249,74 @@ TEST(Priority, priority_select_6)
     EXPECT_EQ(ret, Select::OBJECT);
     // we gave fair scheduler. we've read different selectables on the second read
     EXPECT_NE(selectcs1, selectcs2);
+}
+
+namespace {
+
+// A selectable that always throws to test the ERROR path.
+class ThrowingSelectable : public SelectableEvent
+{
+public:
+    ThrowingSelectable() { notify(); }
+    uint64_t readData() override { throw runtime_error("Unable to read redis reply"); }
+};
+
+// select() a failing selectable with the given timeout; return elapsed ms and
+// the result via ret.
+long long selectFailing(int timeout, int &ret)
+{
+    ThrowingSelectable bad;
+    Select s;
+    s.addSelectable(&bad);
+
+    Selectable *sel = nullptr;
+    auto start = chrono::steady_clock::now();
+    ret = s.select(&sel, timeout);
+    return chrono::duration_cast<chrono::milliseconds>(
+        chrono::steady_clock::now() - start).count();
+}
+
+}
+
+// On ERROR the backoff is the caller's timeout, capped at 1s. A sub-1s timeout
+// (300ms here) is below the cap, so the error surfaces after that exact timeout.
+TEST(Select, error_backoff_matches_timeout)
+{
+    int ret;
+    long long elapsedMs = selectFailing(300, ret);
+    EXPECT_EQ(ret, Select::ERROR);
+    EXPECT_GE(elapsedMs, 250);
+    EXPECT_LT(elapsedMs, 900);
+}
+
+// A timeout above the 1s cap backs off by 1s, not the full timeout, bounding the
+// worst-case error-surfacing (and shutdown) latency during a redis outage.
+TEST(Select, error_backoff_capped_at_one_second)
+{
+    int ret;
+    long long elapsedMs = selectFailing(5000, ret);
+    EXPECT_EQ(ret, Select::ERROR);
+    EXPECT_GE(elapsedMs, 900);
+    EXPECT_LT(elapsedMs, 2000);
+}
+
+// timeout == 0 stays non-blocking: return ERROR immediately, with no backoff.
+TEST(Select, nonblocking_error_no_backoff)
+{
+    int ret;
+    long long elapsedMs = selectFailing(0, ret);
+    EXPECT_EQ(ret, Select::ERROR);
+    EXPECT_LT(elapsedMs, 200);
+}
+
+// INFINITE (timeout < 0) has no caller timeout to honor, so it is treated as the
+// largest timeout and backs off by the 1s cap -- enough to avoid pinning the CPU
+// (and pacing per-iteration caller logging) in a tight infinite-select loop.
+TEST(Select, infinite_error_capped_at_one_second)
+{
+    int ret;
+    long long elapsedMs = selectFailing(-1, ret);
+    EXPECT_EQ(ret, Select::ERROR);
+    EXPECT_GE(elapsedMs, 900);
+    EXPECT_LT(elapsedMs, 2000);
 }
