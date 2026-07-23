@@ -72,14 +72,17 @@ public:
 
     size_t dbUpdaterQueueSize();
 
-private:
-    void handleReceivedData(const std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> &kcos);
+protected:
+    virtual void handleReceivedData(const std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> &kcos);
 
+    swss::SelectableEvent m_selectableEvent;
+
+    std::unique_ptr<AsyncDBUpdater> m_asyncDBUpdater;
+
+private:
     std::mutex m_receivedQueueMutex;
 
     std::queue<std::shared_ptr<KeyOpFieldsValuesTuple>, std::list<std::shared_ptr<KeyOpFieldsValuesTuple>>> m_receivedOperationQueue;
-
-    swss::SelectableEvent m_selectableEvent;
 
     DBConnector *m_db;
 
@@ -90,8 +93,6 @@ private:
     // Co-owned with the ZmqServer that created us. Lets the destructor
     // unregister cleanly even if the ZmqServer has already been destroyed.
     std::shared_ptr<ZmqHandlerRegistry> m_handlerRegistry;
-
-    std::unique_ptr<AsyncDBUpdater> m_asyncDBUpdater;
 
     size_t m_popBatchSize;
 };
