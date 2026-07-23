@@ -150,6 +150,12 @@ void ZmqClient::connect()
     m_connected = true;
 }
 
+void ZmqClient::setSendRetryConfig(int maxRetries, int maxBackoffMs)
+{
+    m_sendMaxRetries = (maxRetries < 0) ? MQ_MAX_RETRY : maxRetries;
+    m_sendMaxBackoffMs = maxBackoffMs;
+}
+
 void ZmqClient::sendMsg(
         const std::string& dbName,
         const std::string& tableName,
@@ -173,7 +179,7 @@ void ZmqClient::sendMsg(
     int zmq_err = 0;
     int retry_delay = 10;
     int rc = 0;
-    for (int i = 0; i <= MQ_MAX_RETRY; ++i)
+    for (int i = 0; i <= m_sendMaxRetries; ++i)
     {
         {
             // ZMQ socket is not thread safe: http://api.zeromq.org/2-1:zmq
@@ -213,6 +219,7 @@ void ZmqClient::sendMsg(
         else if (zmq_err == EAGAIN)
         {
             // EAGAIN: ZMQ is full to need try again
+            m_sendEagainTotal.fetch_add(1, std::memory_order_relaxed);
             SWSS_LOG_WARN("zmq is full, will retry in %d ms, endpoint: %s, error: %d", retry_delay, m_endpoint.c_str(), zmq_err);
         }
         else if (zmq_err == ETERM)
@@ -230,10 +237,28 @@ void ZmqClient::sendMsg(
             throw system_error(make_error_code(errc::io_error), message);
         }
 
+        // A retrying error class (EAGAIN or EINTR/EFSM) fell through to here.
+        // Count the retry iteration and track the largest backoff reached so a
+        // producer can surface congestion depth. ETERM / other errors throw
+        // above and never reach this point.
+        if (m_sendMaxBackoffMs >= 0 && retry_delay > m_sendMaxBackoffMs)
+        {
+            retry_delay = m_sendMaxBackoffMs;
+        }
+        m_sendRetryTotal.fetch_add(1, std::memory_order_relaxed);
+        uint64_t observedBackoff = m_sendBackoffMaxMs.load(std::memory_order_relaxed);
+        while (static_cast<uint64_t>(retry_delay) > observedBackoff &&
+               !m_sendBackoffMaxMs.compare_exchange_weak(observedBackoff,
+                                                         static_cast<uint64_t>(retry_delay),
+                                                         std::memory_order_relaxed))
+        {
+        }
+
         usleep(retry_delay * 1000);
     }
 
     // failed after retry
+    m_sendLadderExhaustedTotal.fetch_add(1, std::memory_order_relaxed);
     auto message =  "zmq send failed, endpoint: " + m_endpoint + ", zmqerrno: " + to_string(zmq_err) + ":" + zmq_strerror(zmq_err) + ", msg length:" + to_string(serializedlen);
     SWSS_LOG_ERROR("%s", message.c_str());
     throw system_error(make_error_code(errc::io_error), message);
