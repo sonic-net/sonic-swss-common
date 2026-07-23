@@ -455,6 +455,61 @@ TEST(ZmqConsumerStateTableBatchBufferOverflow, test)
     EXPECT_ANY_THROW(p.send(kcos));
 }
 
+TEST(ZmqClientSendPathCounters, forcedEagainCountsAndLadderExhaustion)
+{
+    // A PUSH socket with no PULL peer accepts messages into its send queue up to
+    // SNDHWM (MQ_WATERMARK) and then returns EAGAIN. Fill the queue; the next
+    // send exhausts the (capped) inner retry ladder and throws — exercising all
+    // four send-path counters without paying the ~41s default ladder. With no
+    // peer draining, every send succeeds until the queue is full and every send
+    // fails after, so the single failing send yields deterministic counts.
+    std::string deadEndpoint = "tcp://127.0.0.1:65123"; // nothing bound here
+    ZmqClient client(deadEndpoint, 0);
+    client.setSendRetryConfig(/*maxRetries=*/3, /*maxBackoffMs=*/5);
+
+    std::vector<KeyOpFieldsValuesTuple> kcos;
+    kcos.push_back(KeyOpFieldsValuesTuple("k0", SET_COMMAND,
+                   std::vector<FieldValueTuple>{FieldValueTuple("f0", "v0")}));
+
+    EXPECT_EQ(client.getSendEagainTotal(), 0u);
+    EXPECT_EQ(client.getSendLadderExhaustedTotal(), 0u);
+
+    bool threw = false;
+    for (int i = 0; i < MQ_WATERMARK * 2 && !threw; ++i)
+    {
+        try
+        {
+            client.sendMsg(TEST_DB, "SEND_PATH_COUNTER_UT", kcos);
+        }
+        catch (const std::system_error&)
+        {
+            threw = true;
+        }
+    }
+    ASSERT_TRUE(threw) << "send queue never filled to force EAGAIN";
+
+    // The single failing send did maxRetries+1 = 4 EAGAIN attempts, each counted
+    // as a retry, then exhausted the ladder exactly once; backoff clamped to 5ms.
+    EXPECT_EQ(client.getSendLadderExhaustedTotal(), 1u);
+    EXPECT_EQ(client.getSendEagainTotal(), 4u);
+    EXPECT_EQ(client.getSendRetryTotal(), 4u);
+    EXPECT_EQ(client.getSendBackoffMaxMs(), 5u);
+}
+
+TEST(ZmqClientSendPathCounters, defaultRetryConfigUnchangedBehavior)
+{
+    // Guard: with no setSendRetryConfig call the counters stay zeroed before
+    // any send and the getters are readable (ABI-additive accessors compile and
+    // link). A successful send path is covered by the producer/consumer tests
+    // above; here we only assert the accessors' initial state.
+    std::string pushEndpoint = "tcp://localhost:1234";
+    ZmqClient client(pushEndpoint, 0);
+    EXPECT_EQ(client.getSendEagainTotal(), 0u);
+    EXPECT_EQ(client.getSendRetryTotal(), 0u);
+    EXPECT_EQ(client.getSendBackoffMaxMs(), 0u);
+    EXPECT_EQ(client.getSendLadderExhaustedTotal(), 0u);
+}
+
 TEST(ZmqProducerStateTableDeleteAfterSend, test)
 {
     std::string testTableName = "ZMQ_PROD_DELETE_UT";
