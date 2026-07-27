@@ -15,6 +15,10 @@ using namespace std;
 
 namespace swss {
 
+// Ceiling for the exponential send-retry backoff; bounds the doubling so it
+// cannot overflow int and feed usleep() a garbage duration.
+static const int MQ_SEND_RETRY_DELAY_CEILING_MS = 60000;
+
 ZmqClient::ZmqClient(const std::string& endpoint)
     : ZmqClient(endpoint, "")
 {
@@ -150,6 +154,15 @@ void ZmqClient::connect()
     m_connected = true;
 }
 
+void ZmqClient::setSendRetryConfig(int maxRetries, int maxBackoffMs)
+{
+    // Clamp to MQ_MAX_RETRY so this can only shorten the default ladder.
+    m_sendMaxRetries.store((maxRetries < 0) ? MQ_MAX_RETRY
+                                            : std::min(maxRetries, MQ_MAX_RETRY),
+                           std::memory_order_relaxed);
+    m_sendMaxBackoffMs.store(maxBackoffMs, std::memory_order_relaxed);
+}
+
 void ZmqClient::sendMsg(
         const std::string& dbName,
         const std::string& tableName,
@@ -173,7 +186,12 @@ void ZmqClient::sendMsg(
     int zmq_err = 0;
     int retry_delay = 10;
     int rc = 0;
-    for (int i = 0; i <= MQ_MAX_RETRY; ++i)
+    bool saw_eagain = false;
+    // Snapshot the caps so this send reads stable values (they are atomic and
+    // may be reconfigured between sends).
+    const int max_retries = m_sendMaxRetries.load(std::memory_order_relaxed);
+    const int max_backoff_ms = m_sendMaxBackoffMs.load(std::memory_order_relaxed);
+    for (int i = 0; i <= max_retries; ++i)
     {
         {
             // ZMQ socket is not thread safe: http://api.zeromq.org/2-1:zmq
@@ -191,13 +209,27 @@ void ZmqClient::sendMsg(
         }
         if (rc >= 0)
         {
+            // Absorbed a transient full-socket blip; caller never had to re-queue.
+            if (saw_eagain)
+            {
+                m_sendBlipAbsorbedTotal.fetch_add(1, std::memory_order_relaxed);
+            }
             SWSS_LOG_DEBUG("zmq sended %d bytes", serializedlen);
             return;
         }
 
         zmq_err = zmq_errno();
-        // sleep (2 ^ retry time) * 10 ms
-        retry_delay *= 2;
+        // sleep (2 ^ retry time) * 10 ms. Double in a wider type and clamp to the
+        // ceiling before narrowing, so the multiply cannot overflow int; then
+        // apply the caller's cap. All three (log/record/sleep) see the real delay.
+        int64_t doubled = static_cast<int64_t>(retry_delay) * 2;
+        retry_delay = (doubled > MQ_SEND_RETRY_DELAY_CEILING_MS)
+                          ? MQ_SEND_RETRY_DELAY_CEILING_MS
+                          : static_cast<int>(doubled);
+        if (max_backoff_ms >= 0 && retry_delay > max_backoff_ms)
+        {
+            retry_delay = max_backoff_ms;
+        }
         if (zmq_err == EINTR
             || zmq_err== EFSM)
         {
@@ -213,6 +245,16 @@ void ZmqClient::sendMsg(
         else if (zmq_err == EAGAIN)
         {
             // EAGAIN: ZMQ is full to need try again
+            saw_eagain = true;
+            m_sendEagainTotal.fetch_add(1, std::memory_order_relaxed);
+            // Track the deepest backoff waited (congestion-depth gauge).
+            uint64_t observed = m_sendBackoffMaxMs.load(std::memory_order_relaxed);
+            while (static_cast<uint64_t>(retry_delay) > observed &&
+                   !m_sendBackoffMaxMs.compare_exchange_weak(observed,
+                                                             static_cast<uint64_t>(retry_delay),
+                                                             std::memory_order_relaxed))
+            {
+            }
             SWSS_LOG_WARN("zmq is full, will retry in %d ms, endpoint: %s, error: %d", retry_delay, m_endpoint.c_str(), zmq_err);
         }
         else if (zmq_err == ETERM)
@@ -230,10 +272,15 @@ void ZmqClient::sendMsg(
             throw system_error(make_error_code(errc::io_error), message);
         }
 
-        usleep(retry_delay * 1000);
+        // No sleep after the final attempt — the loop is about to exit and throw,
+        // so returning control immediately is what a capped caller wants.
+        if (i < max_retries)
+        {
+            usleep(retry_delay * 1000);
+        }
     }
 
-    // failed after retry
+    // Inner retries exhausted; caller owns the outer retry. Surface by throwing.
     auto message =  "zmq send failed, endpoint: " + m_endpoint + ", zmqerrno: " + to_string(zmq_err) + ":" + zmq_strerror(zmq_err) + ", msg length:" + to_string(serializedlen);
     SWSS_LOG_ERROR("%s", message.c_str());
     throw system_error(make_error_code(errc::io_error), message);

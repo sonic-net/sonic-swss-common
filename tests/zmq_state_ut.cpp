@@ -455,6 +455,67 @@ TEST(ZmqConsumerStateTableBatchBufferOverflow, test)
     EXPECT_ANY_THROW(p.send(kcos));
 }
 
+TEST(ZmqClientSendPathCounters, blipAbsorberExhaustionCountsEagainAndClampsBackoff)
+{
+    // A peerless PUSH socket buffers locally up to SNDHWM, then EAGAINs
+    // deterministically once full (no peer ever drains it) — lets us assert
+    // exact counters without timing dependence. Per-process ipc endpoint avoids
+    // path collisions across parallel runs.
+    std::string deadEndpoint = "ipc:///tmp/zmqclient_ut_mute_" + std::to_string(getpid());
+    ZmqClient client(deadEndpoint, 0);
+
+    std::vector<KeyOpFieldsValuesTuple> kcos;
+    kcos.push_back(KeyOpFieldsValuesTuple("k0", SET_COMMAND,
+                   std::vector<FieldValueTuple>{FieldValueTuple("f0", "v0")}));
+
+    EXPECT_EQ(client.getSendEagainTotal(), 0u);
+    EXPECT_EQ(client.getSendBlipAbsorbedTotal(), 0u);
+    EXPECT_EQ(client.getSendBackoffMaxMs(), 0u);
+
+    // Phase 1 — fill the buffer (single attempt, zero backoff): the overflowing
+    // send throws after exactly one EAGAIN.
+    client.setSendRetryConfig(0, 0);
+    bool bufferFull = false;
+    for (int i = 0; i < MQ_WATERMARK * 2; ++i)
+    {
+        try
+        {
+            client.sendMsg(TEST_DB, "SEND_PATH_COUNTER_UT", kcos);
+        }
+        catch (const std::system_error&)
+        {
+            bufferFull = true;
+            break;
+        }
+    }
+    ASSERT_TRUE(bufferFull);
+    EXPECT_EQ(client.getSendEagainTotal(), 1u);
+    EXPECT_EQ(client.getSendBlipAbsorbedTotal(), 0u);
+    EXPECT_EQ(client.getSendBackoffMaxMs(), 0u);
+
+    // Phase 2 — buffer stays saturated: one capped sendMsg() makes
+    // (maxRetries + 1) attempts, each counted, then throws. Exercises the eagain
+    // counter, the caller backoff cap, and the overflow guard.
+    const int maxRetries = 3;
+    const int maxBackoffMs = 5;
+    client.setSendRetryConfig(maxRetries, maxBackoffMs);
+    EXPECT_THROW(client.sendMsg(TEST_DB, "SEND_PATH_COUNTER_UT", kcos), std::system_error);
+
+    EXPECT_EQ(client.getSendEagainTotal(), static_cast<uint64_t>(1 + maxRetries + 1));
+    EXPECT_EQ(client.getSendBlipAbsorbedTotal(), 0u);
+    EXPECT_EQ(client.getSendBackoffMaxMs(), static_cast<uint64_t>(maxBackoffMs));
+}
+
+TEST(ZmqClientSendPathCounters, defaultCountersStartZeroAndAccessorsLink)
+{
+    // Counters read zero before any send and the appended accessors link.
+    std::string endpoint = "ipc:///tmp/zmqclient_ut_default_" + std::to_string(getpid());
+    ZmqClient client(endpoint, 0);
+    EXPECT_EQ(client.getSendEagainTotal(), 0u);
+    EXPECT_EQ(client.getSendBlipAbsorbedTotal(), 0u);
+    EXPECT_EQ(client.getSendBackoffMaxMs(), 0u);
+}
+
 TEST(ZmqProducerStateTableDeleteAfterSend, test)
 {
     std::string testTableName = "ZMQ_PROD_DELETE_UT";
