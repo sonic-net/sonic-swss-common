@@ -276,6 +276,21 @@ private:
     bool m_failing = true;
 };
 
+// Stays readable forever, standing in for a healthy selectable that keeps
+// producing data while another one is broken.
+class HealthySelectable : public SelectableEvent
+{
+public:
+    HealthySelectable() { notify(); }
+
+    uint64_t readData() override
+    {
+        uint64_t ret = SelectableEvent::readData();
+        notify();
+        return ret;
+    }
+};
+
 // Poll s n times, returning how many readData error lines were logged.
 size_t pollAndCountLogs(Select &s, int n)
 {
@@ -311,6 +326,25 @@ TEST(Select, error_logging_is_capped)
     s.addSelectable(&bad);
 
     // Suppression state is per-thread, so start from a known-good state.
+    bad.setFailing(false);
+    Selectable *sel = nullptr;
+    ASSERT_EQ(s.select(&sel, 0), Select::OBJECT);
+
+    bad.setFailing(true);
+    bad.notify();
+    EXPECT_EQ(pollAndCountLogs(s, 1000), kMaxErrorLogs);
+}
+
+// A healthy selectable read in the same poll must not re-arm logging for one that
+// keeps failing. It is added first so epoll tends to read it before the failing one.
+TEST(Select, error_logging_is_capped_alongside_a_healthy_selectable)
+{
+    HealthySelectable good;
+    FailingSelectable bad;
+    Select s;
+    s.addSelectable(&good);
+    s.addSelectable(&bad);
+
     bad.setFailing(false);
     Selectable *sel = nullptr;
     ASSERT_EQ(s.select(&sel, 0), Select::OBJECT);

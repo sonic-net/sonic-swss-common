@@ -129,6 +129,8 @@ int Select::poll_descriptors(Selectable **c, unsigned int timeout, bool interrup
         return Select::ERROR;
     }
 
+    bool readSuccess = false;
+
     for (int i = 0; i < ret; ++i)
     {
         int fd = events[i].data.fd;
@@ -136,7 +138,7 @@ int Select::poll_descriptors(Selectable **c, unsigned int timeout, bool interrup
         try
         {
             sel->readData();
-            s_consecutiveErrors = 0;
+            readSuccess = true;
         }
         catch (const std::runtime_error& ex)
         {
@@ -151,6 +153,11 @@ int Select::poll_descriptors(Selectable **c, unsigned int timeout, bool interrup
             return Select::ERROR;
         }
         m_ready.insert(sel);
+    }
+
+    if (readSuccess)
+    {
+        s_consecutiveErrors = 0;
     }
 
     while (!m_ready.empty())
