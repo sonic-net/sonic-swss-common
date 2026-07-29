@@ -20,6 +20,7 @@ from __future__ import annotations
 import base64
 import logging
 import os
+import stat
 import tempfile
 import time
 import zipfile
@@ -189,15 +190,30 @@ class AzpClient:
 
     @staticmethod
     def _safe_extractall(zf: zipfile.ZipFile, dest: str) -> None:
-        """Extract all members, rejecting any that would escape ``dest`` via an
-        absolute path or ``../`` traversal (zip-slip). Artifacts come from Azure
-        DevOps but are still untrusted input, so validate every member path."""
+        """Extract every member into ``dest``, rejecting anything that would escape
+        it. Artifacts come from Azure DevOps but are still untrusted input, so each
+        member is validated and extracted individually (never a bare
+        ``extractall()``):
+
+        * absolute paths or ``../`` traversal (classic zip-slip) are rejected;
+        * symlink members are rejected outright. A symlink placed under ``dest``
+          pointing outside it, followed by a write through that path, is a zip-slip
+          variant; we never materialise one. (CPython's ``zipfile`` happens not to
+          create symlinks, extracting them as regular files, but we do not rely on
+          that implementation detail.)
+        """
         dest_abs = os.path.abspath(dest)
-        for member in zf.namelist():
-            target = os.path.abspath(os.path.join(dest, member))
+        for info in zf.infolist():
+            target = os.path.abspath(os.path.join(dest_abs, info.filename))
             if target != dest_abs and not target.startswith(dest_abs + os.sep):
-                raise AzpError(f"unsafe path in artifact zip (zip-slip): {member!r}")
-        zf.extractall(dest)
+                raise AzpError(
+                    f"unsafe path in artifact zip (zip-slip): {info.filename!r}"
+                )
+            if stat.S_ISLNK(info.external_attr >> 16):
+                raise AzpError(
+                    f"symlink member in artifact zip (zip-slip): {info.filename!r}"
+                )
+            zf.extract(info, dest_abs)
 
     def _fetch_zip(self, url: str, extract_dir: str, subpath: Optional[str]) -> None:
         dl_url = url

@@ -20,9 +20,11 @@ jobs:
       # the jammy package variants (swig4.0 + the vmImage build toolchain that the
       # sonic-slave-* containers bake in); --debian-version selects which
       # common-libs / sonic-buildimage artifacts to fetch (bookworm DEBs/wheels
-      # installed on jammy, as before). It apt/pip-installs deps, downloads +
-      # installs the SONiC libnl + libyang3 DEBs and the sonic-yang wheels, and runs
-      # the redis / yang-models post-install hooks.
+      # installed on jammy, as before). It apt/pip-installs deps (libnl comes from
+      # stock apt, per base.yaml), downloads + installs the libyang3 DEBs and the
+      # sonic-yang wheels from common-lib, and runs the yang-models post-install
+      # hook. The redis test-config hook is test-scoped, so it is not run by this
+      # Build job (which runs the Bazel test suite, not pytest).
       PYTHONPATH=$(Build.SourcesDirectory)/ci python3 -m buildenv_setup \
         --repo-dir $(Build.SourcesDirectory) \
         --scope build \

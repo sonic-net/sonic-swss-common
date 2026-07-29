@@ -3,6 +3,7 @@ I/O happens; exercises auth, definition/build/artifact resolution, retry/backoff
 zip download+extract, and the zip-slip guard."""
 import io
 import os
+import stat
 import zipfile
 
 import pytest
@@ -184,6 +185,27 @@ def test_safe_extractall_rejects_zip_slip(tmp_path):
         with pytest.raises(AzpError):
             AzpClient._safe_extractall(zf, str(dest))
     assert not (tmp_path / "escape.txt").exists()
+
+
+def test_safe_extractall_rejects_symlink_member(tmp_path):
+    # A symlink member pointing outside dest is a zip-slip variant (write a file
+    # through the symlinked path). Reject symlink members outright.
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    zpath = tmp_path / "sym.zip"
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        info = zipfile.ZipInfo("evil")
+        info.external_attr = (stat.S_IFLNK | 0o777) << 16
+        zf.writestr(info, str(outside))          # symlink target as content
+        zf.writestr("evil/payload", "PWNED")     # write through the symlink
+    zpath.write_bytes(buf.getvalue())
+    dest = tmp_path / "out"
+    dest.mkdir()
+    with zipfile.ZipFile(str(zpath)) as zf:
+        with pytest.raises(AzpError):
+            AzpClient._safe_extractall(zf, str(dest))
+    assert not (outside / "payload").exists()
 
 
 # -- fetch_artifact (end to end, mocked download) ---------------------------- #

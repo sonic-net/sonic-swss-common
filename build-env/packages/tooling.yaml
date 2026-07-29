@@ -41,5 +41,13 @@ packages:
 post_install:
   - name: mkdir-yang-models
     script: |
-      sudo mkdir -p /usr/local/yang-models
+      # sudo-optional: CI runs the tool as non-root with sudo available, but the
+      # local-dev Dockerfile runs it as root with --no-sudo (and may lack a sudo
+      # binary). --no-sudo only strips the prefix from the tool's own apt/pip/dpkg
+      # commands, not inline hook scripts, so guard sudo here at runtime.
+      SUDO=""
+      if [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1; then
+        SUDO=sudo
+      fi
+      $SUDO mkdir -p /usr/local/yang-models
     scopes: [build]

@@ -62,11 +62,11 @@ jobs:
       sudo apt-get install -qq -y python3-yaml python3-requests
       # buildenv_setup lives in this repo's ci/ (sonic-swss-common hosts the shared
       # tool), so run it straight from the checkout -- no clone needed here.
-      # It installs apt/pip deps, downloads + installs the SONiC-patched libnl +
-      # libyang3 DEBs and the sonic-yang wheels (from upstream-artifacts.yaml), and
-      # runs the redis / yang-models post-install hooks. libnl now comes from
-      # common-lib (SONiC-patched), replacing the apt-stock libnl this job used to
-      # install -- consistent with the ubuntu-22.04 job and the VS test host.
+      # It installs apt/pip deps (libnl comes from stock apt, per base.yaml),
+      # downloads + installs the libyang3 DEBs and the sonic-yang wheels from
+      # common-lib (see upstream-artifacts.yaml), and runs the yang-models
+      # post-install hook. The redis test-config hook is test-scoped, so this Build
+      # job does NOT run it here; it is applied inline later, after cargo test.
       PYTHONPATH=$(Build.SourcesDirectory)/ci python3 -m buildenv_setup \
         --repo-dir $(Build.SourcesDirectory) \
         --scope build \
