@@ -16,6 +16,12 @@ artifacts it consumes, and the build command itself.
 | `build.sh` | canonical build command (autogen + dpkg-buildpackage), used by CI **and** local dev | — |
 | `Dockerfile`, `compose.yaml` | local-dev image (CI does not use these) | — |
 
+> **Cascade limitation:** a cascaded `base.yaml` may declare `packages` and
+> `post_install`, but **not** `apt_sources` (nor a package with `apt_source:`).
+> Cascaded apt sources are not registered on the consumer, so `buildenv_setup`
+> rejects them (fail-loud) instead of letting a later `apt-get install` fail.
+> Keep any `apt_source` + its package in the consuming repo's local `build-env/`.
+
 ## How CI uses it
 
 `.azure-pipelines/build-template.yml` runs, inside `container: sonic-slave-*`:

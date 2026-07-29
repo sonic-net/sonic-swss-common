@@ -1,6 +1,17 @@
 from buildenv_setup.model import Context, Package, PackagesFile
-from buildenv_setup.planner import _deb_install_groups, _pip_batches, _select_packages
+from buildenv_setup.planner import (
+    _collect_cascaded_config,
+    _deb_install_groups,
+    _pip_batches,
+    _select_packages,
+    PlannerError,
+)
 from buildenv_setup.cascade import InstalledArtifact
+
+import os
+import textwrap
+
+import pytest
 
 CTX = Context("amd64", "bookworm", "bookworm-container", "build", "master")
 
@@ -49,6 +60,74 @@ def test_pip_batches_groups_plain_and_splits_args():
     batches = _pip_batches([("a", ()), ("b", ()), ("libyang", ("--no-build-isolation",))])
     assert (["a", "b"], ()) in batches
     assert (["libyang"], ("--no-build-isolation",)) in batches
+
+
+def test_pip_batches_preserve_order_plain_requires_args():
+    # requires:-toposort puts the args pip first because the plain pip depends on
+    # it; _pip_batches must keep that order (args pip installed before plain pip).
+    batches = _pip_batches([("argspip", ("--flag",)), ("plainpip", ())])
+    assert batches == [(["argspip"], ("--flag",)), (["plainpip"], ())]
+
+
+def test_pip_batches_preserve_order_args_requires_plain():
+    # Mirror case: args pip depends on a plain pip -> toposort emits the plain pip
+    # first; the pending plain batch must be flushed before the args batch.
+    batches = _pip_batches([("plainpip", ()), ("argspip", ("--flag",))])
+    assert batches == [(["plainpip"], ()), (["argspip"], ("--flag",))]
+
+
+def test_pip_batches_interleaved_preserves_sequence():
+    batches = _pip_batches([("a", ()), ("x", ("--f",)), ("b", ()), ("c", ())])
+    assert batches == [(["a"], ()), (["x"], ("--f",)), (["b", "c"], ())]
+
+
+def _write_cascaded_base(tmp_path, body: str) -> str:
+    build_env = tmp_path / "build-env"
+    (build_env / "packages").mkdir(parents=True)
+    (build_env / "packages" / "base.yaml").write_text(textwrap.dedent(body))
+    return str(tmp_path)
+
+
+def test_cascaded_package_with_apt_source_fails_loud(tmp_path):
+    bundle = _write_cascaded_base(tmp_path, """
+        apt_sources:
+          - name: llvm
+            list_url: https://apt.llvm.org/x.list
+            gpg_key_url: https://apt.llvm.org/key.asc
+        packages:
+          - { name: clang-18, type: apt, apt_source: llvm }
+    """)
+    with pytest.raises(PlannerError) as ei:
+        _collect_cascaded_config([bundle], set(), CTX)
+    assert "clang-18" in str(ei.value)
+    assert "apt_source" in str(ei.value)
+
+
+def test_cascaded_apt_sources_declaration_fails_loud(tmp_path):
+    # Even an apt_sources declaration with no referencing package is rejected:
+    # it signals reliance on unsupported cascaded-apt_source behavior.
+    bundle = _write_cascaded_base(tmp_path, """
+        apt_sources:
+          - name: llvm
+            list_url: https://apt.llvm.org/x.list
+            gpg_key_url: https://apt.llvm.org/key.asc
+        packages:
+          - { name: build-essential, type: apt }
+    """)
+    with pytest.raises(PlannerError) as ei:
+        _collect_cascaded_config([bundle], set(), CTX)
+    assert "apt_sources" in str(ei.value)
+
+
+def test_cascaded_base_without_apt_source_ok(tmp_path):
+    bundle = _write_cascaded_base(tmp_path, """
+        packages:
+          - { name: libnl-3-dev, type: apt }
+          - { name: libyang, type: pip }
+    """)
+    pkgs, post = _collect_cascaded_config([bundle], set(), CTX)
+    assert [p.name for p in pkgs] == ["libnl-3-dev", "libyang"]
+    assert post == []
 
 
 def test_deb_groups_merge_plain_upstreams_into_one_call():

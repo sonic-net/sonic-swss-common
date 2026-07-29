@@ -29,6 +29,11 @@ from .topo import toposort
 
 log = logging.getLogger(__name__)
 
+
+class PlannerError(Exception):
+    """Raised when a resolved plan cannot be executed safely."""
+
+
 _SCOPE_FILES = {
     "build": ["base.yaml", "tooling.yaml"],
     "test": ["test.yaml"],
@@ -96,20 +101,56 @@ def _collect_cascaded_config(bundle_dirs: List[str], build_envs_seen: set, ctx: 
             continue
         build_envs_seen.add(bundle)
         pf = load_packages_file(base, os.path.join(bundle, "build-env"))
+        # Fail loud on cascaded apt_sources. The cascade currently propagates a
+        # base.yaml's packages + post_install only; apt_sources are resolved from
+        # LOCAL files only (see _select_apt_sources). A cascaded package that
+        # references an apt_source — or a cascaded base.yaml that declares
+        # apt_sources — would be installed with its source never registered, so a
+        # later `apt-get install` fails confusingly. Reject it explicitly rather
+        # than silently breaking the base.yaml-cascades contract. Dormant today
+        # (no base.yaml declares apt_sources); revisit if cascaded apt_sources
+        # become a real requirement.
+        offending = [p.name for p in pf.packages if p.apt_source]
+        if pf.apt_sources or offending:
+            detail = (
+                f"packages {offending} reference an apt_source" if offending
+                else f"declares apt_sources {[s.name for s in pf.apt_sources]}"
+            )
+            raise PlannerError(
+                f"cascaded build-env '{base}' {detail}, but cascaded apt_sources "
+                "are not supported: the apt source would never be registered before "
+                "'apt-get install'. Move the apt_source + its package into the "
+                "consuming repo's local build-env/packages/, or add cascaded-"
+                "apt_source support to the planner."
+            )
         packages.extend(pf.packages)
         post.extend(pf.post_install)
     return packages, post
 
 
 def _pip_batches(pip_specs: List[Tuple[str, Tuple[str, ...]]]):
-    """Group pip specs with no extra args into one batch; others go individually."""
-    plain = [name for name, args in pip_specs if not args]
+    """Turn the requires:-toposorted pip specs into ``pip3 install`` batches while
+    preserving that dependency order across batches.
+
+    Consecutive no-extra-args specs are coalesced into a single install call (pip
+    resolves install order within one invocation, so grouping them is safe); a
+    spec carrying pip_args must run as its own call and is emitted in place. By
+    walking pip_specs in order and flushing the pending plain batch before each
+    args spec, a plain pip that ``requires:`` an args pip (or vice versa) is still
+    installed in dependency order — the earlier naive "all plain first, args after"
+    grouping discarded that ordering."""
     batches: List[Tuple[List[str], Tuple[str, ...]]] = []
-    if plain:
-        batches.append((plain, ()))
+    plain: List[str] = []
     for name, args in pip_specs:
         if args:
+            if plain:
+                batches.append((plain, ()))
+                plain = []
             batches.append(([name], args))
+        else:
+            plain.append(name)
+    if plain:
+        batches.append((plain, ()))
     return batches
 
 
