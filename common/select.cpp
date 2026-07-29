@@ -17,6 +17,15 @@ using namespace std;
 
 namespace swss {
 
+namespace {
+
+constexpr unsigned int kMaxConsecutiveErrorLogs = 10;
+
+// Thread-local rather than a member so as not to break the ABI
+thread_local unsigned int s_consecutiveErrors = 0;
+
+}
+
 Select::Select()
 {
     m_epoll_fd = ::epoll_create1(0);
@@ -127,19 +136,18 @@ int Select::poll_descriptors(Selectable **c, unsigned int timeout, bool interrup
         try
         {
             sel->readData();
+            s_consecutiveErrors = 0;
         }
         catch (const std::runtime_error& ex)
         {
-            // Throttling by kErrorLogInterval avoids flooding /var/log and filling
-            // the partition from callers in a tight loop.
-            constexpr auto kErrorLogInterval = std::chrono::seconds(1);
-            static thread_local std::chrono::steady_clock::time_point lastErrorLog;
-            auto now = std::chrono::steady_clock::now();
-            if (now - lastErrorLog >= kErrorLogInterval)
+            if (s_consecutiveErrors < kMaxConsecutiveErrorLogs)
             {
-                SWSS_LOG_ERROR("readData error: %s", ex.what());
-                lastErrorLog = now;
+                s_consecutiveErrors++;
+                SWSS_LOG_ERROR("readData error: %s%s", ex.what(),
+                    s_consecutiveErrors == kMaxConsecutiveErrorLogs
+                        ? " (suppressing further logging until a successful read)" : "");
             }
+
             return Select::ERROR;
         }
         m_ready.insert(sel);
@@ -195,9 +203,8 @@ int Select::select(Selectable **c, int timeout, bool interrupt_on_signal)
         ret = poll_descriptors(c, timeout, interrupt_on_signal);
     } else if (ret == Select::ERROR)
     {
-        // ERROR returns immediately, so a tight caller loop pins the CPU.
-        // Back off by the timeout capped at 1s; INFINITE (< 0) counts as the
-        // largest timeout, so it is capped to 1s.
+        // ERROR returns immediately, so a tight caller loop pins the CPU. Back off
+        // by the timeout capped at 1s; INFINITE (< 0) counts as the largest timeout.
         constexpr int kMaxErrorBackoffMs = 1000;
         int backoffMs = (timeout < 0 || timeout > kMaxErrorBackoffMs) ? kMaxErrorBackoffMs : timeout;
         std::this_thread::sleep_for(std::chrono::milliseconds(backoffMs));
