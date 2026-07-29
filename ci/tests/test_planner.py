@@ -8,7 +8,6 @@ from buildenv_setup.planner import (
 )
 from buildenv_setup.cascade import InstalledArtifact
 
-import os
 import textwrap
 
 import pytest
