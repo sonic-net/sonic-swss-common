@@ -71,7 +71,7 @@ private:
 
     std::vector<char> m_sendbuffer;
 
-    // Inner send-retry caps (see setSendRetryConfig); defaults preserve behavior.
+    // Inner send-retry caps (see setSendRetryConfig); defaults: MQ_MAX_RETRY, uncapped back-off.
     std::atomic<int> m_sendMaxRetries{MQ_MAX_RETRY};
     std::atomic<int> m_sendMaxBackoffMs{-1};
 

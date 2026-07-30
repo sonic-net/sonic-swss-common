@@ -247,15 +247,19 @@ void ZmqClient::sendMsg(
             // EAGAIN: ZMQ is full to need try again
             saw_eagain = true;
             m_sendEagainTotal.fetch_add(1, std::memory_order_relaxed);
-            // Track the deepest backoff waited (congestion-depth gauge).
-            uint64_t observed = m_sendBackoffMaxMs.load(std::memory_order_relaxed);
-            while (static_cast<uint64_t>(retry_delay) > observed &&
-                   !m_sendBackoffMaxMs.compare_exchange_weak(observed,
-                                                             static_cast<uint64_t>(retry_delay),
-                                                             std::memory_order_relaxed))
+            // Record/log backoff only when a retry follows; the final attempt throws without waiting.
+            if (i < max_retries)
             {
+                // Deepest backoff waited (congestion-depth gauge).
+                uint64_t observed = m_sendBackoffMaxMs.load(std::memory_order_relaxed);
+                while (static_cast<uint64_t>(retry_delay) > observed &&
+                       !m_sendBackoffMaxMs.compare_exchange_weak(observed,
+                                                                 static_cast<uint64_t>(retry_delay),
+                                                                 std::memory_order_relaxed))
+                {
+                }
+                SWSS_LOG_WARN("zmq is full, will retry in %d ms, endpoint: %s, error: %d", retry_delay, m_endpoint.c_str(), zmq_err);
             }
-            SWSS_LOG_WARN("zmq is full, will retry in %d ms, endpoint: %s, error: %d", retry_delay, m_endpoint.c_str(), zmq_err);
         }
         else if (zmq_err == ETERM)
         {
@@ -272,8 +276,7 @@ void ZmqClient::sendMsg(
             throw system_error(make_error_code(errc::io_error), message);
         }
 
-        // No sleep after the final attempt — the loop is about to exit and throw,
-        // so returning control immediately is what a capped caller wants.
+        // No sleep after the final attempt: the loop is about to throw.
         if (i < max_retries)
         {
             usleep(retry_delay * 1000);
