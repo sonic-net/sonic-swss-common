@@ -1,2 +1,9 @@
 **/*
 !*.deb
+# Also publish build-env/ so downstream consumers (sonic-sairedis, sonic-swss)
+# can cascade this repo's dependency declarations: buildenv_setup downloads this
+# artifact and reads build-env/upstream-artifacts.yaml + build-env/packages/*.yaml
+# from it. Both the directory and its contents must be un-ignored (the leading
+# **/* ignores the directory entry too).
+!build-env
+!build-env/**

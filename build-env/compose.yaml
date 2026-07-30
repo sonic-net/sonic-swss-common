@@ -1,0 +1,28 @@
+# Local-dev convenience for building sonic-swss-common in a CI-like container.
+#
+# Usage:
+#   cd build-env
+#   DEBIAN_VERSION=bookworm docker compose run --rm build     # build the .debs
+#   DEBIAN_VERSION=bookworm docker compose run --rm shell     # interactive shell
+#
+# The repo is mounted live at /workspace, so edits on the host are immediately
+# visible in the container without rebuilding the image (only a change to
+# build-env/ dependency declarations requires an image rebuild).
+
+services:
+  build:
+    build:
+      context: ..
+      dockerfile: build-env/Dockerfile
+      args:
+        DEBIAN_VERSION: ${DEBIAN_VERSION:-bookworm}
+        BUILD_BRANCH: ${BUILD_BRANCH:-master}
+    volumes:
+      - ..:/workspace
+    working_dir: /workspace
+    command: ["./build-env/build.sh"]
+
+  shell:
+    extends:
+      service: build
+    command: ["/bin/bash"]
