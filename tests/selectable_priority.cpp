@@ -376,3 +376,29 @@ TEST(Select, error_logging_rearms_after_successful_read)
     bad.notify();
     EXPECT_EQ(pollAndCountLogs(s, 100), kMaxErrorLogs);
 }
+
+// A different fd failing gets its own log budget instead of inheriting the
+// saturated counter from the fd that was already failing.
+TEST(Select, error_logging_resets_for_a_different_fd)
+{
+    FailingSelectable first;
+    FailingSelectable second;
+    Select s;
+    s.addSelectable(&first);
+    s.addSelectable(&second);
+
+    first.setFailing(false);
+    second.setFailing(false);
+    Selectable *sel = nullptr;
+    ASSERT_EQ(s.select(&sel, 0), Select::OBJECT);
+
+    first.setFailing(true);
+    first.notify();
+    EXPECT_EQ(pollAndCountLogs(s, 100), kMaxErrorLogs);
+
+    first.setFailing(false);
+    second.setFailing(true);
+    first.notify();
+    second.notify();
+    EXPECT_EQ(pollAndCountLogs(s, 100), kMaxErrorLogs);
+}

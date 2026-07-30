@@ -23,6 +23,7 @@ constexpr unsigned int kMaxConsecutiveErrorLogs = 10;
 
 // Thread-local rather than a member so as not to break the ABI
 thread_local unsigned int s_consecutiveErrors = 0;
+thread_local int s_lastFailedFd = -1;
 
 }
 
@@ -129,8 +130,6 @@ int Select::poll_descriptors(Selectable **c, unsigned int timeout, bool interrup
         return Select::ERROR;
     }
 
-    bool readSuccess = false;
-
     for (int i = 0; i < ret; ++i)
     {
         int fd = events[i].data.fd;
@@ -138,10 +137,15 @@ int Select::poll_descriptors(Selectable **c, unsigned int timeout, bool interrup
         try
         {
             sel->readData();
-            readSuccess = true;
         }
         catch (const std::runtime_error& ex)
         {
+            if (fd != s_lastFailedFd)
+            {
+                s_lastFailedFd = fd;
+                s_consecutiveErrors = 0;
+            }
+
             if (s_consecutiveErrors < kMaxConsecutiveErrorLogs)
             {
                 s_consecutiveErrors++;
@@ -155,10 +159,7 @@ int Select::poll_descriptors(Selectable **c, unsigned int timeout, bool interrup
         m_ready.insert(sel);
     }
 
-    if (readSuccess)
-    {
-        s_consecutiveErrors = 0;
-    }
+    s_consecutiveErrors = 0;
 
     while (!m_ready.empty())
     {
