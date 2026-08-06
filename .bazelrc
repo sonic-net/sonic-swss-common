@@ -8,3 +8,9 @@ common --registry=https://bcr.bazel.build/
 
 # Import the per-module override configs shared across sonic-buildimage submodules.
 try-import %workspace%/../../tools/bazel/submodule-config.bazelrc
+
+# Build all release binaries for `trixie`.
+# These are host toolchains (exec == target == $cpu),
+# so --config=aarch64 only resolves when Bazel itself is running on an aarch64 machine.
+common --platforms=//platforms:x86_64_trixie
+common:aarch64 --platforms=//platforms:aarch64_trixie
