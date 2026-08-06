@@ -2,6 +2,7 @@
 
 #include <map>
 #include <memory>
+#include <unordered_set>
 #include <mutex>
 #include <string>
 #include <deque>
@@ -56,6 +57,23 @@ public:
     ZmqMessageHandler* dispatch(const std::string& dbName,
                   const std::string& tableName,
                   const std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos);
+
+    // Call notifyPending() on every handler in `dirty` that is still
+    // registered, then clear `dirty`.
+    //
+    // For burst-coalescing servers (ZmqRouteServer), which accumulate raw
+    // handler pointers across poll iterations and notify them later. Doing the
+    // flush here, under the same mutex removeHandler() takes, is what makes
+    // that safe: a handler removed since it was added to `dirty` has already
+    // been erased from the map and is skipped, and a concurrent removeHandler()
+    // blocks until this returns. Notifying by iterating the caller's set
+    // directly would be a use-after-free, since a raw pointer cannot be
+    // validated without the map.
+    //
+    // Deliberately iterates the registry rather than `dirty`: membership in
+    // the map is the liveness check. The map holds one entry per registered
+    // (db, table), so this is a handful of comparisons once per burst.
+    void flushDirtyHandlers(std::unordered_set<ZmqMessageHandler*>& dirty);
 
 private:
     std::mutex m_mutex;

@@ -44,14 +44,14 @@ void ZmqRouteServer::mqPollThread()
         {
             // Poll timed out. If a burst was pending, BURST_QUIESCE_MS has
             // passed without new data — flush it now.
-            if (!dirtyHandlers.empty())
-            {
-                for (auto* handler : dirtyHandlers)
-                {
-                    handler->notifyPending();
-                }
-                dirtyHandlers.clear();
-            }
+            //
+            // Flush through the registry rather than iterating dirtyHandlers
+            // here: these are raw pointers captured up to BURST_QUIESCE_MS
+            // ago, and a consumer destroyed in the meantime would have
+            // unregistered itself but left its pointer in the set. The
+            // registry checks liveness and notifies under the same lock that
+            // removeHandler() takes. It also clears the set.
+            getHandlerRegistry()->flushDirtyHandlers(dirtyHandlers);
             continue;
         }
         if (!(poll_item.revents & ZMQ_POLLIN))

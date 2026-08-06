@@ -321,3 +321,34 @@ TEST(ZmqRouteConsumerStateTable, MultipleBurstsEachWakeSeparately)
     EXPECT_GE(wakeupsBurst2, 1) << "second burst produced no fresh wakeup after the first drained";
     EXPECT_EQ(tuplesSeen.load(), 2 * BURST);
 }
+
+// A handler unregistered (and possibly destroyed) between being marked dirty
+// and the deferred quiesce flush must be skipped, not notified through a
+// dangling pointer. Regression test for the raw-pointer flush in
+// ZmqRouteServer::mqPollThread: the registry validates liveness under the
+// same mutex removeHandler() takes.
+TEST(ZmqHandlerRegistry, FlushSkipsUnregisteredHandlers)
+{
+    ZmqHandlerRegistry registry;
+
+    CountingHandler stays;
+    CountingHandler leaves;
+    registry.registerHandler("APPL_DB", "T_STAYS", &stays);
+    registry.registerHandler("APPL_DB", "T_LEAVES", &leaves);
+
+    // Both were dirtied during a burst...
+    std::unordered_set<ZmqMessageHandler*> dirty{&stays, &leaves};
+
+    // ...but one consumer is torn down before the quiesce flush fires.
+    registry.removeHandler("APPL_DB", "T_LEAVES");
+
+    registry.flushDirtyHandlers(dirty);
+
+    EXPECT_EQ(stays.notifyCount.load(), 1);
+    EXPECT_EQ(leaves.notifyCount.load(), 0);   // skipped, not notified
+    EXPECT_TRUE(dirty.empty());                // flush also clears the set
+
+    // A second flush with an empty set is a no-op.
+    registry.flushDirtyHandlers(dirty);
+    EXPECT_EQ(stays.notifyCount.load(), 1);
+}

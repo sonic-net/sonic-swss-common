@@ -55,6 +55,29 @@ void ZmqHandlerRegistry::removeHandler(
                    dbName.c_str(), tableName.c_str());
 }
 
+void ZmqHandlerRegistry::flushDirtyHandlers(std::unordered_set<ZmqMessageHandler*>& dirty)
+{
+    if (dirty.empty()) {
+        return;
+    }
+
+    // Same mutex as removeHandler(): while we hold it no handler can be
+    // unregistered (and therefore destroyed) underneath us, and any handler
+    // unregistered before we got here is no longer in the map, so it is
+    // skipped rather than notified through a dangling pointer.
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    for (auto& dbEntry : m_handlers) {
+        for (auto& tableEntry : dbEntry.second) {
+            if (dirty.count(tableEntry.second)) {
+                tableEntry.second->notifyPending();
+            }
+        }
+    }
+
+    dirty.clear();
+}
+
 ZmqMessageHandler* ZmqHandlerRegistry::dispatch(
     const std::string& dbName,
     const std::string& tableName,
