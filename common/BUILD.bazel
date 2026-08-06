@@ -3,7 +3,7 @@ package(default_visibility = ["//visibility:public"])
 # Generated cfg_schema.h lives here in common/, matching common/Makefile.am
 # (BUILT_SOURCES = common/cfg_schema.h). schema.h #includes it unconditionally.
 #
-# When YANG modules are disabled (--//bazel:yang_modules=False) we emit the same
+# When YANG modules are disabled (--//tools/bazel:yang_modules=False) we emit the same
 # minimal stub that `./configure --disable-yangmodules` produces. The
 # CFG_*_TABLE_NAME macros the library itself uses remain defined inline in schema.h.
 #
@@ -11,7 +11,7 @@ package(default_visibility = ["//visibility:public"])
 # Bazel build yet — it needs the YANG toolchain (sonic-yang-mgmt / sonic-yang-models
 # / libyang3) in the sonic-buildimage registry plus a python toolchain.
 # Until then, building with YANG modules enabled (the default) is deliberately incompatible so it
-# fails loudly. To build, pass --//bazel:yang_modules=False.
+# fails loudly. To build, pass --//tools/bazel:yang_modules=False.
 genrule(
     name = "cfg_schema_h",
     outs = ["cfg_schema.h"],
@@ -30,7 +30,7 @@ echo '#endif'
 echo '#endif'
 } > $@""",
     target_compatible_with = select({
-        "//bazel:yang_modules_enabled": ["@platforms//:incompatible"],
+        "//tools/bazel:yang_modules_enabled": ["@platforms//:incompatible"],
         "//conditions:default": [],
     }),
 )

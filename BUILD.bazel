@@ -3,8 +3,8 @@ load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@rules_distroless//distroless:defs.bzl", "flatten")
 load("@tar.bzl", "mtree_mutate", "mtree_spec", "tar")
-load("//bazel:always_link_transition.bzl", "alwayslink_cc_binary")
-load("//bazel:flags.bzl", "CXXFLAGS_COMMON")
+load("//tools/bazel:always_link_transition.bzl", "alwayslink_cc_binary")
+load("//tools/bazel:flags.bzl", "CXXFLAGS_COMMON")
 
 package(default_visibility = ["//visibility:public"])
 
