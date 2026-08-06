@@ -337,18 +337,96 @@ TEST(ZmqHandlerRegistry, FlushSkipsUnregisteredHandlers)
     registry.registerHandler("APPL_DB", "T_LEAVES", &leaves);
 
     // Both were dirtied during a burst...
-    std::unordered_set<ZmqMessageHandler*> dirty{&stays, &leaves};
+    ZmqHandlerRegistry::DirtyHandlerMap dirty{
+        {&stays, std::chrono::steady_clock::now()},
+        {&leaves, std::chrono::steady_clock::now()},
+    };
 
     // ...but one consumer is torn down before the quiesce flush fires.
     registry.removeHandler("APPL_DB", "T_LEAVES");
 
-    registry.flushDirtyHandlers(dirty);
+    registry.flushDirtyHandlers(dirty, std::chrono::steady_clock::now());
 
     EXPECT_EQ(stays.notifyCount.load(), 1);
     EXPECT_EQ(leaves.notifyCount.load(), 0);   // skipped, not notified
     EXPECT_TRUE(dirty.empty());                // flush also clears the set
 
-    // A second flush with an empty set is a no-op.
-    registry.flushDirtyHandlers(dirty);
+    // A second flush with an empty map is a no-op.
+    registry.flushDirtyHandlers(dirty, std::chrono::steady_clock::now());
     EXPECT_EQ(stays.notifyCount.load(), 1);
+}
+
+// The cutoff must leave younger entries in place: only handlers dirty since
+// at or before the cutoff are notified and erased. This is what bounds
+// notification latency mid-burst without double-notifying fresh entries.
+TEST(ZmqHandlerRegistry, FlushHonorsCutoff)
+{
+    ZmqHandlerRegistry registry;
+
+    CountingHandler oldOne;
+    CountingHandler youngOne;
+    registry.registerHandler("APPL_DB", "T_OLD", &oldOne);
+    registry.registerHandler("APPL_DB", "T_YOUNG", &youngOne);
+
+    const auto now = std::chrono::steady_clock::now();
+    ZmqHandlerRegistry::DirtyHandlerMap dirty{
+        {&oldOne, now - std::chrono::milliseconds(100)},
+        {&youngOne, now},
+    };
+
+    // Cutoff of "50ms ago": only the 100ms-old entry is overdue.
+    registry.flushDirtyHandlers(dirty, now - std::chrono::milliseconds(50));
+
+    EXPECT_EQ(oldOne.notifyCount.load(), 1);
+    EXPECT_EQ(youngOne.notifyCount.load(), 0);
+    EXPECT_EQ(dirty.size(), 1u);
+    EXPECT_EQ(dirty.count(&youngOne), 1u);
+}
+
+// End to end: a stream that never pauses for BURST_QUIESCE_MS and has no
+// consumer-side threshold must still wake the Select loop within roughly
+// BURST_MAX_HOLDOFF_MS. Before the holdoff, the only wake was the quiesce
+// notify, which such a stream never triggers. (Scheduling jitter can create
+// accidental quiesce gaps that would also wake us; the assert is on the
+// bound, which holds either way.)
+TEST(ZmqRouteConsumerStateTable, ContinuousStreamWakesWithinHoldoff)
+{
+    const string tableName = "ZMQ_ROUTE_UT_HOLDOFF";
+    const string pushEndpoint = "tcp://localhost:1244";
+    const string pullEndpoint = "tcp://*:1244";
+
+    DBConnector db(TEST_DB, 0, true);
+    ZmqRouteServer server(pullEndpoint, "", /*lazyBind=*/true);
+    ZmqRouteConsumerStateTable c(&db, tableName, server, 0, /*dbPersistence=*/false);
+    c.setIngressCallback(
+        [](const std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> &) {});
+
+    server.bind();
+
+    Select sel;
+    sel.addSelectable(&c);
+
+    ZmqClient client(pushEndpoint, 0);
+    ZmqProducerStateTable p(&db, tableName, client, /*dbPersistence=*/false);
+
+    // Same-key updates every ~2ms for the whole window: no quiesce gap by
+    // construction (modulo scheduler jitter), no growth in distinct keys.
+    std::atomic<bool> stop{false};
+    std::thread producer([&] {
+        while (!stop.load())
+        {
+            p.set("flap_key", vector<FieldValueTuple>{{"seq", "x"}});
+            std::this_thread::sleep_for(std::chrono::milliseconds(2));
+        }
+    });
+
+    // 500ms select timeout: an unbounded deferral would time out here, the
+    // 50ms holdoff wakes us an order of magnitude earlier.
+    Selectable *out = nullptr;
+    int ret = sel.select(&out, 500);
+    stop = true;
+    producer.join();
+
+    EXPECT_EQ(ret, Select::OBJECT);
+    EXPECT_EQ(out, &c);
 }

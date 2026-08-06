@@ -55,7 +55,8 @@ void ZmqHandlerRegistry::removeHandler(
                    dbName.c_str(), tableName.c_str());
 }
 
-void ZmqHandlerRegistry::flushDirtyHandlers(std::unordered_set<ZmqMessageHandler*>& dirty)
+void ZmqHandlerRegistry::flushDirtyHandlers(DirtyHandlerMap& dirty,
+                                            std::chrono::steady_clock::time_point cutoff)
 {
     if (dirty.empty()) {
         return;
@@ -63,19 +64,33 @@ void ZmqHandlerRegistry::flushDirtyHandlers(std::unordered_set<ZmqMessageHandler
 
     // Same mutex as removeHandler(): while we hold it no handler can be
     // unregistered (and therefore destroyed) underneath us, and any handler
-    // unregistered before we got here is no longer in the map, so it is
+    // unregistered before we got here is no longer in the registry, so it is
     // skipped rather than notified through a dangling pointer.
     std::lock_guard<std::mutex> lock(m_mutex);
 
+    // Pass 1: walk the registry and notify the live handlers that are dirty
+    // and overdue. Registry membership is the liveness check. A handler
+    // registered under several (db, table) pairs would be notified once per
+    // registration, which is harmless -- eventfd writes coalesce.
     for (auto& dbEntry : m_handlers) {
         for (auto& tableEntry : dbEntry.second) {
-            if (dirty.count(tableEntry.second)) {
+            auto it = dirty.find(tableEntry.second);
+            if (it != dirty.end() && it->second <= cutoff) {
                 tableEntry.second->notifyPending();
             }
         }
     }
 
-    dirty.clear();
+    // Pass 2: erase every overdue entry, live or dead. Dead entries must not
+    // linger: a dangling pointer left in `dirty` would keep the poll loop in
+    // its short-timeout mode forever.
+    for (auto it = dirty.begin(); it != dirty.end();) {
+        if (it->second <= cutoff) {
+            it = dirty.erase(it);
+        } else {
+            ++it;
+        }
+    }
 }
 
 ZmqMessageHandler* ZmqHandlerRegistry::dispatch(
