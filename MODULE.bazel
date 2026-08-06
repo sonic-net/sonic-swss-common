@@ -21,7 +21,7 @@ bazel_dep(name = "platforms", version = "1.1.0")
 bazel_dep(name = "tar.bzl", version = "0.10.5")
 bazel_dep(name = "rules_distroless", version = "0.0.0.commit-01bb79d7eef4eb3ce9511d3dfaf0ab386bd8d12d")
 bazel_dep(name = "libnl3", version = "3.7.0.sonic-buildimage")
-bazel_dep(name = "sonic-build-infra", version = "0.0.0-d2283ad0aebb0eb78821920635e7f9ab54c6f146", repo_name = "sonic_build_infra")
+bazel_dep(name = "sonic-build-infra", version = "0.0.1-5b8535804cae4eade881b378016a6f297039ee82", repo_name = "sonic_build_infra")
 
 register_toolchains("@sonic_build_infra//toolchains/gcc:all")
 
