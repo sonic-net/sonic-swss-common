@@ -386,9 +386,14 @@ TEST(ZmqHandlerRegistry, FlushHonorsCutoff)
 // End to end: a stream that never pauses for BURST_QUIESCE_MS and has no
 // consumer-side threshold must still wake the Select loop within roughly
 // BURST_MAX_HOLDOFF_MS. Before the holdoff, the only wake was the quiesce
-// notify, which such a stream never triggers. (Scheduling jitter can create
-// accidental quiesce gaps that would also wake us; the assert is on the
-// bound, which holds either way.)
+// notify, which such a stream never triggers.
+//
+// The wake latency is what attributes the wake to the holdoff: a quiesce
+// wake needs a >BURST_QUIESCE_MS gap in the stream, and at ~300us pacing
+// such a gap takes a >16x scheduler stall, which the lower bound below
+// would catch as an early wake. The upper bound rules out the select
+// timeout and late accidental gaps. With BURST_MAX_HOLDOFF_MS reverted,
+// the stream never wakes select inside the window and the test fails.
 TEST(ZmqRouteConsumerStateTable, ContinuousStreamWakesWithinHoldoff)
 {
     const string tableName = "ZMQ_ROUTE_UT_HOLDOFF";
@@ -409,24 +414,32 @@ TEST(ZmqRouteConsumerStateTable, ContinuousStreamWakesWithinHoldoff)
     ZmqClient client(pushEndpoint, 0);
     ZmqProducerStateTable p(&db, tableName, client, /*dbPersistence=*/false);
 
-    // Same-key updates every ~2ms for the whole window: no quiesce gap by
-    // construction (modulo scheduler jitter), no growth in distinct keys.
+    // Same-key updates every ~300us for the whole window: no quiesce gap
+    // short of a >16x scheduler stall, no growth in distinct keys.
     std::atomic<bool> stop{false};
     std::thread producer([&] {
         while (!stop.load())
         {
             p.set("flap_key", vector<FieldValueTuple>{{"seq", "x"}});
-            std::this_thread::sleep_for(std::chrono::milliseconds(2));
+            std::this_thread::sleep_for(std::chrono::microseconds(300));
         }
     });
 
     // 500ms select timeout: an unbounded deferral would time out here, the
     // 50ms holdoff wakes us an order of magnitude earlier.
     Selectable *out = nullptr;
+    const auto selectStart = std::chrono::steady_clock::now();
     int ret = sel.select(&out, 500);
+    const auto wakeLatency = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - selectStart);
     stop = true;
     producer.join();
 
     EXPECT_EQ(ret, Select::OBJECT);
     EXPECT_EQ(out, &c);
+    // Holdoff wake lands at ~BURST_MAX_HOLDOFF_MS (50ms) plus one drain
+    // pass. Below 40ms means a quiesce/gap wake fired first (precondition
+    // broken); above 150ms means the wake wasn't the holdoff.
+    EXPECT_GE(wakeLatency.count(), 40);
+    EXPECT_LE(wakeLatency.count(), 150);
 }

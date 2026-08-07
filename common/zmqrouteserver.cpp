@@ -75,6 +75,12 @@ void ZmqRouteServer::mqPollThread()
         // loop until EAGAIN). ZmqRouteServer is async-only; the oneToOneSync
         // (request/response) mode supported by ZmqServer is intentionally not
         // available here — burst coalescing assumes streaming ingress.
+        //
+        // One clock read per drain pass rather than per message; emplace keeps
+        // the FIRST dirty time on repeat touches, which is what the holdoff
+        // below is measured from. Pass-start granularity only makes flushes
+        // earlier, never later.
+        const auto drainStart = std::chrono::steady_clock::now();
         while (m_runThread)
         {
             rc = zmq_recv(m_socket, m_buffer.data(), MQ_RESPONSE_MAX_COUNT, ZMQ_DONTWAIT);
@@ -116,16 +122,18 @@ void ZmqRouteServer::mqPollThread()
 
             if (auto* handler = getHandlerRegistry()->dispatch(dbName, tableName, kcos))
             {
-                // emplace keeps the FIRST dirty time on repeat touches, which
-                // is what the holdoff below is measured from.
-                dirtyHandlers.emplace(handler, std::chrono::steady_clock::now());
+                dirtyHandlers.emplace(handler, drainStart);
             }
         }
 
         // A continuous stream keeps zmq_poll returning with data, so the
         // rc == 0 quiesce flush above may never run. Flush overdue handlers
-        // here, once per drain pass, to bound notification latency at
-        // BURST_MAX_HOLDOFF_MS even when the burst never quiesces.
+        // here, once per drain-to-empty pass: any stream that lets the socket
+        // empty momentarily (recv hits EAGAIN) gets notified within about
+        // BURST_MAX_HOLDOFF_MS. A producer that keeps the socket continuously
+        // non-empty while staying under the gMaxBulkSize threshold can defer
+        // this flush for the length of the drain pass; we accept that rather
+        // than pay a per-message deadline check on the hot path.
         getHandlerRegistry()->flushDirtyHandlers(
             dirtyHandlers,
             std::chrono::steady_clock::now() - std::chrono::milliseconds(BURST_MAX_HOLDOFF_MS));
