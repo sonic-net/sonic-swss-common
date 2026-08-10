@@ -155,30 +155,41 @@ def _pip_batches(pip_specs: List[Tuple[str, Tuple[str, ...]]]):
 
 
 def _deb_install_groups(artifacts) -> List[dict]:
-    """Group every artifact's DEBs by install_env signature into single dpkg -i
-    calls (see run() step 3 for rationale). Returns groups ordered so that the
-    empty-install_env group (the usual library providers such as libnl/libyang3/
-    libswsscommon) is installed before any special-install_env group (e.g. vpp).
-    Within a group, dpkg_args are unioned and apt_fix_broken is ORed."""
-    deb_groups: "OrderedDict[tuple, dict]" = OrderedDict()
+    """Batch dependency-first artifacts into ordered ``dpkg -i`` calls.
+
+    ``collect_bundles`` returns nested dependencies before their parents. Merge
+    only ADJACENT artifacts with the same ``install_env`` signature: dpkg can
+    then unpack/configure cross-artifact dependencies in one invocation without
+    moving a later dependent ahead of an intervening dependency that needs a
+    different environment (e.g. common-libs -> VPP -> sairedis).
+
+    Within a batch, dpkg_args are unioned and apt_fix_broken is ORed.
+    Artifacts containing only wheels do not split an otherwise-adjacent DEB
+    batch."""
+    deb_groups: List[dict] = []
+    current_sig = None
+    current = None
     for art in artifacts:
+        if not art.deb_files:
+            continue
         env_sig = tuple(sorted((art.install_env or {}).items()))
+        if current is None or env_sig != current_sig:
+            current_sig = env_sig
+            current = {
+                "files": [],
+                "args": [],
+                "fix": False,
+                "env": dict(art.install_env or {}),
+            }
+            deb_groups.append(current)
         for deb in art.deb_files:
             dpkg_args, fix = art.deb_opts.get(deb, ([], False))
-            g = deb_groups.get(env_sig)
-            if g is None:
-                g = {"files": [], "args": [], "fix": False, "env": dict(art.install_env or {})}
-                deb_groups[env_sig] = g
-            g["files"].append(deb)
+            current["files"].append(deb)
             for a in dpkg_args:
-                if a not in g["args"]:
-                    g["args"].append(a)
-            g["fix"] = g["fix"] or fix
-    # Empty-install_env group first (the usual library providers, installed before
-    # any special-env group like vpp); all other groups keep their insertion order
-    # (sorted() is stable), so inter-DEB dependencies across special-env groups are
-    # not reordered.
-    return [g for sig, g in sorted(deb_groups.items(), key=lambda kv: 0 if not kv[0] else 1)]
+                if a not in current["args"]:
+                    current["args"].append(a)
+            current["fix"] = current["fix"] or fix
+    return deb_groups
 
 
 def run(
