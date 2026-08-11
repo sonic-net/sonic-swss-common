@@ -247,16 +247,13 @@ def run(
     # 2. apt install
     executor.apt_install(apt_names)
 
-    # 3. upstream DEBs (dpkg -i), before pip (F6). Group DEBs across ALL artifacts
-    #    by their install_env signature and install each group in ONE dpkg -i call,
-    #    so inter-DEB dependencies resolve regardless of declaration/filename order
-    #    — including cross-artifact deps, e.g. libswsscommon (sonic-swss-common)
-    #    depends on libnl-nf-3-200 + libyang3 (common-libs). dpkg unpacks the whole
-    #    set before configuring, so it orders configuration itself. Only a differing
-    #    install_env forces a separate call (e.g. vpp needs VPP_INSTALL_SKIP_SYSCTL=1
-    #    during its maintainer scripts); dpkg_args are unioned and apt_fix_broken is
-    #    ORed within a group. Empty-install_env groups (the usual library providers)
-    #    install first, before any special-env group.
+    # 3. upstream DEBs (dpkg -i), before pip (F6). collect_bundles returns
+    #    dependency-first artifacts. Batch only adjacent artifacts with the same
+    #    install_env so dpkg can resolve compatible cross-artifact dependencies
+    #    together (e.g. libswsscommon + common-libs) without moving a dependent
+    #    ahead of an intervening special-environment dependency (e.g.
+    #    common-libs -> VPP -> sairedis). dpkg_args are unioned and
+    #    apt_fix_broken is ORed within each ordered batch.
     for g in _deb_install_groups(artifacts):
         executor.dpkg_install(g["files"], dpkg_args=g["args"],
                               apt_fix_broken=g["fix"], env=g["env"])
