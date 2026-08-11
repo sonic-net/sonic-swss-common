@@ -157,11 +157,13 @@ def _pip_batches(pip_specs: List[Tuple[str, Tuple[str, ...]]]):
 def _deb_install_groups(artifacts) -> List[dict]:
     """Batch dependency-first artifacts into ordered ``dpkg -i`` calls.
 
-    ``collect_bundles`` returns nested dependencies before their parents. Merge
-    only ADJACENT artifacts with the same ``install_env`` signature: dpkg can
-    then unpack/configure cross-artifact dependencies in one invocation without
-    moving a later dependent ahead of an intervening dependency that needs a
-    different environment (e.g. common-libs -> VPP -> sairedis).
+    The caller (normally ``collect_bundles``) must supply artifacts in
+    dependency-first order; this function preserves that order but does not
+    derive or validate dependencies itself. Merge only ADJACENT artifacts with
+    the same ``install_env`` signature: dpkg can then unpack/configure
+    cross-artifact dependencies in one invocation without moving a later
+    dependent ahead of an intervening dependency that needs a different
+    environment (e.g. common-libs -> VPP -> sairedis).
 
     Within a batch, dpkg_args are unioned and apt_fix_broken is ORed.
     Artifacts containing only wheels do not split an otherwise-adjacent DEB
