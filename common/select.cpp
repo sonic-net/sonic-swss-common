@@ -140,6 +140,8 @@ int Select::poll_descriptors(Selectable **c, unsigned int timeout, bool interrup
         }
         catch (const std::runtime_error& ex)
         {
+            // Only the first failing fd in the batch reaches here, and level-triggered epoll
+            // keeps its position stable, so a persistent outage saturates rather than resets.
             if (fd != s_lastFailedFd)
             {
                 s_lastFailedFd = fd;

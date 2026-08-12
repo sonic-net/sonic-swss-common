@@ -10,6 +10,7 @@
 #include "common/logger.h"
 #include "gtest/gtest.h"
 
+#include <chrono>
 #include <stdexcept>
 #include <string>
 
@@ -291,114 +292,164 @@ public:
     }
 };
 
-// Poll s n times, returning how many readData error lines were logged.
-size_t pollAndCountLogs(Select &s, int n)
+class SelectErrorLogging : public ::testing::Test
 {
-    Logger::swssOutputNotify("", "STDERR");
-    testing::internal::CaptureStderr();
+protected:
+    Select s;
 
-    for (int i = 0; i < n; i++)
+    // Log suppression state is per-thread, so it outlives an individual test and
+    // only a successful read re-arms it. Tests read cleanly before asserting.
+    void readCleanly()
     {
         Selectable *sel = nullptr;
-        s.select(&sel, 0);
+        ASSERT_EQ(s.select(&sel, 0), Select::OBJECT);
     }
 
-    string out = testing::internal::GetCapturedStderr();
-    Logger::swssOutputNotify("", "SYSLOG");
-
-    size_t logs = 0;
-    for (size_t p = out.find("readData error"); p != string::npos;
-         p = out.find("readData error", p + 1))
+    // Poll n times, returning how many readData error lines were logged.
+    size_t pollAndCountLogs(int n)
     {
-        logs++;
+        Logger::swssOutputNotify("", "STDERR");
+        testing::internal::CaptureStderr();
+
+        for (int i = 0; i < n; i++)
+        {
+            Selectable *sel = nullptr;
+            s.select(&sel, 0);
+        }
+
+        string out = testing::internal::GetCapturedStderr();
+        Logger::swssOutputNotify("", "SYSLOG");
+
+        size_t logs = 0;
+        for (size_t p = out.find("readData error"); p != string::npos;
+             p = out.find("readData error", p + 1))
+        {
+            logs++;
+        }
+        return logs;
     }
-    return logs;
-}
+};
 
-}
-
-// A tight caller loop against a permanently failing selectable logs a bounded
-// number of lines instead of filling /var/log.
-TEST(Select, error_logging_is_capped)
+// select() a failing selectable with the given timeout; return elapsed ms and
+// the result via ret.
+long long selectFailing(int timeout, int &ret)
 {
     FailingSelectable bad;
     Select s;
     s.addSelectable(&bad);
 
-    // Suppression state is per-thread, so start from a known-good state.
-    bad.setFailing(false);
     Selectable *sel = nullptr;
-    ASSERT_EQ(s.select(&sel, 0), Select::OBJECT);
+    auto start = chrono::steady_clock::now();
+    ret = s.select(&sel, timeout);
+    return chrono::duration_cast<chrono::milliseconds>(
+        chrono::steady_clock::now() - start).count();
+}
 
-    bad.setFailing(true);
-    bad.notify();
-    EXPECT_EQ(pollAndCountLogs(s, 1000), kMaxErrorLogs);
 }
 
 // A healthy selectable read in the same poll must not re-arm logging for one that
 // keeps failing. It is added first so epoll tends to read it before the failing one.
-TEST(Select, error_logging_is_capped_alongside_a_healthy_selectable)
+TEST_F(SelectErrorLogging, capped_alongside_a_healthy_selectable)
 {
     HealthySelectable good;
     FailingSelectable bad;
-    Select s;
     s.addSelectable(&good);
     s.addSelectable(&bad);
 
     bad.setFailing(false);
-    Selectable *sel = nullptr;
-    ASSERT_EQ(s.select(&sel, 0), Select::OBJECT);
+    readCleanly();
 
     bad.setFailing(true);
     bad.notify();
-    EXPECT_EQ(pollAndCountLogs(s, 1000), kMaxErrorLogs);
+    EXPECT_EQ(pollAndCountLogs(1000), kMaxErrorLogs);
 }
 
-// A successful read re-arms logging so a later outage is still reported.
-TEST(Select, error_logging_rearms_after_successful_read)
+// A tight caller loop against a permanently failing selectable logs a bounded
+// number of lines instead of filling /var/log, and a later successful read re-arms
+// logging so a subsequent outage is still reported.
+TEST_F(SelectErrorLogging, capped_then_rearmed_by_a_successful_read)
 {
     FailingSelectable bad;
-    Select s;
     s.addSelectable(&bad);
 
     bad.setFailing(false);
-    Selectable *sel = nullptr;
-    ASSERT_EQ(s.select(&sel, 0), Select::OBJECT);
+    readCleanly();
 
     bad.setFailing(true);
     bad.notify();
-    EXPECT_EQ(pollAndCountLogs(s, 100), kMaxErrorLogs);
+    EXPECT_EQ(pollAndCountLogs(100), kMaxErrorLogs);
 
     bad.setFailing(false);
-    ASSERT_EQ(s.select(&sel, 0), Select::OBJECT);
+    readCleanly();
 
     bad.setFailing(true);
     bad.notify();
-    EXPECT_EQ(pollAndCountLogs(s, 100), kMaxErrorLogs);
+    EXPECT_EQ(pollAndCountLogs(100), kMaxErrorLogs);
 }
 
 // A different fd failing gets its own log budget instead of inheriting the
 // saturated counter from the fd that was already failing.
-TEST(Select, error_logging_resets_for_a_different_fd)
+TEST_F(SelectErrorLogging, resets_for_a_different_fd)
 {
     FailingSelectable first;
     FailingSelectable second;
-    Select s;
     s.addSelectable(&first);
     s.addSelectable(&second);
 
     first.setFailing(false);
     second.setFailing(false);
-    Selectable *sel = nullptr;
-    ASSERT_EQ(s.select(&sel, 0), Select::OBJECT);
+    readCleanly();
 
     first.setFailing(true);
     first.notify();
-    EXPECT_EQ(pollAndCountLogs(s, 100), kMaxErrorLogs);
+    EXPECT_EQ(pollAndCountLogs(100), kMaxErrorLogs);
 
     first.setFailing(false);
     second.setFailing(true);
     first.notify();
     second.notify();
-    EXPECT_EQ(pollAndCountLogs(s, 100), kMaxErrorLogs);
+    EXPECT_EQ(pollAndCountLogs(100), kMaxErrorLogs);
+}
+
+// On ERROR the backoff is the caller's timeout, capped at 1s. A sub-1s timeout
+// (300ms here) is below the cap, so the error surfaces after that exact timeout.
+TEST(Select, error_backoff_matches_timeout)
+{
+    int ret;
+    long long elapsedMs = selectFailing(300, ret);
+    EXPECT_EQ(ret, Select::ERROR);
+    EXPECT_GE(elapsedMs, 250);
+    EXPECT_LT(elapsedMs, 900);
+}
+
+// A timeout above the 1s cap backs off by 1s, not the full timeout, bounding the
+// worst-case error-surfacing (and shutdown) latency during a redis outage.
+TEST(Select, error_backoff_capped_at_one_second)
+{
+    int ret;
+    long long elapsedMs = selectFailing(5000, ret);
+    EXPECT_EQ(ret, Select::ERROR);
+    EXPECT_GE(elapsedMs, 900);
+    EXPECT_LT(elapsedMs, 2000);
+}
+
+// timeout == 0 stays non-blocking: return ERROR immediately, with no backoff.
+TEST(Select, nonblocking_error_no_backoff)
+{
+    int ret;
+    long long elapsedMs = selectFailing(0, ret);
+    EXPECT_EQ(ret, Select::ERROR);
+    EXPECT_LT(elapsedMs, 200);
+}
+
+// INFINITE (timeout < 0) has no caller timeout to honor, so it is treated as the
+// largest timeout and backs off by the 1s cap -- enough to avoid pinning the CPU
+// (and pacing per-iteration caller logging) in a tight infinite-select loop.
+TEST(Select, infinite_error_capped_at_one_second)
+{
+    int ret;
+    long long elapsedMs = selectFailing(-1, ret);
+    EXPECT_EQ(ret, Select::ERROR);
+    EXPECT_GE(elapsedMs, 900);
+    EXPECT_LT(elapsedMs, 2000);
 }
