@@ -301,7 +301,7 @@ static nlohmann::ordered_json buildJsonDict(struct redisReply **element, size_t 
     }
 
     auto result = nlohmann::ordered_json::object();
-    for (unsigned int i = 0; i < elements; i += 2)
+    for (size_t i = 0; i < elements; i += 2)
     {
         result[RedisReply::to_string(element[i])] = RedisReply::to_string(element[i + 1]);
     }
@@ -331,7 +331,8 @@ static nlohmann::ordered_json buildJsonReply(redisReply *reply, const string& co
             return buildJsonDict(reply->element, reply->elements);
         }
 
-        if (command == "HSCAN" && reply->elements == 2)
+        if (command == "HSCAN" && reply->elements == 2 &&
+            reply->element[1]->type == REDIS_REPLY_ARRAY)
         {
             auto result = nlohmann::ordered_json::array();
             result.push_back(buildJsonReply(reply->element[0], string()));
@@ -340,7 +341,7 @@ static nlohmann::ordered_json buildJsonReply(redisReply *reply, const string& co
         }
 
         auto result = nlohmann::ordered_json::array();
-        for (unsigned int i = 0; i < reply->elements; i++)
+        for (size_t i = 0; i < reply->elements; i++)
         {
             result.push_back(buildJsonReply(reply->element[i], string()));
         }
