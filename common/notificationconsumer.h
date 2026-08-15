@@ -248,7 +248,7 @@ public:
     //    -1 - error during peeking redis socket
     int peek();
 
-    ~NotificationConsumer() override;
+    ~NotificationConsumer() = default;
 
     int getFd() override;
     uint64_t readData() override;
@@ -311,7 +311,7 @@ private:
     void maybeLogStats();
 
     swss::DBConnector *m_db;
-    swss::DBConnector *m_subscribe;
+    std::unique_ptr<swss::DBConnector> m_subscribe;
     std::string m_channel;
     std::string m_stats_label;     // orch-qualified label for syslog; empty -> use m_channel
     std::unique_ptr<NotificationQueueBase> m_queue;
