@@ -330,9 +330,14 @@ TEST(Notifications, LruDedupPolicyConstructorAndLabelPropagation)
     send("fdb_event");
     send("fdb_event");    // byte-identical to first -- LruDedup should collapse
 
-    // Drain so processReply is invoked.
+    // Drain so processReply is invoked. Both messages are delivered over Redis
+    // pub/sub, but the second reply may not have arrived by the time the first
+    // select() returns -- especially under load. LruDedup collapses the two
+    // byte-identical messages into a single queued item, so stopping at the first
+    // pop races the second reply and can observe received==1. Keep draining until
+    // both messages have been received (processReply'd), or we time out.
     size_t pops = 0;
-    for (int i = 0; i < 50 && pops == 0; ++i) {
+    for (int i = 0; i < 100 && nc.getStats().received < 2; ++i) {
         swss::Selectable *sel = nullptr;
         if (s.select(&sel, 100 /* ms */) == swss::Select::TIMEOUT) continue;
         std::deque<swss::KeyOpFieldsValuesTuple> vkco;
@@ -417,4 +422,38 @@ TEST(Notifications, ConsumerMaybeLogStatsCounterGate)
     auto stats = nc.getStats();
     EXPECT_EQ(stats.received, (uint64_t)kCount);
     EXPECT_EQ(stats.dropped_allowlist, 0u);
+}
+
+// ---------------------------------------------------------------------------
+// Exercise the unix-socket subscribe() path in NotificationConsumer.
+// All other tests connect via TCP (isTcpConn=true).  This test uses the
+// default unix-socket connection so the else-branch of subscribe() is hit.
+TEST(Notifications, SubscribeViaUnixSocket)
+{
+    SWSS_LOG_ENTER();
+
+    const std::string kChannel = "UNIX_SOCK_TEST_NOTIFICATIONS";
+    // isTcpConn defaults to false -> unix socket connection
+    swss::DBConnector dbNtf("ASIC_DB", 0);
+    swss::NotificationConsumer nc(&dbNtf, kChannel);
+
+    // Verify the consumer is functional: send one notification and receive it.
+    swss::DBConnector dbPub("ASIC_DB", 0);
+    swss::NotificationProducer producer(&dbPub, kChannel);
+
+    swss::Select s;
+    s.addSelectable(&nc);
+
+    std::vector<swss::FieldValueTuple> entry;
+    producer.send("op", "data", entry);
+
+    swss::Selectable *sel = nullptr;
+    int result = s.select(&sel, 2000 /* ms */);
+    ASSERT_EQ(result, swss::Select::OBJECT);
+
+    std::string op, data;
+    std::vector<swss::FieldValueTuple> values;
+    nc.pop(op, data, values);
+    EXPECT_EQ(op, "op");
+    EXPECT_EQ(data, "data");
 }

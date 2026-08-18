@@ -1,0 +1,61 @@
+# Upstream build artifacts that sonic-swss-common needs at build time.
+#
+# Both entries are sonic-buildimage "leaf" artifacts (they do not ship a
+# build-env/ of their own), hence cascade_optional: true. Consumed by
+# `buildenv_setup`, which downloads each via the Azure DevOps REST API (or uses
+# a --upstream-staged-dir/<name>/ bundle when staged in the same pipeline run).
+#
+# Artifact-name convention: amd64 has no arch suffix; non-amd64 appends .{arch}.
+
+upstream:
+  # ------------------------------------------------------------------ #
+  # libyang3 DEBs from the common-libs build (latest on the branch).
+  # (sonic-swss-common migrated to libyang3 in sonic-net/sonic-swss-common#1206.)
+  # NOTE: libnl is deliberately NOT downloaded here. sonic-swss-common builds
+  # against the STOCK apt libnl (apt-installed via base.yaml) to keep the
+  # libswsscommon .deb's libnl Depends on the stock version (satisfied everywhere
+  # without downstream companion changes). Only libyang3 comes from common-libs.
+  # ------------------------------------------------------------------ #
+  - name: common-libs
+    project: build
+    pipeline: Azure.sonic-buildimage.common_libs
+    # No branch: pin -- resolves the latest common_libs run on ctx.branch
+    # (--branch $(BUILD_BRANCH)), matching today's runBranch: refs/heads/$(BUILD_BRANCH).
+    cascade_optional: true
+    apt_fix_broken: true    # these DEBs have apt dependencies dpkg -i can't resolve
+                            # (e.g. libyang-dev depends on libpcre2-dev). The
+                            # sonic-slave-* containers bake those in, but the
+                            # ubuntu-22.04 vmImage job may not, so fall back to
+                            # `apt-get install -f` to pull them from apt.
+    artifact_name:
+      - { when: { arch: amd64 },        value: 'common-lib' }
+      - { when: { arch: { not: amd64 } }, value: 'common-lib.{arch}' }
+    debs:
+      # libyang3 C library + dev headers. (python3-libyang deb is intentionally
+      # NOT installed: the bookworm deb pins python3 >=3.11 so it won't install on
+      # the ubuntu-22.04 job's python 3.10, and swss-common uses the pip
+      # libyang==3.3.0 binding instead -- see base.yaml.)
+      - 'target/debs/{debian_version}/libyang3_*.deb'
+      - 'target/debs/{debian_version}/libyang-dev_3*.deb'
+    # NOTE: today's build-template.yml also lists `libpcre*.deb` for trixie, but
+    # common-lib does not currently publish it (the pattern is a no-op), so it is
+    # intentionally omitted. Re-add {path: ..., when: {debian_version: trixie}} if
+    # common-lib starts shipping libpcre.
+
+  # ------------------------------------------------------------------ #
+  # sonic-yang python wheels from the sonic-buildimage vs build (pipeline 142).
+  # ------------------------------------------------------------------ #
+  - name: sonic-buildimage-vs
+    project: build
+    pipeline: '142'
+    # No branch: pin -- resolves the latest pipeline-142 run on ctx.branch
+    # (--branch $(BUILD_BRANCH)), matching today's runBranch: refs/heads/$(BUILD_BRANCH).
+    artifact_name: 'sonic-buildimage.vs'
+    cascade_optional: true
+    wheels:
+      # non-trixie: wheels under the matching debian_version directory
+      - { path: 'target/python-wheels/{debian_version}/sonic_yang_mgmt-1.0-py3-none-any.whl',   when: { debian_version: { not: trixie } } }
+      - { path: 'target/python-wheels/{debian_version}/sonic_yang_models-1.0-py3-none-any.whl', when: { debian_version: { not: trixie } } }
+      # trixie: use the bookworm wheels (mirrors today's build-template.yml)
+      - { path: 'target/python-wheels/bookworm/sonic_yang_mgmt-1.0-py3-none-any.whl',   when: { debian_version: trixie } }
+      - { path: 'target/python-wheels/bookworm/sonic_yang_models-1.0-py3-none-any.whl', when: { debian_version: trixie } }

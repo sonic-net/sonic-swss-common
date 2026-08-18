@@ -133,6 +133,8 @@ namespace swss {
 #define APP_VNET_MONITOR_TABLE_NAME          "VNET_MONITOR_TABLE"
 
 #define APP_L2_NEXTHOP_GROUP_TABLE_NAME      "L2_NEXTHOP_GROUP_TABLE"
+#define APP_OTN_ATTENUATOR_TABLE_NAME        "OTN_ATTENUATOR_TABLE"
+#define APP_OTN_OA_TABLE_NAME                "OTN_OA_TABLE"
 
 /***** ASIC DATABASE *****/
 #define ASIC_TEMPERATURE_INFO_TABLE_NAME    "ASIC_TEMPERATURE_INFO"
@@ -271,6 +273,9 @@ namespace swss {
 
 #define RATES_TABLE                         "RATES"
 
+#define COUNTERS_OTN_ATTENUATOR_NAME_MAP    "COUNTERS_OTN_ATTENUATOR_NAME_MAP"
+#define COUNTERS_OTN_OA_NAME_MAP            "COUNTERS_OTN_OA_NAME_MAP"
+
 /***** EVENTS COUNTER KEYS *****/
 #define COUNTERS_EVENTS_PUBLISHED           "published"
 #define COUNTERS_EVENTS_MISSED_SLOW_RCVR    "missed_by_slow_receiver"
@@ -336,6 +341,11 @@ namespace swss {
 #define FLEX_COUNTER_STATUS_FIELD           "FLEX_COUNTER_STATUS"
 #define FLEX_COUNTER_GROUP_TABLE            "FLEX_COUNTER_GROUP_TABLE"
 #define FLEX_COUNTER_DELAY_STATUS_FIELD     "FLEX_COUNTER_DELAY_STATUS"
+
+#define OTN_ATTENUATOR_ATTR_ID_LIST         "OTN_ATTENUATOR_ATTR_ID_LIST"
+#define OTN_OA_ATTR_ID_LIST                 "OTN_OA_ATTR_ID_LIST"
+#define OTN_ATTENUATOR_PLUGIN_FIELD         "OTN_ATTENUATOR_PLUGIN_FIELD"
+#define OTN_OA_PLUGIN_FIELD                 "OTN_OA_PLUGIN_FIELD"
 
 /***** CONFIGURATION DATABASE *****/
 /*
@@ -413,6 +423,7 @@ after libswsscommon deb make.
 #define CHASSIS_APP_SYSTEM_NEIGH_TABLE_NAME         "SYSTEM_NEIGH"
 #define CHASSIS_APP_LAG_TABLE_NAME                  "SYSTEM_LAG_TABLE"
 #define CHASSIS_APP_LAG_MEMBER_TABLE_NAME           "SYSTEM_LAG_MEMBER_TABLE"
+
 /***** STATE DATABASE *****/
 
 #define STATE_SWITCH_CAPABILITY_TABLE_NAME          "SWITCH_CAPABILITY"
@@ -530,6 +541,13 @@ after libswsscommon deb make.
 #define STATE_QUEUE_COUNTER_CAPABILITIES_NAME   "QUEUE_COUNTER_CAPABILITIES"
 #define STATE_PORT_COUNTER_CAPABILITIES_NAME    "PORT_COUNTER_CAPABILITIES"
 
+/***** PFC Watchdog Hardware State *****/
+#define STATE_PFC_WD_HW_STATE_TABLE_NAME        "PFC_WD_HW_STATE"
+
+/***** OTN Support ****/
+#define STATE_OTN_ATTENUATOR_TABLE_NAME       "OTN_ATTENUATOR_TABLE"
+#define STATE_OTN_OA_TABLE_NAME               "OTN_OA_TABLE"
+
 /***** PROFILE DATABASE *****/
 
 #define PROFILE_DELETE_TABLE                  "PROFILE_DELETE"
@@ -544,6 +562,7 @@ after libswsscommon deb make.
 #define VLAN_PREFIX             "Vlan"
 
 #define SET_COMMAND "SET"
+#define HSET_COMMAND "HSET"
 #define DEL_COMMAND "DEL"
 #define EMPTY_PREFIX ""
 

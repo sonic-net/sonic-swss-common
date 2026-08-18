@@ -55,7 +55,7 @@ void ZmqHandlerRegistry::removeHandler(
                    dbName.c_str(), tableName.c_str());
 }
 
-void ZmqHandlerRegistry::dispatch(
+ZmqMessageHandler* ZmqHandlerRegistry::dispatch(
     const std::string& dbName,
     const std::string& tableName,
     const std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos)
@@ -68,17 +68,18 @@ void ZmqHandlerRegistry::dispatch(
     auto dbIter = m_handlers.find(dbName);
     if (dbIter == m_handlers.end()) {
         SWSS_LOG_DEBUG("ZmqHandlerRegistry can't find any handler for db: %s", dbName.c_str());
-        return;
+        return nullptr;
     }
 
     auto tableIter = dbIter->second.find(tableName);
     if (tableIter == dbIter->second.end()) {
         SWSS_LOG_DEBUG("ZmqHandlerRegistry can't find handler for db: %s, table: %s",
                        dbName.c_str(), tableName.c_str());
-        return;
+        return nullptr;
     }
 
     tableIter->second->handleReceivedData(kcos);
+    return tableIter->second;
 }
 
 ZmqServer::ZmqServer(const std::string& endpoint)
@@ -232,6 +233,10 @@ void ZmqServer::handleReceivedData(const char* buffer, const size_t size)
     std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> kcos;
     BinarySerializer::deserializeBuffer(buffer, size, dbName, tableName, kcos);
 
+    // Dispatch through the registry (which holds the handler's lifetime lock
+    // for the duration of the callback). The dispatched handler is returned
+    // by dispatch() for burst-coalescing callers, but the generic path here
+    // does not need it, so the return value is intentionally ignored.
     m_registry->dispatch(dbName, tableName, kcos);
 }
 
@@ -303,7 +308,7 @@ void ZmqServer::mqPollThread()
         SWSS_LOG_DEBUG("zmq received %d bytes", rc);
 
         // deserialize and write to redis:
-        handleReceivedData(m_buffer.data(), rc);
+        (void)handleReceivedData(m_buffer.data(), rc);
         while (m_oneToOneSync && !m_allowZmqPoll) {
           usleep(10);
         }
