@@ -1,4 +1,6 @@
 import os
+import subprocess
+from pathlib import Path
 
 import pytest
 
@@ -75,3 +77,45 @@ def test_select_upstream_entry_wins_at_test_scope():
                            scopes=["build", "test"], owner_build_env="/c/build-env")
     chosen = select([upstream, consumer], CTX_TEST)
     assert [e.owner_build_env for e in chosen] == ["/u/build-env"]
+
+
+def test_shared_redis_script_preserves_sonic_db_config_across_restart(tmp_path):
+    redis_config = tmp_path / "redis.conf"
+    redis_config.write_text(
+        'notify-keyspace-events ""\n'
+        '# unixsocket /var/run/redis/redis-server.sock\n'
+        'unixsocketperm 700\n'
+    )
+    sonic_db_config = tmp_path / "run" / "redis" / "sonic-db" / "database_config.json"
+    sonic_db_config.parent.mkdir(parents=True)
+    sonic_db_config.write_text('{"DATABASES": {}}\n')
+
+    bindir = tmp_path / "bin"
+    bindir.mkdir()
+    sudo = bindir / "sudo"
+    sudo.write_text("#!/bin/sh\nexec \"$@\"\n")
+    sudo.chmod(0o755)
+    service = bindir / "service"
+    service.write_text(
+        "#!/bin/sh\n"
+        'rm -rf "$(dirname "$SONIC_DB_CONFIG")"\n'
+    )
+    service.chmod(0o755)
+
+    repo_root = Path(__file__).resolve().parents[2]
+    env = os.environ.copy()
+    env.update({
+        "PATH": f"{bindir}:{env['PATH']}",
+        "REDIS_CONFIG": str(redis_config),
+        "SONIC_DB_CONFIG": str(sonic_db_config),
+    })
+    subprocess.run(
+        ["bash", str(repo_root / "build-env" / "configure-redis-for-tests.sh")],
+        env=env,
+        check=True,
+    )
+
+    assert sonic_db_config.read_text() == '{"DATABASES": {}}\n'
+    assert "notify-keyspace-events AKE" in redis_config.read_text()
+    assert "unixsocket /var/run/redis/redis.sock" in redis_config.read_text()
+    assert "unixsocketperm 777" in redis_config.read_text()
