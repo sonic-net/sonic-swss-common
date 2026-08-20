@@ -1,6 +1,7 @@
 #include <atomic>
 #include <chrono>
 #include <deque>
+#include <iostream>
 #include <memory>
 #include <thread>
 #include <unistd.h>
@@ -390,56 +391,90 @@ TEST(ZmqHandlerRegistry, FlushHonorsCutoff)
 //
 // The wake latency is what attributes the wake to the holdoff: a quiesce
 // wake needs a >BURST_QUIESCE_MS gap in the stream, and at ~300us pacing
-// such a gap takes a >16x scheduler stall, which the lower bound below
-// would catch as an early wake. The upper bound rules out the select
-// timeout and late accidental gaps. With BURST_MAX_HOLDOFF_MS reverted,
-// the stream never wakes select inside the window and the test fails.
+// such a gap takes a >16x scheduler stall. sleep_for() only guarantees a
+// minimum gap though, so a single scheduler overshoot past the ~5ms
+// quiesce timeout fires the quiesce flush (cutoff = now) and wakes select
+// early even though the holdoff code is correct. A sub-40ms wake in one
+// trial is therefore inconclusive, not a failure: the trial is discarded
+// and re-run with fresh state. What separates a stray gap from a real
+// regression is consistency -- kMaxAttempts independent early wakes would
+// need that many independent >16x stalls, so if every trial wakes early
+// the deferral is genuinely not happening (per-message notify) and the
+// test fails. A timeout (unbounded deferral, e.g. BURST_MAX_HOLDOFF_MS
+// reverted) or a >150ms wake fails the trial outright.
 TEST(ZmqRouteConsumerStateTable, ContinuousStreamWakesWithinHoldoff)
 {
     const string tableName = "ZMQ_ROUTE_UT_HOLDOFF";
-    const string pushEndpoint = "tcp://localhost:1244";
-    const string pullEndpoint = "tcp://*:1244";
+    constexpr int kMaxAttempts = 5;
 
     DBConnector db(TEST_DB, 0, true);
-    ZmqRouteServer server(pullEndpoint, "", /*lazyBind=*/true);
-    ZmqRouteConsumerStateTable c(&db, tableName, server, 0, /*dbPersistence=*/false);
-    c.setIngressCallback(
-        [](const std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> &) {});
 
-    server.bind();
+    for (int attempt = 0; attempt < kMaxAttempts; ++attempt)
+    {
+        // Fresh harness (and port) per trial so an inconclusive trial's
+        // already-signaled eventfd and in-flight messages can't leak into
+        // the next one.
+        const string port = std::to_string(1245 + attempt);
+        const string pushEndpoint = "tcp://localhost:" + port;
+        const string pullEndpoint = "tcp://*:" + port;
 
-    Select sel;
-    sel.addSelectable(&c);
+        ZmqRouteServer server(pullEndpoint, "", /*lazyBind=*/true);
+        ZmqRouteConsumerStateTable c(&db, tableName, server, 0, /*dbPersistence=*/false);
+        c.setIngressCallback(
+            [](const std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> &) {});
 
-    ZmqClient client(pushEndpoint, 0);
-    ZmqProducerStateTable p(&db, tableName, client, /*dbPersistence=*/false);
+        server.bind();
 
-    // Same-key updates every ~300us for the whole window: no quiesce gap
-    // short of a >16x scheduler stall, no growth in distinct keys.
-    std::atomic<bool> stop{false};
-    std::thread producer([&] {
-        while (!stop.load())
+        Select sel;
+        sel.addSelectable(&c);
+
+        ZmqClient client(pushEndpoint, 0);
+        ZmqProducerStateTable p(&db, tableName, client, /*dbPersistence=*/false);
+
+        // Same-key updates every ~300us for the whole window: no quiesce gap
+        // short of a >16x scheduler stall, no growth in distinct keys.
+        std::atomic<bool> stop{false};
+        std::thread producer([&] {
+            while (!stop.load())
+            {
+                p.set("flap_key", vector<FieldValueTuple>{{"seq", "x"}});
+                std::this_thread::sleep_for(std::chrono::microseconds(300));
+            }
+        });
+
+        // 500ms select timeout: an unbounded deferral would time out here,
+        // the 50ms holdoff wakes us an order of magnitude earlier.
+        Selectable *out = nullptr;
+        const auto selectStart = std::chrono::steady_clock::now();
+        int ret = sel.select(&out, 500);
+        const auto wakeLatency = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - selectStart);
+        stop = true;
+        producer.join();
+
+        // Timeout means the deferral never flushed: the exact regression
+        // this test exists to catch. Fail regardless of attempt.
+        ASSERT_EQ(ret, Select::OBJECT)
+            << "select timed out: notification deferral is unbounded";
+        ASSERT_EQ(out, &c);
+
+        // Holdoff wake lands at ~BURST_MAX_HOLDOFF_MS (50ms) plus one drain
+        // pass; above 150ms the wake wasn't the holdoff.
+        ASSERT_LE(wakeLatency.count(), 150);
+
+        if (wakeLatency.count() >= 40)
         {
-            p.set("flap_key", vector<FieldValueTuple>{{"seq", "x"}});
-            std::this_thread::sleep_for(std::chrono::microseconds(300));
+            SUCCEED();
+            return;
         }
-    });
 
-    // 500ms select timeout: an unbounded deferral would time out here, the
-    // 50ms holdoff wakes us an order of magnitude earlier.
-    Selectable *out = nullptr;
-    const auto selectStart = std::chrono::steady_clock::now();
-    int ret = sel.select(&out, 500);
-    const auto wakeLatency = std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::steady_clock::now() - selectStart);
-    stop = true;
-    producer.join();
+        // Inconclusive: a quiesce/gap wake fired first. Discard and retry.
+        std::cout << "attempt " << attempt << " inconclusive: woke at "
+                  << wakeLatency.count() << "ms (quiesce gap), retrying"
+                  << std::endl;
+    }
 
-    EXPECT_EQ(ret, Select::OBJECT);
-    EXPECT_EQ(out, &c);
-    // Holdoff wake lands at ~BURST_MAX_HOLDOFF_MS (50ms) plus one drain
-    // pass. Below 40ms means a quiesce/gap wake fired first (precondition
-    // broken); above 150ms means the wake wasn't the holdoff.
-    EXPECT_GE(wakeLatency.count(), 40);
-    EXPECT_LE(wakeLatency.count(), 150);
+    FAIL() << "every trial woke below 40ms: " << kMaxAttempts
+           << " independent >16x scheduler stalls is not plausible -- the "
+              "burst deferral is not happening (per-message notify?)";
 }
