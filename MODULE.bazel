@@ -21,9 +21,12 @@ bazel_dep(name = "platforms", version = "1.1.0")
 bazel_dep(name = "tar.bzl", version = "0.10.5")
 bazel_dep(name = "rules_distroless", version = "0.0.0.commit-01bb79d7eef4eb3ce9511d3dfaf0ab386bd8d12d")
 bazel_dep(name = "libnl3", version = "3.7.0.sonic-buildimage")
-bazel_dep(name = "sonic-build-infra", version = "0.0.2-8192ea3f8bbecd9982a529e547252b67dcb60804", repo_name = "sonic_build_infra")
+bazel_dep(name = "sonic-build-infra", version = "0.0.4-83b4e9d963f7f268d06983a8c954fc5d6d93ce2b", repo_name = "sonic_build_infra")
 
-register_toolchains("@sonic_build_infra//toolchains/gcc:all")
+gcc = use_extension("@sonic_build_infra//toolchains/gcc:extensions.bzl", "gcc")
+use_repo(gcc, "gcc_toolchains")
+
+register_toolchains("@gcc_toolchains//:all")
 
 # The actual dependencies are listed in sonic-build-infra, and re-exported.
 apt = use_extension("@rules_distroless//apt:extensions.bzl", "apt")
