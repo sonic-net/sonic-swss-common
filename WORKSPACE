@@ -30,10 +30,12 @@ http_archive(
     url = "https://github.com/gflags/gflags/archive/v2.2.2.tar.gz",
 )
 
-load("//tools/bazel:tar.workspace.deps.bzl", "tar_dependencies")
-
-tar_dependencies()
-
-load("//tools/bazel:tar.workspace.setup.bzl", "tar_setup")
-
-tar_setup()
+# This differs from the version in MODULE.bazel. 1.7.1 was the last one that supported WORKSPACE files.
+http_archive(
+    name = "bazel_skylib",
+    sha256 = "bc283cdfcd526a52c3201279cda4bc298652efa898b10b4db0837dc51652756f",
+    urls = [
+        "https://github.com/bazelbuild/bazel-skylib/releases/download/1.7.1/bazel-skylib-1.7.1.tar.gz",
+        "https://mirror.bazel.build/github.com/bazelbuild/bazel-skylib/releases/download/1.7.1/bazel-skylib-1.7.1.tar.gz",
+    ],
+)
