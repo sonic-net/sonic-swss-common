@@ -29,3 +29,11 @@ http_archive(
     strip_prefix = "gflags-2.2.2",
     url = "https://github.com/gflags/gflags/archive/v2.2.2.tar.gz",
 )
+
+load("//tools/bazel:tar.workspace.deps.bzl", "tar_dependencies")
+
+tar_dependencies()
+
+load("//tools/bazel:tar.workspace.setup.bzl", "tar_setup")
+
+tar_setup()
