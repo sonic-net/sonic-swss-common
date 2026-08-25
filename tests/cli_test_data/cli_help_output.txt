@@ -1,4 +1,4 @@
-usage: sonic-db-cli [-h] [-s] [-n NAMESPACE] db_or_op [cmd [cmd ...]]
+usage: sonic-db-cli [-h] [-s] [-j] [-n NAMESPACE] db_or_op [cmd [cmd ...]]
 
 SONiC DB CLI:
 
@@ -9,6 +9,7 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   -s, --unixsocket      Override use of tcp_port and use unixsocket
+  -j, --json            Print command result as JSON
   -n NAMESPACE, --namespace NAMESPACE
                         Namespace string to use asic0/asic1.../asicn
 

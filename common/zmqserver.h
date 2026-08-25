@@ -25,6 +25,12 @@ class ZmqMessageHandler
 public:
     virtual ~ZmqMessageHandler() {};
     virtual void handleReceivedData(const std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos) = 0;
+    /*
+     * Called by ZmqRouteServer::mqPollThread once the socket is drained
+     * (zmq_recv returned EAGAIN). Handlers use this to wake their consumer at
+     * most once per burst rather than once per message. Default is no-op.
+     */
+    virtual void notifyPending() {}
 };
 
 // Shared (db, table) -> handler map. Co-owned by ZmqServer and every
@@ -44,7 +50,10 @@ public:
     void removeHandler(const std::string& dbName,
                        const std::string& tableName);
 
-    void dispatch(const std::string& dbName,
+    // Returns the handler dispatched to (nullptr if no handler is registered
+    // for the (dbName, tableName) pair) so burst-coalescing callers can track
+    // which handlers were touched during a burst.
+    ZmqMessageHandler* dispatch(const std::string& dbName,
                   const std::string& tableName,
                   const std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos);
 
@@ -66,7 +75,7 @@ public:
     ZmqServer(const std::string& endpoint, const std::string& vrf);
     ZmqServer(const std::string& endpoint, const std::string& vrf, bool lazyBind);
     ZmqServer(const std::string& endpoint, const std::string& vrf, bool lazyBind, bool oneToOneSync);
-    ~ZmqServer();
+    virtual ~ZmqServer();
 
     void registerMessageHandler(
                                 const std::string dbName,
@@ -93,12 +102,20 @@ public:
     // by ZmqMessageHandler subclasses, not by general callers.
     std::shared_ptr<ZmqHandlerRegistry> getHandlerRegistry() const { return m_registry; }
 
-private:
+protected:
+    // Deserialize one received buffer and dispatch it to its registered
+    // handler via m_registry. Kept returning void to preserve API/ABI
+    // compatibility with sonic-swss test doubles that override this symbol.
+    // Burst-coalescing subclasses (ZmqRouteServer) that need the touched
+    // handler call m_registry->dispatch() directly via getHandlerRegistry().
     void handleReceivedData(const char* buffer, const size_t size);
 
-    void startMqPollThread();
+    // Virtual so ZmqRouteServer can replace the poll loop with a burst-
+    // coalescing variant.
+    virtual void mqPollThread();
 
-    void mqPollThread();
+private:
+    void startMqPollThread();
 
     // Retained as a no-op stub for source compatibility with external test
     // mocks (e.g. sonic-swss's fake_zmqserver.cpp) that override this symbol
@@ -106,24 +123,36 @@ private:
     // lookup happens inside ZmqHandlerRegistry::dispatch().
     ZmqMessageHandler* findMessageHandler(const std::string dbName, const std::string tableName);
 
+    // Data-member declaration order below MUST match the constructor's
+    // initializer list (m_mqPollThread, m_endpoint, m_vrf, m_context, m_socket,
+    // m_oneToOneSync, m_allowZmqPoll, m_registry) to avoid -Werror=reorder, so
+    // access is interleaved rather than the members being grouped. m_buffer,
+    // m_runThread, m_endpoint and m_socket are protected because
+    // ZmqRouteServer::mqPollThread accesses them.
+protected:
     std::vector<char> m_buffer;
 
     volatile bool m_runThread;
 
+private:
     std::shared_ptr<std::thread> m_mqPollThread;
 
+protected:
     std::string m_endpoint;
 
+private:
     std::string m_vrf;
 
     void* m_context;
 
+protected:
     void* m_socket;
 
     bool m_oneToOneSync = false;
 
     bool m_allowZmqPoll;
 
+private:
     // Default-initialized in-class so that link-time mocks of ZmqServer
     // (which may not initialize this member in their stub constructors) still
     // present a valid registry to any real ZmqConsumerStateTable they pair

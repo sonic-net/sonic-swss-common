@@ -12,6 +12,7 @@ struct Options
 {
     bool m_help = false;
     bool m_unixsocket = false;
+    bool m_json = false;
     std::string m_namespace;
     std::string m_db_or_op;
     std::vector<std::string> m_cmd;
@@ -30,7 +31,8 @@ int executeCommands(
     const std::string& db_name,
     std::vector<std::string>& commands,
     const std::string& netns,
-    bool isTcpConn);
+    bool isTcpConn,
+    bool useJson = false);
 
 std::string handleSingleOperation(
     const std::string& netns,
