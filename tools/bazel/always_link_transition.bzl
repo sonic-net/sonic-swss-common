@@ -58,5 +58,10 @@ This is a temporary rule, which should go away as soon as we have a `cc_shared_l
         "binary": attr.label(
             cfg = alwayslink_transition,
         ),
+        # TODO(bazel-ready): Remove this attribute when we can stop supporting Bazel 6.
+        #   Ref: https://github.com/bazelbuild/bazel/commit/bb7fb2d32f055f2a70a5ab394cf5aef29bc74b2e
+        "_allowlist_function_transition": attr.label(
+          default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+        ),
     },
 )
