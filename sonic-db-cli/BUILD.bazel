@@ -1,9 +1,10 @@
 # TODO(bazel-ready): Restore when we only support Bazel 8+
 # load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
 # load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("//tools/bazel:cc.bzl", "swss_cc_binary", "swss_cc_library")
 load("//tools/bazel:flags.bzl", "CXXFLAGS_COMMON", "DBGFLAGS")
 
-cc_library(
+swss_cc_library(
     name = "sonicdbcli",
     srcs = ["sonic-db-cli.cpp"],
     hdrs = ["sonic-db-cli.h"],
@@ -11,7 +12,7 @@ cc_library(
     deps = ["//:libswsscommon"],
 )
 
-cc_binary(
+swss_cc_binary(
     name = "sonic-db-cli",
     srcs = ["main.cpp"],
     cxxopts = DBGFLAGS + CXXFLAGS_COMMON,
