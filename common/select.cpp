@@ -2,8 +2,6 @@
 #include "common/logger.h"
 #include "common/select.h"
 #include <algorithm>
-#include <chrono>
-#include <thread>
 #include <stdio.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -204,23 +202,15 @@ int Select::select(Selectable **c, int timeout, bool interrupt_on_signal)
     /* check if we have some data */
     ret = poll_descriptors(c, 0);
 
-    /* return immediately if appropriate */
-    if (ret == Select::OBJECT || ret == Select::SIGNALINT || timeout == 0)
-    {
+    /* return if we have data, we have an error or desired timeout was 0 */
+    if (ret != Select::TIMEOUT || timeout == 0)
         return ret;
-    } else if (ret == Select::TIMEOUT)
-    {
-        ret = poll_descriptors(c, timeout, interrupt_on_signal);
-    } else if (ret == Select::ERROR)
-    {
-        // ERROR returns immediately, so a tight caller loop pins the CPU. Back off
-        // by the timeout capped at 1s; INFINITE (< 0) counts as the largest timeout.
-        constexpr int kMaxErrorBackoffMs = 1000;
-        int backoffMs = (timeout < 0 || timeout > kMaxErrorBackoffMs) ? kMaxErrorBackoffMs : timeout;
-        std::this_thread::sleep_for(std::chrono::milliseconds(backoffMs));
-    }
+
+    /* wait for data */
+    ret = poll_descriptors(c, timeout, interrupt_on_signal);
 
     return ret;
+
 }
 
 bool Select::isQueueEmpty()
