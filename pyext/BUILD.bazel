@@ -1,5 +1,6 @@
-load("@rules_cc//cc:cc_library.bzl", "cc_library")
-load("@rules_cc//cc:defs.bzl", "cc_binary")
+# TODO(bazel-ready): Restore when we only support Bazel 8+
+# load("@rules_cc//cc:cc_library.bzl", "cc_library")
+# load("@rules_cc//cc:defs.bzl", "cc_binary")
 load("@rules_pkg//:pkg.bzl", "pkg_tar")
 load("@sonic_build_infra//python:py_native_library.bzl", "py_native_library")
 load("@sonic_build_infra//swig:defs.bzl", "swig_gen", "swig_lib_deb")
