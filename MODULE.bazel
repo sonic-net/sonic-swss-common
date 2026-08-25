@@ -19,7 +19,7 @@ bazel_dep(name = "rules_pkg", version = "1.1.0")
 bazel_dep(name = "bazel_skylib", version = "1.9.0")
 bazel_dep(name = "platforms", version = "1.1.0")
 bazel_dep(name = "tar.bzl", version = "0.10.5")
-bazel_dep(name = "rules_distroless", version = "0.0.0.commit-01bb79d7eef4eb3ce9511d3dfaf0ab386bd8d12d")
+bazel_dep(name = "rules_distroless", version = "0.9.4")
 bazel_dep(name = "libnl3", version = "3.7.0.sonic-buildimage")
 bazel_dep(name = "sonic-build-infra", version = "0.0.4-83b4e9d963f7f268d06983a8c954fc5d6d93ce2b", repo_name = "sonic_build_infra")
 
