@@ -1,5 +1,7 @@
 """Compiler and linker flags shared across the sonic-swss-common build."""
 
+load(":bzlmod.bzl", "IS_BZLMOD")
+
 # CXXFLAGS that we need for Bazel specifically. Not present in the Makefile
 CXXFLAGS_COMMON_BAZEL = [
     # TODO(bazel-ready): rules_distroless introduces a bunch of include directories that don't exist
@@ -61,4 +63,5 @@ DBGFLAGS = select({
         "-gdwarf-5",
     ],
     "//conditions:default": ["-g"],
-})
+# TODO(bazel-ready): Remove when we only have to support Bazel 8+.
+}) if IS_BZLMOD else ["-g"]

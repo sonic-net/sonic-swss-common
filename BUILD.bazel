@@ -3,6 +3,13 @@ load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
 # load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
 # load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("//tools/bazel:always_link_transition.bzl", "alwayslink_cc_binary")
+load("//tools/bazel:cc.bzl", "swss_cc_binary")
+load(
+    "//tools/bazel:deps.bzl",
+    "SWSS_COMMON_COPTS",
+    "SWSS_COMMON_DEPS",
+    "SWSS_COMMON_LINKOPTS",
+)
 load("//tools/bazel:flags.bzl", "CXXFLAGS_COMMON")
 
 package(default_visibility = ["//visibility:public"])
@@ -10,19 +17,6 @@ package(default_visibility = ["//visibility:public"])
 exports_files(["LICENSE"])
 
 swss_common_hdrs = ["//common:hdrs"]
-
-swss_common_deps = [
-    "@trixie//libhiredis-dev:libhiredis",
-    "@trixie//nlohmann-json3-dev:nlohmann-json3",
-    "@libnl3//:libnl_3",
-    "@libnl3//:libnl_route_3",
-    "@libnl3//:libnl_nf_3",
-    "@trixie//libyang-dev:libyang",
-    "@trixie//libzmq3-dev:libzmq3",
-    "@trixie//uuid-dev:uuid",
-    "@trixie//libboost-dev:libboost",
-    "@trixie//libboost-serialization-dev:libboost-serialization",
-]
 
 filegroup(
     name = "hdrs",
@@ -35,7 +29,8 @@ filegroup(
 # TODO Remove once the cc_shared_library version of swss_common works with rules_distroless.
 cc_library(
     name = "common_deps",
-    deps = swss_common_deps,
+    linkopts = SWSS_COMMON_LINKOPTS,
+    deps = SWSS_COMMON_DEPS,
 )
 
 # Necessary for when we import swss_common as a dynamic .so file.
@@ -63,22 +58,13 @@ cc_library(
     copts = [
         "-fPIC",
         "-std=c++14",
-    ],
+    ] + SWSS_COMMON_COPTS,
     includes = [
         "common",
     ],
-    linkopts = ["-lboost_serialization"],
-    # Approach 2: BCR entries compiled from source
-    # deps = [
-    #     "@boost.algorithm",
-    #     "@boost.serialization",
-    #     "@nlohmann_json//:json",
-    #     "@libuuid//:libuuid",
-    #     "@swig//:swig",
-    # ],
+    linkopts = SWSS_COMMON_LINKOPTS,
     visibility = ["//visibility:public"],
-    # Approach 1:
-    deps = swss_common_deps,
+    deps = SWSS_COMMON_DEPS,
     # Force all symbols to be included when linking into shared library
     # This is required for the consolidated .so to export all symbols needed by SWIG bindings
     # However, some builds like `sonic-swss` will refuse to link if they are always linked,
@@ -143,7 +129,7 @@ filegroup(
 
 # TODO(bazel-ready): CFLAGS_COMMON is not respected yet in many of these targets.
 
-cc_binary(
+swss_cc_binary(
     name = "swssloglevel",
     srcs = ["//common:loglevel_srcs"],
     cxxopts = CXXFLAGS_COMMON,
