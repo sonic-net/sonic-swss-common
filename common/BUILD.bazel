@@ -35,6 +35,13 @@ echo '#endif'
     }),
 )
 
+# Sources that need libyang, mirroring the YANGMODS conditional in common/Makefile.am.
+YANG_SRCS = [
+    "decoratorsubscriberstatetable.cpp",
+    "decoratortable.cpp",
+    "defaultvalueprovider.cpp",
+]
+
 # Library sources, excluding the standalone swssloglevel tool sources.
 filegroup(
     name = "srcs",
@@ -43,8 +50,11 @@ filegroup(
         exclude = [
             "loglevel.cpp",
             "loglevel_util.cpp",
-        ],
-    ),
+        ] + YANG_SRCS,
+    ) + select({
+        "//tools/bazel:yang_modules_enabled": YANG_SRCS,
+        "//conditions:default": [],
+    }),
 )
 
 # All library headers, including the generated cfg_schema.h.

@@ -43,8 +43,11 @@ _SYSTEM_LINKOPTS = [
     "-lzmq",
     "-lboost_serialization",
     "-luuid",
-    "-lyang",
-]
+] + select({
+    # Mirrors the YANGMODS conditional on -lyang in common/Makefile.am.
+    "//tools/bazel:yang_modules_enabled": ["-lyang"],
+    "//conditions:default": [],
+})
 
 SWSS_COMMON_DEPS = _APT_DEPS if IS_BZLMOD else []
 
