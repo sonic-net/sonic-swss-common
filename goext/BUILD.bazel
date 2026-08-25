@@ -1,5 +1,6 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
-load("@rules_cc//cc:cc_library.bzl", "cc_library")
+# TODO(bazel-ready): Restore when we only support Bazel 8+
+# load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@sonic_build_infra//swig:defs.bzl", "swig_gen_go", "swig_lib_deb")
 
 # Extract SWIG library files from apt package for hermetic builds
