@@ -20,3 +20,15 @@ config_setting(
     name = "yang_modules_disabled",
     flag_values = {":yang_modules": "False"},
 )
+
+# The cfg_schema.h to build against.
+#
+# Defaults to //common:cfg_schema_stuf, which will only build when YANG modules are disabled.
+# However, this flag allows passing a precompiled cfg_schema header from the Make side,
+# which p4rt needs to preserve behaviour.
+#
+# TODO(bazel-ready): Remove once we can generate cfg_schema directly in the bazel build.
+label_flag(
+    name = "cfg_schema",
+    build_setting_default = "//common:cfg_schema_stub",
+)
