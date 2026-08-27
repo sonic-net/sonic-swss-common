@@ -60,6 +60,7 @@
 #include <memory>
 #include <functional>
 #include "interface.h"
+#include "vrf.h"
 %}
 
 %include <std_string.i>
@@ -295,6 +296,7 @@ T castSelectableObj(swss::Selectable *temp)
 %include "zmqclient.h"
 %include "zmqconsumerstatetable.h"
 %include "interface.h"
+%include "vrf.h"
 
 %extend swss::DBConnector {
     %template(hgetall) hgetall<std::map<std::string, std::string>>;
