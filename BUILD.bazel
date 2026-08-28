@@ -94,6 +94,8 @@ cc_binary(
         # These are resolved at runtime when the .so is loaded
         "-Wl,--allow-shlib-undefined",
         "-Wl,--undefined-version",
+        # Match the SONAME libtool derives for common/Makefile.am.
+        "-Wl,-soname,libswsscommon.so.0",
     ],
     linkshared = True,
     deps = [":common"],
