@@ -49,10 +49,17 @@ YANG_SRCS = [
 ]
 
 # Library sources, excluding the standalone swssloglevel tool sources.
+#
+# c-api/ is listed separately because glob() does not recurse: "*.cpp" alone
+# silently drops the whole C API, which common/Makefile.am builds into the
+# library. Nothing fails at build time; the .so just ships without it.
 filegroup(
     name = "srcs",
     srcs = glob(
-        ["*.cpp"],
+        [
+            "*.cpp",
+            "c-api/*.cpp",
+        ],
         exclude = [
             "loglevel.cpp",
             "loglevel_util.cpp",
@@ -64,12 +71,15 @@ filegroup(
 )
 
 # All library headers, including the generated cfg_schema.h.
+# c-api/ is spelled out for the same reason as in :srcs above. These install as
+# swss/c-api/*.h, matching the layout of the libswsscommon-dev deb.
 filegroup(
     name = "hdrs",
     srcs = glob(
         [
             "*.h",
             "*.hpp",
+            "c-api/*.h",
         ],
         allow_empty = True,
     ) + [":cfg_schema_h"],
