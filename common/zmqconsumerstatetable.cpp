@@ -21,7 +21,8 @@ ZmqConsumerStateTable::ZmqConsumerStateTable(DBConnector *db, const std::string 
     : Selectable(pri)
     , TableBase(tableName, TableBase::getTableSeparator(db->getDbId()))
     , m_db(db)
-    , m_zmqServer(zmqServer)
+    , m_dbName(db->getDbName())
+    , m_handlerRegistry(zmqServer.getHandlerRegistry())
 {
     if (popBatchSize > 0)
     {
@@ -44,9 +45,20 @@ ZmqConsumerStateTable::ZmqConsumerStateTable(DBConnector *db, const std::string 
         m_asyncDBUpdater = nullptr;
     }
 
-    m_zmqServer.registerMessageHandler(m_db->getDbName(), tableName, this);
+    m_handlerRegistry->registerHandler(m_dbName, tableName, this);
 
     SWSS_LOG_DEBUG("ZmqConsumerStateTable ctor tableName: %s", tableName.c_str());
+}
+
+ZmqConsumerStateTable::~ZmqConsumerStateTable()
+{
+    // Detach from the registry before any of our members (notably the
+    // SelectableEvent, whose eventfd we'd write to from handleReceivedData)
+    // are destroyed. removeHandler() blocks until any in-flight dispatch
+    // into us returns. The registry is co-owned with the ZmqServer that
+    // created us, so this is safe even if that ZmqServer has already been
+    // destroyed — only the shared registry is touched.
+    m_handlerRegistry->removeHandler(m_dbName, getTableName());
 }
 
 void ZmqConsumerStateTable::handleReceivedData(const std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> &kcos)

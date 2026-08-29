@@ -69,11 +69,13 @@ common_libswsscommon_la_SOURCES = \
     common/consumertablebase.cpp     \
     common/consumerstatetable.cpp    \
     common/zmqconsumerstatetable.cpp \
+    common/zmqrouteconsumerstatetable.cpp \
     common/ipaddress.cpp             \
     common/ipprefix.cpp              \
     common/ipaddresses.cpp           \
     common/macaddress.cpp            \
     common/netdispatcher.cpp         \
+    common/netmsg.cpp                \
     common/netlink.cpp               \
     common/nfnetlink.cpp             \
     common/notificationconsumer.cpp  \
@@ -94,6 +96,7 @@ common_libswsscommon_la_SOURCES = \
     common/profileprovider.cpp       \
     common/zmqclient.cpp             \
     common/zmqserver.cpp             \
+    common/zmqrouteserver.cpp        \
     common/asyncdbupdater.cpp        \
     common/redis_table_waiter.cpp    \
     common/interface.h               \

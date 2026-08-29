@@ -99,6 +99,12 @@ void AsyncDBUpdater::dbUpdateThread()
                 table.del(kfvKey(kco));
                 table.set(kfvKey(kco), values);
             }
+            else if (kfvOp(kco) == HSET_COMMAND)
+            {
+                auto& values = kfvFieldsValues(kco);
+                // Merge update only the provided fields, and leave the rest of the object intact.
+                table.set(kfvKey(kco), values);
+            }
             else if (kfvOp(kco) == DEL_COMMAND)
             {
                 table.del(kfvKey(kco));

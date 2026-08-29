@@ -873,9 +873,18 @@ def test_TableOpsMemoryLeak():
     t = swsscommon.Table(app_db, "TABLE")
     long_data = "x" * 100
     fvs = swsscommon.FieldValuePairs([(long_data, long_data)])
+
+    def run_ops():
+        for _ in range(OP_COUNT):
+            t.set("long_data", fvs)
+            t.get("long_data")
+
+    # Warm up first: a fresh process grows RSS by a one-time amount (allocator
+    # arenas, redis client buffers, interpreter caches) that is unrelated to any
+    # leak. Measure the SECOND, steady-state batch instead -- a real per-op leak
+    # keeps growing linearly, so post-warmup growth must stay near zero.
+    run_ops()
     rss = psutil.Process(os.getpid()).memory_info().rss
-    for _ in range(OP_COUNT):
-        t.set("long_data", fvs)
-        t.get("long_data")
+    run_ops()
     assert psutil.Process(os.getpid()).memory_info().rss - rss < OP_COUNT
 

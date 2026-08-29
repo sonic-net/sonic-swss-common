@@ -11,6 +11,7 @@ tests_tests_SOURCES = tests/redis_ut.cpp                \
                       tests/tokenize_ut.cpp             \
                       tests/json_ut.cpp                 \
                       tests/ntf_ut.cpp                  \
+                      tests/netdispatcher_ut.cpp         \
                       tests/ipaddress_ut.cpp            \
                       tests/ipprefix_ut.cpp             \
                       tests/macaddress_ut.cpp           \
@@ -31,6 +32,7 @@ tests_tests_SOURCES = tests/redis_ut.cpp                \
                       tests/boolean_ut.cpp              \
                       tests/status_code_util_test.cpp   \
                       tests/saiaclschema_ut.cpp         \
+                      tests/notification_queue_ut.cpp   \
                       tests/countertable_ut.cpp         \
                       tests/timer_ut.cpp                \
                       tests/cli_ut.cpp                  \
@@ -41,6 +43,7 @@ tests_tests_SOURCES = tests/redis_ut.cpp                \
                       tests/redis_table_waiter_ut.cpp   \
                       tests/binary_serializer_ut.cpp    \
                       tests/zmq_state_ut.cpp            \
+                      tests/zmq_route_ut.cpp            \
                       tests/profileprovider_ut.cpp      \
                       tests/c_api_ut.cpp                \
                       tests/test_sonicv2connector_c_api.cpp \
