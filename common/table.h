@@ -82,12 +82,12 @@ public:
         return m_tableSeparator;
     }
 
-    std::string getChannelName() { return m_tableName + "_CHANNEL"; }
+    std::string getChannelName() { return m_tableName + SWSS_TABLE_CHANNEL_SUFFIX; }
 
     /* Return tagged channel name */
     std::string getChannelName(const std::string &tag)
     {
-        return m_tableName + "_CHANNEL" + "@" + tag;
+        return m_tableName + SWSS_TABLE_CHANNEL_SUFFIX + SWSS_TABLE_CHANNEL_DB_SEPARATOR + tag;
     }
 
     /* Return tagged channel name, most likely tag number could be dbId */
@@ -281,14 +281,14 @@ private:
     std::string m_delkey;
 public:
     TableName_KeySet(const std::string &tableName)
-        : m_key(tableName + "_KEY_SET")
-        , m_delkey(tableName + "_DEL_SET")
+        : m_key(tableName + SWSS_TABLE_KEY_SET_SUFFIX)
+        , m_delkey(tableName + SWSS_TABLE_DEL_SET_SUFFIX)
     {
     }
 
     std::string getKeySetName() const { return m_key; }
     std::string getDelKeySetName() const { return m_delkey; }
-    std::string getStateHashPrefix() const { return "_"; }
+    std::string getStateHashPrefix() const { return SWSS_TABLE_STATE_HASH_PREFIX; }
 };
 
 }
