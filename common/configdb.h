@@ -1,11 +1,23 @@
 #pragma once
 
+#include <stdexcept>
 #include <string>
 #include <map>
 #include "sonicv2connector.h"
 #include "redistran.h"
 
 namespace swss {
+
+// Thrown when a blocking wait is interrupted by SIGINT.
+// The Python binding maps this to KeyboardInterrupt.
+class InterruptedError : public std::runtime_error
+{
+public:
+    explicit InterruptedError(const std::string& message)
+        : std::runtime_error(message)
+    {
+    }
+};
 
 class ConfigDBConnector_Native : public SonicV2Connector_Native
 {
@@ -35,6 +47,9 @@ protected:
     std::string m_key_separator = "|";
 
     std::string m_db_name;
+
+private:
+    void wait_for_init_indicator();
 };
 
 #if defined(SWIG) && defined(SWIGGO)
