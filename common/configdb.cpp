@@ -1,3 +1,4 @@
+#include <csignal>
 #include <unistd.h>
 #include <boost/algorithm/string.hpp>
 #include <chrono>
@@ -23,6 +24,12 @@ const int SYSLOG_ESCALATE_SEC = 900;
 // When stderr is a terminal, tell the human this often why their command
 // is hanging.
 const int TTY_INTERVAL_SEC = 30;
+
+// SIGINT support for the wait_for_init_indicator loop.
+// The previous handler is forwarded to and restored when the wait ends.
+volatile sig_atomic_t g_received_sigint = 0;
+struct sigaction g_old_sigint_action;
+bool g_sigint_handler_installed = false;
 
 int elapsed_seconds_since(const chrono::steady_clock::time_point& start)
 {
@@ -67,6 +74,43 @@ void log_blocked_on_db_init(const string& db_name, int waited_sec)
         SWSS_LOG_WARN("Still waiting for %s in %s after %d seconds; "
                       "this process is blocked until it is set",
                       indicator, db_name.c_str(), waited_sec);
+    }
+}
+
+void sigint_handler(int signo)
+{
+    // Forward signal only when there's an actual function to forward to.
+    if (g_old_sigint_action.sa_handler != SIG_IGN &&
+        g_old_sigint_action.sa_handler != SIG_DFL)
+    {
+        g_old_sigint_action.sa_handler(signo);
+    }
+    g_received_sigint = 1;
+}
+
+void install_sigint_handler()
+{
+    g_received_sigint = 0;
+    struct sigaction new_action = {};
+    new_action.sa_handler = sigint_handler;
+    new_action.sa_flags = 0;
+
+    if (sigaction(SIGINT, &new_action, &g_old_sigint_action))
+    {
+        // Not fatal in a library: the wait keeps working, it is just not
+        // interruptible by Ctrl+C.
+        SWSS_LOG_ERROR("failed to setup SIGINT handler while waiting for ConfigDB init");
+        return;
+    }
+    g_sigint_handler_installed = true;
+}
+
+void restore_sigint_handler()
+{
+    if (g_sigint_handler_installed)
+    {
+        sigaction(SIGINT, &g_old_sigint_action, nullptr);
+        g_sigint_handler_installed = false;
     }
 }
 
@@ -115,8 +159,17 @@ void ConfigDBConnector_Native::wait_for_init_indicator()
     const auto start = chrono::steady_clock::now();
     int next_warn_sec = SYSLOG_FIRST_WARN_SEC;
     int next_tty_sec = TTY_INTERVAL_SEC;
+    // But respect SIGINT.
+    install_sigint_handler();
     while (!is_initialized())
     {
+        // Throw on SIGINT.
+        if (g_received_sigint)
+        {
+            restore_sigint_handler();
+            throw InterruptedError("Interrupted while waiting for " +
+                                   string(INIT_INDICATOR) + " in " + m_db_name);
+        }
         int waited_sec = elapsed_seconds_since(start);
         // Print and/or log warning messages if due.
         if (stderr_is_tty && waited_sec >= next_tty_sec)
@@ -129,11 +182,14 @@ void ConfigDBConnector_Native::wait_for_init_indicator()
             log_blocked_on_db_init(m_db_name, waited_sec);
             next_warn_sec = waited_sec + SYSLOG_WARN_INTERVAL_SEC;
         }
-        // Poll until the next warning message is due.
+        // Poll until the next warning message is due, or interrupted by
+        // signals. We throw on SIGINT in the next iteration. Unrelated signals
+        // merely wake the poll early and the wait continues.
         int next_due_sec = stderr_is_tty ? min(next_warn_sec, next_tty_sec) : next_warn_sec;
         int timeout_sec = max(1, next_due_sec - waited_sec);
-        pubsub->get_message(timeout_sec);
+        pubsub->get_message(timeout_sec, /*interrupt_on_signal=*/true);
     }
+    restore_sigint_handler();
     pubsub->punsubscribe(pattern);
 }
 
