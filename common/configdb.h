@@ -35,6 +35,9 @@ protected:
     std::string m_key_separator = "|";
 
     std::string m_db_name;
+
+private:
+    void wait_for_init_indicator();
 };
 
 #if defined(SWIG) && defined(SWIGGO)
