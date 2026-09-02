@@ -78,7 +78,8 @@ void Logger::swssPrioNotify(const std::string& component, const std::string& pri
 {
     auto& logger = getInstance();
 
-    if (priorityStringMap.find(prioStr) == priorityStringMap.end())
+    auto it = priorityStringMap.find(prioStr);
+    if (it == priorityStringMap.end())
     {
         SWSS_LOG_ERROR("Invalid loglevel. Setting to NOTICE. %s", prioStr.c_str());
         logger.m_minPrio = SWSS_NOTICE;
@@ -86,7 +87,7 @@ void Logger::swssPrioNotify(const std::string& component, const std::string& pri
     else
     {
         SWSS_LOG_DEBUG("Changing logger minPrio to %s", prioStr.c_str());
-        logger.m_minPrio = priorityStringMap.at(prioStr);
+        logger.m_minPrio = it->second;
     }
 }
 
@@ -100,14 +101,15 @@ void Logger::swssOutputNotify(const std::string& component, const std::string& o
 {
     auto& logger = getInstance();
 
-    if (outputStringMap.find(outputStr) == outputStringMap.end())
+    auto it = outputStringMap.find(outputStr);
+    if (it == outputStringMap.end())
     {
         SWSS_LOG_ERROR("Invalid logoutput. Setting to SYSLOG. %s", outputStr.c_str());
         logger.m_output = SWSS_SYSLOG;
     }
     else
     {
-        logger.m_output = outputStringMap.at(outputStr);
+        logger.m_output = it->second;
     }
 }
 
