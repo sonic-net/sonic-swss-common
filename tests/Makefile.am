@@ -14,6 +14,7 @@ tests_tests_SOURCES = tests/redis_ut.cpp                \
                       tests/netdispatcher_ut.cpp         \
                       tests/ipaddress_ut.cpp            \
                       tests/ipprefix_ut.cpp             \
+                      tests/interface_ut.cpp            \
                       tests/vrf_ut.cpp                  \
                       tests/macaddress_ut.cpp           \
                       tests/converter_ut.cpp            \

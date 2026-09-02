@@ -34,6 +34,16 @@ cc_test(
 )
 
 cc_test(
+    name = "interface_ut",
+    srcs = ["interface_ut.cpp"],
+    deps = [
+        "//:libswsscommon",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "vrf_ut",
     srcs = ["vrf_ut.cpp"],
     deps = [
