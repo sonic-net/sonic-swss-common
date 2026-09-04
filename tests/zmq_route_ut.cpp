@@ -478,3 +478,95 @@ TEST(ZmqRouteConsumerStateTable, ContinuousStreamWakesWithinHoldoff)
            << " independent >16x scheduler stalls is not plausible -- the "
               "burst deferral is not happening (per-message notify?)";
 }
+
+// Regression guard for the destroy-time use-after-free in
+// ZmqRouteConsumerStateTable. The registry detach lives in the base
+// ~ZmqConsumerStateTable(), but C++ destroys members most-derived-first, so
+// without a derived destructor m_ingressCallback is already gone by the time
+// the base detaches. In that window ZmqRouteServer::mqPollThread can still find
+// the (not-yet-unregistered) handler and dispatch into the overridden
+// handleReceivedData(), reading a destroyed std::function and, for a callback
+// with heap-allocating captures, dereferencing freed memory.
+//
+// This drives that path: a producer streams continuously while the consumer is
+// destroyed mid-stream, and the ingress callback owns the *only* reference to a
+// heap payload that it reads on every invocation. If a dispatch reaches the
+// callback after destruction, the read lands on freed memory and AddressSanitizer
+// (the sanitized CI leg) reports heap-use-after-free.
+//
+// The bug window is a narrow interleaving, so this is a best-effort stress
+// reproducer rather than a deterministic trigger: it runs many create/stream/
+// destroy cycles to raise the odds, and passes cleanly once the most-derived
+// ~ZmqRouteConsumerStateTable() detaches before its members are destroyed
+// (removeHandler() then blocks any in-flight dispatch and bars new ones while
+// m_ingressCallback is still alive). The deterministic guarantee comes from that
+// destructor ordering; this test is the empirical backstop.
+TEST(ZmqRouteConsumerStateTable, DestroyDuringStreamIsSafe)
+{
+    const string tableName = "ZMQ_ROUTE_UT_DTOR";
+    constexpr int kIterations = 150;
+
+    DBConnector db(TEST_DB, 0, true);
+    // Outlives every consumer, so an in-flight dispatch that touches it during
+    // teardown is never itself a use-after-free — only the per-iteration heap
+    // payload is, which is what we want to detect.
+    std::atomic<long> observed{0};
+
+    for (int iter = 0; iter < kIterations; ++iter)
+    {
+        // Unique port per iteration: avoids rebinding a socket still in
+        // TCP teardown from the previous cycle.
+        const string port = std::to_string(1260 + iter);
+        const string pushEndpoint = "tcp://localhost:" + port;
+        const string pullEndpoint = "tcp://*:" + port;
+
+        auto server = std::make_unique<ZmqRouteServer>(pullEndpoint, "", /*lazyBind=*/true);
+        auto consumer = std::make_unique<ZmqRouteConsumerStateTable>(
+            &db, tableName, *server, 0, /*dbPersistence=*/false);
+
+        // The lambda holds the sole reference to payload (moved in, no outer
+        // copy kept), so destroying m_ingressCallback frees the vector. Reading
+        // it on every dispatch turns a post-destruction invocation into an
+        // AddressSanitizer-visible read of freed memory.
+        {
+            auto payload = std::make_shared<std::vector<int>>(64, iter);
+            consumer->setIngressCallback(
+                [payload = std::move(payload), &observed](
+                    const std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> &kcos) {
+                    long acc = 0;
+                    for (int v : *payload)
+                        acc += v;
+                    observed += acc + static_cast<long>(kcos.size());
+                });
+        }
+
+        server->bind();
+
+        std::atomic<bool> stop{false};
+        std::thread producer([&] {
+            ZmqClient client(pushEndpoint, 0);
+            ZmqProducerStateTable p(&db, tableName, client, /*dbPersistence=*/false);
+            while (!stop.load(std::memory_order_relaxed))
+            {
+                p.set("flap_key", vector<FieldValueTuple>{{"seq", "x"}});
+                std::this_thread::sleep_for(std::chrono::microseconds(100));
+            }
+        });
+
+        // Let the stream ramp so the poll thread is actively dispatching, then
+        // destroy the consumer out from under it — the interleaving under test.
+        std::this_thread::sleep_for(std::chrono::milliseconds(2));
+        consumer.reset();
+
+        stop.store(true, std::memory_order_relaxed);
+        producer.join();
+        server.reset();
+    }
+
+    // No assertion on `observed`: the callback may or may not have fired on any
+    // given cycle depending on timing. The pass condition is simply reaching
+    // here without a sanitizer abort or crash. Touch it so it isn't optimized
+    // away.
+    SUCCEED() << "completed " << kIterations
+              << " destroy-during-stream cycles (observed=" << observed.load() << ")";
+}
