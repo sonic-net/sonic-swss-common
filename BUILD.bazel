@@ -88,8 +88,6 @@ cc_library(
 cc_binary(
     name = "libswsscommon_consolidated_base",
     linkopts = [
-        "-static-libstdc++",
-        "-static-libgcc",
         # Allow undefined symbols from external runtime deps (hiredis, zmq, etc.)
         # These are resolved at runtime when the .so is loaded
         "-Wl,--allow-shlib-undefined",
@@ -105,6 +103,27 @@ cc_binary(
 alwayslink_cc_binary(
     name = "libswsscommon_consolidated.so",
     binary = "libswsscommon_consolidated_base",
+)
+
+# libswsscommon as a shared library: the headers and the distro deps, with the
+# symbols coming from the prebuilt .so rather than from an archive. Linking this
+# gives a DT_NEEDED on libswsscommon.so.0, the way `-lswsscommon` does in Make.
+cc_import(
+    name = "libswsscommon_so",
+    shared_library = ":libswsscommon_consolidated.so",
+)
+
+cc_library(
+    name = "libswsscommon_shared",
+    hdrs = swss_common_hdrs,
+    include_prefix = "swss",
+    # Consumers include these headers unprefixed, the way :common exposes them.
+    includes = ["common"],
+    strip_include_prefix = "common",
+    deps = [
+        ":common_deps",
+        ":libswsscommon_so",
+    ],
 )
 
 # Alias for compatibility with existing references
