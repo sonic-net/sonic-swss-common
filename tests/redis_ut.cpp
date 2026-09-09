@@ -906,6 +906,74 @@ TEST(Table, binary_data_get)
     EXPECT_EQ(*f2, v2);
 }
 
+TEST(DBConnector, hgetall_binary_data)
+{
+    DBConnector db("TEST_DB", 0, true);
+    clearDB();
+
+    // sizeof() on a real array (not a decayed pointer) includes the embedded
+    // NUL plus the compiler-appended terminator, giving the exact byte count.
+    const char bin_field[] = "\x66\x69\x00\x6c\x64"; // "fi\0ld"
+    const char bin_value[] = "\x76\x61\x00\x75\x65"; // "va\0ue"
+    auto binField = std::string(bin_field, sizeof(bin_field));
+    auto binValue = std::string(bin_value, sizeof(bin_value));
+
+    vector<FieldValueTuple> values = {
+        {"plain_field", "plain_value"},
+        {binField, "plain_value2"},
+        {"plain_field2", binValue},
+    };
+
+    // Write via hmset (argv/len based) since it is already binary-safe;
+    // this isolates the test to the hgetall read path fixed here.
+    db.hmset("binary_hash", values.begin(), values.end());
+
+    auto fvs = db.hgetall("binary_hash");
+    EXPECT_EQ(fvs.size(), (size_t)3);
+
+    auto plain = fvs.find("plain_field");
+    ASSERT_NE(plain, fvs.end());
+    EXPECT_EQ(plain->second, "plain_value");
+
+    auto fieldIt = fvs.find(binField);
+    ASSERT_NE(fieldIt, fvs.end());
+    EXPECT_EQ(fieldIt->first.size(), binField.size());
+    EXPECT_EQ(fieldIt->first, binField);
+    EXPECT_EQ(fieldIt->second, "plain_value2");
+
+    auto valueIt = fvs.find("plain_field2");
+    ASSERT_NE(valueIt, fvs.end());
+    EXPECT_EQ(valueIt->second.size(), binValue.size());
+    EXPECT_EQ(valueIt->second, binValue);
+}
+
+TEST(DBConnector, get_all_binary_data)
+{
+    clearDB();
+
+    SonicV2Connector_Native db;
+    db.connect("TEST_DB");
+
+    const char bin_value[] = "\x76\x61\x00\x75\x65"; // "va\0ue"
+    auto binValue = std::string(bin_value, sizeof(bin_value));
+
+    vector<FieldValueTuple> values = {
+        {"field1", binValue},
+    };
+    // Write directly through the underlying DBConnector's binary-safe hmset;
+    // SonicV2Connector_Native::set() itself is not binary-safe on the write
+    // side and is out of scope for this fix.
+    db.get_redis_client("TEST_DB").hmset("binary_key", values.begin(), values.end());
+
+    auto fvs = db.get_all("TEST_DB", "binary_key");
+    db.close();
+
+    auto rc = fvs.find("field1");
+    ASSERT_NE(rc, fvs.end());
+    EXPECT_EQ(rc->second.size(), binValue.size());
+    EXPECT_EQ(rc->second, binValue);
+}
+
 TEST(ProducerConsumer, Prefix)
 {
     std::string tableName = "tableName";
