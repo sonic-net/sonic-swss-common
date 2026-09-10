@@ -17,6 +17,20 @@ SWSSResult SWSSSonicDBConfig_initializeGlobalConfig(const char *path, uint8_t ig
     SWSSTry(SonicDBConfig::initializeGlobalConfig(path, ignore_nonexistent));
 }
 
+SWSSResult SWSSSonicDBConfig_getDbSock(const char *dbName, SWSSString *outSock) {
+    SWSSTry({
+        string db_name = dbName ? string(dbName) : "";
+        *outSock = makeString(SonicDBConfig::getDbSock(db_name));
+    });
+}
+
+SWSSResult SWSSSonicDBConfig_getSeparator(const char *dbName, SWSSString *outSeparator) {
+    SWSSTry({
+        string db_name = dbName ? string(dbName) : "";
+        *outSeparator = makeString(SonicDBConfig::getSeparator(db_name));
+    });
+}
+
 SWSSResult SWSSDBConnector_new_tcp(int32_t dbId, const char *hostname, uint16_t port,
                                    uint32_t timeout, SWSSDBConnector *outDb) {
     SWSSTry(*outDb = (SWSSDBConnector) new DBConnector(dbId, string(hostname), port, timeout));

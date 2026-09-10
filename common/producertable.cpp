@@ -30,8 +30,8 @@ ProducerTable::ProducerTable(RedisPipeline *pipeline, const string &tableName, b
      * ARGV[1] : key
      * ARGV[2] : value
      * ARGV[3] : op
-     * KEYS[2] : tableName + "_CHANNEL"
-     * ARGV[4] : "G"
+     * KEYS[2] : tableName + SWSS_TABLE_CHANNEL_SUFFIX
+     * ARGV[4] : SWSS_TABLE_UPDATE_NOTIFICATION
      */
     string luaEnque =
         "redis.call('LPUSH', KEYS[1], ARGV[1], ARGV[2], ARGV[3]);"
@@ -77,7 +77,7 @@ void ProducerTable::enqueueDbChange(const string &key, const string &value, cons
         key.c_str(),
         value.c_str(),
         op.c_str(),
-        "G");
+        SWSS_TABLE_UPDATE_NOTIFICATION);
 
     m_pipe->push(command, REDIS_REPLY_NIL);
 }

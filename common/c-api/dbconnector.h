@@ -14,6 +14,12 @@ SWSSResult SWSSSonicDBConfig_initialize(const char *path);
 
 SWSSResult SWSSSonicDBConfig_initializeGlobalConfig(const char *path, uint8_t ignore_nonexistent);
 
+// Result string must be freed using SWSSString_free()
+SWSSResult SWSSSonicDBConfig_getDbSock(const char *dbName, SWSSString *outSock);
+
+// Result string must be freed using SWSSString_free()
+SWSSResult SWSSSonicDBConfig_getSeparator(const char *dbName, SWSSString *outSeparator);
+
 typedef struct SWSSDBConnectorOpaque *SWSSDBConnector;
 
 // Pass 0 to timeout for infinity
