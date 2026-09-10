@@ -75,6 +75,19 @@ public:
 protected:
     virtual void handleReceivedData(const std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> &kcos);
 
+    // Unregister this handler from the ZmqHandlerRegistry. Idempotent: a
+    // second call (e.g. the base destructor running after a subclass has
+    // already detached) finds nothing and returns. removeHandler() blocks
+    // until any in-flight dispatch into us returns and prevents new ones.
+    //
+    // A subclass that adds members read on the ingress path (e.g.
+    // ZmqRouteConsumerStateTable::m_ingressCallback) MUST call this from its
+    // own destructor: base-class destruction runs only after the subclass's
+    // members are already gone, so relying on ~ZmqConsumerStateTable() alone
+    // leaves a window where mqPollThread can dispatch into a half-destroyed
+    // object and read a destroyed member.
+    void detachFromRegistry();
+
     swss::SelectableEvent m_selectableEvent;
 
     std::unique_ptr<AsyncDBUpdater> m_asyncDBUpdater;

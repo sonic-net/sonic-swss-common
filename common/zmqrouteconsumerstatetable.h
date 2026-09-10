@@ -26,6 +26,19 @@ class ZmqRouteConsumerStateTable : public ZmqConsumerStateTable
               ZmqConsumerStateTable::DEFAULT_POP_BATCH_SIZE,
               pri, dbPersistence) {}
 
+    // Detach from the registry here, not just in the base destructor. Member
+    // destruction runs most-derived first, so by the time ~ZmqConsumerStateTable()
+    // detaches, m_ingressCallback is already gone — leaving a window in which
+    // ZmqRouteServer::mqPollThread could dispatch into handleReceivedData() and
+    // read a destroyed std::function. Detaching in this most-derived destructor
+    // closes that window: removeHandler() blocks until any in-flight dispatch
+    // returns and prevents new ones, while m_ingressCallback is still alive. The
+    // base destructor's later detach is then a harmless idempotent no-op.
+    ~ZmqRouteConsumerStateTable() override
+    {
+        detachFromRegistry();
+    }
+
     void setIngressCallback(IngressCallback cb)
     {
       m_ingressCallback = std::move(cb);

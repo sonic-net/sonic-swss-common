@@ -2,6 +2,8 @@
 
 #include <map>
 #include <memory>
+#include <unordered_map>
+#include <chrono>
 #include <mutex>
 #include <string>
 #include <deque>
@@ -56,6 +58,32 @@ public:
     ZmqMessageHandler* dispatch(const std::string& dbName,
                   const std::string& tableName,
                   const std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>>& kcos);
+
+    // Handlers touched during an in-progress burst, keyed to the time each
+    // one FIRST went dirty without a subsequent notify. Owned by the server's
+    // poll thread; passed here for flushing.
+    using DirtyHandlerMap =
+        std::unordered_map<ZmqMessageHandler*, std::chrono::steady_clock::time_point>;
+
+    // Call notifyPending() on every handler in `dirty` whose first-dirty time
+    // is at or before `cutoff`, and erase those entries. Pass
+    // steady_clock::now() to flush everything (the post-quiesce case); pass
+    // now() - max_holdoff to flush only overdue handlers mid-burst.
+    //
+    // For burst-coalescing servers (ZmqRouteServer), which accumulate raw
+    // handler pointers across poll iterations and notify them later. Doing the
+    // flush here, under the same mutex removeHandler() takes, is what makes
+    // that safe: a handler removed since it was added to `dirty` has already
+    // been erased from the registry and is skipped, and a concurrent
+    // removeHandler() blocks until this returns. Notifying by iterating the
+    // caller's map directly would be a use-after-free, since a raw pointer
+    // cannot be validated without the registry.
+    //
+    // Entries at or before the cutoff are erased whether or not their handler
+    // is still live, so dead pointers cannot pin the poll loop in its short-
+    // timeout mode forever.
+    void flushDirtyHandlers(DirtyHandlerMap& dirty,
+                            std::chrono::steady_clock::time_point cutoff);
 
 private:
     std::mutex m_mutex;

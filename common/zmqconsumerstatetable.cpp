@@ -50,15 +50,26 @@ ZmqConsumerStateTable::ZmqConsumerStateTable(DBConnector *db, const std::string 
     SWSS_LOG_DEBUG("ZmqConsumerStateTable ctor tableName: %s", tableName.c_str());
 }
 
+void ZmqConsumerStateTable::detachFromRegistry()
+{
+    // The registry is co-owned with the ZmqServer that created us, so this is
+    // safe even if that ZmqServer has already been destroyed — only the shared
+    // registry is touched.
+    m_handlerRegistry->removeHandler(m_dbName, getTableName());
+}
+
 ZmqConsumerStateTable::~ZmqConsumerStateTable()
 {
     // Detach from the registry before any of our members (notably the
     // SelectableEvent, whose eventfd we'd write to from handleReceivedData)
     // are destroyed. removeHandler() blocks until any in-flight dispatch
-    // into us returns. The registry is co-owned with the ZmqServer that
-    // created us, so this is safe even if that ZmqServer has already been
-    // destroyed — only the shared registry is touched.
-    m_handlerRegistry->removeHandler(m_dbName, getTableName());
+    // into us returns.
+    //
+    // NOTE: this covers only members declared in this base. A subclass that
+    // adds ingress-path members must ALSO detach in its own destructor — by
+    // the time this runs, those members are already gone. See
+    // detachFromRegistry() and ~ZmqRouteConsumerStateTable().
+    detachFromRegistry();
 }
 
 void ZmqConsumerStateTable::handleReceivedData(const std::vector<std::shared_ptr<KeyOpFieldsValuesTuple>> &kcos)
