@@ -23,15 +23,8 @@ public:
         EXPECT_FALSE(SonicDBConfig::isInit());
 
         // load nonexisting file, should throw exception with NO file existing
-        try
-        {
-            cout<<"INIT: loading nonexisting db config file"<<endl;
-            SonicDBConfig::initialize(nonexisting_file);
-        }
-        catch (exception &e)
-        {
-            EXPECT_TRUE(strstr(e.what(), "Sonic database config file doesn't exist"));
-        }
+        cout<<"INIT: loading nonexisting db config file"<<endl;
+        EXPECT_THROW(SonicDBConfig::initialize(nonexisting_file), std::runtime_error);
         EXPECT_FALSE(SonicDBConfig::isInit());
 
         // load local config file, init should be true
@@ -45,15 +38,8 @@ public:
         EXPECT_FALSE(SonicDBConfig::isGlobalInit());
 
         // Call an API which actually needs the data populated by SonicDBConfig::initializeGlobalConfig
-        try
-        {
-            cout<<"INIT: Invoking SonicDBConfig::getDbId(APPL_DB, asic0)"<<endl;
-            SonicDBConfig::getDbId(TEST_DB, TEST_NAMESPACE);
-        }
-        catch (exception &e)
-        {
-            EXPECT_TRUE(strstr(e.what(), "Initialize global DB config using API SonicDBConfig::initializeGlobalConfig"));
-        }
+        cout<<"INIT: Invoking SonicDBConfig::getDbId(APPL_DB, asic0)"<<endl;
+        EXPECT_THROW(SonicDBConfig::getDbId(TEST_DB, TEST_NAMESPACE), std::runtime_error);
 
         // Test the global SonicDBConfig::initializeGlobalConfig with non-existing include
         SonicDBConfig::initializeGlobalConfig(global_with_invalid_include, true);
@@ -84,16 +70,8 @@ public:
         EXPECT_TRUE(SonicDBConfig::isGlobalInit());
 
         // Call an API with wrong namespace passed
-        try
-        {
-            cout<<"INIT: Invoking SonicDBConfig::getDbId(APPL_DB, invalid)"<<endl;
-            SonicDBConfig::getDbId(TEST_DB, INVALID_NAMESPACE);
-        }
-        catch (exception &e)
-        {
-            // EXPECT_TRUE(strstr(e.what(), "Key :invalid invalid is not a valid key name in config file"));
-            EXPECT_STREQ(e.what(), "Key :invalid is not a valid key name in config file");
-        }
+        cout<<"INIT: Invoking SonicDBConfig::getDbId(APPL_DB, invalid)"<<endl;
+        EXPECT_THROW(SonicDBConfig::getDbId(TEST_DB, INVALID_NAMESPACE), std::out_of_range);
 
         // reset SonicDBConfig, init should be false
         SonicDBConfig::reset();
