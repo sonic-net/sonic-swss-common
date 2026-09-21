@@ -1,5 +1,6 @@
 #include <vector>
 #include <hiredis/hiredis.h>
+#include <stdexcept>
 #include "rediscommand.h"
 #include "stringutility.h"
 
