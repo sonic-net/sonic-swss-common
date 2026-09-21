@@ -6,6 +6,7 @@ LDADD_GTEST = -L/usr/src/gtest -lgtest -lgtest_main -lgmock -lgmock_main
 tests_tests_SOURCES = tests/redis_ut.cpp                \
                       tests/redis_piped_ut.cpp          \
                       tests/redis_command_ut.cpp        \
+                      tests/redisreply_ut.cpp           \
                       tests/redis_state_ut.cpp          \
                       tests/redis_piped_state_ut.cpp    \
                       tests/tokenize_ut.cpp             \
