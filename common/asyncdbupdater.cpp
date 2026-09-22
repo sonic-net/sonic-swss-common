@@ -25,7 +25,10 @@ AsyncDBUpdater::AsyncDBUpdater(DBConnector *db, const std::string &tableName)
 
 AsyncDBUpdater::~AsyncDBUpdater()
 {
-    m_runThread = false;
+    {
+        std::lock_guard<std::mutex> lock(m_dbUpdateDataQueueMutex);
+        m_runThread = false;
+    }
 
     // notify db update thread exit
     m_dbUpdateDataNotifyCv.notify_all();
@@ -41,6 +44,12 @@ void AsyncDBUpdater::update(std::shared_ptr<KeyOpFieldsValuesTuple> pkco)
     }
 
     m_dbUpdateDataNotifyCv.notify_all();
+}
+
+void AsyncDBUpdater::flush()
+{
+    std::unique_lock<std::mutex> lock(m_dbUpdateDataQueueMutex);
+    m_dbUpdateDataNotifyCv.wait(lock, [this] { return m_dbUpdateDataQueue.empty(); });
 }
 
 void AsyncDBUpdater::dbUpdateThread()
@@ -59,65 +68,52 @@ void AsyncDBUpdater::dbUpdateThread()
     // Follow same logic in ConsumerStateTable: every received data will write to 'table'.
     DBConnector db(m_db->getDbName(), 0, true, m_db->getDBKey());
     Table table(&db, m_tableName);
-    std::mutex cvMutex;
-    std::unique_lock<std::mutex> cvLock(cvMutex);
-
     while (true)
     {
-        size_t count;
-        count = queueSize();
-        if (count == 0)
+        std::shared_ptr<KeyOpFieldsValuesTuple> pending;
         {
-            // Check if there still data in queue before exit
-            if (!m_runThread)
+            std::unique_lock<std::mutex> lock(m_dbUpdateDataQueueMutex);
+            m_dbUpdateDataNotifyCv.wait(lock, [this]
+            {
+                return !m_runThread || !m_dbUpdateDataQueue.empty();
+            });
+            if (m_dbUpdateDataQueue.empty())
             {
                 SWSS_LOG_NOTICE("dbUpdateThread for table: %s is exiting", m_tableName.c_str());
                 break;
             }
+            pending = m_dbUpdateDataQueue.front();
+        }
 
-            // when queue is empty, wait notification, when data come, continue to check queue size again
-            m_dbUpdateDataNotifyCv.wait(cvLock);
-            continue;
+        auto& kco = *pending;
+        if (kfvOp(kco) == SET_COMMAND)
+        {
+            auto& values = kfvFieldsValues(kco);
+
+            // Delete entry before Table::set(), because Table::set() does not remove the no longer existed fields from entry.
+            table.del(kfvKey(kco));
+            table.set(kfvKey(kco), values);
+        }
+        else if (kfvOp(kco) == HSET_COMMAND)
+        {
+            auto& values = kfvFieldsValues(kco);
+            // Merge update only the provided fields, and leave the rest of the object intact.
+            table.set(kfvKey(kco), values);
+        }
+        else if (kfvOp(kco) == DEL_COMMAND)
+        {
+            table.del(kfvKey(kco));
         }
         else
         {
-            if (!m_runThread)
-            {
-                SWSS_LOG_DEBUG("dbUpdateThread for table: %s still has %d records that need to be sent before exiting", m_tableName.c_str(), (int)count);
-            }
+            SWSS_LOG_ERROR("db: %s, table: %s receive unknown operation: %s", m_db->getDbName().c_str(), m_tableName.c_str(), kfvOp(kco).c_str());
         }
 
-        for (size_t ie = 0; ie < count; ie++)
         {
-            auto& kco = *(m_dbUpdateDataQueue.front());
-
-            if (kfvOp(kco) == SET_COMMAND)
-            {
-                auto& values = kfvFieldsValues(kco);
-
-                // Delete entry before Table::set(), because Table::set() does not remove the no longer existed fields from entry.
-                table.del(kfvKey(kco));
-                table.set(kfvKey(kco), values);
-            }
-            else if (kfvOp(kco) == HSET_COMMAND)
-            {
-                auto& values = kfvFieldsValues(kco);
-                // Merge update only the provided fields, and leave the rest of the object intact.
-                table.set(kfvKey(kco), values);
-            }
-            else if (kfvOp(kco) == DEL_COMMAND)
-            {
-                table.del(kfvKey(kco));
-            }
-            else
-            {
-                SWSS_LOG_ERROR("db: %s, table: %s receive unknown operation: %s", m_db->getDbName().c_str(), m_tableName.c_str(), kfvOp(kco).c_str());
-            }
-
-            {
-                std::lock_guard<std::mutex> lock(m_dbUpdateDataQueueMutex);
-                m_dbUpdateDataQueue.pop();
-            }
+            std::lock_guard<std::mutex> lock(m_dbUpdateDataQueueMutex);
+            m_dbUpdateDataQueue.pop();
+            if (m_dbUpdateDataQueue.empty())
+                m_dbUpdateDataNotifyCv.notify_all();
         }
     }
 

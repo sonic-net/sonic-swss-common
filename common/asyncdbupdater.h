@@ -21,11 +21,15 @@ public:
 
     void update(std::shared_ptr<KeyOpFieldsValuesTuple> pkco);
 
+    // Wait for queued and in-flight writes. Callers must prevent new updates
+    // when using completion as an ordering boundary for another operation.
+    void flush();
+
     size_t queueSize();
 private:
     void dbUpdateThread();
 
-    volatile bool m_runThread;
+    bool m_runThread;
 
     std::shared_ptr<std::thread> m_dbUpdateThread;
 

@@ -1011,3 +1011,55 @@ TEST(AsyncDBUpdater, SetCommandReplacesKey)
 
     table.del("key");
 }
+
+TEST(AsyncDBUpdater, FlushCompletesBacklogWithoutStoppingWriter)
+{
+    DBConnector db(TEST_DB, 0, true);
+    Table table(&db, "ASYNC_DB_UPDATER_FLUSH_UT");
+    AsyncDBUpdater updater(&db, "ASYNC_DB_UPDATER_FLUSH_UT");
+    const size_t count = 1024;
+
+    updater.flush();
+    for (size_t i = 0; i < count; ++i)
+    {
+        auto key = std::to_string(i);
+        table.del(key);
+        updater.update(std::make_shared<KeyOpFieldsValuesTuple>(
+            key, HSET_COMMAND, std::vector<FieldValueTuple>{{"value", key}}));
+    }
+    updater.flush();
+    EXPECT_EQ(updater.queueSize(), 0u);
+
+    for (size_t i = 0; i < count; ++i)
+    {
+        auto key = std::to_string(i);
+        EXPECT_EQ(readFields(table, key)["value"], key);
+        updater.update(std::make_shared<KeyOpFieldsValuesTuple>(
+            key, DEL_COMMAND, std::vector<FieldValueTuple>{}));
+    }
+    updater.flush();
+    for (size_t i = 0; i < count; ++i)
+        EXPECT_TRUE(readFields(table, std::to_string(i)).empty());
+}
+
+TEST(AsyncDBUpdater, RepeatedIdleUpdateFlushDoesNotMissWakeups)
+{
+    DBConnector db(TEST_DB, 0, true);
+    Table table(&db, "ASYNC_DB_UPDATER_IDLE_UT");
+    table.del("key");
+    AsyncDBUpdater updater(&db, "ASYNC_DB_UPDATER_IDLE_UT");
+
+    for (size_t i = 0; i < 100; ++i)
+    {
+        updater.flush();
+        auto value = std::to_string(i);
+        updater.update(std::make_shared<KeyOpFieldsValuesTuple>(
+            "key", HSET_COMMAND, std::vector<FieldValueTuple>{{"value", value}}));
+        updater.flush();
+        EXPECT_EQ(readFields(table, "key")["value"], value);
+    }
+
+    updater.update(std::make_shared<KeyOpFieldsValuesTuple>(
+        "key", DEL_COMMAND, std::vector<FieldValueTuple>{}));
+    updater.flush();
+}
