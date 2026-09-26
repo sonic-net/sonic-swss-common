@@ -55,7 +55,7 @@ void ZmqConsumerStateTable::detachFromRegistry()
     // The registry is co-owned with the ZmqServer that created us, so this is
     // safe even if that ZmqServer has already been destroyed — only the shared
     // registry is touched.
-    m_handlerRegistry->removeHandler(m_dbName, getTableName());
+    m_handlerRegistry->removeHandler(m_dbName, getTableName(), this);
 }
 
 ZmqConsumerStateTable::~ZmqConsumerStateTable()

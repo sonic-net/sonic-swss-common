@@ -344,7 +344,7 @@ TEST(ZmqHandlerRegistry, FlushSkipsUnregisteredHandlers)
     };
 
     // ...but one consumer is torn down before the quiesce flush fires.
-    registry.removeHandler("APPL_DB", "T_LEAVES");
+    registry.removeHandler("APPL_DB", "T_LEAVES", &leaves);
 
     registry.flushDirtyHandlers(dirty, std::chrono::steady_clock::now());
 
@@ -501,7 +501,11 @@ TEST(ZmqRouteConsumerStateTable, ContinuousStreamWakesWithinHoldoff)
 // (removeHandler() then blocks any in-flight dispatch and bars new ones while
 // m_ingressCallback is still alive). The deterministic guarantee comes from that
 // destructor ordering; this test is the empirical backstop.
-TEST(ZmqRouteConsumerStateTable, DestroyDuringStreamIsSafe)
+// Shared driver for the destroy-during-stream stress. `consumerDbPersistence`
+// selects whether the consumer runs its AsyncDBUpdater path; `basePort` keeps
+// the two invocations on disjoint port ranges so neither rebinds a socket the
+// other left in TCP teardown.
+static void runDestroyDuringStreamStress(bool consumerDbPersistence, int basePort)
 {
     const string tableName = "ZMQ_ROUTE_UT_DTOR";
     constexpr int kIterations = 150;
@@ -516,13 +520,13 @@ TEST(ZmqRouteConsumerStateTable, DestroyDuringStreamIsSafe)
     {
         // Unique port per iteration: avoids rebinding a socket still in
         // TCP teardown from the previous cycle.
-        const string port = std::to_string(1260 + iter);
+        const string port = std::to_string(basePort + iter);
         const string pushEndpoint = "tcp://localhost:" + port;
         const string pullEndpoint = "tcp://*:" + port;
 
         auto server = std::make_unique<ZmqRouteServer>(pullEndpoint, "", /*lazyBind=*/true);
         auto consumer = std::make_unique<ZmqRouteConsumerStateTable>(
-            &db, tableName, *server, 0, /*dbPersistence=*/false);
+            &db, tableName, *server, 0, consumerDbPersistence);
 
         // The lambda holds the sole reference to payload (moved in, no outer
         // copy kept), so destroying m_ingressCallback frees the vector. Reading
@@ -568,5 +572,24 @@ TEST(ZmqRouteConsumerStateTable, DestroyDuringStreamIsSafe)
     // here without a sanitizer abort or crash. Touch it so it isn't optimized
     // away.
     SUCCEED() << "completed " << kIterations
-              << " destroy-during-stream cycles (observed=" << observed.load() << ")";
+              << " destroy-during-stream cycles (dbPersistence="
+              << (consumerDbPersistence ? "true" : "false")
+              << ", observed=" << observed.load() << ")";
+}
+
+// Non-persistent consumer: exercises the ingress-callback teardown window that
+// the most-derived ~ZmqRouteConsumerStateTable() detach closes.
+TEST(ZmqRouteConsumerStateTable, DestroyDuringStreamIsSafe)
+{
+    runDestroyDuringStreamStress(/*consumerDbPersistence=*/false, /*basePort=*/1260);
+}
+
+// Persistent consumer: same destroy-mid-stream stress, but with dbPersistence
+// enabled so the AsyncDBUpdater is constructed and torn down on every cycle.
+// This covers the teardown case raised on #1187 (AsyncDBUpdater destroyed while
+// the poll thread may still be dispatching), which the non-persistent run does
+// not reach. Disjoint port range from the run above.
+TEST(ZmqRouteConsumerStateTable, DestroyDuringStreamIsSafeWithPersistence)
+{
+    runDestroyDuringStreamStress(/*consumerDbPersistence=*/true, /*basePort=*/1460);
 }

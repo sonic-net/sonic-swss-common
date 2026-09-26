@@ -49,8 +49,16 @@ public:
                          const std::string& tableName,
                          ZmqMessageHandler* handler);
 
+    // Removes the handler registered for (dbName, tableName), but only if the
+    // slot still holds `handler`. The identity check makes the removal safe to
+    // call more than once during teardown (a subclass and its base both detach,
+    // see ZmqConsumerStateTable): once the first call has removed the handler,
+    // a second call — or one racing a replacement consumer that registered
+    // under the same key in between — is a no-op instead of evicting the
+    // replacement.
     void removeHandler(const std::string& dbName,
-                       const std::string& tableName);
+                       const std::string& tableName,
+                       const ZmqMessageHandler* handler);
 
     // Returns the handler dispatched to (nullptr if no handler is registered
     // for the (dbName, tableName) pair) so burst-coalescing callers can track
@@ -115,7 +123,8 @@ public:
     // destroy the handler object after this call returns.
     void removeMessageHandler(
                                 const std::string& dbName,
-                                const std::string& tableName);
+                                const std::string& tableName,
+                                const ZmqMessageHandler* handler);
 
     // This method should only be used in one-to-one sync mode with the client.
     void sendMsg(const std::string& dbName, const std::string& tableName,
