@@ -155,30 +155,43 @@ def _pip_batches(pip_specs: List[Tuple[str, Tuple[str, ...]]]):
 
 
 def _deb_install_groups(artifacts) -> List[dict]:
-    """Group every artifact's DEBs by install_env signature into single dpkg -i
-    calls (see run() step 3 for rationale). Returns groups ordered so that the
-    empty-install_env group (the usual library providers such as libnl/libyang3/
-    libswsscommon) is installed before any special-install_env group (e.g. vpp).
-    Within a group, dpkg_args are unioned and apt_fix_broken is ORed."""
-    deb_groups: "OrderedDict[tuple, dict]" = OrderedDict()
+    """Batch dependency-first artifacts into ordered ``dpkg -i`` calls.
+
+    The caller (normally ``collect_bundles``) must supply artifacts in
+    dependency-first order; this function preserves that order but does not
+    derive or validate dependencies itself. Merge only ADJACENT artifacts with
+    the same ``install_env`` signature: dpkg can then unpack/configure
+    cross-artifact dependencies in one invocation without moving a later
+    dependent ahead of an intervening dependency that needs a different
+    environment (e.g. common-libs -> VPP -> sairedis).
+
+    Within a batch, dpkg_args are unioned and apt_fix_broken is ORed.
+    Artifacts containing only wheels do not split an otherwise-adjacent DEB
+    batch."""
+    deb_groups: List[dict] = []
+    current_sig = None
+    current = None
     for art in artifacts:
+        if not art.deb_files:
+            continue
         env_sig = tuple(sorted((art.install_env or {}).items()))
+        if current is None or env_sig != current_sig:
+            current_sig = env_sig
+            current = {
+                "files": [],
+                "args": [],
+                "fix": False,
+                "env": dict(art.install_env or {}),
+            }
+            deb_groups.append(current)
         for deb in art.deb_files:
             dpkg_args, fix = art.deb_opts.get(deb, ([], False))
-            g = deb_groups.get(env_sig)
-            if g is None:
-                g = {"files": [], "args": [], "fix": False, "env": dict(art.install_env or {})}
-                deb_groups[env_sig] = g
-            g["files"].append(deb)
+            current["files"].append(deb)
             for a in dpkg_args:
-                if a not in g["args"]:
-                    g["args"].append(a)
-            g["fix"] = g["fix"] or fix
-    # Empty-install_env group first (the usual library providers, installed before
-    # any special-env group like vpp); all other groups keep their insertion order
-    # (sorted() is stable), so inter-DEB dependencies across special-env groups are
-    # not reordered.
-    return [g for sig, g in sorted(deb_groups.items(), key=lambda kv: 0 if not kv[0] else 1)]
+                if a not in current["args"]:
+                    current["args"].append(a)
+            current["fix"] = current["fix"] or fix
+    return deb_groups
 
 
 def run(
@@ -236,16 +249,13 @@ def run(
     # 2. apt install
     executor.apt_install(apt_names)
 
-    # 3. upstream DEBs (dpkg -i), before pip (F6). Group DEBs across ALL artifacts
-    #    by their install_env signature and install each group in ONE dpkg -i call,
-    #    so inter-DEB dependencies resolve regardless of declaration/filename order
-    #    — including cross-artifact deps, e.g. libswsscommon (sonic-swss-common)
-    #    depends on libnl-nf-3-200 + libyang3 (common-libs). dpkg unpacks the whole
-    #    set before configuring, so it orders configuration itself. Only a differing
-    #    install_env forces a separate call (e.g. vpp needs VPP_INSTALL_SKIP_SYSCTL=1
-    #    during its maintainer scripts); dpkg_args are unioned and apt_fix_broken is
-    #    ORed within a group. Empty-install_env groups (the usual library providers)
-    #    install first, before any special-env group.
+    # 3. upstream DEBs (dpkg -i), before pip (F6). collect_bundles returns
+    #    dependency-first artifacts. Batch only adjacent artifacts with the same
+    #    install_env so dpkg can resolve compatible cross-artifact dependencies
+    #    together (e.g. libswsscommon + common-libs) without moving a dependent
+    #    ahead of an intervening special-environment dependency (e.g.
+    #    common-libs -> VPP -> sairedis). dpkg_args are unioned and
+    #    apt_fix_broken is ORed within each ordered batch.
     for g in _deb_install_groups(artifacts):
         executor.dpkg_install(g["files"], dpkg_args=g["args"],
                               apt_fix_broken=g["fix"], env=g["env"])

@@ -286,7 +286,7 @@ struct serialization
             rc = zmq_msg_init_size(&msg, s.size());
         }
         if (rc == 0) {
-            strncpy((char *)zmq_msg_data(&msg), s.c_str(), s.size());
+            memcpy((char *)zmq_msg_data(&msg), s.c_str(), s.size());
         }
         return rc;
     }

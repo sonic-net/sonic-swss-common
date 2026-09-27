@@ -163,8 +163,7 @@ def test_cascade_recurses_into_nested_bundle(tmp_path):
     )])
     arts = collect_bundles(uf, BOOK_AMD, client=None, work_dir=str(tmp_path / "w"),
                            staged_dir=str(staged))
-    names = {a.name for a in arts}
-    assert names == {"sairedis", "sw-common"}   # cascade pulled in the nested upstream
+    assert [a.name for a in arts] == ["sw-common", "sairedis"]
 
 
 def test_required_staged_used_only_via_nested_bundle(tmp_path):
@@ -198,4 +197,4 @@ def test_required_staged_used_only_via_nested_bundle(tmp_path):
     # Requiring 'sw-common' (only reachable via the nested cascade) must NOT raise.
     arts = collect_bundles(uf, BOOK_AMD, client=None, work_dir=str(tmp_path / "w"),
                            staged_dir=str(staged), required_staged={"sw-common"})
-    assert {a.name for a in arts} == {"sairedis", "sw-common"}
+    assert [a.name for a in arts] == ["sw-common", "sairedis"]

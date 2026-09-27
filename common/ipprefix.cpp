@@ -61,7 +61,7 @@ IpPrefix::IpPrefix(const ip_addr_t &ip, int mask) : m_ip(ip), m_mask(mask)
     }
 }
 
-bool IpPrefix::isValid()
+bool IpPrefix::isValid() const
 {
     if (m_mask < 0) return false;
     

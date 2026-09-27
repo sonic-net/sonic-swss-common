@@ -100,6 +100,7 @@ common_libswsscommon_la_SOURCES = \
     common/asyncdbupdater.cpp        \
     common/redis_table_waiter.cpp    \
     common/interface.h               \
+    common/vrf.h                     \
     common/c-api/util.cpp                  \
     common/c-api/dbconnector.cpp           \
     common/c-api/configdbconnector.cpp     \

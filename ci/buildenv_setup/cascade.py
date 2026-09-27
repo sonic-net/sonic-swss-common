@@ -161,7 +161,13 @@ def collect_bundles(
     _seen: Optional[Set[str]] = None,
     _used_staged: Optional[Set[str]] = None,
 ) -> List[InstalledArtifact]:
-    """Fetch/stage every resolved upstream, glob files, and recurse (cascade)."""
+    """Fetch/stage every resolved upstream and return dependency-first artifacts.
+
+    An upstream bundle's nested ``upstream-artifacts.yaml`` describes that
+    artifact's dependencies. Recurse before appending the parent so the planner
+    can install providers before dependents, including across differing
+    ``install_env`` groups (for example common-libs -> VPP -> sairedis).
+    """
     required_staged = required_staged or set()
     seen = _seen if _seen is not None else set()
     # Thread the used-staged accumulator explicitly through the recursion so a
@@ -187,8 +193,6 @@ def collect_bundles(
                 art.deb_opts[f] = (rdeb.dpkg_args, rdeb.apt_fix_broken)
         for wpat in ru.wheels:
             art.wheel_files.extend(_glob_one(bundle_dir, wpat, "wheel", ru.name))
-        out.append(art)
-
         # Cascade: recurse into the bundle's own build-env/ if present.
         nested_up = os.path.join(bundle_dir, "build-env", "upstream-artifacts.yaml")
         if os.path.isfile(nested_up):
@@ -205,6 +209,7 @@ def collect_bundles(
                 "upstream %r bundle has no build-env/ to cascade into; "
                 "treating as leaf (set cascade_optional: true to silence)", ru.name
             )
+        out.append(art)
 
     # After the top-level pass, enforce required-staged overrides were all used.
     if _seen is None:

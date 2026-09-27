@@ -202,7 +202,7 @@ public:
     std::string to_string() const;
 
 private:
-    bool isValid();
+    bool isValid() const;
 
     IpAddress m_ip;
     int m_mask;

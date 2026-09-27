@@ -1,24 +1,24 @@
-#ifndef __INTERFACE__
-#define __INTERFACE__
+#ifndef __VRF__
+#define __VRF__
 
-#include <string>
 #include <net/if.h>
+#include <string>
 
 namespace swss
 {
 
-const size_t IFACE_NAME_MAX_LEN = IFNAMSIZ - 1;
+const size_t VRF_NAME_MAX_LEN = IFNAMSIZ - 1;
 
-inline bool isInterfaceNameValid(const std::string &ifaceName)
+inline bool isVrfNameValid(const std::string &vrfName)
 {
-    if (ifaceName.empty() || ifaceName.length() >= IFNAMSIZ || ifaceName == "." || ifaceName == "..")
+    if (vrfName.empty() || vrfName.length() >= IFNAMSIZ || vrfName == "." || vrfName == "..")
     {
         return false;
     }
 
-    for (size_t index = 0; index < ifaceName.size(); ++index)
+    for (size_t index = 0; index < vrfName.size(); ++index)
     {
-        const unsigned char character = static_cast<unsigned char>(ifaceName[index]);
+        const unsigned char character = static_cast<unsigned char>(vrfName[index]);
         const bool isAlphaNumeric =
             (character >= 'A' && character <= 'Z') ||
             (character >= 'a' && character <= 'z') ||

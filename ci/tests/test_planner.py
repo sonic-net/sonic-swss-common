@@ -148,9 +148,9 @@ def test_deb_groups_merge_plain_upstreams_into_one_call():
     }
 
 
-def test_deb_groups_split_by_install_env_plain_first():
-    # vpp carries install_env (VPP_INSTALL_SKIP_SYSCTL) + apt_fix_broken, so it is
-    # a separate group installed AFTER the empty-install_env providers.
+def test_deb_groups_preserve_dependency_first_artifact_order():
+    # collect_bundles supplies dependency-first order. Different install_env
+    # signatures split calls without reordering them.
     plain = InstalledArtifact(
         name="common-libs", bundle_dir="/b/cl", deb_files=["/b/cl/libyang3.deb"],
     )
@@ -159,9 +159,9 @@ def test_deb_groups_split_by_install_env_plain_first():
         install_env={"VPP_INSTALL_SKIP_SYSCTL": "1"},
         deb_opts={"/b/vpp/vpp.deb": ([], True)},
     )
-    groups = _deb_install_groups([vpp, plain])   # declared vpp-first on purpose
+    groups = _deb_install_groups([plain, vpp])
     assert len(groups) == 2
-    assert groups[0]["files"] == ["/b/cl/libyang3.deb"]     # empty-env group first
+    assert groups[0]["files"] == ["/b/cl/libyang3.deb"]
     assert groups[0]["env"] == {}
     assert set(groups[1]["files"]) == {"/b/vpp/vpp.deb", "/b/vpp/libvppinfra.deb"}
     assert groups[1]["env"] == {"VPP_INSTALL_SKIP_SYSCTL": "1"}
@@ -183,15 +183,62 @@ def test_deb_groups_union_dpkg_args_within_group():
 
 
 def test_deb_groups_preserve_insertion_order_among_env_groups():
-    # Two DIFFERENT non-empty install_env groups: their relative order must follow
-    # insertion order (not be reordered by env-signature length), so inter-DEB deps
-    # across special-env groups aren't broken. Empty-env group still goes first.
+    # Every environment boundary preserves dependency-first insertion order,
+    # including an empty environment after special-environment dependencies.
     envA = InstalledArtifact(name="a", bundle_dir="/a", deb_files=["/a/a.deb"],
                              install_env={"A": "1"})
     envB = InstalledArtifact(name="b", bundle_dir="/b", deb_files=["/b/b.deb"],
                              install_env={"B": "1"})
     plain = InstalledArtifact(name="p", bundle_dir="/p", deb_files=["/p/p.deb"])
-    groups = _deb_install_groups([envA, envB, plain])   # declared A, B, plain
-    assert groups[0]["files"] == ["/p/p.deb"]           # empty-env first
-    assert groups[1]["env"] == {"A": "1"}               # then insertion order A ...
-    assert groups[2]["env"] == {"B": "1"}               # ... then B
+    groups = _deb_install_groups([envA, envB, plain])
+    assert groups[0]["env"] == {"A": "1"}
+    assert groups[1]["env"] == {"B": "1"}
+    assert groups[2]["files"] == ["/p/p.deb"]
+    assert groups[2]["env"] == {}
+
+
+def test_deb_groups_split_same_env_around_special_dependency():
+    # Regression: sairedis (empty env) depends on VPP (special env), while both
+    # depend on ordinary providers. Global grouping by env used to collapse the
+    # provider + sairedis DEBs into one early call, so apt repair removed
+    # libsaivs before VPP was installed. Preserve the dependency layers.
+    providers = InstalledArtifact(
+        name="common-libs", bundle_dir="/p", deb_files=["/p/libnl.deb"],
+    )
+    vpp = InstalledArtifact(
+        name="vpp", bundle_dir="/v", deb_files=["/v/vpp.deb"],
+        install_env={"VPP_INSTALL_SKIP_SYSCTL": "1"},
+    )
+    sairedis = InstalledArtifact(
+        name="sonic-sairedis", bundle_dir="/s", deb_files=["/s/libsaivs.deb"],
+    )
+
+    groups = _deb_install_groups([providers, vpp, sairedis])
+
+    assert [g["files"] for g in groups] == [
+        ["/p/libnl.deb"],
+        ["/v/vpp.deb"],
+        ["/s/libsaivs.deb"],
+    ]
+    assert [g["env"] for g in groups] == [
+        {},
+        {"VPP_INSTALL_SKIP_SYSCTL": "1"},
+        {},
+    ]
+
+
+def test_deb_groups_ignore_wheel_only_artifact_between_same_env_debs():
+    providers = InstalledArtifact(
+        name="provider", bundle_dir="/p", deb_files=["/p/provider.deb"],
+    )
+    wheels = InstalledArtifact(
+        name="wheels", bundle_dir="/w", wheel_files=["/w/package.whl"],
+    )
+    dependent = InstalledArtifact(
+        name="dependent", bundle_dir="/d", deb_files=["/d/dependent.deb"],
+    )
+
+    groups = _deb_install_groups([providers, wheels, dependent])
+
+    assert len(groups) == 1
+    assert groups[0]["files"] == ["/p/provider.deb", "/d/dependent.deb"]
