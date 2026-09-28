@@ -1,5 +1,5 @@
 #include <zmq.h>
-#include <unordered_set>
+#include <chrono>
 #include "logger.h"
 #include "binaryserializer.h"
 #include "zmqrouteserver.h"
@@ -26,11 +26,21 @@ void ZmqRouteServer::mqPollThread()
     // EAGAIN. Note: the ingress callback may also fire notifyPending() mid-burst
     // when m_toSync crosses gMaxBulkSize; eventfd writes coalesce, so the
     // redundancy is harmless.
-    std::unordered_set<ZmqMessageHandler*> dirtyHandlers;
+    ZmqHandlerRegistry::DirtyHandlerMap dirtyHandlers;
 
     // Idle long-poll vs post-burst short-poll timeouts.
     constexpr long IDLE_POLL_MS = 1000;
     constexpr long BURST_QUIESCE_MS = 5;
+
+    // Upper bound on how long a dirty handler may go unnotified while a burst
+    // keeps running. The quiesce notify above only fires when the stream
+    // pauses for BURST_QUIESCE_MS; a stream that never pauses and never
+    // crosses the consumer-side bulk threshold would otherwise defer
+    // notification indefinitely. Coalescing keeps the staged state current,
+    // so the exposure is delayed convergence, not wrong state -- but a
+    // sustained same-key flap is exactly when prompt programming of the
+    // latest state matters.
+    constexpr long BURST_MAX_HOLDOFF_MS = 50;
 
     SWSS_LOG_NOTICE("bind to zmq endpoint: %s", m_endpoint.c_str());
     while (m_runThread)
@@ -44,14 +54,15 @@ void ZmqRouteServer::mqPollThread()
         {
             // Poll timed out. If a burst was pending, BURST_QUIESCE_MS has
             // passed without new data — flush it now.
-            if (!dirtyHandlers.empty())
-            {
-                for (auto* handler : dirtyHandlers)
-                {
-                    handler->notifyPending();
-                }
-                dirtyHandlers.clear();
-            }
+            //
+            // Flush through the registry rather than iterating dirtyHandlers
+            // here: these are raw pointers captured up to BURST_QUIESCE_MS
+            // ago, and a consumer destroyed in the meantime would have
+            // unregistered itself but left its pointer in the set. The
+            // registry checks liveness and notifies under the same lock that
+            // removeHandler() takes. It also clears the set.
+            getHandlerRegistry()->flushDirtyHandlers(
+                dirtyHandlers, std::chrono::steady_clock::now());
             continue;
         }
         if (!(poll_item.revents & ZMQ_POLLIN))
@@ -64,6 +75,12 @@ void ZmqRouteServer::mqPollThread()
         // loop until EAGAIN). ZmqRouteServer is async-only; the oneToOneSync
         // (request/response) mode supported by ZmqServer is intentionally not
         // available here — burst coalescing assumes streaming ingress.
+        //
+        // One clock read per drain pass rather than per message; emplace keeps
+        // the FIRST dirty time on repeat touches, which is what the holdoff
+        // below is measured from. Pass-start granularity only makes flushes
+        // earlier, never later.
+        const auto drainStart = std::chrono::steady_clock::now();
         while (m_runThread)
         {
             rc = zmq_recv(m_socket, m_buffer.data(), MQ_RESPONSE_MAX_COUNT, ZMQ_DONTWAIT);
@@ -105,9 +122,21 @@ void ZmqRouteServer::mqPollThread()
 
             if (auto* handler = getHandlerRegistry()->dispatch(dbName, tableName, kcos))
             {
-                dirtyHandlers.insert(handler);
+                dirtyHandlers.emplace(handler, drainStart);
             }
         }
+
+        // A continuous stream keeps zmq_poll returning with data, so the
+        // rc == 0 quiesce flush above may never run. Flush overdue handlers
+        // here, once per drain-to-empty pass: any stream that lets the socket
+        // empty momentarily (recv hits EAGAIN) gets notified within about
+        // BURST_MAX_HOLDOFF_MS. A producer that keeps the socket continuously
+        // non-empty while staying under the gMaxBulkSize threshold can defer
+        // this flush for the length of the drain pass; we accept that rather
+        // than pay a per-message deadline check on the hot path.
+        getHandlerRegistry()->flushDirtyHandlers(
+            dirtyHandlers,
+            std::chrono::steady_clock::now() - std::chrono::milliseconds(BURST_MAX_HOLDOFF_MS));
         // Leave dirtyHandlers populated; the next zmq_poll will use
         // BURST_QUIESCE_MS, and we'll flush on the rc==0 path above when the
         // burst goes quiet.

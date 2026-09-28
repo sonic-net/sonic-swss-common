@@ -33,7 +33,8 @@ void ZmqHandlerRegistry::registerHandler(
 
 void ZmqHandlerRegistry::removeHandler(
     const std::string& dbName,
-    const std::string& tableName)
+    const std::string& tableName,
+    const ZmqMessageHandler* handler)
 {
     // Take the same mutex that dispatch() holds across the callback. Once we
     // acquire it, no callback into this (dbName, tableName) handler is in
@@ -46,13 +47,60 @@ void ZmqHandlerRegistry::removeHandler(
         return;
     }
 
-    dbIter->second.erase(tableName);
+    // Only remove the entry if it still points at the caller. Teardown detaches
+    // twice (derived + base destructor); after the first removal the slot may
+    // have been re-registered by a replacement consumer, and a key-only erase
+    // here would evict that innocent replacement.
+    auto tableIter = dbIter->second.find(tableName);
+    if (tableIter == dbIter->second.end() || tableIter->second != handler) {
+        return;
+    }
+
+    dbIter->second.erase(tableIter);
     if (dbIter->second.empty()) {
         m_handlers.erase(dbIter);
     }
 
     SWSS_LOG_DEBUG("ZmqHandlerRegistry removed handler for db: %s, table: %s",
                    dbName.c_str(), tableName.c_str());
+}
+
+void ZmqHandlerRegistry::flushDirtyHandlers(DirtyHandlerMap& dirty,
+                                            std::chrono::steady_clock::time_point cutoff)
+{
+    if (dirty.empty()) {
+        return;
+    }
+
+    // Same mutex as removeHandler(): while we hold it no handler can be
+    // unregistered (and therefore destroyed) underneath us, and any handler
+    // unregistered before we got here is no longer in the registry, so it is
+    // skipped rather than notified through a dangling pointer.
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    // Pass 1: walk the registry and notify the live handlers that are dirty
+    // and overdue. Registry membership is the liveness check. A handler
+    // registered under several (db, table) pairs would be notified once per
+    // registration, which is harmless -- eventfd writes coalesce.
+    for (auto& dbEntry : m_handlers) {
+        for (auto& tableEntry : dbEntry.second) {
+            auto it = dirty.find(tableEntry.second);
+            if (it != dirty.end() && it->second <= cutoff) {
+                tableEntry.second->notifyPending();
+            }
+        }
+    }
+
+    // Pass 2: erase every overdue entry, live or dead. Dead entries must not
+    // linger: a dangling pointer left in `dirty` would keep the poll loop in
+    // its short-timeout mode forever.
+    for (auto it = dirty.begin(); it != dirty.end();) {
+        if (it->second <= cutoff) {
+            it = dirty.erase(it);
+        } else {
+            ++it;
+        }
+    }
 }
 
 ZmqMessageHandler* ZmqHandlerRegistry::dispatch(
@@ -211,9 +259,10 @@ void ZmqServer::registerMessageHandler(
 
 void ZmqServer::removeMessageHandler(
                                     const std::string& dbName,
-                                    const std::string& tableName)
+                                    const std::string& tableName,
+                                    const ZmqMessageHandler* handler)
 {
-    m_registry->removeHandler(dbName, tableName);
+    m_registry->removeHandler(dbName, tableName, handler);
 }
 
 ZmqMessageHandler* ZmqServer::findMessageHandler(
