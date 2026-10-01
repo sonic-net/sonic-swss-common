@@ -63,5 +63,5 @@ DBGFLAGS = select({
         "-gdwarf-5",
     ],
     "//conditions:default": ["-g"],
-# TODO(bazel-ready): Remove when we only have to support Bazel 8+.
+    # TODO(bazel-ready): Remove when we only have to support Bazel 8+.
 }) if IS_BZLMOD else ["-g"]
