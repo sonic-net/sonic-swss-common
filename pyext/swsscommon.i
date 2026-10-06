@@ -267,8 +267,10 @@ T castSelectableObj(swss::Selectable *temp)
 // %newobject must declared before %include header files
 %newobject swss::DBConnector::pubsub;
 %newobject swss::DBConnector::newConnector;
+%ignore swss::RedisContext::getAuthConfig;
 
 %include "schema.h"
+%include "redisauth.h"
 %include "dbconnector.h"
 #ifdef ENABLE_YANG_MODULES
 %include "cfg_schema.h"

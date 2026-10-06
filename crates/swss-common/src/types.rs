@@ -20,7 +20,7 @@ mod zmqserver;
 pub use configdbconnector::{ConfigDBConnector, BorrowedDbConnector};
 pub use consumerstatetable::ConsumerStateTable;
 pub use cxxstring::{CxxStr, CxxString};
-pub use dbconnector::{DbConnectionInfo, DbConnector};
+pub use dbconnector::{DbConnectionInfo, DbConnector, RedisAuthProfile};
 pub use events::EventPublisher;
 pub use exception::{Exception, Result};
 pub use logger::{link_to_swsscommon_logger, log_level, log_output, LoggerConfigChangeHandler};
@@ -502,4 +502,3 @@ mod tests {
         assert!(err.to_string().contains("invalid UTF-8"));
     }
 }
-

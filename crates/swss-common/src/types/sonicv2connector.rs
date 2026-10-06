@@ -68,6 +68,27 @@ impl SonicV2Connector {
         }
     }
 
+    /// Connect to a specific database using a named Redis authentication profile.
+    pub fn connect_with_profile(
+        &self,
+        db_name: &str,
+        retry_on: bool,
+        auth_profile: &RedisAuthProfile,
+    ) -> Result<()> {
+        let db_name_cstr = cstr(db_name)?;
+        let (profile, profiles_file) = auth_profile.as_c_strings()?;
+
+        unsafe {
+            swss_try!(SWSSSonicV2Connector_connect_with_profile(
+                self.ptr,
+                db_name_cstr.as_ptr(),
+                retry_on as u8,
+                profile.as_ptr(),
+                profiles_file.as_ref().map_or(std::ptr::null(), |path| path.as_ptr())
+            ))
+        }
+    }
+
     /// Close connection to a specific database.
     pub fn close_db(&self, db_name: &str) -> Result<()> {
         let db_name_cstr = cstr(db_name)?;
@@ -359,6 +380,7 @@ impl SonicV2Connector {
     async_util::impl_basic_async_method!(new_async <= new(use_unix_socket_path: bool, netns: Option<String>) -> Result<SonicV2Connector>);
     async_util::impl_basic_async_method!(get_namespace_async <= get_namespace(&self) -> Result<String>);
     async_util::impl_basic_async_method!(connect_async <= connect(&self, db_name: &str, retry_on: bool) -> Result<()>);
+    async_util::impl_basic_async_method!(connect_with_profile_async <= connect_with_profile(&self, db_name: &str, retry_on: bool, auth_profile: &RedisAuthProfile) -> Result<()>);
     async_util::impl_basic_async_method!(close_db_async <= close_db(&self, db_name: &str) -> Result<()>);
     async_util::impl_basic_async_method!(close_all_async <= close_all(&self) -> Result<()>);
     async_util::impl_basic_async_method!(get_db_list_async <= get_db_list(&self) -> Result<Vec<String>>);

@@ -46,6 +46,26 @@ impl ConfigDBConnector {
         }
     }
 
+    /// Connect to ConfigDB using a named Redis authentication profile.
+    pub fn connect_with_profile(
+        &self,
+        wait_for_init: bool,
+        retry_on: bool,
+        auth_profile: &RedisAuthProfile,
+    ) -> Result<()> {
+        let (profile, profiles_file) = auth_profile.as_c_strings()?;
+
+        unsafe {
+            swss_try!(SWSSConfigDBConnector_connect_with_profile(
+                self.ptr,
+                wait_for_init as u8,
+                retry_on as u8,
+                profile.as_ptr(),
+                profiles_file.as_ref().map_or(std::ptr::null(), |path| path.as_ptr())
+            ))
+        }
+    }
+
     /// Get a single entry from a table.
     pub fn get_entry(&self, table: &str, key: &str) -> Result<HashMap<String, CxxString>> {
         let table_cstr = cstr(table)?;
@@ -251,6 +271,7 @@ unsafe impl Send for ConfigDBConnector {}
 impl ConfigDBConnector {
     async_util::impl_basic_async_method!(new_async <= new(use_unix_socket_path: bool, netns: Option<String>) -> Result<ConfigDBConnector>);
     async_util::impl_basic_async_method!(connect_async <= connect(&self, wait_for_init: bool, retry_on: bool) -> Result<()>);
+    async_util::impl_basic_async_method!(connect_with_profile_async <= connect_with_profile(&self, wait_for_init: bool, retry_on: bool, auth_profile: &RedisAuthProfile) -> Result<()>);
     async_util::impl_basic_async_method!(get_entry_async <= get_entry(&self, table: &str, key: &str) -> Result<HashMap<String, CxxString>>);
     async_util::impl_basic_async_method!(get_keys_async <= get_keys(&self, table: &str, split: bool) -> Result<Vec<String>>);
     async_util::impl_basic_async_method!(get_table_async <= get_table(&self, table: &str) -> Result<HashMap<String, HashMap<String, CxxString>>>);

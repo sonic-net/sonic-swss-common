@@ -205,6 +205,42 @@ def thread_coming_data():
     print("Leave thread: thread_coming_data")
 
 
+def test_connect_keyword_arguments_and_auth_entrypoints():
+    """Keep legacy keyword calls while exposing authentication explicitly."""
+    no_auth = swsscommon.RedisAuthConfig()
+
+    dbintf = DBInterface()
+    dbintf.set_redis_kwargs("", "127.0.0.1", 6379)
+    dbintf.connect(dbId=15, dbName="KEYWORD_DB", retry=False)
+    dbintf.close()
+    dbintf.connect_with_auth(
+        dbId=15, dbName="KEYWORD_DB", retry=False, authConfig=no_auth)
+    dbintf.close()
+
+    db = SonicV2Connector(use_unix_socket_path=True)
+    db.connect(db_name="TEST_DB", retry_on=False)
+    db.close()
+    db.connect_with_auth(
+        db_name="TEST_DB", retry_on=False, authConfig=no_auth)
+    db.close()
+
+    config_db = ConfigDBConnector()
+    config_db.connect(wait_for_init=False, retry_on=False)
+    config_db.close()
+    config_db.connect_with_auth(
+        wait_for_init=False, retry_on=False, authConfig=no_auth)
+    config_db.close()
+
+    config_db = ConfigDBConnector()
+    config_db.db_connect(
+        db_name="CONFIG_DB", wait_for_init=False, retry_on=False)
+    config_db.close()
+    config_db.db_connect_with_auth(
+        db_name="CONFIG_DB", wait_for_init=False, retry_on=False,
+        authConfig=no_auth)
+    config_db.close()
+
+
 def test_DBInterface():
     dbintf = DBInterface()
     dbintf.set_redis_kwargs("", "127.0.0.1", 6379)
@@ -887,4 +923,3 @@ def test_TableOpsMemoryLeak():
     rss = psutil.Process(os.getpid()).memory_info().rss
     run_ops()
     assert psutil.Process(os.getpid()).memory_info().rss - rss < OP_COUNT
-
