@@ -17,13 +17,19 @@ void DBInterface::set_redis_kwargs(std::string unix_socket_path, std::string hos
 
 void DBInterface::connect(int dbId, const std::string& dbName, bool retry)
 {
+    connect_with_auth(dbId, dbName, retry, RedisAuthConfig());
+}
+
+void DBInterface::connect_with_auth(int dbId, const std::string& dbName, bool retry,
+                                    const RedisAuthConfig& authConfig)
+{
     if (retry)
     {
-        _persistent_connect(dbId, dbName);
+        _persistent_connect(dbId, dbName, authConfig);
     }
     else
     {
-        _onetime_connect(dbId, dbName);
+        _onetime_connect(dbId, dbName, authConfig);
     }
 }
 
@@ -313,40 +319,58 @@ void DBInterface::_connection_error_handler(const std::string& dbName)
 {
     SWSS_LOG_WARN("Could not connect to Redis--waiting before trying again.");
     int dbId = get_redis_client(dbName).getDbId();
+    RedisAuthConfig authConfig = get_redis_client(dbName).getAuthConfig();
     close(dbName);
     sleep(CONNECT_RETRY_WAIT_TIME);
-    connect(dbId, dbName, true);
+    connect_with_auth(dbId, dbName, true, authConfig);
 }
 
-void DBInterface::_onetime_connect(int dbId, const string& dbName)
+void DBInterface::_onetime_connect(int dbId, const string& dbName,
+                                   const RedisAuthConfig& authConfig)
 {
     if (dbName.empty())
     {
         throw invalid_argument("dbName");
     }
 
+    auto existing = m_redisClient.find(dbName);
+    if (existing != m_redisClient.end())
+    {
+        if (existing->second.getAuthConfig() != authConfig)
+        {
+            throw logic_error("Redis authentication policy differs from the existing connection");
+        }
+        return;
+    }
+
     if (m_unix_socket_path.empty())
     {
         m_redisClient.emplace(std::piecewise_construct
                 , std::forward_as_tuple(dbName)
-                , std::forward_as_tuple(dbId, m_host, m_port, 0));
+                , std::forward_as_tuple(dbId, m_host, m_port, 0, authConfig));
     }
     else
     {
         m_redisClient.emplace(std::piecewise_construct
                 , std::forward_as_tuple(dbName)
-                , std::forward_as_tuple(dbId, m_unix_socket_path, 0));
+                , std::forward_as_tuple(dbId, m_unix_socket_path, 0, authConfig));
     }
 }
 
+void DBInterface::_onetime_connect(int dbId, const string& dbName)
+{
+    _onetime_connect(dbId, dbName, RedisAuthConfig());
+}
+
 // Keep reconnecting to Database 'dbId' until success
-void DBInterface::_persistent_connect(int dbId, const string& dbName)
+void DBInterface::_persistent_connect(int dbId, const string& dbName,
+                                      const RedisAuthConfig& authConfig)
 {
     for (;;)
     {
         try
         {
-            _onetime_connect(dbId, dbName);
+            _onetime_connect(dbId, dbName, authConfig);
             return;
         }
         catch (RedisError&)
@@ -357,4 +381,9 @@ void DBInterface::_persistent_connect(int dbId, const string& dbName)
             sleep(wait);
         }
     }
+}
+
+void DBInterface::_persistent_connect(int dbId, const string& dbName)
+{
+    _persistent_connect(dbId, dbName, RedisAuthConfig());
 }

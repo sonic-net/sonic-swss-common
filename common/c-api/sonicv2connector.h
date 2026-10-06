@@ -26,6 +26,13 @@ SWSSResult SWSSSonicV2Connector_getNamespace(SWSSSonicV2Connector connector, SWS
 // Connect to a specific database
 SWSSResult SWSSSonicV2Connector_connect(SWSSSonicV2Connector connector, const char *db_name, uint8_t retry_on);
 
+// Connect using a named authentication profile. profiles_file may be NULL to use the
+// default profile file.
+SWSSResult SWSSSonicV2Connector_connect_with_profile(SWSSSonicV2Connector connector,
+                                                     const char *db_name, uint8_t retry_on,
+                                                     const char *profile,
+                                                     const char *profiles_file);
+
 // Close connection to a specific database
 SWSSResult SWSSSonicV2Connector_close_db(SWSSSonicV2Connector connector, const char *db_name);
 

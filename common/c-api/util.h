@@ -135,17 +135,32 @@ void SWSSConfigMap_free(SWSSConfigMap config);
 #include <exception>
 #include <iostream>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <tuple>
 #include <utility>
 #include <vector>
 
 #include "../logger.h"
+#include "../redisauth.h"
 #include "../redisapi.h"
 #include "../schema.h"
 #include "../select.h"
 
 using boost::numeric_cast;
+
+static inline swss::RedisAuthConfig redisAuthConfigFromProfile(
+    const char *profile, const char *profilesFile) {
+    if (profile == nullptr) {
+        throw std::invalid_argument("Redis authentication profile is required");
+    }
+
+    if (profilesFile == nullptr) {
+        return swss::RedisAuthConfig::fromProfile(profile);
+    }
+
+    return swss::RedisAuthConfig::fromProfile(profile, profilesFile);
+}
 
 static inline SWSSSelectResult selectOne(swss::Selectable *s, uint32_t timeout_ms,
                                          uint8_t interrupt_on_signal) {

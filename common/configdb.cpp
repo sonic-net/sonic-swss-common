@@ -17,9 +17,16 @@ ConfigDBConnector_Native::ConfigDBConnector_Native(bool use_unix_socket_path, co
 
 void ConfigDBConnector_Native::db_connect(string db_name, bool wait_for_init, bool retry_on)
 {
+    db_connect_with_auth(db_name, wait_for_init, retry_on, RedisAuthConfig());
+}
+
+void ConfigDBConnector_Native::db_connect_with_auth(string db_name, bool wait_for_init,
+                                                    bool retry_on,
+                                                    const RedisAuthConfig& authConfig)
+{
     m_db_name = db_name;
     m_key_separator = m_table_name_separator = get_db_separator(db_name);
-    SonicV2Connector_Native::connect(m_db_name, retry_on);
+    SonicV2Connector_Native::connect_with_auth(m_db_name, retry_on, authConfig);
 
     if (wait_for_init)
     {
@@ -60,6 +67,12 @@ void ConfigDBConnector_Native::db_connect(string db_name, bool wait_for_init, bo
 void ConfigDBConnector_Native::connect(bool wait_for_init, bool retry_on)
 {
     db_connect("CONFIG_DB", wait_for_init, retry_on);
+}
+
+void ConfigDBConnector_Native::connect_with_auth(bool wait_for_init, bool retry_on,
+                                                 const RedisAuthConfig& authConfig)
+{
+    db_connect_with_auth("CONFIG_DB", wait_for_init, retry_on, authConfig);
 }
 
 // Write a table entry to config db.

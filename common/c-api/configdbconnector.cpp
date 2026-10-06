@@ -29,6 +29,17 @@ SWSSResult SWSSConfigDBConnector_connect(SWSSConfigDBConnector configDb, uint8_t
     SWSSTry(((ConfigDBConnector_Native *)configDb)->connect(wait_for_init != 0, retry_on != 0));
 }
 
+SWSSResult SWSSConfigDBConnector_connect_with_profile(SWSSConfigDBConnector configDb,
+                                                      uint8_t wait_for_init, uint8_t retry_on,
+                                                      const char *profile,
+                                                      const char *profiles_file) {
+    SWSSTry({
+        RedisAuthConfig auth = redisAuthConfigFromProfile(profile, profiles_file);
+        ((ConfigDBConnector_Native *)configDb)->connect_with_auth(
+            wait_for_init != 0, retry_on != 0, auth);
+    });
+}
+
 SWSSResult SWSSConfigDBConnector_get_entry(SWSSConfigDBConnector configDb, const char *table, const char *key, SWSSFieldValueArray *outEntry) {
     SWSSTry({
         auto entry_map = ((ConfigDBConnector_Native *)configDb)->get_entry(string(table), string(key));

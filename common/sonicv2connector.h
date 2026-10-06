@@ -17,6 +17,8 @@ public:
     std::string getNamespace() const;
 
     void connect(const std::string& db_name, bool retry_on = true);
+    void connect_with_auth(const std::string& db_name, bool retry_on,
+                           const RedisAuthConfig& authConfig);
 
     void close(const std::string& db_name);
 

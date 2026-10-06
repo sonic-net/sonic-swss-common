@@ -14,6 +14,7 @@
 #include <hiredis/hiredis.h>
 #include "rediscommand.h"
 #include "redisreply.h"
+#include "redisauth.h"
 #define EMPTY_NAMESPACE std::string()
 #define EMPTY_CONTAINERNAME std::string()
 
@@ -182,6 +183,8 @@ public:
 
     redisContext *getContext() const;
 
+    RedisAuthConfig getAuthConfig() const;
+
     /*
      * Assign a name to the Redis client used for this connection
      * This is helpful when debugging Redis clients using `redis-cli client list`
@@ -192,13 +195,27 @@ public:
 
 protected:
     RedisContext();
+    explicit RedisContext(const RedisAuthConfig& authConfig);
     void initContext(const char *host, int port, const timeval *tv);
     void initContext(const char *path, const timeval *tv);
     void setContext(redisContext *ctx);
+    void reconnectContext();
+    void closeContext() noexcept;
 
 private:
-    redisContext *m_conn;
+    struct Private;
+
+    void authenticate();
+    void validateConnection(const std::string& errorPrefix);
+
+    /* Keep the original one-pointer layout for libswsscommon.so.0 ABI. */
+    Private *m_private;
 };
+
+#ifndef SWIG
+static_assert(sizeof(RedisContext) == sizeof(void *),
+              "RedisContext must retain its historical one-pointer layout");
+#endif
 
 class DBConnector : public RedisContext
 {
@@ -215,10 +232,20 @@ public:
     explicit DBConnector(const DBConnector &other);
     DBConnector(int dbId, const RedisContext &ctx);
     DBConnector(int dbId, const std::string &hostname, int port, unsigned int timeout_ms);
+    DBConnector(int dbId, const std::string &hostname, int port, unsigned int timeout_ms,
+                const RedisAuthConfig& authConfig);
     DBConnector(int dbId, const std::string &unixPath, unsigned int timeout_ms);
+    DBConnector(int dbId, const std::string &unixPath, unsigned int timeout_ms,
+                const RedisAuthConfig& authConfig);
     DBConnector(const std::string &dbName, unsigned int timeout_ms, bool isTcpConn = false);
+    DBConnector(const std::string &dbName, unsigned int timeout_ms, bool isTcpConn,
+                const RedisAuthConfig& authConfig);
     DBConnector(const std::string &dbName, unsigned int timeout_ms, bool isTcpConn, const std::string &netns);
+    DBConnector(const std::string &dbName, unsigned int timeout_ms, bool isTcpConn,
+                const std::string &netns, const RedisAuthConfig& authConfig);
     DBConnector(const std::string &dbName, unsigned int timeout_ms, bool isTcpConn, const SonicDBKey &key);
+    DBConnector(const std::string &dbName, unsigned int timeout_ms, bool isTcpConn,
+                const SonicDBKey &key, const RedisAuthConfig& authConfig);
     DBConnector& operator=(const DBConnector&) = delete;
 
     int getDbId() const;
@@ -233,6 +260,9 @@ public:
     SonicDBKey getDBKey() const;
 
     static void select(DBConnector *db);
+
+    /* Reconnect, authenticate if configured, and restore the selected DB. */
+    void reconnect();
 
     /* Create new context to DB */
     DBConnector *newConnector(unsigned int timeout) const;

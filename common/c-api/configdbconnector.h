@@ -25,6 +25,13 @@ SWSSResult SWSSConfigDBConnector_free(SWSSConfigDBConnector configDb);
 // retry_on: retry connection on failure if true
 SWSSResult SWSSConfigDBConnector_connect(SWSSConfigDBConnector configDb, uint8_t wait_for_init, uint8_t retry_on);
 
+// Connect using a named authentication profile. profiles_file may be NULL to use the
+// default profile file.
+SWSSResult SWSSConfigDBConnector_connect_with_profile(SWSSConfigDBConnector configDb,
+                                                      uint8_t wait_for_init, uint8_t retry_on,
+                                                      const char *profile,
+                                                      const char *profiles_file);
+
 // Get a single entry from a table
 // Result array must be freed using SWSSFieldValueArray_free()
 SWSSResult SWSSConfigDBConnector_get_entry(SWSSConfigDBConnector configDb, const char *table, const char *key, SWSSFieldValueArray *outEntry);

@@ -20,15 +20,40 @@ typedef struct SWSSDBConnectorOpaque *SWSSDBConnector;
 SWSSResult SWSSDBConnector_new_tcp(int32_t dbId, const char *hostname, uint16_t port,
                                    uint32_t timeout, SWSSDBConnector *outDb);
 
+// Create a TCP connector using a named authentication profile. profiles_file may be NULL
+// to use the default profile file.
+SWSSResult SWSSDBConnector_new_tcp_with_profile(int32_t dbId, const char *hostname, uint16_t port,
+                                                uint32_t timeout, const char *profile,
+                                                const char *profiles_file, SWSSDBConnector *outDb);
+
 // Pass 0 to timeout for infinity
 SWSSResult SWSSDBConnector_new_unix(int32_t dbId, const char *sock_path, uint32_t timeout, SWSSDBConnector *outDb);
+
+// Create a Unix-socket connector using a named authentication profile. profiles_file may be
+// NULL to use the default profile file.
+SWSSResult SWSSDBConnector_new_unix_with_profile(int32_t dbId, const char *sock_path,
+                                                 uint32_t timeout, const char *profile,
+                                                 const char *profiles_file, SWSSDBConnector *outDb);
 
 // Pass 0 to timeout for infinity
 SWSSResult SWSSDBConnector_new_named(const char *dbName, uint32_t timeout_ms, uint8_t isTcpConn, SWSSDBConnector *outDb);
 
+// Create a named connector using a named authentication profile. profiles_file may be NULL
+// to use the default profile file.
+SWSSResult SWSSDBConnector_new_named_with_profile(const char *dbName, uint32_t timeout_ms,
+                                                  uint8_t isTcpConn, const char *profile,
+                                                  const char *profiles_file, SWSSDBConnector *outDb);
+
 // Pass 0 to timeout for infinity
 SWSSResult SWSSDBConnector_new_keyed(const char *dbName, uint32_t timeout_ms, uint8_t isTcpConn,
                                      const char *containerName, const char *netns, SWSSDBConnector *outDb);
+
+// Create a keyed connector using a named authentication profile. profiles_file may be NULL
+// to use the default profile file.
+SWSSResult SWSSDBConnector_new_keyed_with_profile(const char *dbName, uint32_t timeout_ms,
+                                                  uint8_t isTcpConn, const char *containerName,
+                                                  const char *netns, const char *profile,
+                                                  const char *profiles_file, SWSSDBConnector *outDb);
 
 SWSSResult SWSSDBConnector_free(SWSSDBConnector db);
 

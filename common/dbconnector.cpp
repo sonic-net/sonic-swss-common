@@ -541,79 +541,246 @@ bool SonicDBConfig::m_global_init = false;
 
 constexpr const char *RedisContext::DEFAULT_UNIXSOCKET;
 
+struct RedisContext::Private
+{
+    explicit Private(const RedisAuthConfig& auth = RedisAuthConfig())
+        : connection(nullptr)
+        , authConfig(auth)
+    {
+    }
+
+    redisContext *connection;
+    RedisAuthConfig authConfig;
+};
+
 RedisContext::~RedisContext()
 {
-    if(m_conn)
-        redisFree(m_conn);
+    closeContext();
+    delete m_private;
 }
 
 RedisContext::RedisContext()
-    : m_conn(NULL)
+    : m_private(new Private())
+{
+}
+
+RedisContext::RedisContext(const RedisAuthConfig& authConfig)
+    : m_private(new Private(authConfig))
 {
 }
 
 RedisContext::RedisContext(const RedisContext &other)
+    : m_private(new Private(other.getAuthConfig()))
 {
-    auto octx = other.getContext();
-    const char *unixPath = octx->unix_sock.path;
-    if (unixPath)
+    try
     {
+        auto octx = other.getContext();
+        if (octx == nullptr)
+        {
+            throw RedisAuthError("Cannot copy a closed Redis connection");
+        }
+
+        const char *unixPath = octx->unix_sock.path;
+        if (unixPath)
+        {
 #if HIREDIS_MAJOR >= 1
-        initContext(unixPath, octx->connect_timeout);
+            initContext(unixPath, octx->connect_timeout);
 #else
-        initContext(unixPath, octx->timeout);
+            initContext(unixPath, octx->timeout);
 #endif
+        }
+        else
+        {
+#if HIREDIS_MAJOR >= 1
+            initContext(octx->tcp.host, octx->tcp.port, octx->connect_timeout);
+#else
+            initContext(octx->tcp.host, octx->tcp.port, octx->timeout);
+#endif
+        }
     }
-    else
+    catch (...)
     {
-#if HIREDIS_MAJOR >= 1
-        initContext(octx->tcp.host, octx->tcp.port, octx->connect_timeout);
-#else
-        initContext(octx->tcp.host, octx->tcp.port, octx->timeout);
-#endif
+        closeContext();
+        delete m_private;
+        m_private = nullptr;
+        throw;
     }
 }
 
 void RedisContext::initContext(const char *host, int port, const timeval *tv)
 {
+    m_private->authConfig.validateTcpEndpoint(host, port);
+
     if (tv)
     {
-        m_conn = redisConnectWithTimeout(host, port, *tv);
+        m_private->connection = redisConnectWithTimeout(host, port, *tv);
     }
     else
     {
-        m_conn = redisConnect(host, port);
+        m_private->connection = redisConnect(host, port);
     }
 
-    if (m_conn->err)
-        throw system_error(make_error_code(errc::address_not_available),
-                           "Unable to connect to redis - " + std::string(m_conn->errstr) + "(" + std::to_string(m_conn->err) + ")");
+    validateConnection("Unable to connect to redis - ");
 }
 
 void RedisContext::initContext(const char *path, const timeval *tv)
 {
+    m_private->authConfig.validateUnixEndpoint(path);
+
     if (tv)
     {
-        m_conn = redisConnectUnixWithTimeout(path, *tv);
+        m_private->connection = redisConnectUnixWithTimeout(path, *tv);
     }
     else
     {
-        m_conn = redisConnectUnix(path);
+        m_private->connection = redisConnectUnix(path);
     }
 
-    if (m_conn->err)
-        throw system_error(make_error_code(errc::address_not_available),
-                           "Unable to connect to redis (unix-socket) - " + std::string(m_conn->errstr) + "(" + std::to_string(m_conn->err) + ")");
+    validateConnection("Unable to connect to redis (unix-socket) - ");
 }
 
 redisContext *RedisContext::getContext() const
 {
-    return m_conn;
+    return m_private->connection;
+}
+
+RedisAuthConfig RedisContext::getAuthConfig() const
+{
+    return m_private->authConfig;
 }
 
 void RedisContext::setContext(redisContext *ctx)
 {
-    m_conn = ctx;
+    m_private->connection = ctx;
+}
+
+void RedisContext::closeContext() noexcept
+{
+    if (m_private != nullptr && m_private->connection != nullptr)
+    {
+        redisFree(m_private->connection);
+        m_private->connection = nullptr;
+    }
+}
+
+void RedisContext::validateConnection(const string& errorPrefix)
+{
+    if (m_private->connection == nullptr)
+    {
+        throw bad_alloc();
+    }
+
+    if (m_private->connection->err)
+    {
+        string detail = string(m_private->connection->errstr) + "(" +
+                        to_string(m_private->connection->err) + ")";
+        closeContext();
+        throw system_error(make_error_code(errc::address_not_available), errorPrefix + detail);
+    }
+
+    try
+    {
+        authenticate();
+    }
+    catch (...)
+    {
+        closeContext();
+        throw;
+    }
+}
+
+void RedisContext::authenticate()
+{
+    if (!m_private->authConfig.isConfigured())
+    {
+        return;
+    }
+
+    string credential;
+    m_private->authConfig.readCredential(credential);
+    redisReply *reply = nullptr;
+    try
+    {
+        const char *argv[] = {
+            "AUTH",
+            m_private->authConfig.getUsername().data(),
+            credential.data()
+        };
+        const size_t argvlen[] = {
+            4,
+            m_private->authConfig.getUsername().size(),
+            credential.size()
+        };
+
+        reply = static_cast<redisReply *>(
+            redisCommandArgv(m_private->connection, 3, argv, argvlen));
+        RedisAuthConfig::clearCredential(credential);
+
+        if (reply == nullptr)
+        {
+            throw RedisError("Redis authentication transport failure",
+                             m_private->connection);
+        }
+
+        bool ok = reply->type == REDIS_REPLY_STATUS &&
+                  reply->str != nullptr &&
+                  reply->len == 2 &&
+                  memcmp(reply->str, "OK", 2) == 0;
+
+        freeReplyObject(reply);
+        reply = nullptr;
+
+        if (!ok)
+        {
+            throw RedisAuthError("Redis authentication failed");
+        }
+    }
+    catch (...)
+    {
+        if (reply != nullptr)
+        {
+            freeReplyObject(reply);
+        }
+        RedisAuthConfig::clearCredential(credential);
+        throw;
+    }
+}
+
+void RedisContext::reconnectContext()
+{
+    redisContext *connection = m_private->connection;
+    if (connection == nullptr)
+    {
+        throw RedisAuthError("Cannot reconnect a closed Redis connection");
+    }
+
+    if (connection->unix_sock.path != nullptr)
+    {
+        m_private->authConfig.validateUnixEndpoint(connection->unix_sock.path);
+    }
+    else
+    {
+        m_private->authConfig.validateTcpEndpoint(
+            connection->tcp.host, connection->tcp.port);
+    }
+
+    if (redisReconnect(connection) != REDIS_OK)
+    {
+        string detail = string(connection->errstr) + "(" + to_string(connection->err) + ")";
+        closeContext();
+        throw system_error(make_error_code(errc::address_not_available),
+                           "Unable to reconnect to redis - " + detail);
+    }
+
+    try
+    {
+        authenticate();
+    }
+    catch (...)
+    {
+        closeContext();
+        throw;
+    }
 }
 
 void RedisContext::setClientName(const string& clientName)
@@ -679,7 +846,14 @@ static struct timeval ms_to_timeval(unsigned int ms) {
 
 DBConnector::DBConnector(int dbId, const string& hostname, int port,
                          unsigned int timeout_ms)
-    : m_dbId(dbId)
+    : DBConnector(dbId, hostname, port, timeout_ms, RedisAuthConfig())
+{
+}
+
+DBConnector::DBConnector(int dbId, const string& hostname, int port,
+                         unsigned int timeout_ms, const RedisAuthConfig& authConfig)
+    : RedisContext(authConfig)
+    , m_dbId(dbId)
 {
     struct timeval tv = ms_to_timeval(timeout_ms);
     struct timeval *ptv = timeout_ms ? &tv : NULL;
@@ -689,7 +863,14 @@ DBConnector::DBConnector(int dbId, const string& hostname, int port,
 }
 
 DBConnector::DBConnector(int dbId, const string& unixPath, unsigned int timeout_ms)
-    : m_dbId(dbId)
+    : DBConnector(dbId, unixPath, timeout_ms, RedisAuthConfig())
+{
+}
+
+DBConnector::DBConnector(int dbId, const string& unixPath, unsigned int timeout_ms,
+                         const RedisAuthConfig& authConfig)
+    : RedisContext(authConfig)
+    , m_dbId(dbId)
 {
     struct timeval tv = ms_to_timeval(timeout_ms);
     struct timeval *ptv = timeout_ms ? &tv : NULL;
@@ -699,12 +880,25 @@ DBConnector::DBConnector(int dbId, const string& unixPath, unsigned int timeout_
 }
 
 DBConnector::DBConnector(const string& dbName, unsigned int timeout_ms, bool isTcpConn, const string& netns)
-    : DBConnector(dbName, timeout_ms, isTcpConn, SonicDBKey(netns))
+    : DBConnector(dbName, timeout_ms, isTcpConn, SonicDBKey(netns), RedisAuthConfig())
+{
+}
+
+DBConnector::DBConnector(const string& dbName, unsigned int timeout_ms, bool isTcpConn,
+                         const string& netns, const RedisAuthConfig& authConfig)
+    : DBConnector(dbName, timeout_ms, isTcpConn, SonicDBKey(netns), authConfig)
 {
 }
 
 DBConnector::DBConnector(const string& dbName, unsigned int timeout_ms, bool isTcpConn, const SonicDBKey &key)
-    : m_dbId(SonicDBConfig::getDbId(dbName, key))
+    : DBConnector(dbName, timeout_ms, isTcpConn, key, RedisAuthConfig())
+{
+}
+
+DBConnector::DBConnector(const string& dbName, unsigned int timeout_ms, bool isTcpConn,
+                         const SonicDBKey &key, const RedisAuthConfig& authConfig)
+    : RedisContext(authConfig)
+    , m_dbId(SonicDBConfig::getDbId(dbName, key))
     , m_dbName(dbName)
     , m_key(key)
 {
@@ -723,9 +917,15 @@ DBConnector::DBConnector(const string& dbName, unsigned int timeout_ms, bool isT
 }
 
 DBConnector::DBConnector(const string& dbName, unsigned int timeout_ms, bool isTcpConn)
-    : DBConnector(dbName, timeout_ms, isTcpConn, SonicDBKey())
+    : DBConnector(dbName, timeout_ms, isTcpConn, SonicDBKey(), RedisAuthConfig())
 {
     // Empty constructor
+}
+
+DBConnector::DBConnector(const string& dbName, unsigned int timeout_ms, bool isTcpConn,
+                         const RedisAuthConfig& authConfig)
+    : DBConnector(dbName, timeout_ms, isTcpConn, SonicDBKey(), authConfig)
+{
 }
 
 int DBConnector::getDbId() const
@@ -758,19 +958,41 @@ SonicDBKey DBConnector::getDBKey() const
     return m_key;
 }
 
+void DBConnector::reconnect()
+{
+    reconnectContext();
+    try
+    {
+        select(this);
+    }
+    catch (...)
+    {
+        closeContext();
+        throw;
+    }
+}
+
 DBConnector *DBConnector::newConnector(unsigned int timeout) const
 {
     DBConnector *ret;
+    redisContext *context = getContext();
 
-    if (getContext()->connection_type == REDIS_CONN_TCP)
+    if (context == nullptr)
+    {
+        throw RedisAuthError("Cannot recreate a closed Redis connection");
+    }
+
+    if (context->connection_type == REDIS_CONN_TCP)
         ret = new DBConnector(getDbId(),
-                               getContext()->tcp.host,
-                               getContext()->tcp.port,
-                               timeout);
+                               context->tcp.host,
+                               context->tcp.port,
+                               timeout,
+                               getAuthConfig());
     else
         ret = new DBConnector(getDbId(),
-                               getContext()->unix_sock.path,
-                               timeout);
+                               context->unix_sock.path,
+                               timeout,
+                               getAuthConfig());
 
     ret->m_dbName = m_dbName;
     ret->setDBKey(getDBKey());

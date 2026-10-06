@@ -17,6 +17,12 @@ std::string SonicV2Connector_Native::getNamespace() const
 
 void SonicV2Connector_Native::connect(const std::string& db_name, bool retry_on)
 {
+    connect_with_auth(db_name, retry_on, RedisAuthConfig());
+}
+
+void SonicV2Connector_Native::connect_with_auth(const std::string& db_name, bool retry_on,
+                                                const RedisAuthConfig& authConfig)
+{
     if (m_use_unix_socket_path)
     {
         m_dbintf.set_redis_kwargs(get_db_socket(db_name), "", 0);
@@ -26,7 +32,7 @@ void SonicV2Connector_Native::connect(const std::string& db_name, bool retry_on)
         m_dbintf.set_redis_kwargs("", get_db_hostname(db_name), get_db_port(db_name));
     }
     int db_id = get_dbid(db_name);
-    m_dbintf.connect(db_id, db_name, retry_on);
+    m_dbintf.connect_with_auth(db_id, db_name, retry_on, authConfig);
 }
 
 void SonicV2Connector_Native::close(const std::string& db_name)

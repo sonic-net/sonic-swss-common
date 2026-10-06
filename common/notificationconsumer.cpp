@@ -80,6 +80,11 @@ void swss::NotificationConsumer::subscribeWithRetry()
             subscribe();
             break;
         }
+        catch (const RedisAuthError&)
+        {
+            SWSS_LOG_ERROR("Redis authentication failed while subscribing on %s", m_channel.c_str());
+            throw;
+        }
         catch(...)
         {
             SWSS_LOG_ERROR("failed to subscribe on %s", m_channel.c_str());
@@ -91,16 +96,8 @@ void swss::NotificationConsumer::subscribe()
 {
     SWSS_LOG_ENTER();
 
-    /* Create new new context to DB */
-    if (m_db->getContext()->connection_type == REDIS_CONN_TCP)
-        m_subscribe = std::make_unique<DBConnector>(m_db->getDbId(),
-                                      m_db->getContext()->tcp.host,
-                                      m_db->getContext()->tcp.port,
-                                      NOTIFICATION_SUBSCRIBE_TIMEOUT);
-    else
-        m_subscribe = std::make_unique<DBConnector>(m_db->getDbId(),
-                                      m_db->getContext()->unix_sock.path,
-                                      NOTIFICATION_SUBSCRIBE_TIMEOUT);
+    /* Preserve endpoint and authentication policy on the subscription context. */
+    m_subscribe.reset(m_db->newConnector(NOTIFICATION_SUBSCRIBE_TIMEOUT));
 
     std::string s = "SUBSCRIBE " + m_channel;
 

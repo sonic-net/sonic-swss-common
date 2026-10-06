@@ -49,6 +49,7 @@ common_libswsscommon_la_SOURCES = \
     common/events_service.cpp        \
     common/events.cpp                \
     common/logger.cpp                \
+    common/redisauth.cpp             \
     common/redisreply.cpp            \
     common/configdb.cpp              \
     common/dbconnector.cpp           \
