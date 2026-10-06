@@ -101,7 +101,8 @@ jobs:
         # INLINE here because it must happen AFTER cargo, not at build-env setup time.
         ./build-env/configure-redis-for-tests.sh
 
-        ./tests/tests
+        ./tests/tests --gtest_filter=-RedisAuthTest.*
+        sudo ./tests/tests --gtest_filter=RedisAuthTest.*
         redis-cli FLUSHALL
         pytest-3 --cov=. --cov-report=xml
         [ -f coverage.xml ] && mv coverage.xml tests/coverage.xml
