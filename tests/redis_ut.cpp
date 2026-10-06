@@ -150,6 +150,30 @@ void clearDB()
     r.checkStatusOK();
 }
 
+long long commandCallCount(DBConnector& connector, const string& command)
+{
+    RedisReply reply(&connector, "INFO commandstats", REDIS_REPLY_STRING);
+    const string info = reply.getReply<string>();
+    const string prefix = "cmdstat_" + command + ":calls=";
+    const string::size_type start = info.find(prefix);
+    if (start == string::npos)
+    {
+        return 0;
+    }
+
+    const string::size_type valueStart = start + prefix.size();
+    const string::size_type valueEnd = info.find(',', valueStart);
+    return stoll(info.substr(valueStart, valueEnd - valueStart));
+}
+
+long long configurationWriteCallCount(DBConnector& connector)
+{
+    // Redis 7 and later report subcommands separately; older versions report
+    // CONFIG as a single command.
+    return commandCallCount(connector, "config") +
+           commandCallCount(connector, "config|set");
+}
+
 // Add "useDbId" to test connector objects made with dbId/dbName
 void TableBasicTest(string tableName, bool useDbId = false)
 {
@@ -321,9 +345,14 @@ TEST(DBConnector, RedisClientName)
 
 TEST(DBConnector, DBInterface)
 {
+    DBConnector statsDb("TEST_DB", 0, true);
+    const long long configCalls = configurationWriteCallCount(statsDb);
+
     DBInterface dbintf;
     dbintf.set_redis_kwargs("", "127.0.0.1", 6379);
     dbintf.connect(15, "TEST_DB");
+
+    EXPECT_EQ(configCalls, configurationWriteCallCount(statsDb));
 
     SonicV2Connector_Native db;
     db.connect("TEST_DB");
