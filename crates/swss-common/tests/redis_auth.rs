@@ -131,6 +131,13 @@ fn write_protected(path: &Path, contents: &str, mode: u32) {
 
 #[test]
 fn profile_connector_and_clone_authenticate() {
+    if unsafe { libc::geteuid() } != 0 {
+        eprintln!(
+            "skipping Redis auth integration test: profile and credential files must be root-owned"
+        );
+        return;
+    }
+
     let redis = AuthRedis::start();
     let profile = redis.profile();
     assert_eq!(profile.name(), "local");

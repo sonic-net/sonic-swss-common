@@ -385,6 +385,7 @@ RedisAuthConfig RedisAuthConfig::fromProfile(const string& profile, const string
         throw RedisAuthError("Redis authentication profile is invalid");
     }
 
+    // Validate the opened descriptor so path replacement cannot bypass the file policy.
     ScopedFd profileFd(openSecureFile(
         profilesFile, "Redis authentication profile file could not be opened"));
 
@@ -407,6 +408,7 @@ RedisAuthConfig RedisAuthConfig::fromProfile(const string& profile, const string
 
     try
     {
+        // Parse a strict, versioned allowlist before accepting any endpoint for this profile.
         auto root = nlohmann::json::parse(contents);
         auto version = root.find("schema_version");
         auto profiles = root.find("profiles");
@@ -442,6 +444,7 @@ RedisAuthConfig RedisAuthConfig::fromProfile(const string& profile, const string
         auto group = entry->find("credential_gid");
         if (group != entry->end())
         {
+            // A credential group is optional; when supplied, constrain it to the platform gid range.
             if (!readJsonInteger(
                     *group, 0,
                     static_cast<int64_t>(numeric_limits<gid_t>::max()),
@@ -513,6 +516,7 @@ RedisAuthConfig RedisAuthConfig::fromProfile(const string& profile, const string
     }
     catch (...)
     {
+        // Keep parser and type-conversion details out of errors returned to callers.
         throw RedisAuthError("Redis authentication profile file failed validation");
     }
 }
