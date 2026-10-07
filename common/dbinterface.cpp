@@ -325,24 +325,17 @@ void DBInterface::_onetime_connect(int dbId, const string& dbName)
         throw invalid_argument("dbName");
     }
 
-    pair<decltype(m_redisClient.begin()), bool> rc;
     if (m_unix_socket_path.empty())
     {
-        rc = m_redisClient.emplace(std::piecewise_construct
+        m_redisClient.emplace(std::piecewise_construct
                 , std::forward_as_tuple(dbName)
                 , std::forward_as_tuple(dbId, m_host, m_port, 0));
     }
     else
     {
-        rc = m_redisClient.emplace(std::piecewise_construct
+        m_redisClient.emplace(std::piecewise_construct
                 , std::forward_as_tuple(dbName)
                 , std::forward_as_tuple(dbId, m_unix_socket_path, 0));
-    }
-    bool inserted = rc.second;
-    if (inserted)
-    {
-        auto& redisClient = rc.first->second;
-        redisClient.config_set("notify-keyspace-events", KEYSPACE_EVENTS);
     }
 }
 
