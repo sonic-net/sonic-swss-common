@@ -100,6 +100,24 @@ public:
 
     static std::string to_json_string(redisReply *reply, std::string command = std::string());
 
+    enum class Errc {
+        // Must start from a non-zero value because
+        // std::error_code indicates an error only if its error code is non-zero.
+        // Must also be an int because std::error_code stores an error code as int.
+        ErrorReply = 0xBAD,
+        UnexpectedValue,
+        UnexpectedType,
+        NullReply,
+    };
+
+    class ErrorCategory : public std::error_category {
+    public:
+        const char *name() const noexcept override;
+        std::string message(int condition) const override;
+    };
+
+    static std::error_category const& error_category();
+
 private:
     void checkStatus(const char *status);
     void checkReply();
@@ -117,6 +135,9 @@ private:
 
     redisReply *m_reply;
 };
+
+// Used by std::error_code(RedisReply::Errc)
+std::error_code make_error_code(RedisReply::Errc errc);
 
 template <typename FUNC>
 inline void guard(FUNC func, const char* command)
@@ -145,4 +166,13 @@ inline void guard(FUNC func, const char* command)
 }
 
 }
+
+namespace std {
+
+// Enables std::error_code(RedisReply::Errc)
+template <>
+struct is_error_code_enum<::swss::RedisReply::Errc> : std::true_type {};
+
+}
+
 #endif

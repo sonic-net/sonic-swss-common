@@ -1229,6 +1229,30 @@ TEST(Connector, connectFail)
     }, std::system_error);
 }
 
+TEST(Redisreply, InvalidArgs) {
+    try {
+        DBConnector db("TEST_DB", 0, true);
+        const RedisReply reply{&db, std::string{"HGET"}};
+        (void) reply;
+        FAIL() << "RedisReply must report an error";
+    } catch (std::system_error const& ex) {
+        EXPECT_EQ(ex.code(), std::error_code(RedisReply::Errc::ErrorReply));
+        EXPECT_THAT(ex.what(), HasSubstr("reason: ERR wrong number of arguments for 'hget'"));
+    }
+}
+
+TEST(Redisreply, UnexpectedType) {
+    try {
+        DBConnector db("TEST_DB", 0, true);
+        // Server must respond to "CLIENT ID" with an integer.
+        const RedisReply reply{&db, std::string{"CLIENT ID"}, REDIS_REPLY_STRING};
+        (void) reply;
+        FAIL() << "RedisReply must report an error";
+    } catch (std::system_error const& ex) {
+        EXPECT_EQ(ex.code(), std::error_code(RedisReply::Errc::UnexpectedType));
+    }
+}
+
 TEST(Redisreply, guard)
 {
     // Improve test coverage for guard() method.
