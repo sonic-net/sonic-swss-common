@@ -2,11 +2,13 @@
 #include <string>
 #include <memory>
 #include <cstdio>
+#include <thread>
 #include <boost/format.hpp>
 #include "gtest/gtest.h"
 #include <nlohmann/json.hpp>
 
 #include "common/dbconnector.h"
+#include "common/asyncdbupdater.h"
 #include "common/table.h"
 
 using namespace std;
@@ -62,4 +64,28 @@ TEST(DBConnector, access_dpu_db_from_dpu)
     key.containerName = "dpu1";
     DBConnector db("DPU_APPL_DB", 0, true, key);
     TestDPUDatabase(db);
+}
+
+TEST(DBConnector, async_updater_preserves_unix_endpoint)
+{
+    DBConnector db(SonicDBConfig::getDbId("TEST_DB"),
+                   SonicDBConfig::getDbSock("TEST_DB"), 0);
+    EXPECT_EQ(db.getContext()->connection_type, REDIS_CONN_UNIX);
+
+    AsyncDBUpdater updater(&db, "ASYNC_DB_UPDATER_UNIX_UT");
+    auto update = std::make_shared<KeyOpFieldsValuesTuple>(
+        "key", SET_COMMAND, std::vector<FieldValueTuple>{{"field", "value"}});
+    updater.update(update);
+
+    for (int i = 0; i < 1000 && updater.queueSize() != 0; ++i)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    ASSERT_EQ(updater.queueSize(), 0);
+
+    Table table(&db, "ASYNC_DB_UPDATER_UNIX_UT");
+    std::vector<FieldValueTuple> values;
+    EXPECT_TRUE(table.get("key", values));
+    EXPECT_EQ(values, std::vector<FieldValueTuple>({{"field", "value"}}));
+    table.del("key");
 }
