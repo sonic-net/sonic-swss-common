@@ -57,8 +57,8 @@ void AsyncDBUpdater::dbUpdateThread()
     pthread_setschedprio(pthread_self(), min_priority + 1);
 
     // Follow same logic in ConsumerStateTable: every received data will write to 'table'.
-    DBConnector db(m_db->getDbName(), 0, true, m_db->getDBKey());
-    Table table(&db, m_tableName);
+    std::unique_ptr<DBConnector> db(m_db->newConnector(0));
+    Table table(db.get(), m_tableName);
     std::mutex cvMutex;
     std::unique_lock<std::mutex> cvLock(cvMutex);
 
