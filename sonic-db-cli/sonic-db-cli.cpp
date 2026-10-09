@@ -12,7 +12,7 @@ using namespace std;
 
 void printUsage()
 {
-    cout << "usage: sonic-db-cli [-h] [-s] [-j] [-n NAMESPACE] db_or_op [cmd [cmd ...]]" << endl;
+    cout << "usage: sonic-db-cli [-h] [-s | -t] [-j] [-n NAMESPACE] db_or_op [cmd [cmd ...]]" << endl;
     cout << endl;
     cout << "SONiC DB CLI:" << endl;
     cout << endl;
@@ -22,46 +22,74 @@ void printUsage()
     cout << endl;
     cout << "optional arguments:" << endl;
     cout << "  -h, --help            show this help message and exit" << endl;
-    cout << "  -s, --unixsocket      Override use of tcp_port and use unixsocket" << endl;
+    cout << "  -s, --unixsocket      Use the configured Unix socket; keep chassis on TCP" << endl;
+    cout << "  -t, --tcp             Use the configured TCP endpoint" << endl;
     cout << "  -j, --json            Print command result as JSON" << endl;
     cout << "  -n NAMESPACE, --namespace NAMESPACE" << endl;
     cout << "                        Namespace string to use asic0/asic1.../asicn" << endl;
     cout << endl;
-    cout << "**sudo** needed for commands accesing a different namespace [-n], or using unixsocket connection [-s]" << endl;
+    cout << "By default, local databases use their configured Unix socket. Databases without a socket and redis_chassis.server use TCP." << endl;
+    cout << endl;
+    cout << "**sudo** may be needed for commands accessing a different namespace or Unix socket" << endl;
     cout << endl;
     cout << "Example 1: sonic-db-cli -n asic0 CONFIG_DB keys \\*" << endl;
     cout << "Example 2: sonic-db-cli -n asic2 APPL_DB HGETALL VLAN_TABLE:Vlan10" << endl;
     cout << "Example 3: sonic-db-cli APPL_DB HGET VLAN_TABLE:Vlan10 mtu" << endl;
     cout << "Example 4: sonic-db-cli -n asic3 APPL_DB EVAL \"return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}\" 2 k1 k2 v1 v2" << endl;
-    cout << "Example 5: sonic-db-cli PING | sonic-db-cli -s PING" << endl;
-    cout << "Example 6: sonic-db-cli SAVE | sonic-db-cli -s SAVE" << endl;
-    cout << "Example 7: sonic-db-cli FLUSHALL | sonic-db-cli -s FLUSHALL" << endl;
+    cout << "Example 5: sonic-db-cli PING | sonic-db-cli -t PING" << endl;
+    cout << "Example 6: sonic-db-cli SAVE | sonic-db-cli -t SAVE" << endl;
+    cout << "Example 7: sonic-db-cli FLUSHALL | sonic-db-cli -t FLUSHALL" << endl;
+}
+
+shared_ptr<DBConnector> connectToDatabase(
+    const string& db_name,
+    const string& netns,
+    CliEndpointType endpointType)
+{
+    auto db_id = SonicDBConfig::getDbId(db_name, netns);
+    auto host = SonicDBConfig::getDbHostname(db_name, netns);
+    auto db_socket = SonicDBConfig::getDbSock(db_name, netns);
+
+    bool useUnixSocket = endpointType == CliEndpointType::UNIX_SOCKET;
+    if (endpointType == CliEndpointType::AUTO)
+    {
+        useUnixSocket = !db_socket.empty();
+    }
+
+    // Chassis databases remain remote until their topology is handled separately.
+    if (useUnixSocket && host != "redis_chassis.server")
+    {
+        return make_shared<DBConnector>(db_id, db_socket, 0);
+    }
+
+    auto port = SonicDBConfig::getDbPort(db_name, netns);
+    return make_shared<DBConnector>(db_id, host, port, 0);
 }
 
 string handleSingleOperation(
     const string& netns,
     const string& db_name,
     const string& operation,
-    bool useUnixSocket)
+    CliEndpointType endpointType)
 {
     shared_ptr<DBConnector> client;
     auto host = SonicDBConfig::getDbHostname(db_name, netns);
     string message = "Could not connect to Redis at " + host + ":";
     try
     {
-        auto db_id =  SonicDBConfig::getDbId(db_name, netns);
+        auto db_socket = SonicDBConfig::getDbSock(db_name, netns);
+        bool useUnixSocket = endpointType == CliEndpointType::UNIX_SOCKET ||
+            (endpointType == CliEndpointType::AUTO && !db_socket.empty());
         if (useUnixSocket && host != "redis_chassis.server")
         {
-            auto db_socket = SonicDBConfig::getDbSock(db_name, netns);
             message += db_name + ": Connection refused";
-            client = make_shared<DBConnector>(db_id, db_socket, 0);
         }
         else
         {
             auto port = SonicDBConfig::getDbPort(db_name, netns);
             message += port + ": Connection refused";
-            client = make_shared<DBConnector>(db_id, host, port, 0);
         }
+        client = connectToDatabase(db_name, netns, endpointType);
     }
     catch (const exception& e)
     {
@@ -90,7 +118,7 @@ string handleSingleOperation(
 int handleAllInstances(
     const string& netns,
     const string& operation,
-    bool useUnixSocket)
+    CliEndpointType endpointType)
 {
     auto db_names = SonicDBConfig::getDbList(netns);
     // Operate All Redis Instances in Parallel
@@ -98,7 +126,7 @@ int handleAllInstances(
     list<future<string>> responses;
     for (auto& db_name : db_names)
     {
-        future<string> response = std::async(std::launch::async, handleSingleOperation, netns, db_name, operation, useUnixSocket);
+        future<string> response = std::async(std::launch::async, handleSingleOperation, netns, db_name, operation, endpointType);
         responses.push_back(std::move(response));
     }
 
@@ -134,24 +162,13 @@ int executeCommands(
     const string& db_name,
     vector<string>& commands,
     const string& netns,
-    bool useUnixSocket,
+    CliEndpointType endpointType,
     bool useJson)
 {
     shared_ptr<DBConnector> client = nullptr;
     try
     {
-        int db_id =  SonicDBConfig::getDbId(db_name, netns);
-        auto host = SonicDBConfig::getDbHostname(db_name, netns);
-        if (useUnixSocket && host != "redis_chassis.server")
-        {
-            auto db_socket = SonicDBConfig::getDbSock(db_name, netns);
-            client = make_shared<DBConnector>(db_id, db_socket, 0);
-        }
-        else
-        {
-            auto port = SonicDBConfig::getDbPort(db_name, netns);
-            client = make_shared<DBConnector>(db_id, host, port, 0);
-        }
+        client = connectToDatabase(db_name, netns, endpointType);
     }
     catch (const exception& e)
     {
@@ -195,10 +212,11 @@ void parseCliArguments(
     Options &options)
 {
     // Parse argument with getopt https://man7.org/linux/man-pages/man3/getopt.3.html
-    const char* short_options = "hsjn";
+    const char* short_options = "hstjn";
     static struct option long_options[] = {
        {"help",        optional_argument, NULL,  'h' },
        {"unixsocket",  optional_argument, NULL,  's' },
+       {"tcp",         no_argument,       NULL,  't' },
        {"json",        no_argument,       NULL,  'j' },
        {"namespace",   optional_argument, NULL,  'n' },
        // The last element of the array has to be filled with zeros.
@@ -218,7 +236,19 @@ void parseCliArguments(
                     break;
 
                 case 's':
-                    options.m_unixsocket = true;
+                    if (options.m_endpointType == CliEndpointType::TCP)
+                    {
+                        throw invalid_argument("--unixsocket and --tcp are mutually exclusive.");
+                    }
+                    options.m_endpointType = CliEndpointType::UNIX_SOCKET;
+                    break;
+
+                case 't':
+                    if (options.m_endpointType == CliEndpointType::UNIX_SOCKET)
+                    {
+                        throw invalid_argument("--unixsocket and --tcp are mutually exclusive.");
+                    }
+                    options.m_endpointType = CliEndpointType::TCP;
                     break;
 
                 case 'j':
@@ -293,14 +323,12 @@ int sonic_db_cli(
     {
         auto dbOrOperation = options.m_db_or_op;
         auto netns = options.m_namespace;
-        bool useUnixSocket = options.m_unixsocket;
+        auto endpointType = options.m_endpointType;
         // Load the database config for the namespace
         if (!netns.empty())
         {
             initializeGlobalConfig();
 
-            // Use the unix domain connectivity if namespace not empty.
-            useUnixSocket = true;
         }
 
         if (options.m_cmd.size() != 0)
@@ -312,7 +340,7 @@ int sonic_db_cli(
                 initializeConfig();
             }
 
-            return executeCommands(dbOrOperation, commands, netns, useUnixSocket, options.m_json);
+            return executeCommands(dbOrOperation, commands, netns, endpointType, options.m_json);
         }
         else if (dbOrOperation == "PING"
                 || dbOrOperation == "SAVE"
@@ -328,7 +356,7 @@ int sonic_db_cli(
                     initializeConfig();
                 }
 
-                return handleAllInstances(netns, dbOrOperation, useUnixSocket);
+                return handleAllInstances(netns, dbOrOperation, endpointType);
             }
             catch (const exception& e)
             {
