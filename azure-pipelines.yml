@@ -179,6 +179,7 @@ stages:
       timeout: 360
       log_artifact_name: log
       debian_version: ${{ parameters.debian_version }}
+      pytest_params: '--force-flaky --force-recreate-dvs'
       continue_on_error: ${{ ne(variables['Build.Reason'], 'PullRequest') }}
       staged_upstreams:
         - artifact: sonic-swss-common.amd64.ubuntu22_04
