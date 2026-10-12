@@ -11,7 +11,7 @@ artifacts it consumes, and the build command itself.
 |------|---------|-------------------------|
 | `packages/base.yaml` | apt/pip packages needed to build **and link against** libswsscommon; redis + its test-config | **Yes** |
 | `packages/tooling.yaml` | Build-stage-only tooling (python test deps, yang-models dir) | No |
-| `upstream-artifacts.yaml` | upstream DEBs/wheels to fetch (SONiC libnl + libyang from common-libs; sonic-yang wheels from sonic-buildimage) | Yes |
+| `upstream-artifacts.yaml` | upstream DEBs/wheels to fetch (libyang from common-libs; sonic-yang wheels from sonic-buildimage) | Yes |
 | `configure-redis-for-tests.sh` | redis test-config, run via a `post_install` hook | (travels with base.yaml) |
 | `build.sh` | canonical build command (autogen + dpkg-buildpackage), used by CI **and** local dev | — |
 | `Dockerfile`, `compose.yaml` | local-dev image (CI does not use these) | — |
@@ -34,8 +34,8 @@ PYTHONPATH=$(Build.SourcesDirectory)/ci python3 -m buildenv_setup \
 ```
 
 `buildenv_setup` installs the apt/pip packages, downloads + installs the upstream
-SONiC-patched libnl and libyang DEBs plus sonic-yang wheels, and runs the redis /
-yang-models post-install hooks. Then `build.sh` builds the package.
+libyang DEBs and sonic-yang wheels, and runs the redis / yang-models post-install
+hooks. Then `build.sh` builds the package.
 
 ## Local development
 
