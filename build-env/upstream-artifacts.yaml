@@ -9,12 +9,9 @@
 
 upstream:
   # ------------------------------------------------------------------ #
-  # libyang3 DEBs from the common-libs build (latest on the branch).
-  # (sonic-swss-common migrated to libyang3 in sonic-net/sonic-swss-common#1206.)
-  # NOTE: libnl is deliberately NOT downloaded here. sonic-swss-common builds
-  # against the STOCK apt libnl (apt-installed via base.yaml) to keep the
-  # libswsscommon .deb's libnl Depends on the stock version (satisfied everywhere
-  # without downstream companion changes). Only libyang3 comes from common-libs.
+  # SONiC-patched libnl + libyang3 DEBs from the common-libs build (latest on
+  # the branch). libnl must come from here rather than distro apt so every
+  # architecture and downstream consumer uses the same SONiC-patched version.
   # ------------------------------------------------------------------ #
   - name: common-libs
     project: build
@@ -31,6 +28,18 @@ upstream:
       - { when: { arch: amd64 },        value: 'common-lib' }
       - { when: { arch: { not: amd64 } }, value: 'common-lib.{arch}' }
     debs:
+      # Full SONiC libnl runtime/dev family. Exact globs avoid downloading the
+      # dbgsym packages while retaining libnl-cli for downstream consumers.
+      - 'target/debs/{debian_version}/libnl-3-200_*.deb'
+      - 'target/debs/{debian_version}/libnl-3-dev_*.deb'
+      - 'target/debs/{debian_version}/libnl-genl-3-200_*.deb'
+      - 'target/debs/{debian_version}/libnl-genl-3-dev_*.deb'
+      - 'target/debs/{debian_version}/libnl-route-3-200_*.deb'
+      - 'target/debs/{debian_version}/libnl-route-3-dev_*.deb'
+      - 'target/debs/{debian_version}/libnl-nf-3-200_*.deb'
+      - 'target/debs/{debian_version}/libnl-nf-3-dev_*.deb'
+      - 'target/debs/{debian_version}/libnl-cli-3-200_*.deb'
+      - 'target/debs/{debian_version}/libnl-cli-3-dev_*.deb'
       # libyang3 C library + dev headers. (python3-libyang deb is intentionally
       # NOT installed: the bookworm deb pins python3 >=3.11 so it won't install on
       # the ubuntu-22.04 job's python 3.10, and swss-common uses the pip

@@ -32,12 +32,16 @@ resources:
     type: github
     name: sonic-net/sonic-sairedis
     endpoint: sonic-net
-    ref: refs/heads/master
+    # Validation pin: consume the companion all-architecture SONiC-libnl
+    # cascade update. Return to refs/heads/master after that PR merges.
+    ref: refs/pull/2125/merge
   - repository: sonic-swss
     type: github
     name: sonic-net/sonic-swss
     endpoint: sonic-net
-    ref: refs/heads/master
+    # Validation pin: consume the companion shared-test-host SONiC-libnl
+    # update. Return to refs/heads/master after that PR merges.
+    ref: refs/pull/5012/merge
   - repository: sonic_swss_common
     type: github
     name: sonic-net/sonic-swss-common
