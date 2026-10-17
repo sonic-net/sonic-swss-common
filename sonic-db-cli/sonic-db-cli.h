@@ -8,11 +8,18 @@
 #include "common/dbinterface.h"
 #include "common/redisreply.h"
 
+enum class CliEndpointType
+{
+    AUTO,
+    UNIX_SOCKET,
+    TCP
+};
+
 struct Options
 {
     bool m_help = false;
-    bool m_unixsocket = false;
     bool m_json = false;
+    CliEndpointType m_endpointType = CliEndpointType::AUTO;
     std::string m_namespace;
     std::string m_db_or_op;
     std::vector<std::string> m_cmd;
@@ -22,28 +29,28 @@ void printUsage();
 
 void printRedisReply(swss::RedisReply& reply);
 
-std::shared_ptr<swss::DBConnector> connectDbInterface(
+std::shared_ptr<swss::DBConnector> connectToDatabase(
     const std::string& db_name,
     const std::string& netns,
-    bool isTcpConn);
+    CliEndpointType endpointType);
 
 int executeCommands(
     const std::string& db_name,
     std::vector<std::string>& commands,
     const std::string& netns,
-    bool isTcpConn,
+    CliEndpointType endpointType,
     bool useJson = false);
 
 std::string handleSingleOperation(
     const std::string& netns,
     const std::string& db_name,
     const std::string& operation,
-    bool isTcpConn);
+    CliEndpointType endpointType);
 
 int handleAllInstances(
     const std::string& netns,
     const std::string& operation,
-    bool isTcpConn);
+    CliEndpointType endpointType);
 
 void parseCliArguments(
     int argc,
