@@ -18,8 +18,8 @@ enum class CliEndpointType
 struct Options
 {
     bool m_help = false;
+    bool m_unixsocket = false;
     bool m_json = false;
-    CliEndpointType m_endpointType = CliEndpointType::AUTO;
     std::string m_namespace;
     std::string m_db_or_op;
     std::vector<std::string> m_cmd;
@@ -28,6 +28,11 @@ struct Options
 void printUsage();
 
 void printRedisReply(swss::RedisReply& reply);
+
+std::shared_ptr<swss::DBConnector> connectDbInterface(
+    const std::string& db_name,
+    const std::string& netns,
+    bool isTcpConn);
 
 std::shared_ptr<swss::DBConnector> connectToDatabase(
     const std::string& db_name,
@@ -51,6 +56,24 @@ int handleAllInstances(
     const std::string& netns,
     const std::string& operation,
     CliEndpointType endpointType);
+
+int executeCommands(
+    const std::string& db_name,
+    std::vector<std::string>& commands,
+    const std::string& netns,
+    bool isTcpConn,
+    bool useJson = false);
+
+std::string handleSingleOperation(
+    const std::string& netns,
+    const std::string& db_name,
+    const std::string& operation,
+    bool isTcpConn);
+
+int handleAllInstances(
+    const std::string& netns,
+    const std::string& operation,
+    bool isTcpConn);
 
 void parseCliArguments(
     int argc,
