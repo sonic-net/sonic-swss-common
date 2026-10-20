@@ -7,13 +7,6 @@
 #include <getopt.h>
 #include "common/dbconnector.h"
 #include "sonic-db-cli/sonic-db-cli.h"
-#include <chrono>
-#include <thread>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <sys/stat.h>
-#include <sys/wait.h>
-#include <signal.h>
 #include <unistd.h>
 #include <nlohmann/json.hpp>
 
@@ -630,338 +623,143 @@ TEST(sonic_db_cli, test_cli_not_throw_exception)
 namespace
 {
 
-class CliCapture
-{
-public:
-    explicit CliCapture(bool standardError) : m_standardError(standardError)
-    {
-        if (m_standardError)
-            testing::internal::CaptureStderr();
-        else
-            testing::internal::CaptureStdout();
-    }
-    ~CliCapture()
-    {
-        if (m_active)
-            take();
-    }
-    string take()
-    {
-        m_active = false;
-        return m_standardError ? testing::internal::GetCapturedStderr() :
-                                 testing::internal::GetCapturedStdout();
-    }
-private:
-    bool m_standardError;
-    bool m_active = true;
-};
-
-class CliEndpointTest : public ::testing::Test
+class CliSocketTest : public ::testing::Test
 {
 protected:
-    void writeFile(const string& name, const string& content, mode_t mode = 0600)
-    {
-        ofstream output(path(name));
-        output << content;
-        output.close();
-        ASSERT_TRUE(output.good());
-        ASSERT_EQ(0, chmod(path(name).c_str(), mode));
-    }
-
-    string path(const string& name) const { return m_directory + "/" + name; }
+    using json = nlohmann::json;
+    json configuration;
+    vector<string> files;
 
     void SetUp() override
     {
-        char pattern[] = "/tmp/swss-cli-endpoint-XXXXXX";
-        char *directory = mkdtemp(pattern);
-        ASSERT_NE(nullptr, directory);
-        m_directory = directory;
-
-        int fd = socket(AF_INET, SOCK_STREAM, 0);
-        ASSERT_GE(fd, 0);
-        sockaddr_in address = {};
-        address.sin_family = AF_INET;
-        address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-        ASSERT_EQ(0, bind(fd, reinterpret_cast<sockaddr *>(&address), sizeof(address)));
-        socklen_t length = sizeof(address);
-        ASSERT_EQ(0, getsockname(fd, reinterpret_cast<sockaddr *>(&address), &length));
-        m_port = ntohs(address.sin_port);
-        close(fd);
-
-        writeFile("redis.conf", "bind 127.0.0.1\nprotected-mode no\nport " +
-            to_string(m_port) + "\nunixsocket " + path("redis.sock") +
-            "\nunixsocketperm 700\nsave \"\"\nappendonly no\ndir " + m_directory + "\nlogfile " + path("redis.log") + "\n");
-        m_pid = fork();
-        ASSERT_GE(m_pid, 0);
-        if (m_pid == 0)
-        {
-            execlp("redis-server", "redis-server", path("redis.conf").c_str(),
-                   static_cast<char *>(nullptr));
-            _exit(127);
-        }
-        bool ready = false;
-        for (int attempt = 0; attempt < 100; ++attempt)
-        {
-            try
-            {
-                DBConnector probe(15, path("redis.sock"), 100);
-                ready = true;
-                break;
-            }
-            catch (const exception&)
-            {
-                this_thread::sleep_for(chrono::milliseconds(20));
-            }
-        }
-        ASSERT_TRUE(ready);
-
-        using json = nlohmann::json;
-        json instances = {
-            {"local", {{"hostname", "127.0.0.1"}, {"port", m_port},
-                       {"unix_socket_path", path("redis.sock")}}},
-            {"tcp", {{"hostname", "127.0.0.1"}, {"port", m_port}}},
-            {"socket-only", {{"hostname", "127.0.0.1"}, {"port", 0},
-                             {"unix_socket_path", path("redis.sock")}}},
-            {"missing-socket", {{"hostname", "127.0.0.1"}, {"port", m_port},
-                                {"unix_socket_path", path("missing.sock")}}},
-            {"missing-selected-socket", {{"hostname", "127.0.0.1"}, {"port", 0},
-                                         {"unix_socket_path", path("missing.sock")}}},
-            {"chassis", {{"hostname", "redis_chassis.server"}, {"port", m_port},
-                         {"unix_socket_path", path("redis.sock")}}}
-        };
-        json databases;
-        for (const auto& entry : vector<pair<string, string>>{
-                 {"LOCAL_DB", "local"}, {"TCP_DB", "tcp"},
-                 {"SOCKET_ONLY_DB", "socket-only"},
-                 {"MISSING_SOCKET_DB", "missing-socket"},
-                 {"MISSING_SELECTED_SOCKET_DB", "missing-selected-socket"},
-                 {"CHASSIS_DB", "chassis"}})
-        {
-            databases[entry.first] = {{"id", 15}, {"separator", ":"},
-                                      {"instance", entry.second}};
-        }
-        writeFile("database.json", json({{"INSTANCES", instances},
-                                         {"DATABASES", databases}, {"VERSION", "1.0"}}).dump());
-        writeFile("global.json", json({{"INCLUDES", json::array({
-            {{"include", "database.json"}},
-            {{"namespace", "asic9"}, {"include", "database.json"}}})},
-            {"VERSION", "1.0"}}).dump());
-        SonicDBConfig::reset();
-        SonicDBConfig::initialize(path("database.json"));
-        SonicDBConfig::initializeGlobalConfig(path("global.json"));
+        configuration = json::parse(readFileContent(config_file));
+        configuration["INSTANCES"]["redis"]["port"] = 0;
+        load(configuration);
     }
 
-    void startNamespaceServer()
+    string writeConfig(const json& document)
     {
-        writeFile("asic-redis.conf", "bind 127.0.0.1\nprotected-mode no\nport 0\nunixsocket " +
-            path("asic.sock") + "\nunixsocketperm 700\nsave \"\"\nappendonly no\ndir " + m_directory + "\nlogfile " + path("asic-redis.log") + "\n");
-        m_namespacePid = fork();
-        ASSERT_GE(m_namespacePid, 0);
-        if (m_namespacePid == 0)
-        {
-            execlp("redis-server", "redis-server", path("asic-redis.conf").c_str(),
-                   static_cast<char *>(nullptr));
-            _exit(127);
-        }
-        bool ready = false;
-        for (int attempt = 0; attempt < 100; ++attempt)
-        {
-            try
-            {
-                DBConnector probe(15, path("asic.sock"), 100);
-                ready = true;
-                break;
-            }
-            catch (const exception&)
-            {
-                this_thread::sleep_for(chrono::milliseconds(20));
-            }
-        }
-        ASSERT_TRUE(ready);
+        char name[] = "/tmp/swss-cli-config-XXXXXX";
+        int fd = mkstemp(name);
+        if (fd < 0)
+            throw runtime_error("Could not create test database configuration");
+        close(fd);
+        files.emplace_back(name);
+        ofstream output(name);
+        output << document.dump();
+        output.close();
+        if (!output.good())
+            throw runtime_error("Could not write test database configuration");
+        return name;
+    }
 
-        using json = nlohmann::json;
-        auto namespaceConfig = json::parse(readFileContent(path("database.json")));
-        // Match real ASIC metadata: a distinct socket, but the host's TCP address and port.
-        namespaceConfig["INSTANCES"]["local"]["unix_socket_path"] = path("asic.sock");
-        writeFile("namespace.json", namespaceConfig.dump());
-        writeFile("global.json", json({{"INCLUDES", json::array({
-            {{"include", "database.json"}},
-            {{"namespace", "asic9"}, {"include", "namespace.json"}}})},
-            {"VERSION", "1.0"}}).dump());
+    void load(const json& host, const json* ns = nullptr)
+    {
+        auto hostPath = writeConfig(host);
+        auto hostName = hostPath.substr(hostPath.find_last_of('/') + 1);
+        json includes = json::array({{{"include", hostName}}});
+        if (ns)
+        {
+            auto nsPath = writeConfig(*ns);
+            auto nsName = nsPath.substr(nsPath.find_last_of('/') + 1);
+            includes.push_back({{"namespace", "asic0"}, {"include", nsName}});
+        }
+        auto globalPath = writeConfig({{"INCLUDES", includes}, {"VERSION", "1.0"}});
         SonicDBConfig::reset();
-        SonicDBConfig::initialize(path("database.json"));
-        SonicDBConfig::initializeGlobalConfig(path("global.json"));
+        SonicDBConfig::initialize(hostPath);
+        SonicDBConfig::initializeGlobalConfig(globalPath);
     }
 
     void TearDown() override
     {
-        if (m_namespacePid > 0)
-        {
-            kill(m_namespacePid, SIGTERM);
-            waitpid(m_namespacePid, nullptr, 0);
-        }
-        if (m_pid > 0)
-        {
-            kill(m_pid, SIGTERM);
-            waitpid(m_pid, nullptr, 0);
-        }
-        for (const char *name : {"redis.conf", "redis.log", "redis.sock", "database.json", "global.json",
-                "asic-redis.conf", "asic-redis.log", "asic.sock", "namespace.json"})
-        {
-            unlink(path(name).c_str());
-        }
-        if (!m_directory.empty())
-        {
-            rmdir(m_directory.c_str());
-        }
         SonicDBConfig::reset();
         SonicDBConfig::initialize(config_file);
         SonicDBConfig::initializeGlobalConfig(global_config_file);
+        for (const auto& file : files)
+            unlink(file.c_str());
     }
 
     string run(vector<string> arguments, int expected = 0)
     {
-        vector<char *> argv;
+        vector<char*> argv;
         for (auto& argument : arguments)
-        {
-            argv.push_back(const_cast<char *>(argument.c_str()));
-        }
-        try
-        {
-            return runCli(static_cast<int>(argv.size()), argv.data(), expected);
-        }
-        catch (...)
-        {
-            // runCli starts its own stdout capture before invoking the CLI.
-            testing::internal::GetCapturedStdout();
-            throw;
-        }
+            argv.push_back(const_cast<char*>(argument.c_str()));
+        return runCli(static_cast<int>(argv.size()), argv.data(), expected);
     }
-
-    string m_directory;
-    int m_port = 0;
-    pid_t m_pid = -1;
-    pid_t m_namespacePid = -1;
 };
 
-TEST_F(CliEndpointTest, DefaultSelectsSocketForTcpDisabledProcess)
+TEST_F(CliSocketTest, CommandUsesSocketWhenTcpIsDisabled)
 {
-    auto db = connectToDatabase("SOCKET_ONLY_DB", "", CliEndpointType::AUTO);
-    EXPECT_EQ(REDIS_CONN_UNIX, db->getContext()->connection_type);
-    EXPECT_EQ("True\n", run({"sonic-db-cli", "SOCKET_ONLY_DB", "PING"}));
+    EXPECT_EQ("True\n", run({"sonic-db-cli", "APPL_DB", "PING"}));
 }
 
-TEST_F(CliEndpointTest, DefaultPreservesTcpForLegacyProcessWithConfiguredSocket)
+TEST_F(CliSocketTest, AllInstancesUseSocketsWhenTcpIsDisabled)
 {
-    auto db = connectToDatabase("LOCAL_DB", "", CliEndpointType::AUTO);
-    EXPECT_EQ(REDIS_CONN_TCP, db->getContext()->connection_type);
-    EXPECT_EQ("True\n", run({"sonic-db-cli", "LOCAL_DB", "PING"}));
-    auto explicitSocket = connectToDatabase("LOCAL_DB", "", CliEndpointType::UNIX_SOCKET);
-    EXPECT_EQ(REDIS_CONN_UNIX, explicitSocket->getContext()->connection_type);
-    // A legacy process must stay usable even when its configured socket cannot be opened.
-    EXPECT_EQ("True\n", run({"sonic-db-cli", "MISSING_SOCKET_DB", "PING"}));
-    EXPECT_THROW(connectToDatabase("MISSING_SOCKET_DB", "", CliEndpointType::UNIX_SOCKET), exception);
+    EXPECT_EQ("PONG\n", run({"sonic-db-cli", "PING"}));
 }
 
-TEST_F(CliEndpointTest, DefaultSelectsTcpWhenMetadataHasNoSocket)
+TEST_F(CliSocketTest, AllInstancesSelectTheirOwnTransport)
 {
-    auto db = connectToDatabase("TCP_DB", "", CliEndpointType::AUTO);
-    EXPECT_EQ(REDIS_CONN_TCP, db->getContext()->connection_type);
-    EXPECT_EQ("True\n", run({"sonic-db-cli", "TCP_DB", "PING"}));
+    configuration["INSTANCES"]["tcp"] = configuration["INSTANCES"]["redis"];
+    configuration["INSTANCES"]["tcp"]["port"] = 6379;
+    configuration["INSTANCES"]["tcp"]["unix_socket_path"] = files.front() + ".sock";
+    configuration["DATABASES"]["TCP_DB"] = {
+        {"id", 15}, {"separator", ":"}, {"instance", "tcp"}};
+    load(configuration);
+    EXPECT_EQ("PONG\n", run({"sonic-db-cli", "PING"}));
 }
 
-TEST_F(CliEndpointTest, ExplicitTcpOverridesSocketAndNamespaceDefault)
+TEST_F(CliSocketTest, EnabledTcpDoesNotRequireSocketAccess)
 {
-    auto db = connectToDatabase("LOCAL_DB", "", CliEndpointType::TCP);
-    EXPECT_EQ(REDIS_CONN_TCP, db->getContext()->connection_type);
-    EXPECT_EQ("True\n", run({"sonic-db-cli", "--tcp", "-n", "asic9",
-                                  "MISSING_SOCKET_DB", "PING"}));
+    configuration["INSTANCES"]["redis"]["port"] = 6379;
+    configuration["INSTANCES"]["redis"]["unix_socket_path"] = files.front() + ".sock";
+    load(configuration);
+    EXPECT_EQ("True\n", run({"sonic-db-cli", "APPL_DB", "PING"}));
 }
 
-TEST_F(CliEndpointTest, NamespaceAutoReadsAndWritesOnlyItsSocketBackend)
+TEST_F(CliSocketTest, ExplicitSocketRetainsItsExistingBehavior)
 {
-    startNamespaceServer();
-    ASSERT_FALSE(HasFatalFailure());
-    auto host = connectToDatabase("LOCAL_DB", "", CliEndpointType::UNIX_SOCKET);
-    auto asic = connectToDatabase("LOCAL_DB", "asic9", CliEndpointType::AUTO);
-    EXPECT_EQ(REDIS_CONN_UNIX, asic->getContext()->connection_type);
-    ASSERT_TRUE(host->set("namespace-sentinel", "host"));
-    ASSERT_TRUE(asic->set("namespace-sentinel", "asic"));
-    EXPECT_EQ("asic\n", run({"sonic-db-cli", "-n", "asic9", "LOCAL_DB",
-                                "GET", "namespace-sentinel"}));
-    vector<string> command = {"SET", "namespace-sentinel", "updated-asic"};
-    CliCapture output(false);
-    EXPECT_EQ(0, executeCommands("LOCAL_DB", command, "asic9", CliEndpointType::AUTO));
-    EXPECT_EQ("True\n", output.take());
-    auto hostValue = host->get("namespace-sentinel");
-    auto asicValue = asic->get("namespace-sentinel");
-    ASSERT_NE(nullptr, hostValue);
-    ASSERT_NE(nullptr, asicValue);
-    EXPECT_EQ("host", *hostValue);
-    EXPECT_EQ("updated-asic", *asicValue);
-    EXPECT_EQ("host\n", run({"sonic-db-cli", "-t", "-n", "asic9", "LOCAL_DB",
-                                "GET", "namespace-sentinel"}));
+    configuration["INSTANCES"]["redis"]["port"] = 1;
+    load(configuration);
+    EXPECT_EQ("True\n", run({"sonic-db-cli", "-s", "APPL_DB", "PING"}));
 }
 
-TEST_F(CliEndpointTest, NamespaceAutoRequiresSocketAndNeverFallsBackToHostTcp)
+TEST_F(CliSocketTest, NamespaceRetainsItsSocketBackend)
 {
-    EXPECT_THROW(connectToDatabase("TCP_DB", "asic9", CliEndpointType::AUTO), invalid_argument);
-    EXPECT_THROW(connectToDatabase("MISSING_SOCKET_DB", "asic9", CliEndpointType::AUTO), exception);
-    CliCapture errors(true);
-    EXPECT_EQ("", run({"sonic-db-cli", "-n", "asic9", "TCP_DB", "PING"}, 1));
-    EXPECT_NE(string::npos, errors.take().find("No Unix socket is configured"));
-    EXPECT_EQ("True\n", run({"sonic-db-cli", "-t", "-n", "asic9", "TCP_DB", "PING"}));
+    configuration["INSTANCES"]["redis"]["port"] = 6379;
+    auto ns = configuration;
+    ns["INSTANCES"]["redis"]["unix_socket_path"] = "/var/run/redis/redis1.sock";
+    load(configuration, &ns);
+    DBConnector host(15, "/var/run/redis/redis.sock", 100);
+    DBConnector selected(15, "/var/run/redis/redis1.sock", 100);
+    ASSERT_TRUE(host.set("socket-test-sentinel", "host"));
+    ASSERT_TRUE(selected.set("socket-test-sentinel", "namespace"));
+    EXPECT_EQ("namespace\n", run({"sonic-db-cli", "-n", "asic0", "TEST_DB",
+                                 "GET", "socket-test-sentinel"}));
+    EXPECT_EQ("True\n", run({"sonic-db-cli", "-n", "asic0", "TEST_DB",
+                            "SET", "socket-test-sentinel", "updated"}));
+    EXPECT_EQ("host", *host.get("socket-test-sentinel"));
+    EXPECT_EQ("updated", *selected.get("socket-test-sentinel"));
+    host.del("socket-test-sentinel");
+    selected.del("socket-test-sentinel");
 }
 
-TEST_F(CliEndpointTest, ExplicitTcpDoesNotFallBackToWorkingSocket)
+TEST_F(CliSocketTest, UnavailableConfiguredSocketFails)
 {
-    EXPECT_THROW(connectToDatabase("SOCKET_ONLY_DB", "", CliEndpointType::TCP), exception);
-    CliCapture errors(true);
-    EXPECT_EQ("", run({"sonic-db-cli", "-t", "SOCKET_ONLY_DB", "PING"}, 1));
-    errors.take();
+    configuration["INSTANCES"]["redis"]["unix_socket_path"] = files.front() + ".sock";
+    load(configuration);
+    testing::internal::CaptureStderr();
+    EXPECT_EQ("", run({"sonic-db-cli", "APPL_DB", "PING"}, 1));
+    EXPECT_FALSE(testing::internal::GetCapturedStderr().empty());
 }
 
-TEST_F(CliEndpointTest, SelectedSocketFailureDoesNotChooseAnotherEndpoint)
+TEST_F(CliSocketTest, MissingSocketConfigurationFails)
 {
-    EXPECT_THROW(connectToDatabase("MISSING_SELECTED_SOCKET_DB", "", CliEndpointType::AUTO), exception);
-    CliCapture errors(true);
-    EXPECT_EQ("", run({"sonic-db-cli", "MISSING_SELECTED_SOCKET_DB", "PING"}, 1));
-    errors.take();
-}
-
-TEST_F(CliEndpointTest, ExplicitSocketRequiresConfiguredSocket)
-{
-    EXPECT_THROW(connectToDatabase("TCP_DB", "", CliEndpointType::UNIX_SOCKET), invalid_argument);
-}
-
-TEST_F(CliEndpointTest, ChassisKeepsTcpEvenWhenSocketIsAvailable)
-{
-    for (auto mode : {CliEndpointType::AUTO, CliEndpointType::UNIX_SOCKET})
-    {
-        try
-        {
-            auto db = connectToDatabase("CHASSIS_DB", "", mode);
-            EXPECT_EQ(REDIS_CONN_TCP, db->getContext()->connection_type);
-        }
-        catch (const system_error& e)
-        {
-            // The test host need not resolve the real chassis hostname.
-            // A failed TCP connection must not fall back to the working socket.
-            EXPECT_EQ(make_error_code(errc::address_not_available), e.code());
-        }
-    }
-}
-
-TEST_F(CliEndpointTest, TransportFlagsAreMutuallyExclusiveInEitherOrder)
-{
-    for (auto arguments : {vector<string>{"sonic-db-cli", "-s", "-t", "LOCAL_DB", "PING"},
-                           vector<string>{"sonic-db-cli", "--tcp", "--unixsocket", "LOCAL_DB", "PING"}})
-    {
-        CliCapture errors(true);
-        auto output = run(arguments, -1);
-        EXPECT_NE(string::npos, output.find("usage: sonic-db-cli"));
-        EXPECT_NE(string::npos, errors.take().find("mutually exclusive"));
-    }
+    configuration["INSTANCES"]["redis"].erase("unix_socket_path");
+    load(configuration);
+    testing::internal::CaptureStderr();
+    EXPECT_EQ("", run({"sonic-db-cli", "APPL_DB", "PING"}, 1));
+    EXPECT_FALSE(testing::internal::GetCapturedStderr().empty());
 }
 
 } // namespace

@@ -8,13 +8,6 @@
 #include "common/dbinterface.h"
 #include "common/redisreply.h"
 
-enum class CliEndpointType
-{
-    AUTO,
-    UNIX_SOCKET,
-    TCP
-};
-
 struct Options
 {
     bool m_help = false;
@@ -33,29 +26,6 @@ std::shared_ptr<swss::DBConnector> connectDbInterface(
     const std::string& db_name,
     const std::string& netns,
     bool isTcpConn);
-
-std::shared_ptr<swss::DBConnector> connectToDatabase(
-    const std::string& db_name,
-    const std::string& netns,
-    CliEndpointType endpointType);
-
-int executeCommands(
-    const std::string& db_name,
-    std::vector<std::string>& commands,
-    const std::string& netns,
-    CliEndpointType endpointType,
-    bool useJson = false);
-
-std::string handleSingleOperation(
-    const std::string& netns,
-    const std::string& db_name,
-    const std::string& operation,
-    CliEndpointType endpointType);
-
-int handleAllInstances(
-    const std::string& netns,
-    const std::string& operation,
-    CliEndpointType endpointType);
 
 int executeCommands(
     const std::string& db_name,

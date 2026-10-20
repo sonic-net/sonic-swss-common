@@ -1,4 +1,4 @@
-usage: sonic-db-cli [-h] [-s | -t] [-j] [-n NAMESPACE] db_or_op [cmd [cmd ...]]
+usage: sonic-db-cli [-h] [-s] [-j] [-n NAMESPACE] db_or_op [cmd [cmd ...]]
 
 SONiC DB CLI:
 
@@ -8,13 +8,12 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  -s, --unixsocket      Use the configured Unix socket; keep chassis on TCP
-  -t, --tcp             Use the configured TCP endpoint
+  -s, --unixsocket      Override use of tcp_port and use unixsocket
   -j, --json            Print command result as JSON
   -n NAMESPACE, --namespace NAMESPACE
                         Namespace string to use asic0/asic1.../asicn
 
-By default, namespace databases and Redis processes with TCP disabled (port 0) use their configured Unix socket. Other databases use TCP unless -s is specified. redis_chassis.server stays on TCP.
+A database configured with TCP port 0 uses its Unix socket by default.
 
 **sudo** may be needed for commands accessing a different namespace or Unix socket
 
