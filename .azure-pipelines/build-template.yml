@@ -101,9 +101,13 @@ jobs:
         # INLINE here because it must happen AFTER cargo, not at build-env setup time.
         ./build-env/configure-redis-for-tests.sh
 
-        ./tests/tests
+        # Run authentication fixtures separately as root to create protected files
+        # and check ordinary-user access. The filters avoid running them twice.
+        ./tests/tests --gtest_filter=-RedisAutoAuth.*
+        sudo ./tests/tests --gtest_filter=RedisAutoAuth.*
         redis-cli FLUSHALL
-        pytest-3 --cov=. --cov-report=xml
+        pytest-3 --cov=. --cov-report=xml --ignore=tests/test_redis_auto_auth.py
+        sudo env PYTHONDONTWRITEBYTECODE=1 pytest-3 tests/test_redis_auto_auth.py
         [ -f coverage.xml ] && mv coverage.xml tests/coverage.xml
         gcovr -r ./ -e ".*/swsscommon_wrap.cpp" -e=tests --exclude-unreachable-branches --exclude-throw-branches --gcov-ignore-parse-errors -x --xml-pretty  -o coverage.xml
         make -C goext

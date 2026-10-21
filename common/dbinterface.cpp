@@ -29,11 +29,13 @@ void DBInterface::connect(int dbId, const std::string& dbName, bool retry)
 
 void DBInterface::close(const std::string& dbName)
 {
+    _unsubscribe_keyspace_notification(dbName);
     m_redisClient.erase(dbName);
 }
 
 void DBInterface::close()
 {
+    keyspace_notification_channels.clear();
     m_redisClient.clear();
 }
 
@@ -294,7 +296,7 @@ void DBInterface::_subscribe_keyspace_notification(const std::string& dbName)
 {
     SWSS_LOG_DEBUG("Subscribe to keyspace notification");
     auto& client = m_redisClient.at(dbName);
-    DBConnector *pubsub = client.newConnector(0);
+    std::shared_ptr<DBConnector> pubsub(client.newConnector(0));
     pubsub->psubscribe(KEYSPACE_PATTERN);
 
     // Set the timeout of the pubsub channel, so future redisGetReply will be impacted
@@ -305,56 +307,61 @@ void DBInterface::_subscribe_keyspace_notification(const std::string& dbName)
         throw RedisError("Failed to redisSetTimeout", pubsub->getContext());
     }
 
-    keyspace_notification_channels.emplace(std::piecewise_construct, std::forward_as_tuple(dbName), std::forward_as_tuple(pubsub));
+    keyspace_notification_channels.emplace(dbName, std::move(pubsub));
 }
 
 // In the event Redis is unavailable, close existing connections, and try again.
 void DBInterface::_connection_error_handler(const std::string& dbName)
 {
     SWSS_LOG_WARN("Could not connect to Redis--waiting before trying again.");
-    int dbId = get_redis_client(dbName).getDbId();
+    const auto& client = get_redis_client(dbName);
+    const int dbId = client.getDbId();
+    const auto *context = client.getContext();
+    const bool tcp = context->connection_type == REDIS_CONN_TCP;
+    const string unixPath = tcp ? "" : context->unix_sock.path;
+    const string host = tcp ? context->tcp.host : "";
+    const int port = tcp ? context->tcp.port : 0;
     close(dbName);
     sleep(CONNECT_RETRY_WAIT_TIME);
-    connect(dbId, dbName, true);
+    // Another database may have changed the shared defaults. Reconnect to the
+    // original process; initContext performs authentication again.
+    _connect(dbId, dbName, true, unixPath, host, port);
 }
 
 void DBInterface::_onetime_connect(int dbId, const string& dbName)
 {
-    if (dbName.empty())
-    {
-        throw invalid_argument("dbName");
-    }
-
-    if (m_unix_socket_path.empty())
-    {
-        m_redisClient.emplace(std::piecewise_construct
-                , std::forward_as_tuple(dbName)
-                , std::forward_as_tuple(dbId, m_host, m_port, 0));
-    }
-    else
-    {
-        m_redisClient.emplace(std::piecewise_construct
-                , std::forward_as_tuple(dbName)
-                , std::forward_as_tuple(dbId, m_unix_socket_path, 0));
-    }
+    _connect(dbId, dbName, false, m_unix_socket_path, m_host, m_port);
 }
 
 // Keep reconnecting to Database 'dbId' until success
 void DBInterface::_persistent_connect(int dbId, const string& dbName)
 {
+    _connect(dbId, dbName, true, m_unix_socket_path, m_host, m_port);
+}
+
+void DBInterface::_connect(int dbId, const string& dbName, bool retry,
+                            const string& unixPath, const string& host, int port)
+{
+    if (dbName.empty()) throw invalid_argument("dbName");
     for (;;)
     {
         try
         {
-            _onetime_connect(dbId, dbName);
+            if (unixPath.empty())
+                m_redisClient.emplace(std::piecewise_construct,
+                    std::forward_as_tuple(dbName), std::forward_as_tuple(dbId, host, port, 0));
+            else
+                m_redisClient.emplace(std::piecewise_construct,
+                    std::forward_as_tuple(dbName), std::forward_as_tuple(dbId, unixPath, 0));
             return;
         }
-        catch (RedisError&)
+        catch (const RedisError&)
         {
-            const int wait = CONNECT_RETRY_WAIT_TIME;
-            SWSS_LOG_WARN("Connecting to DB '%s(%d)' failed, will retry in %d s", dbName.c_str(), dbId, wait);
-            close(dbName);
-            sleep(wait);
+            if (!retry) throw;
         }
+        const int wait = CONNECT_RETRY_WAIT_TIME;
+        SWSS_LOG_WARN("Connecting to DB '%s(%d)' failed, will retry in %d s", dbName.c_str(), dbId, wait);
+        close(dbName);
+        sleep(wait);
     }
 }
