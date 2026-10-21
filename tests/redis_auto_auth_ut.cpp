@@ -14,6 +14,8 @@
 #include "common/dbinterface.h"
 #include "common/notificationconsumer.h"
 #include "common/redispipeline.h"
+#include "common/sonicv2connector.h"
+#include "common/c-api/sonicv2connector.h"
 
 using namespace swss;
 using namespace std;
@@ -251,6 +253,43 @@ TEST_F(RedisAutoAuth, ZeroTcpPortKeepsUnixAuthentication)
     writer(unixDb);
     DBConnector tcp(0, "127.0.0.1", plainPort, 1000);
     EXPECT_THROW(tcp.set("must-not-write", "value"), exception);
+}
+
+TEST_F(RedisAutoAuth, DefaultDatabaseConnectorsUseTheSocketWhenTcpIsDisabled)
+{
+    struct ResetConfig { ~ResetConfig() { SonicDBConfig::reset(); } } reset;
+    const string configPath = temporary + "/database_config.json";
+    for (const bool primaryUnix : {false, true})
+    {
+        const auto instance = [&](bool useUnix) {
+            return nlohmann::json{{"hostname", "127.0.0.1"},
+                {"port", useUnix ? 0 : plainPort},
+                {"unix_socket_path", useUnix ? socketPath : temporary + "/missing.sock"}};
+        };
+        nlohmann::json config = {
+            {"INSTANCES", {{"redis", instance(primaryUnix)}, {"redis_bmp", instance(!primaryUnix)}}},
+            {"DATABASES", {
+                {"CONFIG_DB", {{"id", 4}, {"separator", "|"}, {"instance", "redis"}}},
+                {"BMP_STATE_DB", {{"id", 6}, {"separator", ":"}, {"instance", "redis_bmp"}}}}}};
+        writeFile(configPath, config.dump());
+        SonicDBConfig::reset();
+        SonicDBConfig::initialize(configPath);
+        SonicV2Connector_Native connector;
+        for (const string name : {"CONFIG_DB", "BMP_STATE_DB"})
+        {
+            const bool unixConnection = (name == "CONFIG_DB") == primaryUnix;
+            connector.connect(name, false);
+            EXPECT_EQ(connector.get_redis_client(name).getContext()->connection_type,
+                      unixConnection ? REDIS_CONN_UNIX : REDIS_CONN_TCP);
+            if (unixConnection) writer(connector.get_redis_client(name));
+            SWSSSonicV2Connector cConnector = nullptr;
+            ASSERT_EQ(SWSSSonicV2Connector_new(0, nullptr, &cConnector).exception, SWSSException_None);
+            EXPECT_EQ(SWSSSonicV2Connector_connect(cConnector, name.c_str(), 0).exception, SWSSException_None);
+            EXPECT_EQ(SWSSSonicV2Connector_free(cConnector).exception, SWSSException_None);
+        }
+        if (primaryUnix) { EXPECT_THROW(DBConnector("CONFIG_DB", 100, true), std::system_error); }
+    }
+    unlink(configPath.c_str());
 }
 
 TEST_F(RedisAutoAuth, CApiUsesAutomaticAuthentication)
