@@ -62,6 +62,7 @@ def test_ProducerStateTable():
 
 def test_Table():
     db = swsscommon.DBConnector("APPL_DB", 0, True)
+    db.flushdb()
     tbl = swsscommon.Table(db, "test_TABLE")
     fvs = swsscommon.FieldValuePairs([('a','b'), ('c', 'd')])
     tbl.set("aaa", fvs)
