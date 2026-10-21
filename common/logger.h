@@ -109,6 +109,7 @@ public:
     static std::string priorityToString(Priority prio);
     static std::string outputToString(Output output);
     static void swssOutputNotify(const std::string& component, const std::string& outputStr);
+    static void swssPrioNotify(const std::string& component, const std::string& prioStr);
 
     class ScopeLogger
     {
@@ -146,8 +147,6 @@ private:
     ~Logger();
     Logger(const Logger&);
     Logger& operator=(const Logger&);
-
-    static void swssPrioNotify(const std::string& component, const std::string& prioStr);
 
     void settingThread();
     void terminateSettingThread();
