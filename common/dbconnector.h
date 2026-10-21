@@ -341,7 +341,8 @@ void DBConnector::hgetall(const std::string &key, OutputIterator result)
 
     for (unsigned int i = 0; i < ctx->elements; i += 2)
     {
-        *result = std::make_pair(ctx->element[i]->str, ctx->element[i+1]->str);
+        *result = std::make_pair(std::string(ctx->element[i]->str, ctx->element[i]->len),
+                                  std::string(ctx->element[i + 1]->str, ctx->element[i + 1]->len));
         ++result;
     }
 }
