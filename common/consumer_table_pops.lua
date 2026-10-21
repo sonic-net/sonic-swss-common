@@ -93,7 +93,8 @@ for i = n, 1, -3 do
        op == 'stats_capability_query' or
        op == 'stats_capability_response' or
        op == 'stats_st_capability_query' or
-       op == 'stats_st_capability_response' then
+       op == 'stats_st_capability_response' or
+       op == 'link_event_damping_config_set' then
 
     -- do not modify db entries when spotted those commands, they are used to
     -- trigger actions or get data synchronously from database
