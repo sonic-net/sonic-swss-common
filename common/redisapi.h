@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <poll.h>
 #include <cstring>
+#include <iterator>
 #include <stdexcept>
 #include <vector>
 #include <set>
