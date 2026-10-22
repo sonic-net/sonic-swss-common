@@ -161,6 +161,9 @@ void finishConnection(redisContext *&context, const string& errorPrefix)
         if (context->err)
             throw system_error(make_error_code(errc::address_not_available),
                                errorPrefix + context->errstr + "(" + to_string(context->err) + ")");
+        const int flags = fcntl(context->fd, F_GETFD);
+        if (flags < 0 || fcntl(context->fd, F_SETFD, flags | FD_CLOEXEC) < 0)
+            throw RedisError("Cannot protect Redis connection descriptor", context);
         authenticateLocalWriter(context);
     }
     catch (...)

@@ -1,4 +1,5 @@
 #include <arpa/inet.h>
+#include <fcntl.h>
 #include <grp.h>
 #include <signal.h>
 #include <sys/stat.h>
@@ -236,6 +237,36 @@ TEST_F(RedisAutoAuth, CopiesPipelinesSubscriptionsAndWorkerAuthenticate)
     EXPECT_TRUE(db.exists("AUTO_AUTH:worker"));
 }
 
+TEST_F(RedisAutoAuth, ConnectionsCloseWhenAnOrdinaryChildExecs)
+{
+    DBConnector db(0, socketPath, 1000);
+    DBConnector copy(db);
+    unique_ptr<DBConnector> worker(db.newConnector(1000));
+    for (const auto *connection : {&db, &copy, worker.get()})
+    {
+        const auto fd = connection->getContext()->fd;
+        const int flags = fcntl(fd, F_GETFD);
+        ASSERT_GE(flags, 0);
+        ASSERT_NE(flags & FD_CLOEXEC, 0);
+        const auto descriptor = to_string(fd);
+        pid_t process = fork();
+        ASSERT_GE(process, 0);
+        if (process == 0)
+        {
+            if (setgroups(0, nullptr) || setgid(65534) || setuid(65534)) _exit(2);
+            const char code[] = "import os,sys,errno\ntry: os.fstat(int(sys.argv[1]))\n"
+                                "except OSError as e: sys.exit(0 if e.errno==errno.EBADF else 3)\n"
+                                "sys.exit(1)";
+            execlp("python3", "python3", "-c", code, descriptor.c_str(), static_cast<char *>(nullptr));
+            _exit(4);
+        }
+        int status = 0;
+        ASSERT_EQ(waitpid(process, &status, 0), process);
+        ASSERT_TRUE(WIFEXITED(status));
+        EXPECT_EQ(WEXITSTATUS(status), 0);
+    }
+}
+
 TEST_F(RedisAutoAuth, AbsentPolicyAndOtherEndpointsDoNotAuthenticate)
 {
     policy(0, socketPath + ".other");
@@ -456,6 +487,9 @@ TEST_F(RedisAutoAuth, RecoveryUsesOriginalEndpointAfterDefaultsChange)
     auto& recovered = db.get_redis_client("original");
     EXPECT_EQ(recovered.getContext()->connection_type, REDIS_CONN_UNIX);
     EXPECT_EQ(recovered.getContext()->unix_sock.path, socketPath);
+    const int flags = fcntl(recovered.getContext()->fd, F_GETFD);
+    ASSERT_GE(flags, 0);
+    EXPECT_NE(flags & FD_CLOEXEC, 0);
     writer(recovered);
 }
 }
