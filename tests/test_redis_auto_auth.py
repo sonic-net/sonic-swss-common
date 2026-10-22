@@ -1,10 +1,11 @@
-"""Real native Python logins. Run as root in an isolated test container."""
+"""Real native Python logins. Run with tests/run-redis-auth-tests.sh."""
 
 import json
 import os
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
 import time
 
 import pytest
@@ -12,10 +13,15 @@ import redis
 from swsscommon import swsscommon as swss
 
 
-POLICY_DIR = Path("/run/redis-auth")
+if "REDIS_AUTH_TEST_DIR" not in os.environ:
+    pytest.skip("run tests/run-redis-auth-tests.sh", allow_module_level=True)
+
+# The runner compiles this path into a separate test library. Only the fixture
+# reads the environment; production connections have no runtime path override.
+POLICY_DIR = Path(os.environ["REDIS_AUTH_TEST_DIR"]) / "policy"
 POLICY = POLICY_DIR / "local.json"
 SECRET = POLICY_DIR / "local-system/writer.secret"
-pytestmark = pytest.mark.skipif(os.geteuid() != 0, reason="requires an isolated root test container")
+pytestmark = pytest.mark.skipif(os.geteuid() != 0, reason="requires root for ownership and ordinary-user checks")
 
 
 @pytest.fixture
@@ -27,8 +33,8 @@ def protected_redis(tmp_path):
     swss.SonicDBConfig.reset()
     try:
         # A separate directory lets the non-root child reach the test socket.
-        server_dir = Path("/tmp") / ("redis-auto-python-" + str(os.getpid()))
-        server_dir.mkdir(mode=0o755)
+        server_dir = Path(tempfile.mkdtemp(prefix="redis-auto-python-"))
+        server_dir.chmod(0o755)
         socket_path = server_dir / "redis.sock"
         acl = server_dir / "users.acl"
         acl.write_text("user default on nopass ~* +@read +select +ping\n"

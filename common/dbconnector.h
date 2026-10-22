@@ -3,6 +3,7 @@
 
 #include <string>
 #include <stdexcept>
+#include <system_error>
 #include <vector>
 #include <unordered_map>
 #include <utility>
@@ -29,6 +30,13 @@ class RedisAuthError : public std::runtime_error
 {
 public:
     using std::runtime_error::runtime_error;
+};
+
+// Keep local descriptor failures out of connection retry loops.
+class RedisDescriptorError : public std::system_error
+{
+public:
+    using std::system_error::system_error;
 };
 #endif
 

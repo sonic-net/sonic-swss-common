@@ -21,6 +21,10 @@ using json = nlohmann::json;
 using namespace std;
 using namespace swss;
 
+#ifndef REDIS_AUTH_DIR
+#define REDIS_AUTH_DIR "/run/redis-auth"
+#endif
+
 namespace {
 constexpr size_t KEY_DEL_CHUNK_SIZE = 128;
 
@@ -68,7 +72,7 @@ void authenticateLocalWriter(redisContext *context)
 {
     // This fixed startup-owned file authorizes credential delivery. A caller's
     // database_config.json, environment and command line cannot redirect it.
-    AuthFd directory{open("/run/redis-auth", O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW)};
+    AuthFd directory{open(REDIS_AUTH_DIR, O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW)};
     if (directory.fd < 0)
     {
         if (errno == ENOENT) return; // Feature is not enabled on this image.
@@ -162,8 +166,16 @@ void finishConnection(redisContext *&context, const string& errorPrefix)
             throw system_error(make_error_code(errc::address_not_available),
                                errorPrefix + context->errstr + "(" + to_string(context->err) + ")");
         const int flags = fcntl(context->fd, F_GETFD);
-        if (flags < 0 || fcntl(context->fd, F_SETFD, flags | FD_CLOEXEC) < 0)
-            throw RedisError("Cannot protect Redis connection descriptor", context);
+        if (flags < 0)
+        {
+            const int error = errno;
+            throw RedisDescriptorError(error, generic_category(), "fcntl(F_GETFD) failed on Redis connection");
+        }
+        if (fcntl(context->fd, F_SETFD, flags | FD_CLOEXEC) < 0)
+        {
+            const int error = errno;
+            throw RedisDescriptorError(error, generic_category(), "fcntl(F_SETFD, FD_CLOEXEC) failed on Redis connection");
+        }
         authenticateLocalWriter(context);
     }
     catch (...)

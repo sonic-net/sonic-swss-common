@@ -23,8 +23,11 @@ using namespace std;
 
 namespace
 {
-constexpr char POLICY[] = "/run/redis-auth/local.json";
-constexpr char SECRET[] = "/run/redis-auth/local-system/writer.secret";
+#ifndef REDIS_AUTH_DIR
+#error "Build the authentication fixtures with tests/run-redis-auth-tests.sh"
+#endif
+constexpr char POLICY[] = REDIS_AUTH_DIR "/local.json";
+constexpr char SECRET[] = REDIS_AUTH_DIR "/local-system/writer.secret";
 static_assert(sizeof(RedisContext) == sizeof(void *), "Keep the existing RedisContext layout");
 
 void writeFile(const string& path, const string& contents, mode_t mode = 0644)
@@ -46,10 +49,10 @@ protected:
 
     void SetUp() override
     {
-        if (geteuid() != 0) GTEST_SKIP() << "Run this fixture as root in an isolated container";
-        ASSERT_EQ(mkdir("/run/redis-auth", 0755), 0) << "Do not overwrite an existing runtime policy";
+        if (geteuid() != 0) GTEST_SKIP() << "Run as root to check ownership and ordinary-user access";
+        ASSERT_EQ(mkdir(REDIS_AUTH_DIR, 0755), 0) << "Do not overwrite an existing runtime policy";
         ownsPolicy = true;
-        ASSERT_EQ(mkdir("/run/redis-auth/local-system", 0755), 0);
+        ASSERT_EQ(mkdir(REDIS_AUTH_DIR "/local-system", 0755), 0);
         char name[] = "/tmp/redis-auto-auth-XXXXXX";
         ASSERT_NE(mkdtemp(name), nullptr);
         temporary = name;
@@ -117,8 +120,8 @@ protected:
         {
             unlink(POLICY);
             unlink(SECRET);
-            rmdir("/run/redis-auth/local-system");
-            rmdir("/run/redis-auth");
+            rmdir(REDIS_AUTH_DIR "/local-system");
+            rmdir(REDIS_AUTH_DIR);
         }
         if (!temporary.empty())
         {
