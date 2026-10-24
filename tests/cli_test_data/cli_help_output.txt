@@ -13,7 +13,9 @@ optional arguments:
   -n NAMESPACE, --namespace NAMESPACE
                         Namespace string to use asic0/asic1.../asicn
 
-**sudo** needed for commands accesing a different namespace [-n], or using unixsocket connection [-s]
+A database configured with TCP port 0 uses its Unix socket by default.
+
+**sudo** may be needed for commands accessing a different namespace or Unix socket
 
 Example 1: sonic-db-cli -n asic0 CONFIG_DB keys \*
 Example 2: sonic-db-cli -n asic2 APPL_DB HGETALL VLAN_TABLE:Vlan10

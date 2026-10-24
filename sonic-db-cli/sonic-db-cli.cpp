@@ -27,7 +27,9 @@ void printUsage()
     cout << "  -n NAMESPACE, --namespace NAMESPACE" << endl;
     cout << "                        Namespace string to use asic0/asic1.../asicn" << endl;
     cout << endl;
-    cout << "**sudo** needed for commands accesing a different namespace [-n], or using unixsocket connection [-s]" << endl;
+    cout << "A database configured with TCP port 0 uses its Unix socket by default." << endl;
+    cout << endl;
+    cout << "**sudo** may be needed for commands accessing a different namespace or Unix socket" << endl;
     cout << endl;
     cout << "Example 1: sonic-db-cli -n asic0 CONFIG_DB keys \\*" << endl;
     cout << "Example 2: sonic-db-cli -n asic2 APPL_DB HGETALL VLAN_TABLE:Vlan10" << endl;
@@ -50,6 +52,7 @@ string handleSingleOperation(
     try
     {
         auto db_id =  SonicDBConfig::getDbId(db_name, netns);
+        useUnixSocket = useUnixSocket || SonicDBConfig::getDbPort(db_name, netns) == 0;
         if (useUnixSocket && host != "redis_chassis.server")
         {
             auto db_socket = SonicDBConfig::getDbSock(db_name, netns);
@@ -142,6 +145,7 @@ int executeCommands(
     {
         int db_id =  SonicDBConfig::getDbId(db_name, netns);
         auto host = SonicDBConfig::getDbHostname(db_name, netns);
+        useUnixSocket = useUnixSocket || SonicDBConfig::getDbPort(db_name, netns) == 0;
         if (useUnixSocket && host != "redis_chassis.server")
         {
             auto db_socket = SonicDBConfig::getDbSock(db_name, netns);
