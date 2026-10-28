@@ -7,6 +7,7 @@
 #include <vector>
 #include <unordered_map>
 #include <utility>
+#include <set>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -54,6 +55,7 @@ public:
     std::string instName;
     int dbId;
     std::string separator;
+    std::set<std::string> eventTables;
 };
 
 struct SonicDBKey
@@ -138,6 +140,8 @@ public:
     static std::string getSeparator(int dbId, const std::string &netns = EMPTY_NAMESPACE, const std::string &containerName=EMPTY_CONTAINERNAME);
     static std::string getSeparator(int dbId, const SonicDBKey &key);
     static std::string getSeparator(const DBConnector* db);
+    static std::set<std::string> getEventTables(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE, const std::string &containerName=EMPTY_CONTAINERNAME);
+    static std::set<std::string> getEventTables(const std::string &dbName, const SonicDBKey &key);
     static std::string getDbSock(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE, const std::string &containerName=EMPTY_CONTAINERNAME);
     static std::string getDbSock(const std::string &dbName, const SonicDBKey &key);
     static std::string getDbHostname(const std::string &dbName, const std::string &netns = EMPTY_NAMESPACE, const std::string &containerName=EMPTY_CONTAINERNAME);
