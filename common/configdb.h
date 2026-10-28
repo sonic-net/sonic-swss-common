@@ -24,6 +24,8 @@ public:
     std::map<std::string, std::map<std::string, std::string>> get_table(std::string table);
     void delete_table(std::string table);
     virtual void mod_config(const std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>& data);
+    virtual void mod_config(const std::unordered_map<std::string, std::map<std::string, std::map<std::string, std::string>>>& data,
+                            const std::vector<std::string>& order);
     virtual std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> get_config();
 
     std::string getKeySeparator() const;
@@ -235,7 +237,7 @@ func NewConfigDBConnector(a ...interface{}) *ConfigDBConnector {
                     raw_key = self.serialize_key(key)
                     raw_data = self.typed_to_raw(data)
                     raw_config[table_name][raw_key] = raw_data
-            super(ConfigDBConnector, self).mod_config(raw_config)
+            super(ConfigDBConnector, self).mod_config(raw_config, list(raw_config))
 
         def mod_entry(self, table, key, data):
             key = self.serialize_key(key)
@@ -331,6 +333,8 @@ public:
 
     void set_entry(std::string table, std::string key, const std::map<std::string, std::string>& data) override;
     void mod_config(const std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>& data) override;
+    void mod_config(const std::unordered_map<std::string, std::map<std::string, std::map<std::string, std::string>>>& data,
+                    const std::vector<std::string>& order) override;
     std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> get_config() override;
 
 private:
