@@ -19,6 +19,7 @@ EXTRA_DIST =
 include common/Makefile.am
 include pyext/Makefile.am
 include sonic-db-cli/Makefile.am
+include test_zmq_memory/Makefile.am
 include tests/Makefile.am
 
 
