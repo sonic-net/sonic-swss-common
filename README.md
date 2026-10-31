@@ -117,3 +117,41 @@ For example:
 * Use a pull request to do code review
 * Use issues to keep track of what is going on
 
+
+## Native Redis connections for language clients
+
+Client authentication belongs to the C++ implementation in this repository.
+`openRedisUnixSocket(path, connect_timeout_ms, auth_timeout_ms)` opens and
+matches the requested Unix endpoint, performs writer login when authorized,
+and returns an owned close-on-exec file descriptor without selecting a DB.
+A caller without credential access keeps the default reader account. The
+caller closes the descriptor; credentials do not cross the binding boundary.
+
+Python raw-client operations can use `swsscommon.redis.connection_pool()`.
+Pass database, encoding and socket timeout options to that pool, then pass it
+to `redis.Redis(connection_pool=pool)`. Each pool connection authenticates in
+C++ before redis-py performs SELECT or application commands, including after
+reconnect. Use DBConnector, SonicV2Connector or ConfigDBConnector directly when
+their existing operations meet the caller's needs.
+
+The Go package `goext/redisconn` wraps the C API and returns a `net.Conn` from
+the same native Unix factory. `WrapDialer` preserves TCP/TLS and custom TCP
+dialers, but rejects custom Unix dialers and TLS on Unix sockets. Cancellation
+is checked before and after the blocking native call; immediate cancellation
+within that call remains a review limitation. Rust exposes the owned native
+socket as `OwnedFd`. These bindings do not read policy or credential files.
+
+`checkRedisTcpEndpoint` applies the native policy's rejection of selected TCP
+writer endpoints before a raw client's normal TCP/TLS dialing. Protected TCP
+remains outside this Unix-only implementation.
+
+`exportRedisRdb` uses the native Unix factory and streams a SYNC snapshot to a
+temporary file with mode 0600. It replaces the requested destination only after
+the full advertised payload has arrived and been synced to disk. This preserves
+native RDB output without passing a password to redis-cli or to Python.
+
+Run `tests/run-redis-auth-tests.sh` as root in an isolated test container. The
+runner compiles a separate library with a temporary policy path; production
+packages retain their fixed runtime path. Python bindings and the Go package
+must be built against the matching native headers and library. These component
+checks do not establish installed-image or hardware qualification.

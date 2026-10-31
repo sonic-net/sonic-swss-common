@@ -21,6 +21,21 @@
 
 namespace swss {
 
+// Return an authenticated Unix connection owned by the caller. No database is selected.
+// Timeouts are milliseconds; zero means no timeout. The returned descriptor is
+// close-on-exec and must be closed by the caller.
+int openRedisUnixSocket(const std::string &path, unsigned int connectTimeoutMs = 0,
+                        unsigned int authTimeoutMs = 0);
+
+// Stream a native RDB snapshot over an authenticated Unix connection. The
+// destination is replaced atomically only after the full payload is received.
+void exportRedisRdb(const std::string &path, const std::string &destination,
+                    unsigned int timeoutMs = 60000);
+
+// Apply the native policy's rejection of selected TCP writer endpoints without
+// reading credentials or changing the caller's TCP/TLS connection handling.
+void checkRedisTcpEndpoint(const std::string &host, int port);
+
 class DBConnector;
 class PubSub;
 

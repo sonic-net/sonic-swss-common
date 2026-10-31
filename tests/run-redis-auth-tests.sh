@@ -25,3 +25,11 @@ make -o common/cfg_schema.h REDIS_AUTH_TEST_DIR="$REDIS_AUTH_TEST_DIR" tests/red
 ln -s "$PWD/tests/.libs/libswsscommon-auth-test.so" "$REDIS_AUTH_TEST_DIR/libswsscommon.so.0"
 LD_LIBRARY_PATH="$REDIS_AUTH_TEST_DIR${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
     PYTHONDONTWRITEBYTECODE=1 python3 -m pytest -q -o addopts= tests/test_redis_auto_auth.py
+
+if command -v go >/dev/null 2>&1; then
+    ln -s "$PWD/tests/.libs/libswsscommon-auth-test.so" "$REDIS_AUTH_TEST_DIR/libswsscommon.so"
+    CGO_CFLAGS="-I$PWD/common/c-api ${CGO_CFLAGS:-}" \
+        CGO_LDFLAGS="-L$REDIS_AUTH_TEST_DIR ${CGO_LDFLAGS:-}" \
+        LD_LIBRARY_PATH="$REDIS_AUTH_TEST_DIR:$PWD/tests/.libs${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
+        go test -count=1 ./goext/redisconn
+fi

@@ -496,3 +496,40 @@ TEST_F(RedisAutoAuth, RecoveryUsesOriginalEndpointAfterDefaultsChange)
     writer(recovered);
 }
 }
+
+TEST_F(RedisAutoAuth, ExportedSocketRemainsAuthenticatedAfterNativeContextIsFreed)
+{
+    int fd = openRedisUnixSocket(socketPath, 1000, 1000);
+    ASSERT_GE(fd, 0);
+    EXPECT_NE(fcntl(fd, F_GETFD) & FD_CLOEXEC, 0);
+    redisContext *context = redisConnectFd(fd);
+    ASSERT_NE(context, nullptr);
+    auto *reply = static_cast<redisReply *>(redisCommand(context, "ACL WHOAMI"));
+    ASSERT_NE(reply, nullptr);
+    EXPECT_EQ(string(reply->str, reply->len), "test-writer");
+    freeReplyObject(reply);
+    reply = static_cast<redisReply *>(redisCommand(context, "SET native-export works"));
+    ASSERT_NE(reply, nullptr);
+    EXPECT_EQ(reply->type, REDIS_REPLY_STATUS);
+    freeReplyObject(reply);
+    redisFree(context);
+}
+
+TEST_F(RedisAutoAuth, ExportedSocketCapiDoesNotReturnAHandleOnAuthenticationFailure)
+{
+    writeFile(SECRET, "wrong-password", 0400);
+    int32_t fd = 123;
+    auto result = SWSSRedisSocket_open_unix(socketPath.c_str(), 1000, 1000, &fd);
+    EXPECT_NE(result.exception, SWSSException_None);
+    EXPECT_EQ(fd, -1);
+    SWSSString_free(result.message);
+    SWSSString_free(result.location);
+}
+
+TEST_F(RedisAutoAuth, ExportedTcpCheckUsesNativePolicyWithoutOpeningThePassword)
+{
+    policy(plainPort);
+    unlink(SECRET);
+    EXPECT_THROW(checkRedisTcpEndpoint("127.0.0.1", plainPort), RedisAuthError);
+    EXPECT_NO_THROW(checkRedisTcpEndpoint("127.0.0.1", plainPort + 1));
+}
