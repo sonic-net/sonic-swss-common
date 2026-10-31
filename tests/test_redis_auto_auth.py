@@ -41,7 +41,7 @@ def protected_redis(tmp_path):
                        "user python-writer on >python-password ~* +@all\n")
         acl.chmod(0o600)
         server = subprocess.Popen(
-            ["redis-server", "--port", "0", "--unixsocket", str(socket_path), "--unixsocketperm", "777",
+            ["redis-server", "--dir", str(server_dir), "--port", "0", "--unixsocket", str(socket_path), "--unixsocketperm", "777",
              "--save", "", "--appendonly", "no", "--aclfile", str(acl)],
             stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
         control = redis.Redis(unix_socket_path=str(socket_path),
@@ -155,7 +155,7 @@ def test_two_selected_local_processes_use_the_boot_secret(protected_redis):
                              "user secondary-writer on >python-password ~* +@all\n")
     secondary_acl.chmod(0o600)
     server = subprocess.Popen(
-        ["redis-server", "--port", "0", "--unixsocket", str(secondary_socket),
+        ["redis-server", "--dir", str(secondary_dir), "--port", "0", "--unixsocket", str(secondary_socket),
          "--unixsocketperm", "777", "--save", "", "--appendonly", "no",
          "--aclfile", str(secondary_acl)],
         stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
@@ -208,3 +208,101 @@ for path in sys.argv[1:]:
         server.wait(timeout=10)
         secondary_acl.unlink(missing_ok=True)
         secondary_socket.unlink(missing_ok=True)
+
+
+def test_native_pool_preserves_binary_transactions_and_reconnect(protected_redis):
+    from swsscommon.redis import connection_pool
+    control, socket_path, _ = protected_redis
+    pool = connection_pool(unix_socket_path=socket_path, db=6)
+    client = redis.Redis(connection_pool=pool)
+    try:
+        with client.pipeline() as transaction:
+            transaction.set(b"binary\x00key", b"\x00\xffvalue")
+            transaction.get(b"binary\x00key")
+            assert transaction.execute() == [True, b"\x00\xffvalue"]
+        pool.disconnect()
+        assert client.get(b"binary\x00key") == b"\x00\xffvalue"
+        assert control.execute_command("SELECT", 6)
+        assert control.get(b"binary\x00key") == b"\x00\xffvalue"
+    finally:
+        pool.disconnect()
+
+
+def test_native_pool_authentication_failure_is_not_anonymous_fallback(protected_redis):
+    from swsscommon.redis import connection_pool
+    _, socket_path, _ = protected_redis
+    SECRET.write_bytes(b"wrong-password")
+    pool = connection_pool(unix_socket_path=socket_path, db=6)
+    try:
+        with pytest.raises(RuntimeError, match="authentication failed"):
+            redis.Redis(connection_pool=pool).ping()
+    finally:
+        pool.disconnect()
+
+
+def test_native_rdb_export_preserves_replication_format_and_failure_target(protected_redis, tmp_path):
+    control, socket_path, _ = protected_redis
+    control.set('rdb-native-export', b'\x00\xffnative-value')
+    target = tmp_path / 'snapshot.rdb'
+    swss.exportRedisRdb(socket_path, str(target), 10000)
+    assert target.read_bytes().startswith(b'REDIS')
+    subprocess.run(['redis-check-rdb', str(target)], check=True, capture_output=True)
+    saved = target.read_bytes()
+    SECRET.write_bytes(b'wrong-password')
+    with pytest.raises(RuntimeError):
+        swss.exportRedisRdb(socket_path, str(target), 1000)
+    assert target.read_bytes() == saved
+
+
+def test_native_rdb_truncation_keeps_existing_destination(protected_redis, tmp_path):
+    import socket
+    import threading
+    endpoint = str(tmp_path / 'partial.sock')
+    destination = tmp_path / 'existing.rdb'
+    destination.write_bytes(b'preserve-existing-snapshot')
+    with socket.socket(socket.AF_UNIX) as server:
+        server.bind(endpoint)
+        server.listen(1)
+        server.settimeout(3)
+
+        def truncate():
+            with server.accept()[0] as connection:
+                payload = b''
+                while not payload.endswith(b'SYNC\r\n'):
+                    part = connection.recv(128)
+                    if not part:
+                        return
+                    payload += part
+                connection.sendall(b'$100\r\nshort')
+
+        worker = threading.Thread(target=truncate)
+        worker.start()
+        try:
+            with pytest.raises(RuntimeError, match='advertised length'):
+                swss.exportRedisRdb(endpoint, str(destination), 1000)
+        finally:
+            worker.join(timeout=4)
+        assert not worker.is_alive()
+    assert destination.read_bytes() == b'preserve-existing-snapshot'
+    assert list(tmp_path.glob('existing.rdb.*')) == []
+
+
+def test_native_pool_ordinary_reader_cannot_write(protected_redis):
+    control, socket_path, _ = protected_redis
+    control.set('native-reader', 'readable')
+    code = '''
+import sys, redis
+from swsscommon.redis import connection_pool
+client = redis.Redis(connection_pool=connection_pool(unix_socket_path=sys.argv[1]))
+assert client.get('native-reader') == b'readable'
+try:
+    client.set('native-reader', 'forbidden')
+except redis.exceptions.ResponseError:
+    pass
+else:
+    raise AssertionError('ordinary native-pool write was allowed')
+'''
+    result = subprocess.run([sys.executable, '-c', code, socket_path],
+                            user=65534, group=65534, extra_groups=[], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    assert control.get('native-reader') == b'readable'

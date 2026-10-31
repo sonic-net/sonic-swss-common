@@ -1,5 +1,11 @@
+#include <arpa/inet.h>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
+#include <netinet/in.h>
+#include <stdexcept>
+#include <string>
+#include <sys/socket.h>
 #include <unistd.h>
 #include <vector>
 
@@ -489,20 +495,61 @@ TEST(c_api, ZmqConsumerProducerStateTable) {
     clearDB();
     SWSSStringManager sm;
 
+    auto availableTcpEndpoint = [] {
+        int fd = socket(AF_INET, SOCK_STREAM, 0);
+        if (fd < 0)
+            throw runtime_error("Could not create test TCP socket");
+        sockaddr_in address{};
+        address.sin_family = AF_INET;
+        address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+        address.sin_port = 0;
+        socklen_t length = sizeof(address);
+        if (bind(fd, reinterpret_cast<sockaddr *>(&address), length) != 0 ||
+            getsockname(fd, reinterpret_cast<sockaddr *>(&address), &length) != 0) {
+            close(fd);
+            throw runtime_error("Could not select test TCP port");
+        }
+        close(fd);
+        return "tcp://127.0.0.1:" + to_string(ntohs(address.sin_port));
+    };
+
     SWSSDBConnector db;
     SWSSDBConnector_new_named("TEST_DB", 1000, true, &db);
 
-    SWSSZmqServer srv;
-    SWSSZmqServer_new("tcp://127.0.0.1:42312", &srv);
+    SWSSZmqServer srv = nullptr;
+    string endpoint;
+    string serverError;
+    // Another process can claim the selected port before ZeroMQ binds it.
+    for (int attempt = 0; attempt < 10 && !srv; ++attempt) {
+        endpoint = availableTcpEndpoint();
+        SWSSResult result = SWSSZmqServer_new(endpoint.c_str(), &srv);
+        if (result.exception != SWSSException_None) {
+            serverError = result.message
+                ? SWSSStrRef_c_str((SWSSStrRef)result.message)
+                : "ZMQ server creation failed";
+            SWSSString_free(result.message);
+            SWSSString_free(result.location);
+        }
+    }
+    ASSERT_NE(nullptr, srv) << serverError;
     SWSSZmqClient cli;
-    SWSSZmqClient_new("tcp://127.0.0.1:42312", &cli);
+    ASSERT_EQ(SWSSException_None,
+              SWSSZmqClient_new(endpoint.c_str(), &cli).exception);
     int8_t isConnected;
     SWSSZmqClient_isConnected(cli, &isConnected);
     ASSERT_TRUE(isConnected);
     SWSSZmqClient_connect(cli);
 
-    SWSSZmqProducerStateTable pst;
-    SWSSZmqProducerStateTable_new(db, "mytable", cli, false, &pst);
+    SWSSZmqProducerStateTable pst = nullptr;
+    SWSSResult producerResult = SWSSZmqProducerStateTable_new(db, "mytable", cli, false, &pst);
+    if (producerResult.exception != SWSSException_None) {
+        string message = producerResult.message
+            ? SWSSStrRef_c_str((SWSSStrRef)producerResult.message)
+            : "ZMQ producer creation failed";
+        SWSSString_free(producerResult.message);
+        SWSSString_free(producerResult.location);
+        FAIL() << message;
+    }
     SWSSZmqConsumerStateTable cst;
     SWSSZmqConsumerStateTable_new(db, "mytable", srv, nullptr, nullptr, &cst);
 

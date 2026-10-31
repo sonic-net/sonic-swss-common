@@ -7,6 +7,15 @@
 #include <getopt.h>
 #include "common/dbconnector.h"
 #include "sonic-db-cli/sonic-db-cli.h"
+#include <unistd.h>
+#include <chrono>
+#include <nlohmann/json.hpp>
+#include <signal.h>
+#include <spawn.h>
+#include <sys/wait.h>
+#include <thread>
+
+extern char **environ;
 
 using namespace swss;
 using namespace std;
@@ -617,3 +626,209 @@ TEST(sonic_db_cli, test_cli_not_throw_exception)
 
     EXPECT_EQ(1, exit_code);
 }
+
+namespace
+{
+
+class TemporaryRedis
+{
+public:
+    TemporaryRedis()
+    {
+        char name[] = "/tmp/swss-cli-redis-XXXXXX";
+        auto dir = mkdtemp(name);
+        if (!dir)
+            throw runtime_error("Could not create test Redis directory");
+        directory = dir;
+        socket = directory + "/redis.sock";
+
+        char* argv[] = {
+            const_cast<char*>("redis-server"),
+            const_cast<char*>("--port"), const_cast<char*>("0"),
+            const_cast<char*>("--databases"), const_cast<char*>("16"),
+            const_cast<char*>("--unixsocket"), const_cast<char*>(socket.c_str()),
+            const_cast<char*>("--dir"), const_cast<char*>(directory.c_str()),
+            const_cast<char*>("--save"), const_cast<char*>(""),
+            const_cast<char*>("--appendonly"), const_cast<char*>("no"),
+            const_cast<char*>("--logfile"), const_cast<char*>("/dev/null"),
+            nullptr};
+        if (posix_spawnp(&pid, "redis-server", nullptr, nullptr, argv, environ) != 0)
+        {
+            rmdir(directory.c_str());
+            throw runtime_error("Could not start test Redis server");
+        }
+
+        for (int attempt = 0; attempt < 100; ++attempt)
+        {
+            if (access(socket.c_str(), F_OK) == 0)
+                return;
+            int status;
+            if (waitpid(pid, &status, WNOHANG) == pid)
+            {
+                pid = -1;
+                break;
+            }
+            this_thread::sleep_for(chrono::milliseconds(50));
+        }
+        stop();
+        throw runtime_error("Test Redis socket did not become available");
+    }
+
+    ~TemporaryRedis()
+    {
+        stop();
+    }
+
+    const string& socketPath() const { return socket; }
+
+private:
+    void stop()
+    {
+        if (pid > 0)
+        {
+            kill(pid, SIGTERM);
+            waitpid(pid, nullptr, 0);
+        }
+        unlink(socket.c_str());
+        rmdir(directory.c_str());
+    }
+
+    string directory;
+    string socket;
+    pid_t pid = -1;
+};
+
+class CliSocketTest : public ::testing::Test
+{
+protected:
+    using json = nlohmann::json;
+    json configuration;
+    vector<string> files;
+
+    void SetUp() override
+    {
+        configuration = json::parse(readFileContent(config_file));
+        configuration["INSTANCES"]["redis"]["port"] = 0;
+        load(configuration);
+    }
+
+    string writeConfig(const json& document)
+    {
+        char name[] = "/tmp/swss-cli-config-XXXXXX";
+        int fd = mkstemp(name);
+        if (fd < 0)
+            throw runtime_error("Could not create test database configuration");
+        close(fd);
+        files.emplace_back(name);
+        ofstream output(name);
+        output << document.dump();
+        output.close();
+        if (!output.good())
+            throw runtime_error("Could not write test database configuration");
+        return name;
+    }
+
+    void load(const json& host, const json* ns = nullptr)
+    {
+        auto hostPath = writeConfig(host);
+        auto hostName = hostPath.substr(hostPath.find_last_of('/') + 1);
+        json includes = json::array({{{"include", hostName}}});
+        if (ns)
+        {
+            auto nsPath = writeConfig(*ns);
+            auto nsName = nsPath.substr(nsPath.find_last_of('/') + 1);
+            includes.push_back({{"namespace", "asic0"}, {"include", nsName}});
+        }
+        auto globalPath = writeConfig({{"INCLUDES", includes}, {"VERSION", "1.0"}});
+        SonicDBConfig::reset();
+        SonicDBConfig::initialize(hostPath);
+        SonicDBConfig::initializeGlobalConfig(globalPath);
+    }
+
+    void TearDown() override
+    {
+        SonicDBConfig::reset();
+        SonicDBConfig::initialize(config_file);
+        SonicDBConfig::initializeGlobalConfig(global_config_file);
+        for (const auto& file : files)
+            unlink(file.c_str());
+    }
+
+    string run(vector<string> arguments, int expected = 0)
+    {
+        vector<char*> argv;
+        for (auto& argument : arguments)
+            argv.push_back(const_cast<char*>(argument.c_str()));
+        return runCli(static_cast<int>(argv.size()), argv.data(), expected);
+    }
+};
+
+TEST_F(CliSocketTest, PortZeroDoesNotOverrideDefaultTcpSelection)
+{
+    testing::internal::CaptureStderr();
+    EXPECT_EQ("", run({"sonic-db-cli", "APPL_DB", "PING"}, 1));
+    EXPECT_FALSE(testing::internal::GetCapturedStderr().empty());
+    EXPECT_EQ("True\n", run({"sonic-db-cli", "-s", "APPL_DB", "PING"}));
+}
+
+TEST_F(CliSocketTest, AllInstancesUseExplicitSocketSelection)
+{
+    EXPECT_EQ("PONG\n", run({"sonic-db-cli", "-s", "PING"}));
+}
+
+TEST_F(CliSocketTest, EnabledTcpDoesNotRequireSocketAccess)
+{
+    configuration["INSTANCES"]["redis"]["port"] = 6379;
+    configuration["INSTANCES"]["redis"]["unix_socket_path"] = files.front() + ".sock";
+    load(configuration);
+    EXPECT_EQ("True\n", run({"sonic-db-cli", "APPL_DB", "PING"}));
+}
+
+TEST_F(CliSocketTest, ExplicitSocketRetainsItsExistingBehavior)
+{
+    configuration["INSTANCES"]["redis"]["port"] = 1;
+    load(configuration);
+    EXPECT_EQ("True\n", run({"sonic-db-cli", "-s", "APPL_DB", "PING"}));
+}
+
+TEST_F(CliSocketTest, NamespaceRetainsItsSocketBackend)
+{
+    TemporaryRedis namespaceRedis;
+    configuration["INSTANCES"]["redis"]["port"] = 6379;
+    auto ns = configuration;
+    ns["INSTANCES"]["redis"]["port"] = 0;
+    ns["INSTANCES"]["redis"]["unix_socket_path"] = namespaceRedis.socketPath();
+    load(configuration, &ns);
+    DBConnector host(15, "/var/run/redis/redis.sock", 100);
+    DBConnector selected(15, namespaceRedis.socketPath(), 100);
+    ASSERT_TRUE(host.set("socket-test-sentinel", "host"));
+    ASSERT_TRUE(selected.set("socket-test-sentinel", "namespace"));
+    EXPECT_EQ("namespace\n", run({"sonic-db-cli", "-n", "asic0", "TEST_DB",
+                                 "GET", "socket-test-sentinel"}));
+    EXPECT_EQ("True\n", run({"sonic-db-cli", "-n", "asic0", "TEST_DB",
+                            "SET", "socket-test-sentinel", "updated"}));
+    EXPECT_EQ("host", *host.get("socket-test-sentinel"));
+    EXPECT_EQ("updated", *selected.get("socket-test-sentinel"));
+    host.del("socket-test-sentinel");
+    selected.del("socket-test-sentinel");
+}
+
+TEST_F(CliSocketTest, UnavailableConfiguredSocketFails)
+{
+    configuration["INSTANCES"]["redis"]["unix_socket_path"] = files.front() + ".sock";
+    load(configuration);
+    testing::internal::CaptureStderr();
+    EXPECT_EQ("", run({"sonic-db-cli", "-s", "APPL_DB", "PING"}, 1));
+    EXPECT_FALSE(testing::internal::GetCapturedStderr().empty());
+}
+
+TEST_F(CliSocketTest, MissingSocketConfigurationFails)
+{
+    configuration["INSTANCES"]["redis"].erase("unix_socket_path");
+    load(configuration);
+    testing::internal::CaptureStderr();
+    EXPECT_EQ("", run({"sonic-db-cli", "-s", "APPL_DB", "PING"}, 1));
+    EXPECT_FALSE(testing::internal::GetCapturedStderr().empty());
+}
+
+} // namespace

@@ -10,6 +10,11 @@ extern "C" {
 
 #include <stdint.h>
 
+// On success the caller owns *outFd. On failure *outFd is -1.
+SWSSResult SWSSRedisSocket_open_unix(const char *path, uint32_t connectTimeoutMs,
+                                    uint32_t authTimeoutMs, int32_t *outFd);
+SWSSResult SWSSRedisSocket_check_tcp(const char *host, int32_t port);
+
 SWSSResult SWSSSonicDBConfig_initialize(const char *path);
 
 SWSSResult SWSSSonicDBConfig_initializeGlobalConfig(const char *path, uint8_t ignore_nonexistent);

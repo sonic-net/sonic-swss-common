@@ -9,6 +9,22 @@
 using namespace swss;
 using namespace std;
 
+SWSSResult SWSSRedisSocket_open_unix(const char *path, uint32_t connectTimeoutMs,
+                                    uint32_t authTimeoutMs, int32_t *outFd) {
+    if (outFd) *outFd = -1;
+    SWSSTry({
+        if (!path || !outFd) throw std::invalid_argument("Redis socket output and path are required");
+        *outFd = openRedisUnixSocket(path, connectTimeoutMs, authTimeoutMs);
+    });
+}
+
+SWSSResult SWSSRedisSocket_check_tcp(const char *host, int32_t port) {
+    SWSSTry({
+        if (!host) throw std::invalid_argument("Redis TCP host is required");
+        checkRedisTcpEndpoint(host, port);
+    });
+}
+
 SWSSResult SWSSSonicDBConfig_initialize(const char *path) {
     SWSSTry(SonicDBConfig::initialize(path));
 }
