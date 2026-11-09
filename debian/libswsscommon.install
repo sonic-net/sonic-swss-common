@@ -2,3 +2,4 @@ usr/lib/*/lib*.so.*
 usr/share/swss/*.lua
 var/run/redis/sonic-db/database_config.json
 usr/bin/swssloglevel
+usr/bin/generate_port_config.sh

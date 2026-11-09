@@ -5,6 +5,7 @@ dist_swss_DATA = \
     common/consumer_table_pops.lua \
     common/producer_state_table_apply_view.lua \
     common/table_dump.lua \
+    common/port_config_dump.lua \
     common/portcounter.lua \
     common/fdb_flush.lua \
     common/fdb_flush.v2.lua
@@ -15,6 +16,7 @@ swssdir = $(datadir)/swss
 swsscommondir = /var/run/redis/sonic-db
 
 bin_PROGRAMS += common/swssloglevel
+dist_bin_SCRIPTS = common/generate_port_config.sh
 
 # Generate cfg_schema.h before building the library
 BUILT_SOURCES = common/cfg_schema.h
