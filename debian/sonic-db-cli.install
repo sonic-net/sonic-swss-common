@@ -1,1 +1,2 @@
 usr/bin/sonic-db-cli
+usr/bin/generate_port_config.sh

@@ -29,9 +29,15 @@ fi
 
 generation_failed()
 {
-    rm -f -- "$port_config"
     echo "Failed to generate port map from CONFIG_DB: $port_config" >&2
     exit 1
+}
+
+append_rows()
+{
+    local rows
+    rows=$(sonic-db-cli -- CONFIG_DB EVAL "$script" 0 "$@") &&
+        printf '%s\n' "$rows" >> "$temp_config"
 }
 
 if ! mkdir -p -m 0755 -- "$(dirname -- "$port_config")"; then
@@ -44,16 +50,20 @@ if ! script=$(cat /usr/share/swss/port_config_dump.lua); then
     exit 1
 fi
 
+temp_config=$(mktemp -- "${port_config}.XXXXXX") || generation_failed
+trap 'rm -f -- "$temp_config"' EXIT
+trap 'exit 1' HUP INT TERM
 status=0
 header=$'# name\tlanes\talias\t'
 [ -n "$index_arg" ] && header+=$'index\t'
-printf '%sspeed\n' "$header" > "$port_config" || generation_failed
-if ! error=$(sonic-db-cli -- CONFIG_DB EVAL "$script" 0 "$index_arg" 2>&1 >> "$port_config"); then
+printf '%sspeed\n' "$header" > "$temp_config" || generation_failed
+if ! error=$(append_rows "$index_arg" 2>&1); then
     echo "$error" >&2
     [[ "$error" == *", reason: MISSING_PORT_INDEX "* ]] || generation_failed
-    printf '# name\tlanes\talias\tspeed\n' > "$port_config" || generation_failed
-    sonic-db-cli -- CONFIG_DB EVAL "$script" 0 >> "$port_config" || generation_failed
+    printf '# name\tlanes\talias\tspeed\n' > "$temp_config" || generation_failed
+    append_rows || generation_failed
     status=3
 fi
-grep -q '^[^#[:space:]]' "$port_config" || generation_failed
+grep -q '^[^#[:space:]]' "$temp_config" || generation_failed
+chmod 0644 -- "$temp_config" && mv -fT -- "$temp_config" "$port_config" || generation_failed
 exit "$status"
