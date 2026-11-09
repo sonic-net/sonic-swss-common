@@ -10,7 +10,7 @@ local rows = {}
 for _, key in ipairs(keys) do
     local name = key:sub(6)
     local values = redis.call("HMGET", key, "lanes", "alias", "speed", "index")
-    local row = {name, values[1], values[2] or name, values[3]}
+    local row = {name, values[1], values[2] ~= "" and values[2] or name, values[3]}
     if include_index then
         if not values[4] or values[4] == "" then
             return redis.error_reply("MISSING_PORT_INDEX Missing port index: " .. name)

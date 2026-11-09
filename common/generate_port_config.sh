@@ -22,7 +22,7 @@ shift "$((OPTIND - 1))"
 
 port_config=$1
 if [ "$force" = false ] && [ -e "$port_config" ]; then
-    if [ -n "$index_arg" ] && ! awk -F '[ ]' '/^#/ {next} NF != 5 || $4 == "" {exit 1} {rows++} END {if (!rows) exit 1}' "$port_config"; then
+    if [ -n "$index_arg" ] && ! awk '/^#/ {next} NF != 5 || $4 == "" {exit 1} {rows++} END {if (!rows) exit 1}' "$port_config"; then
         echo "Cached port map lacks indices: $port_config (use -f to regenerate)" >&2
         exit 3
     fi
