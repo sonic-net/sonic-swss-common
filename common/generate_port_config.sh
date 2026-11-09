@@ -22,7 +22,7 @@ shift "$((OPTIND - 1))"
 
 port_config=$1
 if [ "$force" = false ] && [ -e "$port_config" ]; then
-    if [ -n "$index_arg" ] && ! awk -F '\t' '/^#/ {next} NF != 5 || $4 == "" {exit 1} {rows++} END {if (!rows) exit 1}' "$port_config"; then
+    if [ -n "$index_arg" ] && ! awk -F '[ ]' '/^#/ {next} NF != 5 || $4 == "" {exit 1} {rows++} END {if (!rows) exit 1}' "$port_config"; then
         echo "Cached port map lacks indices: $port_config (use -f to regenerate)" >&2
         exit 3
     fi
@@ -56,13 +56,13 @@ temp_config=$(mktemp -- "${port_config}.XXXXXX") || generation_failed
 trap 'rm -f -- "$temp_config"' EXIT
 trap 'exit 1' HUP INT TERM
 status=0
-header=$'# name\tlanes\talias\t'
-[ -n "$index_arg" ] && header+=$'index\t'
+header='# name lanes alias '
+[ -n "$index_arg" ] && header+='index '
 printf '%sspeed\n' "$header" > "$temp_config" || generation_failed
 if ! error=$(append_rows "$index_arg" 2>&1); then
     echo "$error" >&2
     [[ "$error" == *", reason: MISSING_PORT_INDEX "* ]] || generation_failed
-    printf '# name\tlanes\talias\tspeed\n' > "$temp_config" || generation_failed
+    printf '# name lanes alias speed\n' > "$temp_config" || generation_failed
     append_rows || generation_failed
     status=3
 fi

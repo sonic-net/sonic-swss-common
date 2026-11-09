@@ -17,6 +17,6 @@ for _, key in ipairs(keys) do
         end
         table.insert(row, 4, values[4])
     end
-    table.insert(rows, table.concat(row, "\t"))
+    table.insert(rows, table.concat(row, " "))
 end
 return rows
