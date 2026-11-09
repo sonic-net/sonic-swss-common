@@ -2,16 +2,18 @@
 
 usage()
 {
-    echo "Usage: $0 [-f] [-i] <port_config.ini>" >&2
+    echo "Usage: $0 [-f] [-i] [-n namespace] <port_config.ini>" >&2
     exit 2
 }
 
 force=false
 index_arg=
-while getopts ":fi" option; do
+namespace_args=()
+while getopts ":fin:" option; do
     case "$option" in
         f) force=true ;;
         i) index_arg=-i ;;
+        n) namespace_args=(-n "$OPTARG") ;;
         *) usage ;;
     esac
 done
@@ -36,7 +38,7 @@ generation_failed()
 append_rows()
 {
     local rows
-    rows=$(sonic-db-cli -- CONFIG_DB EVAL "$script" 0 "$@") &&
+    rows=$(sonic-db-cli "${namespace_args[@]}" -- CONFIG_DB EVAL "$script" 0 "$@") &&
         printf '%s\n' "$rows" >> "$temp_config"
 }
 
