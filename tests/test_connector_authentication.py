@@ -34,7 +34,9 @@ def test_sonicv2_keeps_transport_selection(protected):
 def test_dbinterface_explicit_connection(protected, authenticate):
     interface = swss.DBInterface()
     interface.set_redis_kwargs(protected["socket"], "", 0)
-    interface.connect("STATE_DB", swss.SonicDBKey(), False, authenticate)
+    if authenticate:
+        interface.set_authentication(swss.SonicDBKey())
+    interface.connect(6, "STATE_DB", False)
     if authenticate:
         interface.get_redis_client("STATE_DB").set("interface", "allowed")
     else:
@@ -43,24 +45,15 @@ def test_dbinterface_explicit_connection(protected, authenticate):
     interface.close()
 
 
-def test_dbinterface_preserves_legacy_keyword_arguments(protected):
-    interface = swss.DBInterface()
-    interface.set_redis_kwargs(protected["socket"], "", 0)
-    interface.connect(dbId=6, dbName="STATE_DB", retry=False)
-    assert interface.get_redis_client("STATE_DB").getDbId() == 6
-    interface.close()
-    interface.connect("STATE_DB", swss.SonicDBKey(), retry=False, authenticate=True)
-    interface.get_redis_client("STATE_DB").set("keyword-interface", "allowed")
-
-
-def test_dbinterface_requires_close_before_changing_authentication(protected):
+def test_dbinterface_requires_close_before_enabling_authentication(protected):
     interface = swss.DBInterface()
     interface.set_redis_kwargs(protected["socket"], "", 0)
     interface.connect(6, "STATE_DB", False)
-    with pytest.raises(ValueError, match="Close the existing connection"):
-        interface.connect("STATE_DB", swss.SonicDBKey(), False, True)
-    interface.close("STATE_DB")
-    interface.connect("STATE_DB", swss.SonicDBKey(), False, True)
+    with pytest.raises(ValueError, match="Close existing connections"):
+        interface.set_authentication(swss.SonicDBKey())
+    interface.close()
+    interface.set_authentication(swss.SonicDBKey())
+    interface.connect(6, "STATE_DB", False)
     interface.get_redis_client("STATE_DB").set("upgraded", "allowed")
 
 
@@ -75,7 +68,7 @@ def test_sonicv2_recovery_keeps_authentication(protected):
 
 
 @pytest.mark.parametrize("recover", [False, True])
-def test_connection_retries_share_the_operation_loop(protected, recover):
+def test_authenticated_connection_waits_for_redis(protected, recover):
     # A separate process restarts Redis while the native call is blocked.
     # Recovery leaves Redis down past the first reconnect attempt.
     program = """
@@ -121,9 +114,8 @@ c.set_redis_kwargs(sys.argv[2], '', 0)
 authenticate = sys.argv[3] == 'True'
 try:
     if authenticate:
-        c.connect('STATE_DB', s.SonicDBKey(), True, True)
-    else:
-        c.connect(6, 'STATE_DB')
+        c.set_authentication(s.SonicDBKey())
+    c.connect(6, 'STATE_DB')
 except RuntimeError as error:
     expected = 'authentication' if authenticate else 'Unable to connect to redis'
     assert expected in str(error)

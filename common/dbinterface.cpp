@@ -16,17 +16,24 @@ void DBInterface::set_redis_kwargs(std::string unix_socket_path, std::string hos
     m_port = port;
 }
 
-void DBInterface::connect(int dbId, const std::string& dbName, bool retry)
+void DBInterface::set_authentication(const SonicDBKey& key)
 {
-    blockable<bool>([] { return true; }, dbName, false,
-        [=] { _onetime_connect(dbId, dbName); }, retry);
+    if (!m_redisClient.empty())
+        throw invalid_argument("Close existing connections before enabling authentication");
+    m_authenticate = true;
+    m_dbKey = key;
 }
 
-void DBInterface::connect(const std::string& dbName, const SonicDBKey& key, bool retry, bool authenticate)
+void DBInterface::connect(int dbId, const std::string& dbName, bool retry)
 {
-    const bool isTcpConn = m_unix_socket_path.empty();
-    blockable<bool>([] { return true; }, dbName, false,
-        [=] { _onetime_connect(dbName, key, isTcpConn, authenticate); }, retry, authenticate);
+    if (retry)
+    {
+        _persistent_connect(dbId, dbName);
+    }
+    else
+    {
+        _onetime_connect(dbId, dbName);
+    }
 }
 
 void DBInterface::close(const std::string& dbName)
@@ -162,22 +169,15 @@ DBConnector& DBInterface::get_redis_client(const std::string& dbName)
 }
 
 template <typename T, typename FUNC>
-T DBInterface::blockable(FUNC f, const std::string& dbName, bool blocking,
-                        std::function<void()> connect, bool retry, bool authenticate)
+T DBInterface::blockable(FUNC f, const std::string& dbName, bool blocking)
 {
-    const bool connecting = static_cast<bool>(connect);
     int attempts = 0;
     for (;;)
     {
         try
         {
-            if (connect)
-            {
-                connect();
-                connect = nullptr;
-            }
             T ret_data = f();
-            if (!connecting) _unsubscribe_keyspace_notification(dbName);
+            _unsubscribe_keyspace_notification(dbName);
             return ret_data;
         }
         catch (const UnavailableDataError& e)
@@ -209,45 +209,33 @@ T DBInterface::blockable(FUNC f, const std::string& dbName, bool blocking,
             {
                 return T();
             }
-            continue;
         }
-        catch (const std::system_error& error)
+        catch (const std::system_error&)
         {
-            // Only opted-in connection attempts retry transport setup failures.
-            // Errors from a database operation retain their existing fail-fast behavior.
-            if (!retry || !connect || !authenticate ||
-                error.code() != std::make_error_code(std::errc::address_not_available))
-            {
-                if (!connect) SWSS_LOG_ERROR("Bad DB request [%s]", dbName.c_str());
-                throw;
-            }
+            /*
+            Something is fundamentally wrong with the request itself.
+            Retrying the request won't pass unless the schema itself changes. In this case, the error
+            should be attributed to the application itself. Re-raise the error.
+            */
+            SWSS_LOG_ERROR("Bad DB request [%s]", dbName.c_str());
+            throw;
         }
         catch (const RedisError&)
         {
-            if (!retry) throw;
+            // Redis connection broken and we need to retry several times
+            attempts += 1;
+            _connection_error_handler(dbName);
+            std::string msg = "DB access failure by [" + dbName + + "]";
+            if (BLOCKING_ATTEMPT_ERROR_THRESHOLD < attempts && attempts < BLOCKING_ATTEMPT_SUPPRESSION)
+            {
+                // Repeated access failures implies the database itself is unhealthy.
+                SWSS_LOG_ERROR("%s", msg.c_str());
+            }
+            else
+            {
+                SWSS_LOG_WARN("%s", msg.c_str());
+            }
         }
-
-        // Save the failed client's identity before closing it. The same factory
-        // is retained if subsequent connection attempts also fail.
-        if (!connect)
-        {
-            auto& client = get_redis_client(dbName);
-            authenticate = client.authenticationEnabled();
-            const int dbId = client.getDbId();
-            const SonicDBKey key = authenticate ? client.getDBKey() : SonicDBKey();
-            connect = [=] {
-                if (authenticate) _onetime_connect(dbName, key, false, true);
-                else _onetime_connect(dbId, dbName);
-            };
-        }
-        close(dbName);
-        sleep(CONNECT_RETRY_WAIT_TIME);
-        attempts += 1;
-        std::string msg = "DB access failure by [" + dbName + + "]";
-        if (BLOCKING_ATTEMPT_ERROR_THRESHOLD < attempts && attempts < BLOCKING_ATTEMPT_SUPPRESSION)
-            SWSS_LOG_ERROR("%s", msg.c_str());
-        else
-            SWSS_LOG_WARN("%s", msg.c_str());
     }
 }
 
@@ -334,6 +322,16 @@ void DBInterface::_subscribe_keyspace_notification(const std::string& dbName)
     keyspace_notification_channels.emplace(std::piecewise_construct, std::forward_as_tuple(dbName), std::forward_as_tuple(pubsub));
 }
 
+// In the event Redis is unavailable, close existing connections, and try again.
+void DBInterface::_connection_error_handler(const std::string& dbName)
+{
+    SWSS_LOG_WARN("Could not connect to Redis--waiting before trying again.");
+    int dbId = get_redis_client(dbName).getDbId();
+    close(dbName);
+    sleep(CONNECT_RETRY_WAIT_TIME);
+    connect(dbId, dbName, true);
+}
+
 void DBInterface::_onetime_connect(int dbId, const string& dbName)
 {
     if (dbName.empty())
@@ -341,7 +339,14 @@ void DBInterface::_onetime_connect(int dbId, const string& dbName)
         throw invalid_argument("dbName");
     }
 
-    if (m_unix_socket_path.empty())
+    if (m_authenticate)
+    {
+        // The named constructor resolves the DB id and Unix socket from the DB key.
+        m_redisClient.emplace(std::piecewise_construct
+                , std::forward_as_tuple(dbName)
+                , std::forward_as_tuple(dbName, 0, m_unix_socket_path.empty(), m_dbKey, true));
+    }
+    else if (m_unix_socket_path.empty())
     {
         m_redisClient.emplace(std::piecewise_construct
                 , std::forward_as_tuple(dbName)
@@ -355,17 +360,33 @@ void DBInterface::_onetime_connect(int dbId, const string& dbName)
     }
 }
 
-void DBInterface::_onetime_connect(const std::string& dbName, const SonicDBKey& key,
-                                  bool isTcpConn, bool authenticate)
+// Keep reconnecting to Database 'dbId' until success
+void DBInterface::_persistent_connect(int dbId, const string& dbName)
 {
-    if (dbName.empty()) throw invalid_argument("dbName");
-    const auto existing = m_redisClient.find(dbName);
-    if (existing != m_redisClient.end())
+    for (;;)
     {
-        if (existing->second.authenticationEnabled() != authenticate || !(existing->second.getDBKey() == key))
-            throw invalid_argument("Close the existing connection before changing authentication or DB key");
-        return;
+        try
+        {
+            _onetime_connect(dbId, dbName);
+            return;
+        }
+        catch (const system_error& error)
+        {
+            // Legacy connections keep failing fast; only the writer waits for Redis to come back.
+            if (!m_authenticate || error.code() != make_error_code(errc::address_not_available)) throw;
+            _wait_to_reconnect(dbId, dbName);
+        }
+        catch (RedisError&)
+        {
+            _wait_to_reconnect(dbId, dbName);
+        }
     }
-    m_redisClient.emplace(std::piecewise_construct, std::forward_as_tuple(dbName),
-        std::forward_as_tuple(dbName, 0, isTcpConn, key, authenticate));
+}
+
+void DBInterface::_wait_to_reconnect(int dbId, const string& dbName)
+{
+    const int wait = CONNECT_RETRY_WAIT_TIME;
+    SWSS_LOG_WARN("Connecting to DB '%s(%d)' failed, will retry in %d s", dbName.c_str(), dbId, wait);
+    close(dbName);
+    sleep(wait);
 }

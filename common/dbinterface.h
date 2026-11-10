@@ -4,7 +4,6 @@
 #include <unistd.h>
 #include <stdexcept>
 #include <memory>
-#include <functional>
 
 #include "dbconnector.h"
 #include "logger.h"
@@ -34,18 +33,6 @@ class DBInterface
 {
 public:
     void connect(int dbId, const std::string& dbName, bool retry = true);
-    // Named DB metadata; set_redis_kwargs selects Unix or TCP transport.
-    void connect(const std::string& dbName, const SonicDBKey& key, bool retry = true, bool authenticate = false);
-#if defined(SWIG) && defined(SWIGPYTHON)
-%pythoncode %{
-    # Preserve the original keyword arguments when dispatching C++ overloads.
-    def connect(self, dbId, dbName, retry=True, authenticate=None):
-        args = (dbId, dbName, retry)
-        if authenticate is not None:
-            args += (authenticate,)
-        return _swsscommon.DBInterface_connect(self, *args)
-%}
-#endif
     void close(const std::string& dbName);
     void close();
     int64_t del(const std::string& dbName, const std::string& key, bool blocking = false);
@@ -62,6 +49,8 @@ public:
     int64_t set(const std::string& dbName, const std::string& hash, const std::string& key, const std::string& value, bool blocking = false);
     DBConnector& get_redis_client(const std::string& dbName);
     void set_redis_kwargs(std::string unix_socket_path, std::string host, int port);
+    // Connect and reconnect as the trusted local writer; call before the first connect.
+    void set_authentication(const SonicDBKey& key);
 
     static const int BLOCKING_ATTEMPT_ERROR_THRESHOLD = 10;
     static const int BLOCKING_ATTEMPT_SUPPRESSION = BLOCKING_ATTEMPT_ERROR_THRESHOLD + 5;
@@ -80,15 +69,18 @@ public:
 
 private:
     template <typename T, typename FUNC>
-    T blockable(FUNC f, const std::string& dbName, bool blocking = false,
-                std::function<void()> connect = nullptr, bool retry = true, bool authenticate = false);
+    T blockable(FUNC f, const std::string& dbName, bool blocking = false);
     // Unsubscribe the chosent client from keyspace event notifications
     void _unsubscribe_keyspace_notification(const std::string& dbName);
     bool _unavailable_data_handler(const std::string& dbName, const char *data);
     // Subscribe the chosent client to keyspace event notifications
     void _subscribe_keyspace_notification(const std::string& dbName);
+    // In the event Redis is unavailable, close existing connections, and try again.
+    void _connection_error_handler(const std::string& dbName);
     void _onetime_connect(int dbId, const std::string& dbName);
-    void _onetime_connect(const std::string& dbName, const SonicDBKey& key, bool isTcpConn, bool authenticate);
+    // Keep reconnecting to Database 'dbId' until success
+    void _persistent_connect(int dbId, const std::string& dbName);
+    void _wait_to_reconnect(int dbId, const std::string& dbName);
 
     // Redis keyspace notifications must be enabled by server configuration before
     // callers subscribe through this interface.
@@ -101,6 +93,8 @@ private:
     std::string m_unix_socket_path;
     std::string m_host = "127.0.0.1";
     int m_port = 6379;
+    bool m_authenticate = false;
+    SonicDBKey m_dbKey;
 };
 
 }

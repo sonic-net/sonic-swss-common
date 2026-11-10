@@ -156,6 +156,6 @@ authentication for named connections and recovery. Both options default to false
 authentication does not change the requested transport. `ConfigDBConnector` and
 `ConfigDBPipeConnector` accept the same options.
 
-Native DBInterface callers select the transport with `set_redis_kwargs` and use
-`connect(db_name, key, retry, authenticate=True)` to opt in.
+Native DBInterface callers select the transport with `set_redis_kwargs` and call
+`set_authentication(key)` before the first `connect` to opt in.
 Authentication and endpoint selection are retained through subscription recovery.
