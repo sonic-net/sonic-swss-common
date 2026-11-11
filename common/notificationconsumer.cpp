@@ -74,6 +74,7 @@ swss::NotificationConsumer::NotificationConsumer(const std::string &channel,
                                                  size_t popBatchSize):
     Selectable(pri),
     POP_BATCH_SIZE(popBatchSize),
+    // This overload never connects to Redis, so it is always in-process.
     m_in_process(true),
     m_selectableEvent(std::make_unique<SelectableEvent>(pri)),
     m_db(nullptr),
@@ -106,9 +107,13 @@ std::string swss::NotificationConsumer::buildWireMessage(
 /*
  * Admit one wire-format message: count it, apply the op allowlist, then push
  * it onto the queue.  Shared by the Redis path (processReply) and the
- * in-process path (send()).  The caller must hold m_queueMutex.
+ * in-process path (enqueue()).  The caller must hold m_queueMutex.
+ *
+ * Returns false when the allowlist dropped the message (the queue is
+ * unchanged), true when it was handed to the queue.  A queue-level dedup hit
+ * still counts as admitted.
  */
-void swss::NotificationConsumer::admitWireMessageLocked(const std::string &msg)
+bool swss::NotificationConsumer::admitWireMessageLocked(const std::string &msg)
 {
     m_received.fetch_add(1, std::memory_order_relaxed);
 
@@ -124,26 +129,27 @@ void swss::NotificationConsumer::admitWireMessageLocked(const std::string &msg)
         {
             m_dropped_allowlist.fetch_add(1, std::memory_order_relaxed);
             maybeLogStats();
-            return;
+            return false;
         }
     }
 
     m_queue->push(msg);
     maybeLogStats();
+    return true;
 }
 
-void swss::NotificationConsumer::send(const std::string &op,
-                                      const std::string &data,
-                                      const std::vector<FieldValueTuple> &values)
+void swss::NotificationConsumer::enqueue(const std::string &op,
+                                         const std::string &data,
+                                         const std::vector<FieldValueTuple> &values)
 {
     SWSS_LOG_ENTER();
 
-    // send() is called from SAI callback threads, where an escaping
+    // enqueue() is called from SAI callback threads, where an escaping
     // exception would terminate the process.  It therefore never throws:
     // failures are logged and the notification is dropped.
     if (!m_in_process)
     {
-        SWSS_LOG_ERROR("NotificationConsumer::send on Redis-subscribe consumer (channel %s), dropping op %s",
+        SWSS_LOG_ERROR("NotificationConsumer::enqueue on Redis-subscribe consumer (channel %s), dropping op %s",
                        m_channel.c_str(), op.c_str());
         return;
     }
@@ -152,21 +158,27 @@ void swss::NotificationConsumer::send(const std::string &op,
     {
         const auto wire = buildWireMessage(op, data, values);
 
+        bool admitted = false;
         {
             std::lock_guard<std::mutex> lock(m_queueMutex);
-            admitWireMessageLocked(wire);
+            admitted = admitWireMessageLocked(wire);
         }
 
-        m_selectableEvent->notify();
+        // A message dropped by the allowlist leaves the queue unchanged, so
+        // there is nothing new for the main loop to pick up.
+        if (admitted)
+        {
+            m_selectableEvent->notify();
+        }
     }
     catch (const std::exception &e)
     {
-        SWSS_LOG_ERROR("NotificationConsumer::send failed on channel %s, dropping op %s: %s",
+        SWSS_LOG_ERROR("NotificationConsumer::enqueue failed on channel %s, dropping op %s: %s",
                        m_channel.c_str(), op.c_str(), e.what());
     }
     catch (...)
     {
-        SWSS_LOG_ERROR("NotificationConsumer::send failed on channel %s, dropping op %s: unknown exception",
+        SWSS_LOG_ERROR("NotificationConsumer::enqueue failed on channel %s, dropping op %s: unknown exception",
                        m_channel.c_str(), op.c_str());
     }
 }

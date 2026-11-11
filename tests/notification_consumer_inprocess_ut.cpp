@@ -12,7 +12,7 @@
 
 using namespace swss;
 
-TEST(NotificationConsumerInProcess, SendAllowListAndPop)
+TEST(NotificationConsumerInProcess, EnqueueAllowListAndPop)
 {
     NotificationConsumer consumer("NOTIFICATIONS",
                                   NotificationQueuePolicy::Fifo,
@@ -22,8 +22,8 @@ TEST(NotificationConsumerInProcess, SendAllowListAndPop)
 
     consumer.setOpAllowList({"fdb_event"});
 
-    consumer.send("fdb_event", "payload", {});
-    consumer.send("other_op", "drop", {});
+    consumer.enqueue("fdb_event", "payload", {});
+    consumer.enqueue("other_op", "drop", {});
 
     EXPECT_TRUE(consumer.hasData());
 
@@ -39,7 +39,7 @@ TEST(NotificationConsumerInProcess, SendAllowListAndPop)
     EXPECT_EQ(stats.dropped_allowlist, 1u);
 }
 
-TEST(NotificationConsumerInProcess, SelectWakesOnSend)
+TEST(NotificationConsumerInProcess, SelectWakesOnEnqueue)
 {
     NotificationConsumer consumer("NOTIFICATIONS",
                                   NotificationQueuePolicy::Fifo,
@@ -50,8 +50,8 @@ TEST(NotificationConsumerInProcess, SelectWakesOnSend)
     Select s;
     s.addSelectable(&consumer);
 
-    // Same thread: callback threads use send(); here we only verify eventfd wake.
-    consumer.send("ping", "data", {});
+    // Same thread: callback threads use enqueue(); here we only verify eventfd wake.
+    consumer.enqueue("ping", "data", {});
 
     Selectable *sel = nullptr;
     const int rc = s.select(&sel, 1000);
@@ -66,6 +66,35 @@ TEST(NotificationConsumerInProcess, SelectWakesOnSend)
     EXPECT_EQ(data, "data");
 }
 
+TEST(NotificationConsumerInProcess, AllowListDropDoesNotWakeSelect)
+{
+    NotificationConsumer consumer("NOTIFICATIONS",
+                                  NotificationQueuePolicy::Fifo,
+                                  100,
+                                  64);
+    consumer.setOpAllowList({"wanted"});
+
+    Select s;
+    s.addSelectable(&consumer);
+
+    // A message dropped by the allowlist leaves the queue unchanged, so the
+    // main loop must not be woken.
+    consumer.enqueue("unwanted", "data", {});
+
+    Selectable *sel = nullptr;
+    EXPECT_EQ(s.select(&sel, 100), Select::TIMEOUT);
+    EXPECT_FALSE(consumer.hasData());
+
+    auto stats = consumer.getStats();
+    EXPECT_EQ(stats.received, 1u);
+    EXPECT_EQ(stats.dropped_allowlist, 1u);
+
+    // An allowed op still wakes the loop afterwards.
+    consumer.enqueue("wanted", "data", {});
+    EXPECT_EQ(s.select(&sel, 1000), Select::OBJECT);
+    EXPECT_EQ(sel, &consumer);
+}
+
 TEST(NotificationConsumerInProcess, NotifyPendingWhenQueued)
 {
     NotificationConsumer consumer("NOTIFICATIONS",
@@ -74,7 +103,7 @@ TEST(NotificationConsumerInProcess, NotifyPendingWhenQueued)
                                   64);
     consumer.setOpAllowList({"x"});
 
-    consumer.send("x", "1", {});
+    consumer.enqueue("x", "1", {});
 
     Select s;
     s.addSelectable(&consumer);
@@ -88,7 +117,7 @@ TEST(NotificationConsumerInProcess, NotifyPendingWhenQueued)
     EXPECT_EQ(sel, &consumer);
 }
 
-TEST(NotificationConsumerInProcess, LruDedupViaSend)
+TEST(NotificationConsumerInProcess, LruDedupViaEnqueue)
 {
     NotificationConsumer consumer("NOTIFICATIONS",
                                   NotificationQueuePolicy::LruDedup,
@@ -96,8 +125,8 @@ TEST(NotificationConsumerInProcess, LruDedupViaSend)
                                   64);
     consumer.setOpAllowList({"fdb_event"});
 
-    consumer.send("fdb_event", "same", {});
-    consumer.send("fdb_event", "same", {});
+    consumer.enqueue("fdb_event", "same", {});
+    consumer.enqueue("fdb_event", "same", {});
 
     std::deque<KeyOpFieldsValuesTuple> entries;
     consumer.pops(entries);
@@ -125,7 +154,7 @@ bool parsePayload(const std::string &payload, int &tid, int &seq)
 
 } // namespace
 
-// N sender threads call send() while the main thread loops on Select + pops().
+// N sender threads call enqueue() while the main thread loops on Select + pops().
 // Every message must arrive exactly once, and each thread's messages must
 // arrive in the order that thread sent them.
 TEST(NotificationConsumerInProcess, ConcurrentSendersFifoOrderAndCount)
@@ -155,7 +184,7 @@ TEST(NotificationConsumerInProcess, ConcurrentSendersFifoOrderAndCount)
             }
             for (int i = 0; i < kPerThread; ++i)
             {
-                consumer.send("op", std::to_string(t) + ":" + std::to_string(i), {});
+                consumer.enqueue("op", std::to_string(t) + ":" + std::to_string(i), {});
             }
         });
     }
@@ -237,7 +266,7 @@ TEST(NotificationConsumerInProcess, BacklogLargerThanBatchDrainsThroughSelect)
 
     for (int i = 0; i < kTotal; ++i)
     {
-        consumer.send("op", std::to_string(i), {});
+        consumer.enqueue("op", std::to_string(i), {});
     }
 
     int received = 0;
@@ -274,23 +303,23 @@ TEST(NotificationConsumerInProcess, BacklogLargerThanBatchDrainsThroughSelect)
     EXPECT_FALSE(consumer.hasData());
 }
 
-// send() on a Redis-subscribed consumer is rejected: nothing is queued and it
+// enqueue() on a Redis-subscribed consumer is rejected: nothing is queued and it
 // does not throw (it can run on a SAI callback thread).
-TEST(NotificationConsumerInProcess, SendOnRedisConsumerIsRejected)
+TEST(NotificationConsumerInProcess, EnqueueOnRedisConsumerIsRejected)
 {
     DBConnector db("TEST_DB", 0, true);
     NotificationConsumer redisConsumer(&db, "NC_SEND_REJECT_TEST");
     ASSERT_FALSE(redisConsumer.isInProcessDelivery());
 
-    EXPECT_NO_THROW(redisConsumer.send("op", "data", {}));
+    EXPECT_NO_THROW(redisConsumer.enqueue("op", "data", {}));
 
     EXPECT_FALSE(redisConsumer.hasData());
     EXPECT_EQ(redisConsumer.getStats().received, 0u);
 }
 
 // The setters take the lock the admission path reads under, so they can run
-// while another thread is in send().  Every send is still counted.
-TEST(NotificationConsumerInProcess, SettersAreSafeWhileSending)
+// while another thread is in enqueue().  Every enqueue is still counted.
+TEST(NotificationConsumerInProcess, SettersAreSafeWhileEnqueuing)
 {
     constexpr int kSends = 5000;
 
@@ -303,7 +332,7 @@ TEST(NotificationConsumerInProcess, SettersAreSafeWhileSending)
     std::thread sender([&consumer, &done]() {
         for (int i = 0; i < kSends; ++i)
         {
-            consumer.send("op", std::to_string(i), {});
+            consumer.enqueue("op", std::to_string(i), {});
         }
         done.store(true);
     });
@@ -322,4 +351,80 @@ TEST(NotificationConsumerInProcess, SettersAreSafeWhileSending)
 
     EXPECT_TRUE(done.load());
     EXPECT_EQ(consumer.getStats().received, static_cast<uint64_t>(kSends));
+}
+
+// ---------------------------------------------------------------------------
+// Manual micro-benchmark for the cost of enqueue() under a notification storm.
+// Disabled by default so CI stays fast.  Run ./tests/tests with
+// --gtest_also_run_disabled_tests and
+// --gtest_filter='*DISABLED_EnqueueStormCost*'.
+// Prefix the command with `strace -f -c -e trace=write` to count eventfd
+// writes.
+// ---------------------------------------------------------------------------
+namespace
+{
+    constexpr int kStormSends = 200000;
+
+    double usPerCall(std::chrono::steady_clock::time_point t0,
+                     std::chrono::steady_clock::time_point t1,
+                     int n)
+    {
+        return std::chrono::duration<double, std::micro>(t1 - t0).count() / n;
+    }
+
+    // Enqueue n messages; payload(i) picks the payload so the caller controls
+    // whether messages are distinct or identical.
+    template <typename PayloadFn>
+    double runStorm(NotificationConsumer &consumer, const std::string &op, int n, PayloadFn payload)
+    {
+        const auto t0 = std::chrono::steady_clock::now();
+        for (int i = 0; i < n; ++i)
+        {
+            consumer.enqueue(op, payload(i), {});
+        }
+        const auto t1 = std::chrono::steady_clock::now();
+        return usPerCall(t0, t1, n);
+    }
+}
+
+TEST(NotificationConsumerInProcess, DISABLED_EnqueueStormCost)
+{
+    {
+        NotificationConsumer c("NOTIFICATIONS", NotificationQueuePolicy::Fifo, 100, 64);
+        c.setOpAllowList({"op"});
+        const double us = runStorm(c, "op", kStormSends, [](int i) { return std::to_string(i); });
+        std::printf("[bench] Fifo, distinct payload      : %.3f us/enqueue\n", us);
+    }
+    {
+        NotificationConsumer c("NOTIFICATIONS", NotificationQueuePolicy::LruDedup, 100, 64);
+        c.setOpAllowList({"op"});
+        const double us = runStorm(c, "op", kStormSends, [](int i) { return std::to_string(i); });
+        std::printf("[bench] LruDedup, distinct payload  : %.3f us/enqueue\n", us);
+    }
+    {
+        NotificationConsumer c("NOTIFICATIONS", NotificationQueuePolicy::LruDedup, 100, 64);
+        c.setOpAllowList({"op"});
+        const double us = runStorm(c, "op", kStormSends, [](int) { return std::string("same"); });
+        auto qs = c.getLruDedupQueue()->getStats();
+        std::printf("[bench] LruDedup, identical payload : %.3f us/enqueue (dedup_hits=%llu)\n",
+                    us, static_cast<unsigned long long>(qs.dedup_hits));
+    }
+    {
+        NotificationConsumer c("NOTIFICATIONS", NotificationQueuePolicy::Fifo, 100, 64);
+        c.setOpAllowList({"op"});
+        const double us = runStorm(c, "other", kStormSends, [](int) { return std::string("x"); });
+        std::printf("[bench] allowlist drop              : %.3f us/enqueue\n", us);
+    }
+    {
+        // Baseline: one eventfd write per call, nothing else.
+        SelectableEvent ev;
+        const auto t0 = std::chrono::steady_clock::now();
+        for (int i = 0; i < kStormSends; ++i)
+        {
+            ev.notify();
+        }
+        const auto t1 = std::chrono::steady_clock::now();
+        std::printf("[bench] raw eventfd notify()        : %.3f us/call\n",
+                    usPerCall(t0, t1, kStormSends));
+    }
 }

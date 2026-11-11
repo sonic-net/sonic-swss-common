@@ -238,7 +238,7 @@ public:
                          size_t popBatchSize,
                          NotificationQueuePolicy policy);
 
-    // In-process delivery (ZMQ orchagent callback -> send()).  No Redis
+    // In-process delivery (ZMQ orchagent callback -> enqueue()).  No Redis
     // subscribe; the Select loop waits on an internal eventfd.  channel is
     // the logical notification channel name (logging/stats), typically
     // "NOTIFICATIONS".
@@ -247,13 +247,16 @@ public:
                          int pri = 100,
                          size_t popBatchSize = DEFAULT_NC_POP_BATCH_SIZE);
 
-    // Thread-safe: enqueue from libsairedis notification callback thread.
+    // Thread-safe: add a notification to this consumer's own queue from a
+    // callback thread and wake the Select loop.  Takes the same
+    // (op, data, values) as NotificationProducer::send() and builds the same
+    // wire message, but never touches Redis.
     // Only valid for in-process consumers (isInProcessDelivery()).
     // Never throws: on a Redis-subscribed consumer, or on any internal
     // failure, the notification is logged and dropped.
-    void send(const std::string &op,
-              const std::string &data,
-              const std::vector<FieldValueTuple> &values);
+    void enqueue(const std::string &op,
+                 const std::string &data,
+                 const std::vector<FieldValueTuple> &values);
 
     // Wake the Select loop when readiness transitions (queue may already hold data).
     void notifyPending();
@@ -288,7 +291,7 @@ public:
     // both the consumer's periodic stats line and the internal LruDedup
     // queue's HWM / stats lines use this label instead of the bare
     // channel name.  Empty (default) preserves legacy channel-only
-    // logging.  Thread-safe with respect to send() and the admission path.
+    // logging.  Thread-safe with respect to enqueue() and the admission path.
     void setStatsLabel(const std::string &label);
 
     // Restrict which messages are admitted into the internal queue.
@@ -305,7 +308,7 @@ public:
     // fanout on the "NOTIFICATIONS" channel, where every subscriber
     // receives a copy of every message even if it only cares about one op.
     //
-    // Thread-safe with respect to send() and the admission path: it takes
+    // Thread-safe with respect to enqueue() and the admission path: it takes
     // the same lock the allowlist is read under.
     void setOpAllowList(std::unordered_set<std::string> ops);
 
@@ -343,7 +346,8 @@ private:
                                  const std::vector<FieldValueTuple> &values) const;
 
     // Caller must hold m_queueMutex.  Applies allowlist and pushes to m_queue.
-    void admitWireMessageLocked(const std::string &msg);
+    // Returns false if the allowlist dropped the message, true otherwise.
+    bool admitWireMessageLocked(const std::string &msg);
 
     bool m_in_process{false};
     std::unique_ptr<SelectableEvent> m_selectableEvent;
