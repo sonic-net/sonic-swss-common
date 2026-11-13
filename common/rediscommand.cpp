@@ -49,6 +49,7 @@ void RedisCommand::formatArgv(int argc, const char **argv, const size_t *argvlen
     len = 0;
 
     long long ret = redisFormatCommandArgv(&temp, argc, argv, argvlen);
+
     if (ret == -1) {
         throw std::bad_alloc();
     }
@@ -158,6 +159,7 @@ size_t RedisCommand::length() const
 {
     if (len <= 0)
         return 0;
+    // TODO review this casting
     return static_cast<size_t>(len);
 }
 
