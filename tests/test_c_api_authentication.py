@@ -4,20 +4,12 @@ from pathlib import Path
 import subprocess
 
 import pytest
-from test_redis_authentication import protected  # noqa: F401
-from test_configdb_authentication import config_metadata  # noqa: F401
+
+pytest_plugins = ["test_redis_authentication", "test_configdb_authentication"]
 
 
 class Result(C.Structure):
     _fields_ = [("exception", C.c_int), ("message", C.c_void_p), ("location", C.c_void_p)]
-
-
-class Field(C.Structure):
-    _fields_ = [("field", C.c_char_p), ("value", C.c_void_p)]
-
-
-class Fields(C.Structure):
-    _fields_ = [("len", C.c_uint64), ("data", C.POINTER(Field))]
 
 
 @pytest.fixture
@@ -35,7 +27,7 @@ def api():
         "SWSSSonicV2Connector_free": [C.c_void_p],
         "SWSSConfigDBConnector_new_with_auth": [C.c_uint8, C.c_char_p, C.c_uint8, pointer],
         "SWSSConfigDBConnector_connect": [C.c_void_p, C.c_uint8, C.c_uint8],
-        "SWSSConfigDBConnector_set_entry": [C.c_void_p, C.c_char_p, C.c_char_p, C.POINTER(Fields)],
+        "SWSSConfigDBConnector_get_redis_client": [C.c_void_p, C.c_char_p, pointer],
         "SWSSConfigDBConnector_free": [C.c_void_p],
     }
     for name, arguments in signatures.items():
@@ -48,17 +40,16 @@ def api():
     return lib
 
 
-def code(api, result):
-    value = result.exception
+def check(api, result, expected=0):
     api.SWSSString_free(result.message)
     api.SWSSString_free(result.location)
-    return value
+    assert result.exception == expected
 
 
-def write(api, db):
+def write(api, db, expected):
     value = api.SWSSString_new_c_str(b"value")
     try:
-        return code(api, api.SWSSDBConnector_set(db, b"c-api", value))
+        check(api, api.SWSSDBConnector_set(db, b"c-api", value), expected)
     finally:
         api.SWSSString_free(value)
 
@@ -71,52 +62,49 @@ def test_c_dbconnector_option(protected, api, keyed, authenticate):
         result = api.SWSSDBConnector_new_keyed_with_auth(b"STATE_DB", 500, 0, None, None, authenticate, C.byref(db))
     else:
         result = api.SWSSDBConnector_new_named_with_auth(b"STATE_DB", 500, 0, authenticate, C.byref(db))
-    assert code(api, result) == 0
+    check(api, result)
     try:
-        assert write(api, db) == (0 if authenticate else 1)
+        write(api, db, 0 if authenticate else 1)
     finally:
-        assert code(api, api.SWSSDBConnector_free(db)) == 0
+        check(api, api.SWSSDBConnector_free(db))
 
 
 @pytest.mark.parametrize("authenticate", [False, True])
 def test_c_sonicv2_option(protected, api, authenticate):
     connector, db = C.c_void_p(), C.c_void_p()
-    assert code(api, api.SWSSSonicV2Connector_new_with_auth(1, None, authenticate, C.byref(connector))) == 0
+    check(api, api.SWSSSonicV2Connector_new_with_auth(1, None, authenticate, C.byref(connector)))
     try:
-        assert code(api, api.SWSSSonicV2Connector_connect(connector, b"STATE_DB", 0)) == 0
-        assert code(api, api.SWSSSonicV2Connector_get_redis_client(connector, b"STATE_DB", C.byref(db))) == 0
-        assert write(api, db) == (0 if authenticate else 1)
+        check(api, api.SWSSSonicV2Connector_connect(connector, b"STATE_DB", 0))
+        check(api, api.SWSSSonicV2Connector_get_redis_client(connector, b"STATE_DB", C.byref(db)))
+        write(api, db, 0 if authenticate else 1)
     finally:
-        assert code(api, api.SWSSSonicV2Connector_free(connector)) == 0
+        check(api, api.SWSSSonicV2Connector_free(connector))
 
 
 @pytest.mark.parametrize("authenticate", [False, True])
 def test_c_configdb_option(config_metadata, api, authenticate):
-    connector = C.c_void_p()
-    assert code(api, api.SWSSConfigDBConnector_new_with_auth(1, None, authenticate, C.byref(connector))) == 0
-    value = api.SWSSString_new_c_str(b"value")
-    fields = Fields(1, (Field * 1)(Field(b"field", value)))
+    connector, db = C.c_void_p(), C.c_void_p()
+    check(api, api.SWSSConfigDBConnector_new_with_auth(1, None, authenticate, C.byref(connector)))
     try:
-        assert code(api, api.SWSSConfigDBConnector_connect(connector, 0, 0)) == 0
-        result = api.SWSSConfigDBConnector_set_entry(connector, b"AUTH_TEST", b"c-api", C.byref(fields))
-        assert code(api, result) == (0 if authenticate else 1)
+        check(api, api.SWSSConfigDBConnector_connect(connector, 0, 0))
+        check(api, api.SWSSConfigDBConnector_get_redis_client(connector, b"CONFIG_DB", C.byref(db)))
+        write(api, db, 0 if authenticate else 1)
     finally:
-        api.SWSSString_free(value)
-        assert code(api, api.SWSSConfigDBConnector_free(connector)) == 0
+        check(api, api.SWSSConfigDBConnector_free(connector))
 
 
 @pytest.mark.parametrize("name", ["SWSSSonicV2Connector", "SWSSConfigDBConnector"])
 def test_c_invalid_flags_clear_output(protected, api, name):
     output = C.c_void_p(1234)
-    assert code(api, getattr(api, name + "_new_with_auth")(1, None, 2, C.byref(output))) == 1
+    check(api, getattr(api, name + "_new_with_auth")(1, None, 2, C.byref(output)), 1)
     assert output.value is None
-    assert code(api, getattr(api, name + "_new_with_auth")(1, None, 1, None)) == 1
+    check(api, getattr(api, name + "_new_with_auth")(1, None, 1, None), 1)
 
 
 def test_c_rejected_credentials_clear_output(protected, api):
     protected["secret"].write_text("wrong-test-password")
     output = C.c_void_p(1234)
-    assert code(api, api.SWSSDBConnector_new_named_with_auth(b"STATE_DB", 500, 0, 1, C.byref(output))) == 1
+    check(api, api.SWSSDBConnector_new_named_with_auth(b"STATE_DB", 500, 0, 1, C.byref(output)), 1)
     assert output.value is None
 
 

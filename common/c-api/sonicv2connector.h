@@ -17,11 +17,12 @@ typedef struct SWSSSonicV2ConnectorOpaque *SWSSSonicV2Connector;
 // Pass 0 to use TCP connection, 1 to use Unix socket
 SWSSResult SWSSSonicV2Connector_new(uint8_t use_unix_socket_path, const char *netns, SWSSSonicV2Connector *outConnector);
 
-// Free the SonicV2Connector
-// Explicit authentication; flags must be 0 or 1. Output is null on failure.
+// Pass authenticate=1 to request native authentication, 0 to keep it disabled.
+// Flags must be 0 or 1. Output is null on failure.
 SWSSResult SWSSSonicV2Connector_new_with_auth(uint8_t use_unix_socket_path, const char *netns,
     uint8_t authenticate, SWSSSonicV2Connector *outConnector);
 
+// Free the SonicV2Connector
 SWSSResult SWSSSonicV2Connector_free(SWSSSonicV2Connector connector);
 
 // Get namespace
