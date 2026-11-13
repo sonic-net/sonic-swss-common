@@ -126,7 +126,7 @@ int swssloglevel(int argc, char** argv)
         }
     }
 
-    DBConnector config_db("CONFIG_DB", 0);
+    DBConnector config_db("CONFIG_DB", 0, false, "", !print);
     swss::Table logger_tbl(&config_db, CFG_LOGGER_TABLE_NAME);
     std::vector<std::string> keys;
     logger_tbl.getKeys(keys);
