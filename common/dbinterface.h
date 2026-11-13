@@ -49,6 +49,8 @@ public:
     int64_t set(const std::string& dbName, const std::string& hash, const std::string& key, const std::string& value, bool blocking = false);
     DBConnector& get_redis_client(const std::string& dbName);
     void set_redis_kwargs(std::string unix_socket_path, std::string host, int port);
+    // Connect and reconnect as the trusted local writer; call before the first connect.
+    void set_authentication(const SonicDBKey& key);
 
     static const int BLOCKING_ATTEMPT_ERROR_THRESHOLD = 10;
     static const int BLOCKING_ATTEMPT_SUPPRESSION = BLOCKING_ATTEMPT_ERROR_THRESHOLD + 5;
@@ -78,8 +80,7 @@ private:
     void _onetime_connect(int dbId, const std::string& dbName);
     // Keep reconnecting to Database 'dbId' until success
     void _persistent_connect(int dbId, const std::string& dbName);
-    void _connect(int dbId, const std::string& dbName, bool retry,
-                  const std::string& unixPath, const std::string& host, int port);
+    void _wait_to_reconnect(int dbId, const std::string& dbName);
 
     // Redis keyspace notifications must be enabled by server configuration before
     // callers subscribe through this interface.
@@ -92,6 +93,8 @@ private:
     std::string m_unix_socket_path;
     std::string m_host = "127.0.0.1";
     int m_port = 6379;
+    bool m_authenticate = false;
+    SonicDBKey m_dbKey;
 };
 
 }
