@@ -19,6 +19,10 @@ parameters:
   type: number
   default: 60
 
+- name: display_name
+  type: string
+  default: ''
+
 - name: artifact_name
   type: string
 
@@ -36,7 +40,7 @@ parameters:
 
 jobs:
 - job:
-  displayName: ${{ parameters.arch }}
+  displayName: ${{ coalesce(parameters.display_name, parameters.arch) }}
   timeoutInMinutes: ${{ parameters.timeout }}
   variables:
     DIFF_COVER_CHECK_THRESHOLD: 80
@@ -92,8 +96,8 @@ jobs:
         # `logger_init_without_redis` test (crates/swss-common/tests/logger_fallback.rs)
         # correctly sees redis as unreachable and passes. Redis-dependent Rust tests
         # spawn their own ephemeral redis via swss-common-testing, so they are fine.
-        cargo test           --workspace --all-features
-        cargo test --release --workspace --all-features
+        cargo test           --locked --workspace --all-features
+        cargo test --release --locked --workspace --all-features
 
         # Bring up the unixsocket redis for the C++ / pytest tests below. This is the
         # same shared script buildenv_setup runs on the VS test host (via the
@@ -106,6 +110,9 @@ jobs:
         pytest-3 --cov=. --cov-report=xml
         [ -f coverage.xml ] && mv coverage.xml tests/coverage.xml
         bash tests/run-authentication-tests.sh
+        # configure's compiler checks leave a-conftest.gcno (no source) behind,
+        # which gcovr 7 rejects.
+        rm -f a-conftest.gcno a-conftest.gcda
         gcovr -r ./ -e ".*/swsscommon_wrap.cpp" -e=tests --exclude-unreachable-branches --exclude-throw-branches --gcov-ignore-parse-errors -x --xml-pretty  -o coverage.xml
         make -C goext
         redis-cli FLUSHALL
@@ -124,11 +131,15 @@ jobs:
     - script: |
         set -ex
         # Install .NET CORE
-        curl -sSL https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
-        sudo apt-add-repository https://packages.microsoft.com/debian/12/prod
+        . /etc/os-release
+        curl -fsSL -o packages-microsoft-prod.deb https://packages.microsoft.com/config/debian/${VERSION_ID}/packages-microsoft-prod.deb
+        sudo dpkg -i packages-microsoft-prod.deb
+        rm -f packages-microsoft-prod.deb
         sudo apt-get update
         sudo apt-get install -y dotnet-sdk-8.0
       displayName: "Install .NET CORE"
+    - script: sudo pip3 install --quiet --break-system-packages --ignore-installed diff-cover
+      displayName: "Pre-install diff-cover for pipeline decorator"
     - task: PublishCodeCoverageResults@1
       inputs:
         codeCoverageTool: Cobertura
