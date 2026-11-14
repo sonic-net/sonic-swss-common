@@ -299,8 +299,8 @@ T castSelectableObj(swss::Selectable *temp)
         PyErr_SetString(PyExc_RuntimeError, e.what()); SWIG_fail;
     }
 }
-#endif
 %include "redissocket.h"
+#endif
 #ifdef ENABLE_YANG_MODULES
 %include "cfg_schema.h"
 // DefaultValueHelper exposes libyang schema-node pointers (lys_node* /
