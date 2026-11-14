@@ -1,4 +1,4 @@
-#include "redissocket_interruptible.h"
+#include "c-api/internal/redissocket.h"
 #include "redisauth.h"
 #include "redisreply.h"
 #include <algorithm>
@@ -13,6 +13,14 @@
 
 namespace
 {
+[[noreturn]] void connectionError(const char *message, redisContext *context)
+{
+    if (context->err == REDIS_ERR_IO || context->err == REDIS_ERR_EOF)
+        throw std::system_error(context->err == REDIS_ERR_EOF ? ECONNRESET : errno,
+                                std::generic_category(), message);
+    throw swss::RedisError(message, context);
+}
+
 class Waiter
 {
     using Clock = std::chrono::steady_clock;
@@ -62,13 +70,13 @@ public:
     redisReply *command(redisContext *context, const char **args, const size_t *lengths)
     {
         if (redisAppendCommandArgv(context, 3, args, lengths) != REDIS_OK)
-            throw swss::RedisError("Cannot queue Redis authentication", context);
+            connectionError("Cannot queue Redis authentication", context);
         int flushed = 0;
         while (!flushed)
         {
             check();
             if (redisBufferWrite(context, &flushed) != REDIS_OK)
-                throw swss::RedisError("Redis authentication write failure", context);
+                connectionError("Redis authentication write failure", context);
             if (!flushed) wait(context->fd, POLLOUT);
         }
         for (;;)
@@ -76,11 +84,11 @@ public:
             check();
             void *reply = nullptr;
             if (redisGetReplyFromReader(context, &reply) != REDIS_OK)
-                throw swss::RedisError("Redis authentication reply failure", context);
+                connectionError("Redis authentication reply failure", context);
             if (reply) return static_cast<redisReply *>(reply);
             wait(context->fd, POLLIN);
             if (redisBufferRead(context) != REDIS_OK)
-                throw swss::RedisError("Redis authentication read failure", context);
+                connectionError("Redis authentication read failure", context);
         }
     }
 };
@@ -99,7 +107,7 @@ int swss::openRedisUnixSocketInterruptible(const std::string& path, unsigned int
     waiter.check();
     std::unique_ptr<redisContext, decltype(&redisFree)> context(redisConnectUnixNonBlock(path.c_str()), redisFree);
     if (!context) throw std::bad_alloc();
-    if (context->err) throw RedisError("Redis Unix connection failed", context.get());
+    if (context->err) connectionError("Redis Unix connection failed", context.get());
     waiter.wait(context->fd, POLLOUT);
     int error = 0;
     socklen_t length = sizeof(error);

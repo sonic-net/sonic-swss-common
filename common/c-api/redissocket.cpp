@@ -1,5 +1,5 @@
 #include "redissocket.h"
-#include "../redissocket_interruptible.h"
+#include "internal/redissocket.h"
 #include <system_error>
 
 SWSSResult SWSSRedisSocket_open_unix(const char *path, uint32_t timeout_ms, uint8_t authenticate,
@@ -8,7 +8,7 @@ SWSSResult SWSSRedisSocket_open_unix(const char *path, uint32_t timeout_ms, uint
     if (outFd) *outFd = -1;
     if (outError) *outError = 0;
     SWSSTry({
-        if (!path || !outFd || authenticate > 1) throw std::invalid_argument("Invalid native Unix factory arguments");
+        if (!path || !outFd) throw std::invalid_argument("Invalid native Unix factory arguments");
         try { *outFd = swss::openRedisUnixSocketInterruptible(path, timeout_ms, authenticate != 0, cancelFd); }
         catch (const std::system_error& error) {
             if (outError) *outError = error.code().value();

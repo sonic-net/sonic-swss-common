@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 )
@@ -94,6 +95,7 @@ func TestCancellationDuringAuthentication(t *testing.T) {
 				defer handlers.Done()
 				defer c.Close()
 				buffer := make([]byte, 1024)
+				_ = c.SetReadDeadline(time.Now().Add(time.Second))
 				_, _ = c.Read(buffer)
 				<-stop
 			}()
@@ -105,8 +107,35 @@ func TestCancellationDuringAuthentication(t *testing.T) {
 		c, err := DialUnixContext(ctx, socket, time.Second, true)
 		cancel()
 		if c != nil || !errors.Is(err, context.DeadlineExceeded) {
+			if c != nil {
+				_ = c.Close()
+			}
 			t.Fatalf("connection=%v error=%v", c, err)
 		}
+	}
+}
+
+func TestTransportErrors(t *testing.T) {
+	socket := filepath.Join(t.TempDir(), "unavailable.sock")
+	for _, expected := range []syscall.Errno{syscall.ENOENT, syscall.ECONNREFUSED} {
+		t.Run(expected.Error(), func(t *testing.T) {
+			if expected == syscall.ECONNREFUSED {
+				listener, err := net.ListenUnix("unix", &net.UnixAddr{Name: socket, Net: "unix"})
+				if err != nil {
+					t.Fatal(err)
+				}
+				listener.SetUnlinkOnClose(false)
+				_ = listener.Close()
+			}
+			c, err := DialUnixContext(context.Background(), socket, time.Second, true)
+			if c != nil {
+				_ = c.Close()
+			}
+			var networkError net.Error
+			if !errors.Is(err, expected) || !errors.As(err, &networkError) || networkError.Timeout() {
+				t.Fatalf("expected network error %v; got %T: %v", expected, err, err)
+			}
+		})
 	}
 }
 

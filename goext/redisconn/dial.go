@@ -15,6 +15,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"syscall"
 	"time"
 	"unsafe"
 )
@@ -71,6 +72,10 @@ func DialUnixContext(ctx context.Context, path string, timeout time.Duration, au
 	if result.exception != C.SWSSException_None {
 		if code == C.ETIMEDOUT {
 			return nil, os.ErrDeadlineExceeded
+		}
+		if code != 0 {
+			return nil, &net.OpError{Op: "dial", Net: "unix",
+				Addr: &net.UnixAddr{Name: path, Net: "unix"}, Err: syscall.Errno(code)}
 		}
 		return nil, errors.New(C.GoString(C.SWSSStrRef_c_str(C.SWSSStrRef(unsafe.Pointer(result.message)))))
 	}
