@@ -31,7 +31,6 @@ SWSSResult SWSSDBConnector_new_keyed(const char *dbName, uint32_t timeout_ms, ui
                                      const char *containerName, const char *netns, SWSSDBConnector *outDb);
 
 // Pass authenticate=1 to request native authentication, 0 to keep it disabled.
-// Flags must be 0 or 1. outDb is null on failure.
 SWSSResult SWSSDBConnector_new_named_with_auth(const char *dbName, uint32_t timeout_ms,
     uint8_t isTcpConn, uint8_t authenticate, SWSSDBConnector *outDb);
 SWSSResult SWSSDBConnector_new_keyed_with_auth(const char *dbName, uint32_t timeout_ms,

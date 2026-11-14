@@ -17,4 +17,5 @@ fn explicit_native_authentication() {
     v2.set("STATE_DB", "rust-v2", "field", "value", false).unwrap();
     let config = ConfigDBConnector::new_with_auth(true, None, true).unwrap();
     config.connect(false, false).unwrap();
+    config.set_entry("AUTH_TEST", "rust-config", [("field", CxxString::new("value"))]).unwrap();
 }

@@ -24,6 +24,32 @@ impl SonicV2Connector {
         Self::new_with_auth(use_unix_socket_path, namespace, false)
     }
 
+    /// Explicit native authentication, with transport selected by the caller.
+    pub fn new_with_auth(
+        use_unix_socket_path: bool,
+        namespace: Option<String>,
+        authenticate: bool
+    ) -> Result<SonicV2Connector> {
+
+        let netns_str = namespace.unwrap_or_default();
+        let netns_cstr = cstr(&netns_str)?;
+
+        let ptr = unsafe {
+            swss_try!(p_connector => SWSSSonicV2Connector_new_with_auth(
+                use_unix_socket_path as u8,
+                netns_cstr.as_ptr(),
+                authenticate as u8,
+                p_connector
+            ))?
+        };
+
+        Ok(Self {
+            ptr,
+            use_unix_socket_path,
+            netns: netns_str,
+        })
+    }
+
     /// Get namespace.
     pub fn get_namespace(&self) -> Result<String> {
         unsafe {
@@ -38,15 +64,6 @@ impl SonicV2Connector {
             SWSSString_free(namespace_str);
             Ok(result)
         }
-    }
-
-    /// Explicit native authentication, with transport selected by the caller.
-    pub fn new_with_auth(use_unix_socket_path: bool, namespace: Option<String>, authenticate: bool) -> Result<Self> {
-        let netns = namespace.unwrap_or_default();
-        let ns = cstr(&netns)?;
-        let ptr = unsafe { swss_try!(out => SWSSSonicV2Connector_new_with_auth(
-            use_unix_socket_path as u8, ns.as_ptr(), authenticate as u8, out))? };
-        Ok(Self { ptr, use_unix_socket_path, netns })
     }
 
     /// Connect to a specific database.

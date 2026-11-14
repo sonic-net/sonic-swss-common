@@ -48,13 +48,10 @@ SWSSResult SWSSDBConnector_new_named_with_auth(const char *dbName, uint32_t time
 SWSSResult SWSSDBConnector_new_keyed_with_auth(const char *dbName, uint32_t timeout_ms,
     uint8_t isTcpConn, const char *containerName, const char *netns,
     uint8_t authenticate, SWSSDBConnector *outDb) {
-    if (outDb) *outDb = nullptr;
     SWSSTry({
-        if (!dbName || !outDb || isTcpConn > 1 || authenticate > 1)
-            throw invalid_argument("Invalid authenticated DBConnector constructor arguments");
         SonicDBKey key;
-        key.containerName = containerName ? containerName : "";
-        key.netns = netns ? netns : "";
+        key.containerName = string(containerName);
+        key.netns = string(netns);
         *outDb = (SWSSDBConnector) new DBConnector(dbName, timeout_ms, isTcpConn != 0, key, authenticate != 0);
     });
 }

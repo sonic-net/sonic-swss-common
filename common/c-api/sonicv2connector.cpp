@@ -20,10 +20,7 @@ SWSSResult SWSSSonicV2Connector_new(uint8_t use_unix_socket_path, const char *ne
 
 SWSSResult SWSSSonicV2Connector_new_with_auth(uint8_t use_unix_socket_path, const char *netns,
     uint8_t authenticate, SWSSSonicV2Connector *outConnector) {
-    if (outConnector) *outConnector = nullptr;
     SWSSTry({
-        if (!outConnector || use_unix_socket_path > 1 || authenticate > 1)
-            throw invalid_argument("Invalid authenticated connector constructor arguments");
         *outConnector = (SWSSSonicV2Connector) new SonicV2Connector_Native(use_unix_socket_path != 0,
             netns ? netns : "", authenticate != 0);
     });

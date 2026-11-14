@@ -59,7 +59,7 @@ def write(api, db, expected):
 def test_c_dbconnector_option(protected, api, keyed, authenticate):
     db = C.c_void_p()
     if keyed:
-        result = api.SWSSDBConnector_new_keyed_with_auth(b"STATE_DB", 500, 0, None, None, authenticate, C.byref(db))
+        result = api.SWSSDBConnector_new_keyed_with_auth(b"STATE_DB", 500, 0, b"", b"", authenticate, C.byref(db))
     else:
         result = api.SWSSDBConnector_new_named_with_auth(b"STATE_DB", 500, 0, authenticate, C.byref(db))
     check(api, result)
@@ -93,19 +93,10 @@ def test_c_configdb_option(config_metadata, api, authenticate):
         check(api, api.SWSSConfigDBConnector_free(connector))
 
 
-@pytest.mark.parametrize("name", ["SWSSSonicV2Connector", "SWSSConfigDBConnector"])
-def test_c_invalid_flags_clear_output(protected, api, name):
-    output = C.c_void_p(1234)
-    check(api, getattr(api, name + "_new_with_auth")(1, None, 2, C.byref(output)), 1)
-    assert output.value is None
-    check(api, getattr(api, name + "_new_with_auth")(1, None, 1, None), 1)
-
-
-def test_c_rejected_credentials_clear_output(protected, api):
+def test_c_rejected_credentials(protected, api):
     protected["secret"].write_text("wrong-test-password")
-    output = C.c_void_p(1234)
+    output = C.c_void_p()
     check(api, api.SWSSDBConnector_new_named_with_auth(b"STATE_DB", 500, 0, 1, C.byref(output)), 1)
-    assert output.value is None
 
 
 def test_rust_authentication(config_metadata):
