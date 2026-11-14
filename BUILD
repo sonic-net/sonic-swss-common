@@ -4,7 +4,7 @@ exports_files(["LICENSE"])
 
 cc_library(
     name = "common",
-    srcs = glob(["common/*.cpp"], exclude=["common/loglevel.cpp", "common/loglevel_util.cpp"]),
+    srcs = glob(["common/*.cpp", "common/c-api/internal/*.h"], exclude=["common/loglevel.cpp", "common/loglevel_util.cpp"]),
     hdrs = glob([
         "common/*.h",
         "common/*.hpp",
