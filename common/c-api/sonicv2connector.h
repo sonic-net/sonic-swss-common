@@ -17,6 +17,10 @@ typedef struct SWSSSonicV2ConnectorOpaque *SWSSSonicV2Connector;
 // Pass 0 to use TCP connection, 1 to use Unix socket
 SWSSResult SWSSSonicV2Connector_new(uint8_t use_unix_socket_path, const char *netns, SWSSSonicV2Connector *outConnector);
 
+// Pass authenticate=1 to request native authentication, 0 to keep it disabled.
+SWSSResult SWSSSonicV2Connector_new_with_auth(uint8_t use_unix_socket_path, const char *netns,
+    uint8_t authenticate, SWSSSonicV2Connector *outConnector);
+
 // Free the SonicV2Connector
 SWSSResult SWSSSonicV2Connector_free(SWSSSonicV2Connector connector);
 

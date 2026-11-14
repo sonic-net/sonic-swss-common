@@ -18,6 +18,14 @@ SWSSResult SWSSSonicV2Connector_new(uint8_t use_unix_socket_path, const char *ne
     });
 }
 
+SWSSResult SWSSSonicV2Connector_new_with_auth(uint8_t use_unix_socket_path, const char *netns,
+    uint8_t authenticate, SWSSSonicV2Connector *outConnector) {
+    SWSSTry({
+        *outConnector = (SWSSSonicV2Connector) new SonicV2Connector_Native(use_unix_socket_path != 0,
+            netns ? netns : "", authenticate != 0);
+    });
+}
+
 SWSSResult SWSSSonicV2Connector_free(SWSSSonicV2Connector connector) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdelete-non-virtual-dtor"

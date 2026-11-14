@@ -159,3 +159,10 @@ authentication does not change the requested transport. `ConfigDBConnector` and
 Native DBInterface callers select the transport with `set_redis_kwargs` and call
 `set_authentication(key)` before the first `connect` to opt in.
 Authentication and endpoint selection are retained through subscription recovery.
+
+## Explicit authentication through C and Rust
+
+The C interface provides `SWSSDBConnector_new_named_with_auth`,
+`SWSSDBConnector_new_keyed_with_auth`, `SWSSSonicV2Connector_new_with_auth` and
+`SWSSConfigDBConnector_new_with_auth`. Rust exposes corresponding `new_with_auth`
+constructors. Existing entry points keep native authentication disabled.

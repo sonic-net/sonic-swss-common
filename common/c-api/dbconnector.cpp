@@ -40,6 +40,22 @@ SWSSResult SWSSDBConnector_new_keyed(const char *dbName, uint32_t timeout_ms, ui
     });
 }
 
+SWSSResult SWSSDBConnector_new_named_with_auth(const char *dbName, uint32_t timeout_ms,
+    uint8_t isTcpConn, uint8_t authenticate, SWSSDBConnector *outDb) {
+    return SWSSDBConnector_new_keyed_with_auth(dbName, timeout_ms, isTcpConn, "", "", authenticate, outDb);
+}
+
+SWSSResult SWSSDBConnector_new_keyed_with_auth(const char *dbName, uint32_t timeout_ms,
+    uint8_t isTcpConn, const char *containerName, const char *netns,
+    uint8_t authenticate, SWSSDBConnector *outDb) {
+    SWSSTry({
+        SonicDBKey key;
+        key.containerName = string(containerName);
+        key.netns = string(netns);
+        *outDb = (SWSSDBConnector) new DBConnector(dbName, timeout_ms, isTcpConn != 0, key, authenticate != 0);
+    });
+}
+
 SWSSResult SWSSDBConnector_free(SWSSDBConnector db) {
     SWSSTry(delete (DBConnector *)db);
 }

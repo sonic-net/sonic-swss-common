@@ -18,6 +18,14 @@ SWSSResult SWSSConfigDBConnector_new(uint8_t use_unix_socket_path, const char *n
     });
 }
 
+SWSSResult SWSSConfigDBConnector_new_with_auth(uint8_t use_unix_socket_path, const char *netns,
+    uint8_t authenticate, SWSSConfigDBConnector *outConnector) {
+    SWSSTry({
+        *outConnector = (SWSSConfigDBConnector) new ConfigDBConnector_Native(use_unix_socket_path != 0,
+            netns ? netns : "", authenticate != 0);
+    });
+}
+
 SWSSResult SWSSConfigDBConnector_free(SWSSConfigDBConnector configDb) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdelete-non-virtual-dtor"
