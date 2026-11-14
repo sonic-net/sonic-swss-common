@@ -16,13 +16,13 @@ def cli(protected):
     had_original = target.exists() or target.is_symlink()
     if had_original:
         target.rename(backup)
-    shutil.copyfile(protected['metadata'], target)
     try:
+        shutil.copyfile(protected['metadata'], target)
         binary = Path(__file__).resolve().parents[1] / 'sonic-db-cli/sonic-db-cli'
         yield lambda *args: subprocess.run([str(binary), *args],
             text=True, capture_output=True, timeout=5)
     finally:
-        target.unlink()
+        target.unlink(missing_ok=True)
         if had_original:
             backup.rename(target)
 
