@@ -15,7 +15,8 @@ def secondary(protected):
     socket = str(protected["work"] / "secondary.sock")
     config = protected["work"] / "secondary.conf"
     config.write_text((protected["work"] / "redis.conf").read_text().replace(protected["socket"], socket))
-    process = subprocess.Popen(["redis-server", str(config)], stdout=subprocess.DEVNULL,
+    command = [*protected["command"][:-1], str(config)]
+    process = subprocess.Popen(command, stdout=subprocess.DEVNULL,
                                stderr=subprocess.STDOUT)
     try:
         client = redis.Redis(unix_socket_path=socket, db=6, username="test-writer",
@@ -56,6 +57,7 @@ def test_recovery_uses_original_endpoint_after_another_database(secondary):
 
 
 @pytest.mark.parametrize("higher_level", [False, True])
+@pytest.mark.parametrize("protected", [400], indirect=True)
 def test_namespace_selects_its_configured_socket(secondary, higher_level):
     metadata = json.loads(secondary["metadata"].read_text())
     metadata["INSTANCES"]["redis"]["unix_socket_path"] = secondary["secondary_socket"]

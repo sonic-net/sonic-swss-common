@@ -23,7 +23,7 @@ from swsscommon import swsscommon as swss
 
 
 @pytest.fixture
-def protected():
+def protected(request):
     if os.environ.get("SWSS_AUTH_TEST_CONTAINER") != "1":
         pytest.skip("requires an explicitly selected disposable container")
     assert os.geteuid() == 0 and Path("/.dockerenv").exists()
@@ -40,8 +40,12 @@ def protected():
         "+unsubscribe +punsubscribe\n"
         "user test-writer on >test-only-password ~* &* +@all\n"
     )
-    process = subprocess.Popen(["redis-server", str(config)], stdout=subprocess.DEVNULL,
-                               stderr=subprocess.STDOUT)
+    server_uid = getattr(request, "param", 0)
+    command = ["redis-server", str(config)]
+    if server_uid:
+        os.chown(work, server_uid, server_uid)
+        command = ["setpriv", f"--reuid={server_uid}", f"--regid={server_uid}", "--clear-groups"] + command
+    process = subprocess.Popen(command, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
     try:
         reader = redis.Redis(unix_socket_path=sock)
         for _ in range(100):
@@ -61,7 +65,7 @@ def protected():
         secret.chmod(0o600)
         policy = policy_dir / "local.json"
         policy.write_text(json.dumps({"username": "test-writer", "unix_socket": sock,
-                                      "tcp_host": "127.0.0.1", "tcp_port": 0}))
+                                      "tcp_host": "127.0.0.1", "tcp_port": 0, "server_uid": server_uid}))
         metadata = work / "database_config.json"
         metadata.write_text(json.dumps({
             "INSTANCES": {"redis": {"hostname": "127.0.0.1", "port": 0,
@@ -71,7 +75,8 @@ def protected():
         swss.SonicDBConfig.reset()
         swss.SonicDBConfig.initialize(str(metadata))
         yield {"writer": writer, "reader": reader, "secret": secret, "policy": policy,
-               "metadata": metadata, "socket": sock, "work": work}
+               "metadata": metadata, "socket": sock, "work": work,
+               "process": process, "command": command, "server_uid": server_uid}
     finally:
         gc.collect()
         process.terminate()
@@ -141,7 +146,7 @@ def test_missing_and_unmatched_policy_keep_default_account(protected):
         connect(True).set("missing-policy", "denied")
     protected["policy"].write_text(json.dumps({"username": "test-writer",
         "unix_socket": str(protected["work"] / "another.sock"),
-        "tcp_host": "127.0.0.1", "tcp_port": 0}))
+        "tcp_host": "127.0.0.1", "tcp_port": 0, "server_uid": protected["server_uid"]}))
     with pytest.raises(RuntimeError, match="NOPERM"):
         connect(True).set("unmatched-policy", "denied")
 
@@ -270,3 +275,73 @@ def test_unsafe_authentication_inputs_are_rejected(protected, fault):
     with pytest.raises(RuntimeError):
         swss.DBConnector("STATE_DB", 500, False, "", True)
     assert swss.DBConnector("STATE_DB", 500, False).getDbId() == 6
+
+
+@pytest.mark.parametrize("uid", [None, -1, True, "0", 0.5, 4294967295, 4294967296])
+def test_invalid_server_identity_is_rejected(protected, uid):
+    policy = json.loads(protected["policy"].read_text())
+    policy["server_uid"] = uid
+    protected["policy"].write_text(json.dumps(policy))
+    with pytest.raises(RuntimeError, match="authentication policy"):
+        connect(True)
+    assert connect(False).getDbId() == 6
+
+
+def test_missing_server_identity_is_rejected(protected):
+    policy = json.loads(protected["policy"].read_text())
+    del policy["server_uid"]
+    protected["policy"].write_text(json.dumps(policy))
+    with pytest.raises(RuntimeError, match="authentication policy"):
+        connect(True)
+
+
+def test_server_identity_precedes_credential_access(protected):
+    policy = json.loads(protected["policy"].read_text())
+    policy["server_uid"] = 65534
+    protected["policy"].write_text(json.dumps(policy))
+    protected["secret"].unlink()
+    before = len(os.listdir("/proc/self/fd"))
+    for _ in range(8):
+        with pytest.raises(RuntimeError, match="server identity"):
+            connect(True)
+    gc.collect()
+    assert len(os.listdir("/proc/self/fd")) == before
+
+
+@pytest.mark.parametrize("protected", [400], indirect=True)
+@pytest.mark.parametrize("reconnect", [False, True])
+def test_identity_mismatch_rejects_new_connections(protected, reconnect):
+    original = connect(True) if reconnect else None
+    policy = json.loads(protected["policy"].read_text())
+    policy["server_uid"] = 401
+    protected["policy"].write_text(json.dumps(policy))
+    before = protected["writer"].info("commandstats").get("cmdstat_auth", {}).get("calls", 0)
+    with pytest.raises(RuntimeError, match="server identity"):
+        original.newConnector(500) if reconnect else connect(True)
+    after = protected["writer"].info("commandstats").get("cmdstat_auth", {}).get("calls", 0)
+    assert after == before
+
+
+@pytest.mark.parametrize("protected", [400], indirect=True)
+def test_service_identity_is_retained_on_new_connections(protected):
+    original = connect(True)
+    original.set("service-identity", "before")
+    protected["process"].terminate()
+    protected["process"].wait(timeout=5)
+    process = subprocess.Popen(protected["command"], stdout=subprocess.DEVNULL,
+                               stderr=subprocess.STDOUT)
+    try:
+        for _ in range(100):
+            try:
+                if protected["reader"].ping():
+                    break
+            except redis.ConnectionError:
+                time.sleep(0.02)
+        else:
+            pytest.fail("Redis service did not restart")
+        replacement = original.newConnector(500)
+        replacement.set("service-identity", "after")
+        assert protected["writer"].get("service-identity") == b"after"
+    finally:
+        process.terminate()
+        process.wait(timeout=5)
