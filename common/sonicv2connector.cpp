@@ -4,10 +4,14 @@
 
 using namespace swss;
 
-SonicV2Connector_Native::SonicV2Connector_Native(bool use_unix_socket_path, const char *netns)
+SonicV2Connector_Native::SonicV2Connector_Native(bool use_unix_socket_path, const char *netns, bool authenticate)
     : m_use_unix_socket_path(use_unix_socket_path)
     , m_netns(netns)
 {
+    if (authenticate && !use_unix_socket_path)
+        throw std::invalid_argument("Redis writer authentication requires an explicit Unix socket");
+    if (authenticate)
+        m_dbintf.set_authentication(SonicDBKey(m_netns));
 }
 
 std::string SonicV2Connector_Native::getNamespace() const
@@ -17,7 +21,7 @@ std::string SonicV2Connector_Native::getNamespace() const
 
 void SonicV2Connector_Native::connect(const std::string& db_name, bool retry_on)
 {
-    if (m_use_unix_socket_path || get_db_port(db_name) == 0)
+    if (m_use_unix_socket_path)
     {
         m_dbintf.set_redis_kwargs(get_db_socket(db_name), "", 0);
     }
