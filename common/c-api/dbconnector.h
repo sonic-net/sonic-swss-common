@@ -30,6 +30,13 @@ SWSSResult SWSSDBConnector_new_named(const char *dbName, uint32_t timeout_ms, ui
 SWSSResult SWSSDBConnector_new_keyed(const char *dbName, uint32_t timeout_ms, uint8_t isTcpConn,
                                      const char *containerName, const char *netns, SWSSDBConnector *outDb);
 
+// Pass authenticate=1 to request native authentication, 0 to keep it disabled.
+SWSSResult SWSSDBConnector_new_named_with_auth(const char *dbName, uint32_t timeout_ms,
+    uint8_t isTcpConn, uint8_t authenticate, SWSSDBConnector *outDb);
+SWSSResult SWSSDBConnector_new_keyed_with_auth(const char *dbName, uint32_t timeout_ms,
+    uint8_t isTcpConn, const char *containerName, const char *netns,
+    uint8_t authenticate, SWSSDBConnector *outDb);
+
 SWSSResult SWSSDBConnector_free(SWSSDBConnector db);
 
 // Outputs 0 when key doesn't exist, 1 when key was deleted

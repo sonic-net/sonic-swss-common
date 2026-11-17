@@ -21,13 +21,24 @@ impl SonicV2Connector {
         namespace: Option<String>
     ) -> Result<SonicV2Connector> {
 
+        Self::new_with_auth(use_unix_socket_path, namespace, false)
+    }
+
+    /// Explicit native authentication, with transport selected by the caller.
+    pub fn new_with_auth(
+        use_unix_socket_path: bool,
+        namespace: Option<String>,
+        authenticate: bool
+    ) -> Result<SonicV2Connector> {
+
         let netns_str = namespace.unwrap_or_default();
         let netns_cstr = cstr(&netns_str)?;
 
         let ptr = unsafe {
-            swss_try!(p_connector => SWSSSonicV2Connector_new(
+            swss_try!(p_connector => SWSSSonicV2Connector_new_with_auth(
                 use_unix_socket_path as u8,
                 netns_cstr.as_ptr(),
+                authenticate as u8,
                 p_connector
             ))?
         };

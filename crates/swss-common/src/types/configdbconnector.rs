@@ -13,13 +13,23 @@ pub struct ConfigDBConnector {
 impl ConfigDBConnector {
     /// Create a new ConfigDBConnector.
     pub fn new(use_unix_socket_path: bool, netns: Option<String>) -> Result<ConfigDBConnector> {
+        Self::new_with_auth(use_unix_socket_path, netns, false)
+    }
+
+    /// Explicit native authentication, with transport selected by the caller.
+    pub fn new_with_auth(
+        use_unix_socket_path: bool,
+        netns: Option<String>,
+        authenticate: bool
+    ) -> Result<ConfigDBConnector> {
         let netns_str = netns.unwrap_or_default();
         let netns_cstr = cstr(&netns_str)?;
 
         let ptr = unsafe {
-            swss_try!(p_config_db => SWSSConfigDBConnector_new(
+            swss_try!(p_config_db => SWSSConfigDBConnector_new_with_auth(
                 use_unix_socket_path as u8,
                 netns_cstr.as_ptr(),
+                authenticate as u8,
                 p_config_db
             ))?
         };
