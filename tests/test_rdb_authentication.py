@@ -7,7 +7,8 @@ import time
 import pytest
 import redis
 from swsscommon import swsscommon as swss
-from test_redis_authentication import protected  # noqa: F401
+
+pytest_plugins = ["test_redis_authentication"]
 
 
 def test_native_rdb_snapshot(protected):
