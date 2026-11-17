@@ -1,5 +1,7 @@
+import json
 from pathlib import Path
 import shutil
+import socket
 import subprocess
 
 import pytest
@@ -42,9 +44,23 @@ def test_cli_authentication_does_not_select_transport(protected, cli):
     assert 'explicitly selected local Unix socket' in result.stderr
 
 
+def test_cli_tcp_connection_failure_names_port(cli):
+    with socket.socket() as endpoint:
+        endpoint.bind(('127.0.0.1', 0))
+        port = endpoint.getsockname()[1]
+        metadata = Path('/var/run/redis/sonic-db/database_config.json')
+        data = json.loads(metadata.read_text())
+        data['INSTANCES']['redis']['port'] = port
+        metadata.write_text(json.dumps(data))
+        result = cli('PING')
+    assert result.returncode == 1
+    assert result.stdout.strip() == f'Could not connect to Redis at 127.0.0.1:{port}: Connection refused'
+
+
 def test_cli_all_instances_uses_authentication(protected, cli):
     assert cli('-s', '--authenticate', 'PING').returncode == 0
     protected['secret'].write_text('incorrect-test-password')
     rejected = cli('-s', '--authenticate', 'PING')
     assert rejected.returncode != 0
+    assert rejected.stdout.startswith('Could not connect to Redis at 127.0.0.1:STATE_DB: ')
     assert 'authentication failed' in rejected.stdout + rejected.stderr

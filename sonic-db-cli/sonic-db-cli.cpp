@@ -23,7 +23,7 @@ void printUsage()
     cout << "optional arguments:" << endl;
     cout << "  -h, --help            show this help message and exit" << endl;
     cout << "  -s, --unixsocket      Override use of tcp_port and use unixsocket" << endl;
-    cout << "      --authenticate   Request native local writer authentication (requires Unix)" << endl;
+    cout << "      --authenticate    Request native local writer authentication (requires Unix)" << endl;
     cout << "  -j, --json            Print command result as JSON" << endl;
     cout << "  -n NAMESPACE, --namespace NAMESPACE" << endl;
     cout << "                        Namespace string to use asic0/asic1.../asicn" << endl;
@@ -67,13 +67,15 @@ string handleSingleOperation(
         else
         {
             auto port = SonicDBConfig::getDbPort(db_name, netns);
-            message += port + ": Connection refused";
+            message += std::to_string(port) + ": Connection refused";
             client = make_shared<DBConnector>(db_id, host, port, 0);
         }
     }
     catch (const exception& e)
     {
-        return authenticate ? e.what() : message;
+        if (authenticate)
+            message += db_name + ": " + e.what();
+        return message;
     }
 
     if (operation == "PING"
