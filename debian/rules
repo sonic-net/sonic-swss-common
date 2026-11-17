@@ -49,7 +49,7 @@ override_dh_auto_configure:
 
 override_dh_auto_build:
 	dh_auto_build
-	SWSS_COMMON_REPO=$(CURDIR) cargo build --release --all
+	SWSS_COMMON_REPO=$(CURDIR) cargo build --locked --release --all
 
 override_dh_auto_clean:
 	dh_auto_clean
