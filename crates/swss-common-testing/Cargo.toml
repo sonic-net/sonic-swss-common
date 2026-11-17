@@ -10,7 +10,7 @@ edition.workspace = true
 
 [dependencies]
 swss-common = { path = "../swss-common" }
-rand = "0.8.5"
+rand = "0.10.0"
 lazy_static.workspace = true
 
 [lints]

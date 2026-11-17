@@ -36,7 +36,7 @@ thiserror = "1"
 anyhow = "1"
 human-panic = "2"
 better-panic = "0.3"
-signal-hook = "0.3"
+signal-hook = "0.4"
 
 # Serialization
 serde = { version = "1", features = ["derive", "rc"] }
