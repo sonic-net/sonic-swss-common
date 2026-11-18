@@ -23,6 +23,7 @@ void printUsage()
     cout << "optional arguments:" << endl;
     cout << "  -h, --help            show this help message and exit" << endl;
     cout << "  -s, --unixsocket      Override use of tcp_port and use unixsocket" << endl;
+    cout << "      --authenticate    Request native local writer authentication (requires Unix)" << endl;
     cout << "  -j, --json            Print command result as JSON" << endl;
     cout << "  -n NAMESPACE, --namespace NAMESPACE" << endl;
     cout << "                        Namespace string to use asic0/asic1.../asicn" << endl;
@@ -42,7 +43,8 @@ string handleSingleOperation(
     const string& netns,
     const string& db_name,
     const string& operation,
-    bool useUnixSocket)
+    bool useUnixSocket,
+    bool authenticate)
 {
     shared_ptr<DBConnector> client;
     auto host = SonicDBConfig::getDbHostname(db_name, netns);
@@ -50,7 +52,13 @@ string handleSingleOperation(
     try
     {
         auto db_id =  SonicDBConfig::getDbId(db_name, netns);
-        if (useUnixSocket && host != "redis_chassis.server")
+        if (authenticate)
+        {
+            if (!useUnixSocket || host == "redis_chassis.server")
+                throw std::invalid_argument("Authentication requires an explicitly selected local Unix socket");
+            client = make_shared<DBConnector>(db_name, 0, false, netns, true);
+        }
+        else if (useUnixSocket && host != "redis_chassis.server")
         {
             auto db_socket = SonicDBConfig::getDbSock(db_name, netns);
             message += db_name + ": Connection refused";
@@ -59,12 +67,14 @@ string handleSingleOperation(
         else
         {
             auto port = SonicDBConfig::getDbPort(db_name, netns);
-            message += port + ": Connection refused";
+            message += std::to_string(port) + ": Connection refused";
             client = make_shared<DBConnector>(db_id, host, port, 0);
         }
     }
     catch (const exception& e)
     {
+        if (authenticate)
+            message += db_name + ": " + e.what();
         return message;
     }
 
@@ -90,7 +100,8 @@ string handleSingleOperation(
 int handleAllInstances(
     const string& netns,
     const string& operation,
-    bool useUnixSocket)
+    bool useUnixSocket,
+    bool authenticate)
 {
     auto db_names = SonicDBConfig::getDbList(netns);
     // Operate All Redis Instances in Parallel
@@ -98,7 +109,7 @@ int handleAllInstances(
     list<future<string>> responses;
     for (auto& db_name : db_names)
     {
-        future<string> response = std::async(std::launch::async, handleSingleOperation, netns, db_name, operation, useUnixSocket);
+        future<string> response = std::async(std::launch::async, handleSingleOperation, netns, db_name, operation, useUnixSocket, authenticate);
         responses.push_back(std::move(response));
     }
 
@@ -135,14 +146,21 @@ int executeCommands(
     vector<string>& commands,
     const string& netns,
     bool useUnixSocket,
-    bool useJson)
+    bool useJson,
+    bool authenticate)
 {
     shared_ptr<DBConnector> client = nullptr;
     try
     {
         int db_id =  SonicDBConfig::getDbId(db_name, netns);
         auto host = SonicDBConfig::getDbHostname(db_name, netns);
-        if (useUnixSocket && host != "redis_chassis.server")
+        if (authenticate)
+        {
+            if (!useUnixSocket || host == "redis_chassis.server")
+                throw std::invalid_argument("Authentication requires an explicitly selected local Unix socket");
+            client = make_shared<DBConnector>(db_name, 0, false, netns, true);
+        }
+        else if (useUnixSocket && host != "redis_chassis.server")
         {
             auto db_socket = SonicDBConfig::getDbSock(db_name, netns);
             client = make_shared<DBConnector>(db_id, db_socket, 0);
@@ -199,6 +217,7 @@ void parseCliArguments(
     static struct option long_options[] = {
        {"help",        optional_argument, NULL,  'h' },
        {"unixsocket",  optional_argument, NULL,  's' },
+       {"authenticate", no_argument, NULL, 'a' },
        {"json",        no_argument,       NULL,  'j' },
        {"namespace",   optional_argument, NULL,  'n' },
        // The last element of the array has to be filled with zeros.
@@ -219,6 +238,10 @@ void parseCliArguments(
 
                 case 's':
                     options.m_unixsocket = true;
+                    break;
+
+                case 'a':
+                    options.m_authenticate = true;
                     break;
 
                 case 'j':
@@ -312,7 +335,7 @@ int sonic_db_cli(
                 initializeConfig();
             }
 
-            return executeCommands(dbOrOperation, commands, netns, useUnixSocket, options.m_json);
+            return executeCommands(dbOrOperation, commands, netns, useUnixSocket, options.m_json, options.m_authenticate);
         }
         else if (dbOrOperation == "PING"
                 || dbOrOperation == "SAVE"
@@ -328,7 +351,7 @@ int sonic_db_cli(
                     initializeConfig();
                 }
 
-                return handleAllInstances(netns, dbOrOperation, useUnixSocket);
+                return handleAllInstances(netns, dbOrOperation, useUnixSocket, options.m_authenticate);
             }
             catch (const exception& e)
             {
