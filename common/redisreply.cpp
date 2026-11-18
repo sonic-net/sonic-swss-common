@@ -1,3 +1,4 @@
+#include <cassert>
 #include <set>
 #include <string.h>
 #include <stdint.h>
@@ -59,6 +60,36 @@ static set<string> g_strToBoolCommands = {
                         "UNWATCH",
                         "SET"
                         };
+
+const char* RedisReply::ErrorCategory::name() const noexcept {
+    return "RedisReply::ErrorCategory";
+}
+
+std::string RedisReply::ErrorCategory::message(int condition) const {
+    const auto error = static_cast<Errc>(condition);
+    switch (error) {
+        case Errc::ErrorReply:
+            return "Redis returned an error reply";
+        case Errc::UnexpectedValue:
+            return "Redis returned an unexpected value";
+        case Errc::UnexpectedType:
+            return "Redis returned a value of an unexpected type";
+        case Errc::NullReply:
+            return "Redis returned a null reply";
+        default:
+            assert(false);
+            return "(unrecognized RedisReply error)";
+    }
+}
+
+std::error_category const& RedisReply::error_category() {
+    static const ErrorCategory category;
+    return category;
+}
+
+std::error_code make_error_code(RedisReply::Errc errc) {
+    return std::error_code(static_cast<int>(errc), RedisReply::error_category());
+}
 
 RedisReply::RedisReply(RedisContext *ctx, const RedisCommand& command)
 {
@@ -158,8 +189,7 @@ void RedisReply::checkStatus(const char *status)
     {
         SWSS_LOG_ERROR("Redis reply %s != %s", m_reply->str, status);
 
-        throw system_error(make_error_code(errc::io_error),
-                           "Invalid return code");
+        throw system_error(Errc::UnexpectedValue, "Unexpected status");
     }
 }
 
@@ -167,14 +197,12 @@ void RedisReply::checkReply()
 {
     if (!m_reply)
     {
-        throw system_error(make_error_code(errc::not_enough_memory),
-                           "Memory exception, reply is null");
+        throw system_error(Errc::NullReply, "Memory exception, reply is null");
     }
 
     if (m_reply->type == REDIS_REPLY_ERROR)
     {
-        system_error ex(make_error_code(errc::io_error),
-                           m_reply->str);
+        system_error ex(Errc::ErrorReply, m_reply->str);
         freeReplyObject(m_reply);
         m_reply = NULL;
         throw ex;
@@ -190,7 +218,7 @@ void RedisReply::checkReplyType(int expectedType)
 
         string errmsg = "Expected to get redis type " + std::to_string(expectedType) + " got type " + std::to_string(m_reply->type) + ", err: " + err;
         SWSS_LOG_ERROR("%s", errmsg.c_str());
-        throw system_error(make_error_code(errc::io_error), errmsg);
+        throw system_error(Errc::UnexpectedType, errmsg);
     }
 }
 
@@ -296,8 +324,7 @@ static nlohmann::ordered_json buildJsonDict(struct redisReply **element, size_t 
 {
     if (elements%2 != 0)
     {
-        throw system_error(make_error_code(errc::io_error),
-                           "Invalid result");
+        throw system_error(RedisReply::Errc::UnexpectedValue, "[JSON] Expected pairs, got odd amount of values");
     }
 
     auto result = nlohmann::ordered_json::object();
@@ -446,8 +473,7 @@ string RedisReply::formatSscanReply(struct redisReply **element, size_t elements
 {
     if (elements != 2)
     {
-        throw system_error(make_error_code(errc::io_error),
-                           "Invalid result");
+        throw system_error(Errc::UnexpectedValue, "Expected 2 elements from SSCAN, got " + std::to_string(elements));
     }
 
     // format HSCAN result, here is a example:
@@ -465,8 +491,7 @@ string RedisReply::formatHscanReply(struct redisReply **element, size_t elements
 {
     if (elements != 2)
     {
-        throw system_error(make_error_code(errc::io_error),
-                           "Invalid result");
+        throw system_error(Errc::UnexpectedValue, "Expected 2 elements from HSCAN, got " + std::to_string(elements));
     }
 
     // format HSCAN result, here is a example:
@@ -484,8 +509,7 @@ string RedisReply::formatDictReply(struct redisReply **element, size_t elements)
 {
     if (elements%2 != 0)
     {
-        throw system_error(make_error_code(errc::io_error),
-                           "Invalid result");
+        throw system_error(Errc::UnexpectedValue, "Expected pairs, got odd amount of values");
     }
 
     // format dictionary, not using json.h because the output format are different, here is a example:
