@@ -24,6 +24,30 @@ Given a repo's `build-env/` configuration, `buildenv_setup`:
 3. installs them (apt → upstream DEBs → pip/wheels, so DEBs precede pip), and
 4. runs the `post_install` configuration hooks.
 
+For `--host-os ubuntu-22.04`, setup first runs
+[`jammy-host.sh`](./buildenv_setup/jammy-host.sh) as root. It registers Redis's
+signed Jammy feed and installs matching Redis 7.2.17 server/tools packages,
+without the Ubuntu system Lua dependencies. APT preferences exclude untested
+Redis releases from that feed. It installs uv if the host does not already have
+it, and removes obsolete Ubuntu `python3-pip` and Lua packages only if APT's
+simulation would not remove other packages. Manifest Python batches and
+artifact wheels use `uv pip install --system --python <setup interpreter>`;
+Debian container setup continues to use pip3. The final host check fails if
+an artifact or hook reintroduces the obsolete packages or replaces Redis.
+No Ubuntu Pro/ESM is used.
+
+The Redis source/version is an explicit host dependency and needs the usual
+source/license approval and periodic security updates. Before rollout, validate
+Redis configuration, Lua scripts, and ordinary/ASAN VS tests on a disposable
+host. Do not rerun VMSS provisioning scripts containing disk-format commands.
+
+Roll out the shared tool and SWSS manifest together. Rebuild the
+`sonic-swss-common.amd64.ubuntu22_04` artifact and confirm downstream jobs consume
+the updated bundle: the cascade reads manifests embedded in artifacts, not just
+the current checkout. These changes do not update release branches or old PR
+templates automatically. Fleet replacement and scanner closure are separate
+operational steps.
+
 See `python3 -m buildenv_setup --help` for all flags, and
 [`../build-env/README.md`](../build-env/README.md) for the config schema in use.
 

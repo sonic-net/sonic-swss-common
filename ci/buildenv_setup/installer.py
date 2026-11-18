@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 import os
 import subprocess
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 log = logging.getLogger(__name__)
 
@@ -53,8 +53,19 @@ class Executor:
             return
         self.run(self.sudo + ["apt-get", "install", "-y"] + packages)
 
-    def pip_install(self, spec: str, pip_args: Optional[List[str]] = None) -> None:
-        self.run(self.sudo + ["pip3", "install"] + (pip_args or []) + [spec])
+    def pip_install(
+        self,
+        spec: Union[str, List[str]],
+        pip_args: Optional[List[str]] = None,
+        *,
+        python: Optional[str] = None,
+    ) -> None:
+        packages = [spec] if isinstance(spec, str) else spec
+        command = (
+            ["uv", "pip", "install", "--system", "--python", python]
+            if python else ["pip3", "install"]
+        )
+        self.run(self.sudo + command + (pip_args or []) + packages)
 
     def dpkg_install(
         self,
