@@ -2,7 +2,10 @@ from contextlib import contextmanager
 import fcntl
 import json
 import os
+from pathlib import Path
 import socket
+import subprocess
+import sys
 import threading
 
 import pytest
@@ -119,3 +122,43 @@ def test_factory_fragmented_auth_reply(protected, timeout_ms):
 def test_authentication_requires_explicit_unix():
     with pytest.raises(ValueError, match='explicit Unix socket'):
         connection_pool(authenticate=True)
+
+
+@pytest.fixture(scope='module')
+def delayed_auth_read(tmp_path_factory):
+    output = tmp_path_factory.mktemp('auth-delay') / 'delay.so'
+    subprocess.run(['cc', '-shared', '-fPIC',
+                    str(Path(__file__).with_name('redis_auth_delay_read.c')),
+                    '-ldl', '-o', str(output)], check=True)
+    return output
+
+
+@pytest.mark.parametrize('file_name,matched,timeout_ms', [
+    ('policy', True, 100), ('secret', True, 100),
+    ('policy', False, 100), ('policy', True, 0),
+])
+def test_factory_policy_processing_deadline(protected, delayed_auth_read, file_name, matched, timeout_ms):
+    if not matched:
+        policy = json.loads(protected['policy'].read_text())
+        policy['unix_socket'] = str(protected['work'] / 'other.sock')
+        protected['policy'].write_text(json.dumps(policy))
+    program = '''
+import os
+import sys
+from swsscommon import swsscommon as swss
+try:
+    fd = swss.openRedisUnixSocket(sys.argv[1], int(sys.argv[2]), True)
+except TimeoutError:
+    if sys.argv[2] == '0':
+        raise
+else:
+    os.close(fd)
+    if sys.argv[2] != '0':
+        raise AssertionError('connection returned after its AUTH deadline')
+'''
+    result = subprocess.run([sys.executable, '-c', program, protected['socket'], str(timeout_ms)],
+        env={**os.environ, 'LD_PRELOAD': str(delayed_auth_read),
+             'SWSS_TEST_DELAY_AUTH_READ': str(protected[file_name])},
+        capture_output=True, text=True, timeout=5)
+    assert result.returncode == 0, result.stderr
+    assert 'delayed Redis authentication read' in result.stderr
