@@ -30,13 +30,18 @@ class Waiter
 public:
     Waiter(int cancel, unsigned int milliseconds)
         : m_cancel(cancel), m_limited(milliseconds != 0),
-          m_end(Clock::now() + std::chrono::milliseconds(milliseconds)) {}
+          m_end(Clock::now() + std::chrono::milliseconds(milliseconds))
+    {
+    }
 
     void check()
     {
         pollfd event{m_cancel, POLLIN, 0};
         int rc;
-        do { rc = poll(&event, 1, 0); } while (rc < 0 && errno == EINTR);
+        do
+        {
+            rc = poll(&event, 1, 0);
+        } while (rc < 0 && errno == EINTR);
         if (rc < 0 || (event.revents & POLLNVAL))
             throw std::system_error(rc < 0 ? errno : EBADF, std::generic_category(), "Redis cancellation descriptor");
         if (event.revents)
@@ -93,13 +98,14 @@ public:
     }
 };
 
-redisReply *authenticate(redisContext *context, const char **args, const size_t *lengths, void *waiter)
+redisReply *runAuthCommand(redisContext *context, const char **args, const size_t *lengths, void *waiter)
 {
     return static_cast<Waiter *>(waiter)->command(context, args, lengths);
 }
 }
 
-int swss::openRedisUnixSocketInterruptible(const std::string& path, unsigned int timeout_ms, bool authenticate, int cancelFd)
+int swss::openRedisUnixSocketInterruptible(const std::string& path, unsigned int timeout_ms,
+                                           bool authenticate, int cancelFd)
 {
     if (path.empty() || path.front() != '/' || path.find('\0') != std::string::npos || cancelFd < -1)
         throw std::invalid_argument("An absolute Redis Unix path and valid cancellation descriptor are required");
@@ -114,14 +120,21 @@ int swss::openRedisUnixSocketInterruptible(const std::string& path, unsigned int
     if (getsockopt(context->fd, SOL_SOCKET, SO_ERROR, &error, &length) != 0)
         throw std::system_error(errno, std::generic_category(), "Redis connect status");
     if (error) throw std::system_error(error, std::generic_category(), "Redis Unix connection");
-    if (authenticate) authenticateRedisConnection(context.get(), ::authenticate, &waiter);
+    if (authenticate) authenticateRedisConnection(context.get(), runAuthCommand, &waiter);
     waiter.check();
     const int flags = fcntl(context->fd, F_GETFL);
     if (flags < 0 || fcntl(context->fd, F_SETFL, flags & ~O_NONBLOCK) < 0)
         throw std::system_error(errno, std::generic_category(), "Redis blocking mode");
     const int fd = fcntl(context->fd, F_DUPFD_CLOEXEC, 0);
     if (fd < 0) throw std::system_error(errno, std::generic_category(), "Redis descriptor duplication");
-    try { waiter.check(); }
-    catch (...) { close(fd); throw; }
+    try
+    {
+        waiter.check();
+    }
+    catch (...)
+    {
+        close(fd);
+        throw;
+    }
     return fd;
 }

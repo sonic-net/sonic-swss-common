@@ -68,6 +68,7 @@ def auth_server(protected, fragments=None):
     listener.listen(1)
     listener.settimeout(1)
     stop, received = threading.Event(), []
+
     def server():
         try:
             connection, _ = listener.accept()
@@ -83,6 +84,7 @@ def auth_server(protected, fragments=None):
         except OSError:
             # A timeout can close the client before the fake reply is complete.
             pass
+
     thread = threading.Thread(target=server, daemon=True)
     try:
         data = json.loads(protected['policy'].read_text())
@@ -99,8 +101,9 @@ def auth_server(protected, fragments=None):
 
 def test_pool_authentication_timeout(protected):
     with auth_server(protected) as (path, received):
-        client = redis.Redis(connection_pool=connection_pool(unix_socket_path=path,
-            authenticate=True, socket_connect_timeout=0.1, socket_timeout=1))
+        client = redis.Redis(connection_pool=connection_pool(
+            unix_socket_path=path, authenticate=True,
+            socket_connect_timeout=0.1, socket_timeout=1))
         with pytest.raises(redis.TimeoutError):
             client.ping()
     assert received and b'AUTH' in received[0]
@@ -156,7 +159,8 @@ else:
     if sys.argv[2] != '0':
         raise AssertionError('connection returned after its AUTH deadline')
 '''
-    result = subprocess.run([sys.executable, '-c', program, protected['socket'], str(timeout_ms)],
+    result = subprocess.run(
+        [sys.executable, '-c', program, protected['socket'], str(timeout_ms)],
         env={**os.environ, 'LD_PRELOAD': str(delayed_auth_read),
              'SWSS_TEST_DELAY_AUTH_READ': str(protected[file_name])},
         capture_output=True, text=True, timeout=5)
