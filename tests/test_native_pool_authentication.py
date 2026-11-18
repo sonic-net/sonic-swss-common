@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 import fcntl
 import json
 import os
@@ -39,16 +40,25 @@ def test_pool_rejected_credentials(protected):
         client.ping()
 
 
+def test_pool_missing_socket_is_connection_error(protected):
+    client = redis.Redis(connection_pool=connection_pool(
+        unix_socket_path=str(protected['work'] / 'missing.sock'), authenticate=True))
+    with pytest.raises(redis.ConnectionError):
+        client.ping()
+
+
 def test_factory_descriptor_ownership(protected):
     before = len(os.listdir('/proc/self/fd'))
     for _ in range(8):
         fd = swss.openRedisUnixSocket(protected['socket'], 500, True)
         assert fcntl.fcntl(fd, fcntl.F_GETFD) & fcntl.FD_CLOEXEC
+        assert os.get_blocking(fd)
         os.close(fd)
     assert len(os.listdir('/proc/self/fd')) == before
 
 
-def test_pool_authentication_timeout(protected):
+@contextmanager
+def auth_server(protected, fragments=None):
     path = str(protected['work'] / 'pool-stalled.sock')
     listener = socket.socket(socket.AF_UNIX)
     listener.bind(path)
@@ -61,9 +71,14 @@ def test_pool_authentication_timeout(protected):
             with connection:
                 connection.settimeout(1)
                 received.append(connection.recv(1024))
+                if fragments is not None:
+                    for byte in fragments:
+                        if stop.wait(0.06):
+                            return
+                        connection.sendall(bytes([byte]))
                 stop.wait(3)
-        except socket.timeout:
-            # The client may fail before connecting or sending AUTH.
+        except OSError:
+            # A timeout can close the client before the fake reply is complete.
             pass
     thread = threading.Thread(target=server, daemon=True)
     try:
@@ -71,15 +86,33 @@ def test_pool_authentication_timeout(protected):
         data['unix_socket'] = path
         protected['policy'].write_text(json.dumps(data))
         thread.start()
-        client = redis.Redis(connection_pool=connection_pool(unix_socket_path=path,
-            authenticate=True, socket_connect_timeout=0.1, socket_timeout=1))
-        with pytest.raises(redis.TimeoutError):
-            client.ping()
+        yield path, received
     finally:
         stop.set()
         if thread.ident is not None:
             thread.join(timeout=4)
         listener.close()
+
+
+def test_pool_authentication_timeout(protected):
+    with auth_server(protected) as (path, received):
+        client = redis.Redis(connection_pool=connection_pool(unix_socket_path=path,
+            authenticate=True, socket_connect_timeout=0.1, socket_timeout=1))
+        with pytest.raises(redis.TimeoutError):
+            client.ping()
+    assert received and b'AUTH' in received[0]
+
+
+@pytest.mark.parametrize('timeout_ms', [0, 100])
+def test_factory_fragmented_auth_reply(protected, timeout_ms):
+    with auth_server(protected, b'+OK\r\n') as (path, received):
+        if timeout_ms:
+            with pytest.raises(TimeoutError):
+                fd = swss.openRedisUnixSocket(path, timeout_ms, True)
+                os.close(fd)
+        else:
+            fd = swss.openRedisUnixSocket(path, timeout_ms, True)
+            os.close(fd)
     assert received and b'AUTH' in received[0]
 
 
