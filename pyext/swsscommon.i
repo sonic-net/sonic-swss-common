@@ -19,7 +19,6 @@
 
 #include "schema.h"
 #include "dbconnector.h"
-#include "redisrdb.h"
 #include "redissocket.h"
 #include "redisauth.h"
 #if defined(PY_MAJOR_VERSION) && PY_MAJOR_VERSION < 3
@@ -278,7 +277,6 @@ T castSelectableObj(swss::Selectable *temp)
 
 %include "schema.h"
 %include "dbconnector.h"
-%include "redisrdb.h"
 #ifdef SWIGPYTHON
 %exception swss::openRedisUnixSocket {
     try {

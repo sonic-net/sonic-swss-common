@@ -16,6 +16,7 @@ struct Options
     bool m_authenticate = false;
     std::string m_namespace;
     std::string m_db_or_op;
+    std::string m_rdb;
     std::vector<std::string> m_cmd;
 };
 
