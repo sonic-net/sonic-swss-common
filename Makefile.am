@@ -7,7 +7,7 @@ else
 DBGFLAGS = -g -DNDEBUG
 endif
 
-SWIG_SOURCES = pyext/swsscommon.i
+SWIG_SOURCES = pyext/swsscommon.i common/redisrdb.h
 SWIG_FLAG = -Wall -c++ -python -keyword
 if ARCH64
 SWIG_FLAG += -DSWIGWORDSIZE64
@@ -22,5 +22,3 @@ include tests/Makefile.am
 
 
 ACLOCAL_AMFLAGS = -I m4
-
-SWIG_SOURCES += common/redisrdb.h
