@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 import tempfile
 from collections import OrderedDict
 from typing import List, Optional, Tuple
@@ -239,6 +240,11 @@ def run(
     apt_names, pip_specs = _select_packages(local_files, cascaded_pkgs, ctx)
     sources = _select_apt_sources(local_files, apt_names, ctx)
 
+    jammy_host = ctx.host_os == "ubuntu-22.04"
+    host_setup = os.path.join(os.path.dirname(__file__), "jammy-host.sh")
+    if jammy_host:
+        executor.run(executor.sudo + ["bash", host_setup, "prepare"])
+
     # 1. apt sources + update
     for src in sources:
         from .apt_sources import register_commands
@@ -261,11 +267,12 @@ def run(
                               apt_fix_broken=g["fix"], env=g["env"])
 
     # 4. pip packages + wheels
+    python = sys.executable if jammy_host else None
     for names, args in _pip_batches(pip_specs):
-        executor.run(executor.sudo + ["pip3", "install"] + list(args) + names)
+        executor.pip_install(names, list(args), python=python)
     for art in artifacts:
         for wheel in art.wheel_files:
-            executor.pip_install(wheel)
+            executor.pip_install(wheel, python=python)
 
     # 5. post_install (cascaded upstream first, then local base, then tooling).
     #    search_dirs lets an entry's source: resolve from a cascaded upstream bundle
@@ -278,10 +285,16 @@ def run(
         log.info("post_install: %s", entry.name)
         executor.run_script(script)
 
+    if jammy_host:
+        executor.run(executor.sudo + ["bash", host_setup, "verify"])
+
 
 def _render_dry_run(ctx, sources, apt_names, pip_specs, resolved_upstreams, post):
     print(f"# buildenv_setup dry-run  (arch={ctx.arch} debian={ctx.debian_version} "
           f"host_os={ctx.host_os} scope={ctx.scope} branch={ctx.branch})")
+    if ctx.host_os == "ubuntu-22.04":
+        print("# Jammy host: prepare/check official Redis packages; use uv with "
+              f"{sys.executable}; remove obsolete Ubuntu pip/Lua packages")
     print("\n## apt_sources")
     for s in sources:
         print(f"  - {s.name}: {s.list_url}")

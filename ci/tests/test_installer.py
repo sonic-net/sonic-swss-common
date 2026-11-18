@@ -72,6 +72,16 @@ def test_pip_install_with_args(monkeypatch):
     installer.Executor(dry_run=False).pip_install("libyang==3.3.0", ["--no-build-isolation"])
     assert calls[0][0] == ["sudo", "pip3", "install", "--no-build-isolation", "libyang==3.3.0"]
 
+def test_uv_batches_and_wheels_use_requested_interpreter(monkeypatch):
+    calls = _capture_subprocess(monkeypatch)
+    ex = installer.Executor(use_sudo=False)
+    ex.pip_install(["libyang==3.3.0", "wheel"], ["--no-build-isolation"],
+                   python="/usr/bin/python3")
+    ex.pip_install("/d/sonic_yang.whl", python="/usr/bin/python3")
+    prefix = ["uv", "pip", "install", "--system", "--python", "/usr/bin/python3"]
+    assert calls[0][0] == prefix + ["--no-build-isolation", "libyang==3.3.0", "wheel"]
+    assert calls[1][0] == prefix + ["/d/sonic_yang.whl"]
+
 
 # -- dpkg_install ------------------------------------------------------------ #
 def test_dpkg_empty_is_noop(monkeypatch):
