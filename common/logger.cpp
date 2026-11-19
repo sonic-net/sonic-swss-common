@@ -125,7 +125,7 @@ void Logger::linkToDbWithOutput(
     // Initialize internal DB with observer
     logger.m_settingChangeObservers.insert(std::make_pair(dbName, std::make_pair(prioNotify, outputNotify)));
 
-    DBConnector db("CONFIG_DB", 0);
+    DBConnector db("CONFIG_DB", 0, false, "", true);
     swss::Table table(&db, CFG_LOGGER_TABLE_NAME);
     SWSS_LOG_DEBUG("Component %s register to logger", dbName.c_str());
 
