@@ -8,11 +8,14 @@
 #include <thread>
 #include <mutex>
 #include <functional>
+#include <sys/types.h>
 
 #include "concurrentmap.h"
 #include "selectableevent.h"
 
 namespace swss {
+
+class Table;
 
 #define SWSS_LOG_ERROR(MSG, ...)       swss::Logger::getInstance().write(swss::Logger::SWSS_ERROR,  ":- %s: " MSG, __FUNCTION__, ##__VA_ARGS__)
 #define SWSS_LOG_WARN(MSG, ...)        swss::Logger::getInstance().write(swss::Logger::SWSS_WARN,   ":- %s: " MSG, __FUNCTION__, ##__VA_ARGS__)
@@ -82,6 +85,13 @@ public:
     static void setMinPrio(Priority prio);
     static Priority getMinPrio();
 
+    // Registers a component; this applies to every linkToDb* variant. An
+    // absent CONFIG_DB LOGGER field is read as the component's default and is
+    // never written back: CONFIG_DB holds operator intent only. The effective
+    // setting of every registered component is published to STATE_DB
+    // STATE_LOGGER_TABLE_NAME, which is what swssloglevel enumerates. If
+    // STATE_DB is unreachable then, the component is published on its next
+    // setting change.
     static void linkToDbWithOutput(
             const std::string& dbName,
             const PriorityChangeNotify& prioNotify,
@@ -150,6 +160,8 @@ private:
     static void swssPrioNotify(const std::string& component, const std::string& prioStr);
 
     void settingThread();
+    void applySetting(const std::string& key, const std::string& prio, const std::string& output);
+    static void publishSetting(const std::string& key, const std::string& prio, const std::string& output);
     void terminateSettingThread();
     void restartSettingThread();
 
@@ -159,10 +171,15 @@ private:
     ConcurrentMap<std::string, std::string> m_currentPrios;
     std::atomic<Priority> m_minPrio = { SWSS_NOTICE };
     ConcurrentMap<std::string, std::string> m_currentOutputs;
+    ConcurrentMap<std::string, std::string> m_defaultPrios;
+    ConcurrentMap<std::string, std::string> m_defaultOutputs;
     std::atomic<Output> m_output = { SWSS_SYSLOG };
     std::unique_ptr<std::thread> m_settingThread;
     std::mutex m_mutex;
     std::unique_ptr<SelectableEvent> m_stopEvent;
+    std::mutex m_stateTableMutex;
+    std::unique_ptr<Table> m_stateTable;
+    pid_t m_stateTablePid = 0;
 };
 
 }
