@@ -14,6 +14,8 @@
 
 namespace swss {
 
+class Table;
+
 #define SWSS_LOG_ERROR(MSG, ...)       swss::Logger::getInstance().write(swss::Logger::SWSS_ERROR,  ":- %s: " MSG, __FUNCTION__, ##__VA_ARGS__)
 #define SWSS_LOG_WARN(MSG, ...)        swss::Logger::getInstance().write(swss::Logger::SWSS_WARN,   ":- %s: " MSG, __FUNCTION__, ##__VA_ARGS__)
 #define SWSS_LOG_NOTICE(MSG, ...)      swss::Logger::getInstance().write(swss::Logger::SWSS_NOTICE, ":- %s: " MSG, __FUNCTION__, ##__VA_ARGS__)
@@ -82,6 +84,12 @@ public:
     static void setMinPrio(Priority prio);
     static Priority getMinPrio();
 
+    // Registers a component; this applies to every linkToDb* variant. An
+    // absent CONFIG_DB LOGGER field is read as the component's default and is
+    // never written back. The LOGLEVEL and LOGOUTPUT last handed to a
+    // registered component's notify callbacks are published to STATE_DB
+    // STATE_LOGGER_TABLE_NAME. If STATE_DB is unreachable then, the component
+    // is published on its next setting change.
     static void linkToDbWithOutput(
             const std::string& dbName,
             const PriorityChangeNotify& prioNotify,
@@ -142,7 +150,7 @@ public:
     };
 
 private:
-    Logger() = default;
+    Logger();
     ~Logger();
     Logger(const Logger&);
     Logger& operator=(const Logger&);
@@ -150,6 +158,9 @@ private:
     static void swssPrioNotify(const std::string& component, const std::string& prioStr);
 
     void settingThread();
+    void applySetting(const std::string& key, const std::string& prio, const std::string& output);
+    static void publishSetting(const std::string& key, const std::string& prio, const std::string& output);
+    static void atForkChild();
     void terminateSettingThread();
     void restartSettingThread();
 
@@ -159,10 +170,16 @@ private:
     ConcurrentMap<std::string, std::string> m_currentPrios;
     std::atomic<Priority> m_minPrio = { SWSS_NOTICE };
     ConcurrentMap<std::string, std::string> m_currentOutputs;
+    ConcurrentMap<std::string, std::string> m_defaultPrios;
+    ConcurrentMap<std::string, std::string> m_defaultOutputs;
     std::atomic<Output> m_output = { SWSS_SYSLOG };
     std::unique_ptr<std::thread> m_settingThread;
     std::mutex m_mutex;
     std::unique_ptr<SelectableEvent> m_stopEvent;
+    // Serializes applying a setting (m_current*, the notify callbacks) with
+    // publishing it, and guards m_stateTable.
+    std::mutex m_settingMutex;
+    std::unique_ptr<Table> m_stateTable;
 };
 
 }

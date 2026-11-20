@@ -3,9 +3,15 @@
 #include "common/consumerstatetable.h"
 #include "common/select.h"
 #include "common/schema.h"
+#include "common/redisreply.h"
 #include "logger_ut.h"
 #include "gtest/gtest.h"
 #include <unistd.h>
+#include <fcntl.h>
+#include <map>
+#include <mutex>
+#include <thread>
+#include <future>
 
 using namespace std;
 using namespace swss;
@@ -43,6 +49,41 @@ void checkLoglevel(DBConnector& db, const string& key, const string& loglevel)
     }
 }
 
+void checkStateLoglevel(const string& key, const string& loglevel, const string& output)
+{
+    DBConnector stateDb("STATE_DB", 0);
+    string redis_key = string(STATE_LOGGER_TABLE_NAME) + "|" + key;
+    auto level = stateDb.hget(redis_key, DAEMON_LOGLEVEL);
+    auto out = stateDb.hget(redis_key, DAEMON_LOGOUTPUT);
+    ASSERT_TRUE(level != nullptr);
+    ASSERT_TRUE(out != nullptr);
+    EXPECT_EQ(*level, loglevel);
+    EXPECT_EQ(*out, output);
+}
+
+// The STATE_DB row is published after the observers run, so poll for it.
+void waitStateLoglevel(const string& key, const string& loglevel, const string& output)
+{
+    DBConnector stateDb("STATE_DB", 0);
+    string redis_key = string(STATE_LOGGER_TABLE_NAME) + "|" + key;
+    for (int i = 0; i < 50; i++)
+    {
+        auto level = stateDb.hget(redis_key, DAEMON_LOGLEVEL);
+        auto out = stateDb.hget(redis_key, DAEMON_LOGOUTPUT);
+        if (level && out && *level == loglevel && *out == output)
+        {
+            return;
+        }
+        usleep(100 * 1000);
+    }
+    checkStateLoglevel(key, loglevel, output);
+}
+
+bool configRowExists(DBConnector& db, const string& key)
+{
+    return db.exists(string(CFG_LOGGER_TABLE_NAME) + "|" + key);
+}
+
 TEST(LOGGER, loglevel)
 {
     DBConnector db("CONFIG_DB", 0);
@@ -56,7 +97,8 @@ TEST(LOGGER, loglevel)
     sleep(1);
 
     cout << "Checking log level for table1." << endl;
-    checkLoglevel(db, key1, "NOTICE");
+    EXPECT_FALSE(configRowExists(db, key1));
+    checkStateLoglevel(key1, "NOTICE", "SYSLOG");
 
     cout << "Setting log level for tables." << endl;
     Logger::linkToDb(key2, prioNotify, "NOTICE");
@@ -67,8 +109,11 @@ TEST(LOGGER, loglevel)
 
     cout << "Checking log levels." << endl;
     checkLoglevel(db, key1, "DEBUG");
-    checkLoglevel(db, key2, "NOTICE");
-    checkLoglevel(db, key3, "INFO");
+    waitStateLoglevel(key1, "DEBUG", "SYSLOG");
+    EXPECT_FALSE(configRowExists(db, key2));
+    EXPECT_FALSE(configRowExists(db, key3));
+    checkStateLoglevel(key2, "NOTICE", "SYSLOG");
+    checkStateLoglevel(key3, "INFO", "SYSLOG");
 
     cout << "Done." << endl;
 }
@@ -85,7 +130,8 @@ TEST(LOGGER, CustomLogObserver)
     sleep(1);
 
     cout << "Checking log level for table1." << endl;
-    checkLoglevel(db, key1, "NOTICE");
+    EXPECT_FALSE(configRowExists(db, key1));
+    checkStateLoglevel(key1, "NOTICE", "SYSLOG");
 
     cout << "Setting log level for table1." << endl;
     setLoglevel(db, key1, "DEBUG");
@@ -94,4 +140,311 @@ TEST(LOGGER, CustomLogObserver)
 
     cout << "Checking log level for table1." << endl;
     checkLoglevel(db, key1, "DEBUG");
+}
+
+static std::map<string, string> g_notifiedPrios;
+static std::map<string, string> g_notifiedOutputs;
+static std::mutex g_notifiedMutex;
+
+static void recordPrio(const string& component, const string& prio)
+{
+    std::lock_guard<std::mutex> lock(g_notifiedMutex);
+    g_notifiedPrios[component] = prio;
+}
+
+static void recordOutput(const string& component, const string& output)
+{
+    std::lock_guard<std::mutex> lock(g_notifiedMutex);
+    g_notifiedOutputs[component] = output;
+}
+
+static bool waitNotified(const string& component, const string& prio, const string& output)
+{
+    for (int i = 0; i < 50; i++)
+    {
+        {
+            std::lock_guard<std::mutex> lock(g_notifiedMutex);
+            if (g_notifiedPrios[component] == prio && g_notifiedOutputs[component] == output)
+            {
+                return true;
+            }
+        }
+        usleep(100 * 1000);
+    }
+    return false;
+}
+
+// An absent row is the default: registering writes nothing to CONFIG_DB, a
+// configured row applies, and removing a field or the row reverts to the
+// component's default.
+TEST(LOGGER, AbsentRowIsDefault)
+{
+    DBConnector db("CONFIG_DB", 0);
+    clearConfigDB();
+
+    string key = "absent_row_component";
+    Logger::linkToDbWithOutput(key, recordPrio, "INFO", recordOutput, "SYSLOG");
+    Logger::restartLogger();
+
+    EXPECT_TRUE(waitNotified(key, "INFO", "SYSLOG"));
+    EXPECT_FALSE(configRowExists(db, key));
+    waitStateLoglevel(key, "INFO", "SYSLOG");
+
+    swss::Table table(&db, CFG_LOGGER_TABLE_NAME);
+    table.set(key, { { DAEMON_LOGLEVEL, "DEBUG" }, { DAEMON_LOGOUTPUT, "STDERR" } });
+    EXPECT_TRUE(waitNotified(key, "DEBUG", "STDERR"));
+    waitStateLoglevel(key, "DEBUG", "STDERR");
+
+    table.hdel(key, DAEMON_LOGOUTPUT);
+    EXPECT_TRUE(waitNotified(key, "DEBUG", "SYSLOG"));
+    waitStateLoglevel(key, "DEBUG", "SYSLOG");
+
+    table.del(key);
+    EXPECT_TRUE(waitNotified(key, "INFO", "SYSLOG"));
+    waitStateLoglevel(key, "INFO", "SYSLOG");
+    EXPECT_FALSE(configRowExists(db, key));
+}
+
+// A row configured before registration applies at registration and is left
+// as the operator wrote it.
+TEST(LOGGER, ConfiguredRowAppliesAtRegistration)
+{
+    DBConnector db("CONFIG_DB", 0);
+    clearConfigDB();
+
+    string key = "configured_row_component";
+    setLoglevel(db, key, "ERROR");
+
+    Logger::linkToDbWithOutput(key, recordPrio, "NOTICE", recordOutput, "SYSLOG");
+
+    EXPECT_TRUE(waitNotified(key, "ERROR", "SYSLOG"));
+    checkStateLoglevel(key, "ERROR", "SYSLOG");
+
+    swss::Table table(&db, CFG_LOGGER_TABLE_NAME);
+    std::vector<FieldValueTuple> fvs;
+    ASSERT_TRUE(table.get(key, fvs));
+    ASSERT_EQ(fvs.size(), 1u);
+    EXPECT_EQ(fvField(fvs[0]), DAEMON_LOGLEVEL);
+    EXPECT_EQ(fvValue(fvs[0]), "ERROR");
+}
+
+static long long connectionsReceived()
+{
+    DBConnector db("STATE_DB", 0);
+    RedisReply r(&db, "INFO stats", REDIS_REPLY_STRING);
+    string info = r.getReply<string>();
+    const string field = "total_connections_received:";
+    return std::stoll(info.substr(info.find(field) + field.size()));
+}
+
+// Publishing reuses one STATE_DB connection instead of opening one per
+// component; registration itself still opens its CONFIG_DB connections.
+TEST(LOGGER, PublishReusesStateDbConnection)
+{
+    DBConnector db("CONFIG_DB", 0);
+    clearConfigDB();
+
+    const int count = 20;
+    Logger::linkToDbWithOutput("reuse_component_warmup", recordPrio, "NOTICE", recordOutput, "SYSLOG");
+    long long before = connectionsReceived();
+    for (int i = 0; i < count; i++)
+    {
+        Logger::linkToDbWithOutput("reuse_component_" + std::to_string(i), recordPrio, "NOTICE", recordOutput, "SYSLOG");
+    }
+    long long opened = connectionsReceived() - before - 1;
+
+    // Registration opens two CONFIG_DB connections; one more per publish
+    // pair would make this 4 * count.
+    EXPECT_LE(opened, 2 * count + 2);
+    for (int i = 0; i < count; i++)
+    {
+        checkStateLoglevel("reuse_component_" + std::to_string(i), "NOTICE", "SYSLOG");
+    }
+}
+
+// Child side of ForkedChildPublishesOnItsOwnConnection.
+// Registration opens two CONFIG_DB connections; a STATE_DB table of its own
+// opens two more, where reusing the parent's socket would open none.
+[[ noreturn ]] static void registerInChild()
+{
+    long long before = connectionsReceived();
+    Logger::linkToDbWithOutput("fork_child_component", recordPrio, "INFO", recordOutput, "SYSLOG");
+    long long opened = connectionsReceived() - before - 1;
+
+    DBConnector stateDb("STATE_DB", 0);
+    auto level = stateDb.hget(string(STATE_LOGGER_TABLE_NAME) + "|fork_child_component", DAEMON_LOGLEVEL);
+    _exit(opened >= 4 && level && *level == "INFO" ? 0 : 1);
+}
+
+// A forked child publishes on a connection of its own, and the parent's
+// connection keeps working.
+TEST(LOGGER, ForkedChildPublishesOnItsOwnConnection)
+{
+    DBConnector db("CONFIG_DB", 0);
+    clearConfigDB();
+
+    Logger::linkToDbWithOutput("fork_parent_component", recordPrio, "NOTICE", recordOutput, "SYSLOG");
+
+    // An earlier test may leave the level at DEBUG, where the setting thread
+    // calls syslog() every second. A fork while it holds glibc's syslog lock
+    // would hang the child, so no thread logs while this test forks.
+    auto savedPrio = Logger::getMinPrio();
+    Logger::setMinPrio(Logger::SWSS_NOTICE);
+    usleep(10 * 1000); // let a syslog() call already under way finish
+    EXPECT_EXIT(registerInChild(), testing::ExitedWithCode(0), "");
+    Logger::setMinPrio(savedPrio);
+
+    Logger::linkToDbWithOutput("fork_parent_component2", recordPrio, "ERROR", recordOutput, "SYSLOG");
+    checkStateLoglevel("fork_parent_component2", "ERROR", "SYSLOG");
+}
+
+// Child side of ForkWhileSettingLockHeld; SIGALRM fails it if it blocks.
+[[ noreturn ]] static void registerWithParentLockHeld()
+{
+    alarm(10);
+    Logger::linkToDbWithOutput("fork_locked_component", recordPrio, "INFO", recordOutput, "SYSLOG");
+    _exit(0);
+}
+
+// A child forked while another thread holds the setting lock, as during a
+// publish, can still register.
+TEST(LOGGER, ForkWhileSettingLockHeld)
+{
+    clearConfigDB();
+
+    std::promise<void> started, release;
+    std::shared_future<void> released = release.get_future().share();
+    std::thread holder([&started, released]() {
+        std::lock_guard<std::mutex> lock(Logger::getInstance().m_settingMutex);
+        started.set_value();
+        released.wait();
+    });
+    started.get_future().wait();
+
+    // As in ForkedChildPublishesOnItsOwnConnection, no thread logs while
+    // this test forks.
+    auto savedPrio = Logger::getMinPrio();
+    Logger::setMinPrio(Logger::SWSS_NOTICE);
+    usleep(10 * 1000);
+    EXPECT_EXIT(registerWithParentLockHeld(), testing::ExitedWithCode(0), "");
+    Logger::setMinPrio(savedPrio);
+
+    release.set_value();
+    holder.join();
+}
+
+// Child side of ForkedChildReconcilesDeletedRow. The child has no setting
+// thread, so the row deleted here is deleted while no subscription is live.
+[[ noreturn ]] static void reconcileDeletedRowInChild()
+{
+    alarm(10);
+    const string key = "gap_component";
+    DBConnector db("CONFIG_DB", 0);
+    setLoglevel(db, key, "DEBUG");
+    Logger::linkToDbWithOutput(key, recordPrio, "INFO", recordOutput, "SYSLOG");
+    if (!waitNotified(key, "DEBUG", "SYSLOG"))
+    {
+        _exit(1);
+    }
+
+    swss::Table(&db, CFG_LOGGER_TABLE_NAME).del(key);
+    // Starts the child's own setting thread, which finds the row gone.
+    Logger::restartLogger();
+    _exit(waitNotified(key, "INFO", "SYSLOG") ? 0 : 2);
+}
+
+// A forked child neither stops nor joins the parent's setting thread, and a
+// row deleted before the child's setting thread subscribes reverts the
+// component to its default.
+TEST(LOGGER, ForkedChildReconcilesDeletedRow)
+{
+    DBConnector db("CONFIG_DB", 0);
+    clearConfigDB();
+
+    string key = "fork_parent_watch";
+    Logger::linkToDbWithOutput(key, recordPrio, "NOTICE", recordOutput, "SYSLOG");
+    Logger::restartLogger();
+
+    // As in ForkedChildPublishesOnItsOwnConnection, no thread logs while
+    // this test forks.
+    auto savedPrio = Logger::getMinPrio();
+    Logger::setMinPrio(Logger::SWSS_NOTICE);
+    usleep(10 * 1000);
+    EXPECT_EXIT(reconcileDeletedRowInChild(), testing::ExitedWithCode(0), "");
+    Logger::setMinPrio(savedPrio);
+
+    // The parent's setting thread still applies changes.
+    setLoglevel(db, key, "ERROR");
+    EXPECT_TRUE(waitNotified(key, "ERROR", "SYSLOG"));
+}
+
+// Child side of PublishWithoutStateDb: exits 0 when registration returns
+// without STATE_DB and the next setting change, with STATE_DB back, publishes.
+[[ noreturn ]] static void publishWithoutStateDb(const char* deadPath)
+{
+    SonicDBConfig::reset();
+    SonicDBConfig::initialize(deadPath);
+
+    const string key = "state_down_component";
+    Logger::linkToDbWithOutput(key, recordPrio, "INFO", recordOutput, "SYSLOG");
+    if (!waitNotified(key, "INFO", "SYSLOG") || Logger::getInstance().m_stateTable)
+    {
+        _exit(1);
+    }
+
+    SonicDBConfig::reset();
+    SonicDBConfig::initialize("./tests/redis_multi_db_ut_config/database_config.json");
+    DBConnector stateDb("STATE_DB", 0);
+    const string redisKey = string(STATE_LOGGER_TABLE_NAME) + "|" + key;
+    if (stateDb.exists(redisKey))
+    {
+        _exit(2);
+    }
+
+    Logger::restartLogger();
+    DBConnector db("CONFIG_DB", 0);
+    setLoglevel(db, key, "DEBUG");
+    for (int i = 0; i < 50; i++)
+    {
+        auto level = stateDb.hget(redisKey, DAEMON_LOGLEVEL);
+        if (level && *level == "DEBUG")
+        {
+            _exit(0);
+        }
+        usleep(100 * 1000);
+    }
+    _exit(3);
+}
+
+// A STATE_DB failure at registration does not escape linkToDbWithOutput, and
+// the component is published on its next setting change. Runs in a
+// re-executed child, which points STATE_DB at a dead socket.
+TEST(LOGGER, PublishWithoutStateDb)
+{
+    clearConfigDB();
+
+    // The child runs this test again up to EXPECT_EXIT, so the name is fixed.
+    const char* path = "/tmp/swss_logger_ut_state_db_down.json";
+    int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0600);
+    ASSERT_GE(fd, 0);
+    const string config = R"({
+    "INSTANCES": {
+        "redis": { "hostname": "127.0.0.1", "port": 6379, "unix_socket_path": "/var/run/redis/redis.sock" },
+        "dead": { "hostname": "127.0.0.1", "port": 1, "unix_socket_path": "/nonexistent/redis.sock" }
+    },
+    "DATABASES": {
+        "CONFIG_DB": { "id": 4, "separator": "|", "instance": "redis" },
+        "STATE_DB": { "id": 6, "separator": "|", "instance": "dead" }
+    },
+    "VERSION": "1.0"
+})";
+    ASSERT_EQ(write(fd, config.data(), config.size()), static_cast<ssize_t>(config.size()));
+    close(fd);
+
+    const string savedStyle = testing::FLAGS_gtest_death_test_style;
+    testing::FLAGS_gtest_death_test_style = "threadsafe";
+    EXPECT_EXIT(publishWithoutStateDb(path), testing::ExitedWithCode(0), "");
+    testing::FLAGS_gtest_death_test_style = savedStyle;
+
+    unlink(path);
 }
