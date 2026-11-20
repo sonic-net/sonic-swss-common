@@ -54,7 +54,7 @@ fn mod_config_raw_uses_existing_native_bulk_write_semantics(
         b"value-c"
     );
 
-    // Empty rows and tables retain the native Python cfggen semantics.
+    // Empty row and table maps use native deletion semantics.
     pipe.mod_config_raw(&HashMap::from([(
         "PIPE_TEST".to_string(),
         HashMap::from([("row-a".to_string(), HashMap::new())]),

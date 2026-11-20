@@ -45,6 +45,12 @@ impl ConfigDBPipeConnector {
     }
 
     /// Apply a complete update through the existing native `mod_config` path.
+    ///
+    /// An empty top-level map makes no changes. An empty row map for a table
+    /// deletes that entire table, and an empty field map for a row deletes
+    /// that row. Callers must translate higher-level empty-object semantics
+    /// before calling this raw API; it does not perform Python cfggen's
+    /// empty-table no-op or empty-row `NULL:NULL` conversion.
     pub fn mod_config_raw(&self, config: &ConfigDbRawMap) -> Result<()> {
         let borrowed = BorrowedConfigMap::new(config)?;
         unsafe {
