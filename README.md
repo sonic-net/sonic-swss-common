@@ -137,8 +137,12 @@ Authentication runs before database selection and is repeated for copied and
 secondary connections. It supports explicitly selected Unix sockets. Startup
 provides the root-owned `/run/redis-auth/local.json` endpoint policy and
 `local-system/writer.secret`. Missing policy or an unmatched endpoint leaves the
-default account in use. A non-root caller unable to read the secret remains a
-reader; invalid policy or rejected credentials fail construction. Opt-in does
+default account in use. Each policy entry also requires a numeric `server_uid`.
+Before reading the writer credential, the connector checks the connected Unix
+peer with `SO_PEERCRED` and requires that UID to match the startup-owned policy.
+The image must reserve that UID exclusively for the Redis service. A non-root
+caller unable to read the secret remains a reader; invalid policy or rejected
+credentials fail construction. Opt-in does
 not grant access to credentials. Nonzero constructor timeouts also bound AUTH.
 
 This addition changes C++ object layout; rebuild dependent native applications
