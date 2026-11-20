@@ -17,7 +17,9 @@ mod zmqconsumerstatetable;
 mod zmqproducerstatetable;
 mod zmqserver;
 
-pub use configdbconnector::{ConfigDBConnector, BorrowedDbConnector};
+pub use configdbconnector::{
+    BorrowedDbConnector, ConfigDBConnector, ConfigDBPipeConnector, ConfigDbRawMap,
+};
 pub use consumerstatetable::ConsumerStateTable;
 pub use cxxstring::{CxxStr, CxxString};
 pub use dbconnector::{DbConnectionInfo, DbConnector};
@@ -502,4 +504,3 @@ mod tests {
         assert!(err.to_string().contains("invalid UTF-8"));
     }
 }
-

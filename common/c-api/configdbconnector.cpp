@@ -1,4 +1,6 @@
+#include <algorithm>
 #include <cstring>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <map>
@@ -10,6 +12,119 @@
 
 using namespace swss;
 using namespace std;
+
+struct SWSSConfigDBPipeConnectorOpaque
+{
+    SWSSConfigDBPipeConnectorOpaque(bool use_unix_socket_path, const char *netns)
+        : connector(use_unix_socket_path, netns)
+    {
+    }
+
+    ConfigDBPipeConnector_Native connector;
+};
+
+namespace {
+
+map<string, map<string, map<string, string>>> copyConfigMap(const SWSSConfigMap *config)
+{
+    if (config == nullptr)
+    {
+        throw invalid_argument("CONFIG_DB configuration map is null");
+    }
+    if (config->len != 0 && config->data == nullptr)
+    {
+        throw invalid_argument("CONFIG_DB configuration table array is null");
+    }
+
+    map<string, map<string, map<string, string>>> result;
+    for (uint64_t table_index = 0; table_index < config->len; ++table_index)
+    {
+        const auto& table = config->data[table_index];
+        if (table.table_name == nullptr)
+        {
+            throw invalid_argument("CONFIG_DB table name is null");
+        }
+        if (table.entries.len != 0 && table.entries.data == nullptr)
+        {
+            throw invalid_argument("CONFIG_DB row array is null");
+        }
+
+        auto& rows = result[string(table.table_name)];
+        for (uint64_t row_index = 0; row_index < table.entries.len; ++row_index)
+        {
+            const auto& row = table.entries.data[row_index];
+            if (row.key == nullptr)
+            {
+                throw invalid_argument("CONFIG_DB row key is null");
+            }
+            if (row.fieldValues.len != 0 && row.fieldValues.data == nullptr)
+            {
+                throw invalid_argument("CONFIG_DB field array is null");
+            }
+
+            auto& fields = rows[string(row.key)];
+            for (uint64_t field_index = 0; field_index < row.fieldValues.len; ++field_index)
+            {
+                const auto& field = row.fieldValues.data[field_index];
+                if (field.field == nullptr || field.value == nullptr)
+                {
+                    throw invalid_argument("CONFIG_DB field name or value is null");
+                }
+
+                auto value = reinterpret_cast<SWSSStrRef>(field.value);
+                fields[string(field.field)] = string(
+                    SWSSStrRef_c_str(value),
+                    numeric_cast<string::size_type>(SWSSStrRef_length(value)));
+            }
+        }
+    }
+    return result;
+}
+
+SWSSConfigMap makeConfigMap(map<string, map<string, map<string, string>>> configMap)
+{
+    vector<SWSSConfigTable> configTables;
+    configTables.reserve(configMap.size());
+
+    for (auto& tableEntry : configMap)
+    {
+        SWSSConfigTable configTable;
+        configTable.table_name = strdup(tableEntry.first.c_str());
+
+        vector<SWSSKeyOpFieldValues> tableEntries;
+        tableEntries.reserve(tableEntry.second.size());
+        for (auto& keyEntry : tableEntry.second)
+        {
+            SWSSKeyOpFieldValues kfvEntry;
+            kfvEntry.key = strdup(keyEntry.first.c_str());
+            kfvEntry.operation = SWSSKeyOperation_SET;
+
+            vector<pair<string, string>> pairs;
+            pairs.reserve(keyEntry.second.size());
+            for (auto& fieldPair : keyEntry.second)
+            {
+                pairs.push_back(make_pair(fieldPair.first, move(fieldPair.second)));
+            }
+            kfvEntry.fieldValues = makeFieldValueArray(move(pairs));
+            tableEntries.push_back(kfvEntry);
+        }
+
+        auto entries = new SWSSKeyOpFieldValues[tableEntries.size()];
+        copy(tableEntries.begin(), tableEntries.end(), entries);
+        configTable.entries.len = numeric_cast<uint64_t>(tableEntries.size());
+        configTable.entries.data = entries;
+        configTables.push_back(configTable);
+    }
+
+    auto data = new SWSSConfigTable[configTables.size()];
+    copy(configTables.begin(), configTables.end(), data);
+    SWSSConfigMap result;
+    result.len = numeric_cast<uint64_t>(configTables.size());
+    result.data = data;
+    return result;
+}
+
+} // namespace
 
 SWSSResult SWSSConfigDBConnector_new(uint8_t use_unix_socket_path, const char *netns, SWSSConfigDBConnector *outConfigDb) {
     SWSSTry({
@@ -138,56 +253,64 @@ SWSSResult SWSSConfigDBConnector_get_redis_client(SWSSConfigDBConnector configDb
 
 SWSSResult SWSSConfigDBConnector_get_config(SWSSConfigDBConnector configDb, SWSSConfigMap *outConfig) {
     SWSSTry({
-        // Get the entire configuration as a nested map structure
-        auto config_map = ((ConfigDBConnector_Native *)configDb)->get_config();
+        *outConfig = makeConfigMap(((ConfigDBConnector_Native *)configDb)->get_config());
+    });
+}
 
-        // Convert map<string, map<string, map<string, string>>> to SWSSConfigMap
-        vector<SWSSConfigTable> config_tables;
-        config_tables.reserve(config_map.size());
-
-        for (auto &table_entry : config_map) {
-            SWSSConfigTable config_table;
-            config_table.table_name = strdup(table_entry.first.c_str());
-
-            // Convert map<string, map<string, string>> to SWSSKeyOpFieldValuesArray
-            vector<SWSSKeyOpFieldValues> table_entries;
-            table_entries.reserve(table_entry.second.size());
-
-            for (auto &key_entry : table_entry.second) {
-                SWSSKeyOpFieldValues kfv_entry;
-                kfv_entry.key = strdup(key_entry.first.c_str());
-                kfv_entry.operation = SWSSKeyOperation_SET; // Config entries are always SET operations
-
-                // Convert map<string, string> to SWSSFieldValueArray
-                vector<pair<string, string>> pairs;
-                pairs.reserve(key_entry.second.size());
-                for (auto &field_pair : key_entry.second) {
-                    pairs.push_back(make_pair(field_pair.first, move(field_pair.second)));
-                }
-                kfv_entry.fieldValues = makeFieldValueArray(std::move(pairs));
-
-                table_entries.push_back(kfv_entry);
-            }
-
-            // Convert vector to array
-            SWSSKeyOpFieldValues *data = new SWSSKeyOpFieldValues[table_entries.size()];
-            for (size_t i = 0; i < table_entries.size(); i++) {
-                data[i] = table_entries[i];
-            }
-
-            config_table.entries.len = (uint64_t)table_entries.size();
-            config_table.entries.data = data;
-
-            config_tables.push_back(config_table);
+SWSSResult SWSSConfigDBPipeConnector_new(uint8_t use_unix_socket_path, const char *netns,
+                                         SWSSConfigDBPipeConnector *outConfigDb) {
+    if (outConfigDb != nullptr)
+    {
+        *outConfigDb = nullptr;
+    }
+    SWSSTry({
+        if (outConfigDb == nullptr)
+        {
+            throw invalid_argument("CONFIG_DB pipe connector output is null");
         }
+        string netns_str = netns ? string(netns) : "";
+        *outConfigDb = new SWSSConfigDBPipeConnectorOpaque(
+            use_unix_socket_path != 0, netns_str.c_str());
+    });
+}
 
-        // Convert vector to final array
-        SWSSConfigTable *config_data = new SWSSConfigTable[config_tables.size()];
-        for (size_t i = 0; i < config_tables.size(); i++) {
-            config_data[i] = config_tables[i];
+SWSSResult SWSSConfigDBPipeConnector_free(SWSSConfigDBPipeConnector configDb) {
+    SWSSTry(delete configDb);
+}
+
+SWSSResult SWSSConfigDBPipeConnector_connect(SWSSConfigDBPipeConnector configDb,
+                                             uint8_t wait_for_init, uint8_t retry_on) {
+    SWSSTry({
+        if (configDb == nullptr)
+        {
+            throw invalid_argument("CONFIG_DB pipe connector is null");
         }
+        configDb->connector.connect(wait_for_init != 0, retry_on != 0);
+    });
+}
 
-        outConfig->len = (uint64_t)config_tables.size();
-        outConfig->data = config_data;
+SWSSResult SWSSConfigDBPipeConnector_mod_config(SWSSConfigDBPipeConnector configDb,
+                                                const SWSSConfigMap *config) {
+    SWSSTry({
+        if (configDb == nullptr)
+        {
+            throw invalid_argument("CONFIG_DB pipe connector is null");
+        }
+        configDb->connector.mod_config(copyConfigMap(config));
+    });
+}
+
+SWSSResult SWSSConfigDBPipeConnector_get_config(SWSSConfigDBPipeConnector configDb,
+                                                SWSSConfigMap *outConfig) {
+    SWSSTry({
+        if (configDb == nullptr)
+        {
+            throw invalid_argument("CONFIG_DB pipe connector is null");
+        }
+        if (outConfig == nullptr)
+        {
+            throw invalid_argument("CONFIG_DB configuration output is null");
+        }
+        *outConfig = makeConfigMap(configDb->connector.get_config());
     });
 }

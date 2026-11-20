@@ -216,6 +216,46 @@ TEST(c_api, ConfigDBConnector) {
     SWSSConfigDBConnector_free(configDb);
 }
 
+TEST(c_api, ConfigDBPipeConnectorGetConfig) {
+    clearDB();
+    SWSSStringManager sm;
+
+    SWSSConfigDBConnector writer;
+    ASSERT_EQ(SWSSConfigDBConnector_new(1, "", &writer).exception, SWSSException_None);
+    ASSERT_EQ(SWSSConfigDBConnector_connect(writer, 0, 0).exception, SWSSException_None);
+
+    SWSSFieldValueTuple data[] = {
+        {.field = "field1", .value = sm.makeString("value1")},
+        {.field = "field2", .value = sm.makeString("value2")},
+    };
+    SWSSFieldValueArray fields = {.len = 2, .data = data};
+    ASSERT_EQ(SWSSConfigDBConnector_set_entry(writer, "PIPE_READ_TEST", "row1", &fields).exception,
+              SWSSException_None);
+
+    SWSSConfigDBPipeConnector pipe;
+    ASSERT_EQ(SWSSConfigDBPipeConnector_new(1, "", &pipe).exception, SWSSException_None);
+    ASSERT_EQ(SWSSConfigDBPipeConnector_connect(pipe, 0, 0).exception, SWSSException_None);
+
+    SWSSConfigMap config;
+    ASSERT_EQ(SWSSConfigDBPipeConnector_get_config(pipe, &config).exception, SWSSException_None);
+
+    bool found = false;
+    for (uint64_t i = 0; i < config.len; ++i) {
+        if (strcmp(config.data[i].table_name, "PIPE_READ_TEST") != 0) {
+            continue;
+        }
+        found = true;
+        ASSERT_EQ(config.data[i].entries.len, 1);
+        EXPECT_STREQ(config.data[i].entries.data[0].key, "row1");
+        EXPECT_EQ(config.data[i].entries.data[0].fieldValues.len, 2);
+    }
+    EXPECT_TRUE(found);
+
+    freeConfigMap(config);
+    SWSSConfigDBPipeConnector_free(pipe);
+    SWSSConfigDBConnector_free(writer);
+}
+
 void logLevelNotify(const char* component, const char* prioStr)
 {
     if (strcmp(component, LOG_NAME_FOR_TEST) != 0)

@@ -1,6 +1,216 @@
 use super::*;
 use crate::bindings::*;
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    ffi::{CStr, CString},
+};
+
+/// Raw CONFIG_DB update map accepted by the native bulk writer.
+pub type ConfigDbRawMap = HashMap<String, HashMap<String, HashMap<String, CxxString>>>;
+
+/// Rust wrapper around the existing `swss::ConfigDBPipeConnector_Native`.
+#[derive(Debug)]
+pub struct ConfigDBPipeConnector {
+    ptr: SWSSConfigDBPipeConnector,
+    use_unix_socket_path: bool,
+    netns: String,
+}
+
+impl ConfigDBPipeConnector {
+    pub fn new(use_unix_socket_path: bool, netns: Option<String>) -> Result<Self> {
+        let netns = netns.unwrap_or_default();
+        let netns_cstr = cstr(&netns)?;
+        let ptr = unsafe {
+            swss_try!(ptr => SWSSConfigDBPipeConnector_new(
+                use_unix_socket_path as u8,
+                netns_cstr.as_ptr(),
+                ptr
+            ))?
+        };
+        Ok(Self {
+            ptr,
+            use_unix_socket_path,
+            netns,
+        })
+    }
+
+    pub fn connect(&self, wait_for_init: bool, retry_on: bool) -> Result<()> {
+        unsafe {
+            swss_try!(SWSSConfigDBPipeConnector_connect(
+                self.ptr,
+                wait_for_init as u8,
+                retry_on as u8
+            ))
+        }
+    }
+
+    /// Apply a complete update through the existing native `mod_config` path.
+    pub fn mod_config_raw(&self, config: &ConfigDbRawMap) -> Result<()> {
+        let borrowed = BorrowedConfigMap::new(config)?;
+        unsafe {
+            swss_try!(SWSSConfigDBPipeConnector_mod_config(
+                self.ptr,
+                &borrowed.raw
+            ))
+        }
+    }
+
+    /// Read the complete configuration through the native SCAN/pipeline path.
+    pub fn get_config(
+        &self,
+    ) -> Result<HashMap<String, HashMap<String, HashMap<String, CxxString>>>> {
+        unsafe {
+            let config = swss_try!(config => SWSSConfigDBPipeConnector_get_config(
+                self.ptr,
+                config
+            ))?;
+            Ok(take_config_map(config))
+        }
+    }
+
+    pub fn use_unix_socket_path(&self) -> bool {
+        self.use_unix_socket_path
+    }
+
+    pub fn netns(&self) -> &str {
+        &self.netns
+    }
+}
+
+impl Drop for ConfigDBPipeConnector {
+    fn drop(&mut self) {
+        let _ = unsafe { swss_try!(SWSSConfigDBPipeConnector_free(self.ptr)) };
+    }
+}
+
+unsafe impl Send for ConfigDBPipeConnector {}
+
+struct BorrowedConfigMap {
+    raw: SWSSConfigMap,
+    _table_names: Vec<CString>,
+    _row_names: Vec<CString>,
+    _field_names: Vec<CString>,
+    _field_arrays: Vec<Box<[SWSSFieldValueTuple]>>,
+    _row_arrays: Vec<Box<[SWSSKeyOpFieldValues]>>,
+    _tables: Box<[SWSSConfigTable]>,
+}
+
+impl BorrowedConfigMap {
+    fn new(config: &ConfigDbRawMap) -> Result<Self> {
+        let row_count = config.values().map(HashMap::len).sum();
+        let field_count = config
+            .values()
+            .flat_map(HashMap::values)
+            .map(HashMap::len)
+            .sum();
+
+        let mut table_names = Vec::with_capacity(config.len());
+        let mut row_names = Vec::with_capacity(row_count);
+        let mut field_names = Vec::with_capacity(field_count);
+        let mut field_arrays = Vec::with_capacity(row_count);
+        let mut row_arrays = Vec::with_capacity(config.len());
+        let mut tables = Vec::with_capacity(config.len());
+
+        for (table_name, rows) in config {
+            table_names.push(cstr(table_name)?);
+            let table_name_ptr = table_names.last().expect("just pushed").as_ptr();
+            let mut raw_rows = Vec::with_capacity(rows.len());
+
+            for (row_name, fields) in rows {
+                row_names.push(cstr(row_name)?);
+                let row_name_ptr = row_names.last().expect("just pushed").as_ptr();
+                let mut raw_fields = Vec::with_capacity(fields.len());
+
+                for (field_name, value) in fields {
+                    field_names.push(cstr(field_name)?);
+                    raw_fields.push(SWSSFieldValueTuple {
+                        field: field_names.last().expect("just pushed").as_ptr(),
+                        value: value.as_cxx_str().as_raw().cast(),
+                    });
+                }
+
+                let mut raw_fields = raw_fields.into_boxed_slice();
+                let field_values = SWSSFieldValueArray {
+                    len: raw_fields.len().try_into().map_err(|_| {
+                        Exception::new("CONFIG_DB field count exceeds uint64".to_string())
+                    })?,
+                    data: raw_fields.as_mut_ptr(),
+                };
+                field_arrays.push(raw_fields);
+                raw_rows.push(SWSSKeyOpFieldValues {
+                    key: row_name_ptr,
+                    operation: SWSSKeyOperation_SWSSKeyOperation_SET,
+                    fieldValues: field_values,
+                });
+            }
+
+            let mut raw_rows = raw_rows.into_boxed_slice();
+            let entries = SWSSKeyOpFieldValuesArray {
+                len: raw_rows.len().try_into().map_err(|_| {
+                    Exception::new("CONFIG_DB row count exceeds uint64".to_string())
+                })?,
+                data: raw_rows.as_mut_ptr(),
+            };
+            row_arrays.push(raw_rows);
+            tables.push(SWSSConfigTable {
+                table_name: table_name_ptr,
+                entries,
+            });
+        }
+
+        let mut tables = tables.into_boxed_slice();
+        let raw = SWSSConfigMap {
+            len: tables
+                .len()
+                .try_into()
+                .map_err(|_| Exception::new("CONFIG_DB table count exceeds uint64".to_string()))?,
+            data: tables.as_mut_ptr(),
+        };
+        Ok(Self {
+            raw,
+            _table_names: table_names,
+            _row_names: row_names,
+            _field_names: field_names,
+            _field_arrays: field_arrays,
+            _row_arrays: row_arrays,
+            _tables: tables,
+        })
+    }
+}
+
+unsafe fn take_config_map(config: SWSSConfigMap) -> ConfigDbRawMap {
+    let mut result = HashMap::new();
+
+    for table_index in 0..config.len as usize {
+        let table = &*config.data.add(table_index);
+        let table_name = CStr::from_ptr(table.table_name)
+            .to_string_lossy()
+            .into_owned();
+        let mut rows = HashMap::new();
+
+        for row_index in 0..table.entries.len as usize {
+            let row = &*table.entries.data.add(row_index);
+            let row_name = CStr::from_ptr(row.key).to_string_lossy().into_owned();
+            let mut fields = HashMap::new();
+
+            for field_index in 0..row.fieldValues.len as usize {
+                let field = &*row.fieldValues.data.add(field_index);
+                let field_name = CStr::from_ptr(field.field).to_string_lossy().into_owned();
+                let value = CStr::from_ptr(SWSSStrRef_c_str(field.value as SWSSStrRef))
+                    .to_string_lossy()
+                    .into_owned();
+                fields.insert(field_name, CxxString::new(value));
+            }
+
+            rows.insert(row_name, fields);
+        }
+
+        result.insert(table_name, rows);
+    }
+
+    SWSSConfigMap_free(config);
+    result
+}
 
 /// Rust wrapper around `swss::ConfigDBConnector_Native`.
 #[derive(Debug)]
@@ -189,61 +399,24 @@ impl ConfigDBConnector {
 
             // Create a borrowed wrapper around the returned pointer
             // Note: This is a reference to an existing connector, so we don't own it
-            Ok(BorrowedDbConnector { ptr: db_connector_ptr })
+            Ok(BorrowedDbConnector {
+                ptr: db_connector_ptr,
+            })
         }
     }
 
     /// Get the entire configuration as a nested map structure.
     /// Returns a HashMap where keys are table names and values are table contents
     /// (key -> field -> value mappings).
-    pub fn get_config(&self) -> Result<HashMap<String, HashMap<String, HashMap<String, CxxString>>>> {
+    pub fn get_config(
+        &self,
+    ) -> Result<HashMap<String, HashMap<String, HashMap<String, CxxString>>>> {
         unsafe {
-            let config_map = swss_try!(p_config => SWSSConfigDBConnector_get_config(
+            let config = swss_try!(config => SWSSConfigDBConnector_get_config(
                 self.ptr,
-                p_config
+                config
             ))?;
-
-            let mut result = HashMap::new();
-
-            // Process each table
-            for i in 0..config_map.len {
-                let i_usize = i as usize;
-                let table = &*config_map.data.add(i_usize);
-                let table_name = std::ffi::CStr::from_ptr(table.table_name).to_string_lossy().to_string();
-
-                let mut table_entries = HashMap::new();
-
-                // Process each key in the table
-                for j in 0..table.entries.len {
-                    let j_usize = j as usize;
-                    let entry = &*table.entries.data.add(j_usize);
-                    let key = std::ffi::CStr::from_ptr(entry.key).to_string_lossy().to_string();
-
-                    let mut field_values = HashMap::new();
-
-                    // Process each field-value pair
-                    for k in 0..entry.fieldValues.len {
-                        let k_usize = k as usize;
-                        let fv = &*entry.fieldValues.data.add(k_usize);
-                        let field = std::ffi::CStr::from_ptr(fv.field).to_string_lossy().to_string();
-                        // Note: We need to take ownership of the string, but fv.value will be freed
-                        // by SWSSConfigMap_free, so we need to clone the string content first
-                        let value_str = std::ffi::CStr::from_ptr(SWSSStrRef_c_str(fv.value as SWSSStrRef)).to_string_lossy().to_string();
-                        let value = CxxString::new(value_str);
-
-                        field_values.insert(field, value);
-                    }
-
-                    table_entries.insert(key, field_values);
-                }
-
-                result.insert(table_name, table_entries);
-            }
-
-            // Free the C structure
-            SWSSConfigMap_free(config_map);
-
-            Ok(result)
+            Ok(take_config_map(config))
         }
     }
 }
