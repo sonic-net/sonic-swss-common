@@ -86,10 +86,10 @@ public:
 
     // Registers a component; this applies to every linkToDb* variant. An
     // absent CONFIG_DB LOGGER field is read as the component's default and is
-    // never written back: CONFIG_DB holds operator intent only. The LOGLEVEL
-    // and LOGOUTPUT last handed to a registered component's notify callbacks
-    // are published to STATE_DB STATE_LOGGER_TABLE_NAME. If STATE_DB is
-    // unreachable then, the component is published on its next setting change.
+    // never written back. The LOGLEVEL and LOGOUTPUT last handed to a
+    // registered component's notify callbacks are published to STATE_DB
+    // STATE_LOGGER_TABLE_NAME. If STATE_DB is unreachable then, the component
+    // is published on its next setting change.
     static void linkToDbWithOutput(
             const std::string& dbName,
             const PriorityChangeNotify& prioNotify,

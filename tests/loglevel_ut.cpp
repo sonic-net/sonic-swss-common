@@ -150,8 +150,8 @@ TEST(LOGLEVEL, RemoveSetting)
 }
 
 // -d and -r together are rejected and change nothing. swssloglevel exits, so
-// the child is re-executed rather than forked: a forked child's exit would
-// run ~Logger and stop the parent's setting thread through the shared eventfd.
+// the child is re-executed rather than forked, and inherits no thread or lock
+// state from this process.
 TEST(LOGLEVEL, ResetAndRemoveRejected)
 {
     DBConnector db("CONFIG_DB", 0);
@@ -171,7 +171,8 @@ TEST(LOGLEVEL, ResetAndRemoveRejected)
     EXPECT_EQ(*level, "DEBUG");
 }
 
-// -r needs exactly one of -c and -a, and no -l.
+// -r needs exactly one of -c and -a, and no -l, and -c must name a known
+// component.
 TEST(LOGLEVEL, RemoveRequiresOneTarget)
 {
     DBConnector db("CONFIG_DB", 0);
@@ -190,6 +191,9 @@ TEST(LOGLEVEL, RemoveRequiresOneTarget)
     char* argvLevel[] = {"loglevel", "-r", "-l", "DEBUG", "-c", "configured1"};
     optind = 0;
     EXPECT_EXIT(swssloglevel(6, argvLevel), testing::ExitedWithCode(EXIT_FAILURE), "");
+    char* argvUnknown[] = {"loglevel", "-r", "-c", "no_such_component"};
+    optind = 0;
+    EXPECT_EXIT(swssloglevel(4, argvUnknown), testing::ExitedWithCode(EXIT_FAILURE), "");
     testing::FLAGS_gtest_death_test_style = savedStyle;
 
     EXPECT_TRUE(db.exists(std::string(CFG_LOGGER_TABLE_NAME) + "|configured1"));
@@ -245,6 +249,41 @@ TEST(LOGLEVEL, PrintConfiguredOnly)
     EXPECT_EQ(swssloglevel(2, argvPrint), EXIT_SUCCESS);
     std::string printed = testing::internal::GetCapturedStdout();
     EXPECT_NE(printed.find("legacy1" + std::string(30 - 7, ' ') + "WARN\n"), std::string::npos) << printed;
+}
+
+// A STATE_DB read that fails after the key listing is reported once, and -p
+// goes on without STATE_DB: configured components are still printed, and
+// components only STATE_DB listed are skipped rather than reported as errors.
+TEST(LOGLEVEL, StateDbFailsMidCommand)
+{
+    DBConnector db("CONFIG_DB", 0);
+    clearConfigDB();
+    setLoglevel(db, "configured1", "INFO");
+
+    // A string where a hash is expected is listed by the key scan but fails
+    // HGET with WRONGTYPE. It sorts first, so the later reads find no table.
+    DBConnector stateDb("STATE_DB", 0);
+    const std::string broken = std::string(STATE_LOGGER_TABLE_NAME) + "|broken1";
+    stateDb.set(broken, "not-a-hash");
+    swss::Table stateTable(&stateDb, STATE_LOGGER_TABLE_NAME);
+    stateTable.set("registered1", { { DAEMON_LOGLEVEL, "NOTICE" } });
+
+    char* argvPrint[] = {"loglevel", "-p"};
+    optind = 0;
+    testing::internal::CaptureStdout();
+    testing::internal::CaptureStderr();
+    int rc = swssloglevel(2, argvPrint);
+    std::string out = testing::internal::GetCapturedStdout();
+    std::string err = testing::internal::GetCapturedStderr();
+
+    EXPECT_EQ(rc, EXIT_SUCCESS) << err;
+    EXPECT_NE(out.find("configured1" + std::string(30 - 11, ' ') + "INFO\n"), std::string::npos) << out;
+    EXPECT_EQ(out.find("registered1"), std::string::npos) << out;
+    EXPECT_NE(err.find("STATE_DB unavailable, continuing without it"), std::string::npos) << err;
+    EXPECT_EQ(err.find("Unknown log level"), std::string::npos) << err;
+
+    stateDb.del(broken);
+    stateTable.del("registered1");
 }
 
 // Child side of StateDbUnavailable: exits 0 when -p lists and -l -c sets the
@@ -303,9 +342,7 @@ TEST(LOGLEVEL, StateDbUnavailable)
     ASSERT_EQ(write(fd, config.data(), config.size()), static_cast<ssize_t>(config.size()));
     close(fd);
 
-    // Re-executed rather than forked, as in ResetAndRemoveRejected, so an
-    // unexpected exit() in the child fails instead of stopping this process's
-    // setting thread.
+    // Re-executed rather than forked, as in ResetAndRemoveRejected.
     const std::string savedStyle = testing::FLAGS_gtest_death_test_style;
     testing::FLAGS_gtest_death_test_style = "threadsafe";
     EXPECT_EXIT(runWithoutStateDb(path), testing::ExitedWithCode(0), "STATE_DB unavailable");

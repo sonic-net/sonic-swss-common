@@ -333,6 +333,51 @@ TEST(LOGGER, ForkWhileSettingLockHeld)
     holder.join();
 }
 
+// Child side of ForkedChildReconcilesDeletedRow. The child has no setting
+// thread, so the row deleted here is deleted while no subscription is live.
+[[ noreturn ]] static void reconcileDeletedRowInChild()
+{
+    alarm(10);
+    const string key = "gap_component";
+    DBConnector db("CONFIG_DB", 0);
+    setLoglevel(db, key, "DEBUG");
+    Logger::linkToDbWithOutput(key, recordPrio, "INFO", recordOutput, "SYSLOG");
+    if (!waitNotified(key, "DEBUG", "SYSLOG"))
+    {
+        _exit(1);
+    }
+
+    swss::Table(&db, CFG_LOGGER_TABLE_NAME).del(key);
+    // Starts the child's own setting thread, which finds the row gone.
+    Logger::restartLogger();
+    _exit(waitNotified(key, "INFO", "SYSLOG") ? 0 : 2);
+}
+
+// A forked child neither stops nor joins the parent's setting thread, and a
+// row deleted before the child's setting thread subscribes reverts the
+// component to its default.
+TEST(LOGGER, ForkedChildReconcilesDeletedRow)
+{
+    DBConnector db("CONFIG_DB", 0);
+    clearConfigDB();
+
+    string key = "fork_parent_watch";
+    Logger::linkToDbWithOutput(key, recordPrio, "NOTICE", recordOutput, "SYSLOG");
+    Logger::restartLogger();
+
+    // As in ForkedChildPublishesOnItsOwnConnection, no thread logs while
+    // this test forks.
+    auto savedPrio = Logger::getMinPrio();
+    Logger::setMinPrio(Logger::SWSS_NOTICE);
+    usleep(10 * 1000);
+    EXPECT_EXIT(reconcileDeletedRowInChild(), testing::ExitedWithCode(0), "");
+    Logger::setMinPrio(savedPrio);
+
+    // The parent's setting thread still applies changes.
+    setLoglevel(db, key, "ERROR");
+    EXPECT_TRUE(waitNotified(key, "ERROR", "SYSLOG"));
+}
+
 // Child side of PublishWithoutStateDb: exits 0 when registration returns
 // without STATE_DB and the next setting change, with STATE_DB back, publishes.
 [[ noreturn ]] static void publishWithoutStateDb(const char* deadPath)

@@ -137,8 +137,8 @@ int swssloglevel(int argc, char** argv)
     std::vector<std::string> configured;
     logger_tbl.getKeys(configured);
 
-    // A component registers in STATE_DB and has a CONFIG_DB row only once
-    // its setting is configured, so the components are the union of both.
+    // The components are the union of the CONFIG_DB rows and the STATE_DB
+    // registrations; either can name a component the other lacks.
     std::vector<std::string> keys = configured;
     std::unique_ptr<DBConnector> state_db;
     std::unique_ptr<swss::Table> state_logger_tbl;
@@ -230,8 +230,9 @@ int swssloglevel(int argc, char** argv)
 
     if(default_loglevel_opt)
     {
-        // A component without a CONFIG_DB row already runs its default, so
-        // only configured rows are reset; no row is created.
+        // Only configured rows are set to NOTICE (SAI_LOG_LEVEL_NOTICE for SAI
+        // keys); no row is created. A component without a row keeps its own
+        // default, which may differ from NOTICE.
         std::vector<std::string> sai_keys = get_sai_keys(configured);
         std::vector<std::string> no_sai_keys = get_no_sai_keys(configured);
         setAllLoglevel(logger_tbl,no_sai_keys, std::string(DEFAULT_LOGLEVEL));

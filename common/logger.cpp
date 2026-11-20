@@ -1,6 +1,7 @@
 #include "logger.h"
 
 #include <algorithm>
+#include <set>
 #include <stdarg.h>
 #include <stdio.h>
 #include <syslog.h>
@@ -55,6 +56,13 @@ void Logger::atForkChild()
     auto& logger = getInstance();
     new (&logger.m_settingMutex) std::mutex();
     (void)logger.m_stateTable.release();
+
+    // The setting thread is not in the child, and its stop event shares the
+    // parent's eventfd: notifying it would stop the parent's thread. Released,
+    // not reset, since destroying a joinable std::thread terminates. The
+    // child has no setting thread until it calls restartLogger.
+    (void)logger.m_settingThread.release();
+    logger.m_stopEvent.reset();
 }
 
 Logger::~Logger()
@@ -253,6 +261,21 @@ void Logger::settingThread()
     selectables.emplace(CFG_LOGGER_TABLE_NAME, table);
     select.addSelectable(table.get());
     select.addSelectable(m_stopEvent.get());
+
+    // The subscription replays only rows that exist, so a row deleted while
+    // no subscription was live produces no DEL. Read after subscribing, so a
+    // row that changes meanwhile is also seen as an event.
+    std::vector<std::string> keys;
+    swss::Table(&db, CFG_LOGGER_TABLE_NAME).getKeys(keys);
+    std::set<std::string> present(keys.begin(), keys.end());
+    for (const auto& observer : m_settingChangeObservers.getCopy())
+    {
+        const std::string& key = observer.first;
+        if (present.find(key) == present.end())
+        {
+            applySetting(key, m_defaultPrios.get(key), m_defaultOutputs.get(key));
+        }
+    }
 
     while (1)
     {
