@@ -8,7 +8,8 @@
 #include <sstream>
 #include <iomanip>
 #include <stdexcept>
-#include <unistd.h>
+#include <pthread.h>
+#include <new>
 #include "schema.h"
 #include "select.h"
 #include "dbconnector.h"
@@ -39,6 +40,21 @@ namespace
 {
 // volatile: a static that is only written is otherwise optimized away.
 swss::Table* volatile s_stateTableAtExit = nullptr;
+}
+
+Logger::Logger()
+{
+    pthread_atfork(nullptr, nullptr, &Logger::atForkChild);
+}
+
+void Logger::atForkChild()
+{
+    // Only the forking thread exists in the child, so a lock another thread
+    // held at the fork would never be released. The parent's STATE_DB socket
+    // stays the parent's; the child opens its own on its next publish.
+    auto& logger = getInstance();
+    new (&logger.m_settingMutex) std::mutex();
+    (void)logger.m_stateTable.release();
 }
 
 Logger::~Logger()
@@ -146,10 +162,11 @@ void Logger::linkToDbWithOutput(
     swss::Table table(&db, CFG_LOGGER_TABLE_NAME);
     SWSS_LOG_DEBUG("Component %s register to logger", dbName.c_str());
 
-    // An absent field means the component's default. It is not written back:
-    // CONFIG_DB holds operator intent, and a row a daemon adds on its own
-    // start is drift to anything comparing CONFIG_DB against an intended
-    // config, such as a GCU commit applying at the same moment.
+    // Held from the read to the publish, so a change the setting thread
+    // applies meanwhile is either seen by the read or applied after it.
+    std::lock_guard<std::mutex> lock(logger.m_settingMutex);
+
+    // An absent field means the component's default, and it is not written back.
     std::string prio, output;
     if (!table.hget(dbName, DAEMON_LOGLEVEL, prio))
     {
@@ -171,21 +188,18 @@ void Logger::linkToDbWithOutput(
 
 void Logger::publishSetting(const std::string& key, const std::string& prio, const std::string& output)
 {
+    // The caller holds m_settingMutex.
     auto& logger = getInstance();
-    std::lock_guard<std::mutex> lock(logger.m_stateTableMutex);
 
     // The STATE_DB row is what lists a component that has no CONFIG_DB row;
     // logging keeps working without it.
     try
     {
-        // One connection serves every component (syncd registers one per SAI
-        // API). A forked child opens its own instead of sharing its parent's.
-        if (!logger.m_stateTable || logger.m_stateTablePid != getpid())
+        // Created once per process and reused by every publish.
+        if (!logger.m_stateTable)
         {
-            logger.m_stateTable.reset();
             DBConnector db("STATE_DB", 0);
             logger.m_stateTable = std::make_unique<swss::Table>(&db, STATE_LOGGER_TABLE_NAME);
-            logger.m_stateTablePid = getpid();
         }
         logger.m_stateTable->set(key, { { DAEMON_LOGLEVEL, prio }, { DAEMON_LOGOUTPUT, output } });
     }
@@ -310,6 +324,7 @@ void Logger::settingThread()
 
 void Logger::applySetting(const std::string& key, const std::string& prio, const std::string& output)
 {
+    std::lock_guard<std::mutex> lock(m_settingMutex);
     bool changed = false;
 
     if (prio != m_currentPrios.get(key))

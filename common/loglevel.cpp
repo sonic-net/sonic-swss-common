@@ -25,8 +25,8 @@ using namespace swss;
               << "Options:" << std::endl
               << "\t -h\tprint this message" << std::endl
               << "\t -l\tloglevel value" << std::endl
-              << "\t -c\tcomponent name in DB for which loglevel is applied (provided with -l)" << std::endl
-              << "\t -a\tapply loglevel to all components (provided with -l)" << std::endl
+              << "\t -c\tcomponent name in DB for which the setting is applied" << std::endl
+              << "\t -a\tapply the setting to all components" << std::endl
               << "\t -s\tapply loglevel for SAI api component (equivalent to adding prefix \"SAI_API_\" to component)" << std::endl
               << "\t -p\tprint components registered or configured in DB for which setting can be applied" << std::endl
               << "\t -d\tset every configured component to the default loglevel, keeping its row" << std::endl
@@ -158,6 +158,37 @@ int swssloglevel(int argc, char** argv)
     std::sort(keys.begin(), keys.end());
     keys.erase(std::unique(keys.begin(), keys.end()), keys.end());
 
+    // A STATE_DB read that fails later degrades the same way as one that
+    // fails above: the rest of the command runs without STATE_DB.
+    auto stateHget = [&state_logger_tbl](const std::string& key, const std::string& field, std::string& value) {
+        if (!state_logger_tbl)
+        {
+            return false;
+        }
+        try
+        {
+            return state_logger_tbl->hget(key, field, value);
+        }
+        catch (const std::exception& e)
+        {
+            std::cerr << "STATE_DB unavailable, continuing without it: " << e.what() << std::endl;
+            state_logger_tbl.reset();
+            return false;
+        }
+    };
+
+    // A component that reads its level only on SIGHUP marks its STATE_DB row.
+    auto printRefreshHints = [&stateHget](const std::vector<std::string>& components) {
+        for (const auto& key : components)
+        {
+            std::string refresh;
+            if (stateHget(key, "require_manual_refresh", refresh) && refresh == "true")
+            {
+                std::cout << key << " applies the change once it receives SIGHUP" << std::endl;
+            }
+        }
+    };
+
     if (print)
     {
         int errorCount = 0;
@@ -170,9 +201,13 @@ int swssloglevel(int argc, char** argv)
         for (const auto& key : keys)
         {
             std::string level;
-            if (!logger_tbl.hget(key, DAEMON_LOGLEVEL, level) &&
-                !(state_logger_tbl && state_logger_tbl->hget(key, DAEMON_LOGLEVEL, level)))
+            if (!logger_tbl.hget(key, DAEMON_LOGLEVEL, level) && !stateHget(key, DAEMON_LOGLEVEL, level))
             {
+                if (!state_logger_tbl && std::find(configured.begin(), configured.end(), key) == configured.end())
+                {
+                    // Listed by STATE_DB, which is now unreachable.
+                    continue;
+                }
                 std::cerr << std::left << std::setw(30) << key << "Unknown log level" << std::endl;
                 errorCount ++;
             }
@@ -201,12 +236,14 @@ int swssloglevel(int argc, char** argv)
         std::vector<std::string> no_sai_keys = get_no_sai_keys(configured);
         setAllLoglevel(logger_tbl,no_sai_keys, std::string(DEFAULT_LOGLEVEL));
         setAllLoglevel(logger_tbl,sai_keys, std::string(SAI_DEFAULT_LOGLEVEL));
+        printRefreshHints(configured);
         return (EXIT_SUCCESS);
     }
     if (removeSetting)
     {
-        // Deleting the whole row, which the setting thread reads as the
-        // component's own default; a row without LOGLEVEL is invalid config.
+        // The whole row is deleted, so the setting thread applies the
+        // component's own default; deleting only LOGLEVEL would leave a row
+        // behind that -p keeps listing.
         if (loglevel != "" || (applyToAll == (component != "")))
         {
             exitWithUsage(EXIT_FAILURE, "-r takes either -c or -a, and no -l");
@@ -227,6 +264,7 @@ int swssloglevel(int argc, char** argv)
             targets.push_back(component);
         }
 
+        std::vector<std::string> removed;
         for (const auto& key : targets)
         {
             if (std::find(configured.begin(), configured.end(), key) == configured.end())
@@ -234,13 +272,9 @@ int swssloglevel(int argc, char** argv)
                 continue;
             }
             logger_tbl.del(key);
-
-            std::string refresh;
-            if (state_logger_tbl && state_logger_tbl->hget(key, "require_manual_refresh", refresh) && refresh == "true")
-            {
-                std::cout << key << " applies the change once it receives SIGHUP" << std::endl;
-            }
+            removed.push_back(key);
         }
+        printRefreshHints(removed);
         return EXIT_SUCCESS;
     }
 
@@ -270,6 +304,7 @@ int swssloglevel(int argc, char** argv)
         }
 
         setAllLoglevel(logger_tbl, keys, loglevel);
+        printRefreshHints(keys);
         exit(EXIT_SUCCESS);
     }
 
@@ -279,6 +314,7 @@ int swssloglevel(int argc, char** argv)
         exitWithUsage(EXIT_FAILURE, "Component not present in DB");
     }
     setLoglevel(logger_tbl, component, loglevel);
+    printRefreshHints({ component });
 
     return EXIT_SUCCESS;
 }

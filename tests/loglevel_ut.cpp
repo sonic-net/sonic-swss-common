@@ -171,6 +171,66 @@ TEST(LOGLEVEL, ResetAndRemoveRejected)
     EXPECT_EQ(*level, "DEBUG");
 }
 
+// -r needs exactly one of -c and -a, and no -l.
+TEST(LOGLEVEL, RemoveRequiresOneTarget)
+{
+    DBConnector db("CONFIG_DB", 0);
+    clearConfigDB();
+    swss::Table configTable(&db, CFG_LOGGER_TABLE_NAME);
+    configTable.set("configured1", { { DAEMON_LOGLEVEL, "DEBUG" } });
+
+    const std::string savedStyle = testing::FLAGS_gtest_death_test_style;
+    testing::FLAGS_gtest_death_test_style = "threadsafe";
+    char* argvAlone[] = {"loglevel", "-r"};
+    optind = 0;
+    EXPECT_EXIT(swssloglevel(2, argvAlone), testing::ExitedWithCode(EXIT_FAILURE), "");
+    char* argvBoth[] = {"loglevel", "-r", "-a", "-c", "configured1"};
+    optind = 0;
+    EXPECT_EXIT(swssloglevel(5, argvBoth), testing::ExitedWithCode(EXIT_FAILURE), "");
+    char* argvLevel[] = {"loglevel", "-r", "-l", "DEBUG", "-c", "configured1"};
+    optind = 0;
+    EXPECT_EXIT(swssloglevel(6, argvLevel), testing::ExitedWithCode(EXIT_FAILURE), "");
+    testing::FLAGS_gtest_death_test_style = savedStyle;
+
+    EXPECT_TRUE(db.exists(std::string(CFG_LOGGER_TABLE_NAME) + "|configured1"));
+}
+
+// -l -c and -d say when a target applies the change only on SIGHUP, as -r does.
+TEST(LOGLEVEL, SetReportsManualRefresh)
+{
+    DBConnector db("CONFIG_DB", 0);
+    clearConfigDB();
+
+    DBConnector stateDb("STATE_DB", 0);
+    swss::Table stateTable(&stateDb, STATE_LOGGER_TABLE_NAME);
+    stateTable.set("refreshed1", { { DAEMON_LOGLEVEL, "NOTICE" }, { "require_manual_refresh", "true" } });
+    stateTable.set("plain1", { { DAEMON_LOGLEVEL, "NOTICE" } });
+    const std::string hint = "refreshed1 applies the change once it receives SIGHUP";
+
+    char* argvSet[] = {"loglevel", "-l", "DEBUG", "-c", "refreshed1"};
+    optind = 0;
+    testing::internal::CaptureStdout();
+    EXPECT_EQ(swssloglevel(5, argvSet), EXIT_SUCCESS);
+    EXPECT_NE(testing::internal::GetCapturedStdout().find(hint), std::string::npos);
+
+    char* argvPlain[] = {"loglevel", "-l", "DEBUG", "-c", "plain1"};
+    optind = 0;
+    testing::internal::CaptureStdout();
+    EXPECT_EQ(swssloglevel(5, argvPlain), EXIT_SUCCESS);
+    EXPECT_EQ(testing::internal::GetCapturedStdout(), "");
+
+    char* argvDefault[] = {"loglevel", "-d"};
+    optind = 0;
+    testing::internal::CaptureStdout();
+    EXPECT_EQ(swssloglevel(2, argvDefault), EXIT_SUCCESS);
+    std::string printed = testing::internal::GetCapturedStdout();
+    EXPECT_NE(printed.find(hint), std::string::npos) << printed;
+    EXPECT_EQ(printed.find("plain1"), std::string::npos) << printed;
+
+    stateTable.del("refreshed1");
+    stateTable.del("plain1");
+}
+
 // -p lists a component that has only a CONFIG_DB row, as written by a daemon
 // built against an older library, with its configured level.
 TEST(LOGLEVEL, PrintConfiguredOnly)

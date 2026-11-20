@@ -8,7 +8,6 @@
 #include <thread>
 #include <mutex>
 #include <functional>
-#include <sys/types.h>
 
 #include "concurrentmap.h"
 #include "selectableevent.h"
@@ -87,11 +86,10 @@ public:
 
     // Registers a component; this applies to every linkToDb* variant. An
     // absent CONFIG_DB LOGGER field is read as the component's default and is
-    // never written back: CONFIG_DB holds operator intent only. The effective
-    // setting of every registered component is published to STATE_DB
-    // STATE_LOGGER_TABLE_NAME, which is what swssloglevel enumerates. If
-    // STATE_DB is unreachable then, the component is published on its next
-    // setting change.
+    // never written back: CONFIG_DB holds operator intent only. The LOGLEVEL
+    // and LOGOUTPUT last handed to a registered component's notify callbacks
+    // are published to STATE_DB STATE_LOGGER_TABLE_NAME. If STATE_DB is
+    // unreachable then, the component is published on its next setting change.
     static void linkToDbWithOutput(
             const std::string& dbName,
             const PriorityChangeNotify& prioNotify,
@@ -152,7 +150,7 @@ public:
     };
 
 private:
-    Logger() = default;
+    Logger();
     ~Logger();
     Logger(const Logger&);
     Logger& operator=(const Logger&);
@@ -162,6 +160,7 @@ private:
     void settingThread();
     void applySetting(const std::string& key, const std::string& prio, const std::string& output);
     static void publishSetting(const std::string& key, const std::string& prio, const std::string& output);
+    static void atForkChild();
     void terminateSettingThread();
     void restartSettingThread();
 
@@ -177,9 +176,10 @@ private:
     std::unique_ptr<std::thread> m_settingThread;
     std::mutex m_mutex;
     std::unique_ptr<SelectableEvent> m_stopEvent;
-    std::mutex m_stateTableMutex;
+    // Serializes applying a setting (m_current*, the notify callbacks) with
+    // publishing it, and guards m_stateTable.
+    std::mutex m_settingMutex;
     std::unique_ptr<Table> m_stateTable;
-    pid_t m_stateTablePid = 0;
 };
 
 }

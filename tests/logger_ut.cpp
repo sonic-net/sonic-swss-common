@@ -7,8 +7,11 @@
 #include "logger_ut.h"
 #include "gtest/gtest.h"
 #include <unistd.h>
+#include <fcntl.h>
 #include <map>
 #include <mutex>
+#include <thread>
+#include <future>
 
 using namespace std;
 using namespace swss;
@@ -293,4 +296,110 @@ TEST(LOGGER, ForkedChildPublishesOnItsOwnConnection)
 
     Logger::linkToDbWithOutput("fork_parent_component2", recordPrio, "ERROR", recordOutput, "SYSLOG");
     checkStateLoglevel("fork_parent_component2", "ERROR", "SYSLOG");
+}
+
+// Child side of ForkWhileSettingLockHeld; SIGALRM fails it if it blocks.
+[[ noreturn ]] static void registerWithParentLockHeld()
+{
+    alarm(10);
+    Logger::linkToDbWithOutput("fork_locked_component", recordPrio, "INFO", recordOutput, "SYSLOG");
+    _exit(0);
+}
+
+// A child forked while another thread holds the setting lock, as during a
+// publish, can still register.
+TEST(LOGGER, ForkWhileSettingLockHeld)
+{
+    clearConfigDB();
+
+    std::promise<void> started, release;
+    std::shared_future<void> released = release.get_future().share();
+    std::thread holder([&started, released]() {
+        std::lock_guard<std::mutex> lock(Logger::getInstance().m_settingMutex);
+        started.set_value();
+        released.wait();
+    });
+    started.get_future().wait();
+
+    // As in ForkedChildPublishesOnItsOwnConnection, no thread logs while
+    // this test forks.
+    auto savedPrio = Logger::getMinPrio();
+    Logger::setMinPrio(Logger::SWSS_NOTICE);
+    usleep(10 * 1000);
+    EXPECT_EXIT(registerWithParentLockHeld(), testing::ExitedWithCode(0), "");
+    Logger::setMinPrio(savedPrio);
+
+    release.set_value();
+    holder.join();
+}
+
+// Child side of PublishWithoutStateDb: exits 0 when registration returns
+// without STATE_DB and the next setting change, with STATE_DB back, publishes.
+[[ noreturn ]] static void publishWithoutStateDb(const char* deadPath)
+{
+    SonicDBConfig::reset();
+    SonicDBConfig::initialize(deadPath);
+
+    const string key = "state_down_component";
+    Logger::linkToDbWithOutput(key, recordPrio, "INFO", recordOutput, "SYSLOG");
+    if (!waitNotified(key, "INFO", "SYSLOG") || Logger::getInstance().m_stateTable)
+    {
+        _exit(1);
+    }
+
+    SonicDBConfig::reset();
+    SonicDBConfig::initialize("./tests/redis_multi_db_ut_config/database_config.json");
+    DBConnector stateDb("STATE_DB", 0);
+    const string redisKey = string(STATE_LOGGER_TABLE_NAME) + "|" + key;
+    if (stateDb.exists(redisKey))
+    {
+        _exit(2);
+    }
+
+    Logger::restartLogger();
+    DBConnector db("CONFIG_DB", 0);
+    setLoglevel(db, key, "DEBUG");
+    for (int i = 0; i < 50; i++)
+    {
+        auto level = stateDb.hget(redisKey, DAEMON_LOGLEVEL);
+        if (level && *level == "DEBUG")
+        {
+            _exit(0);
+        }
+        usleep(100 * 1000);
+    }
+    _exit(3);
+}
+
+// A STATE_DB failure at registration does not escape linkToDbWithOutput, and
+// the component is published on its next setting change. Runs in a
+// re-executed child, which points STATE_DB at a dead socket.
+TEST(LOGGER, PublishWithoutStateDb)
+{
+    clearConfigDB();
+
+    // The child runs this test again up to EXPECT_EXIT, so the name is fixed.
+    const char* path = "/tmp/swss_logger_ut_state_db_down.json";
+    int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0600);
+    ASSERT_GE(fd, 0);
+    const string config = R"({
+    "INSTANCES": {
+        "redis": { "hostname": "127.0.0.1", "port": 6379, "unix_socket_path": "/var/run/redis/redis.sock" },
+        "dead": { "hostname": "127.0.0.1", "port": 1, "unix_socket_path": "/nonexistent/redis.sock" }
+    },
+    "DATABASES": {
+        "CONFIG_DB": { "id": 4, "separator": "|", "instance": "redis" },
+        "STATE_DB": { "id": 6, "separator": "|", "instance": "dead" }
+    },
+    "VERSION": "1.0"
+})";
+    ASSERT_EQ(write(fd, config.data(), config.size()), static_cast<ssize_t>(config.size()));
+    close(fd);
+
+    const string savedStyle = testing::FLAGS_gtest_death_test_style;
+    testing::FLAGS_gtest_death_test_style = "threadsafe";
+    EXPECT_EXIT(publishWithoutStateDb(path), testing::ExitedWithCode(0), "");
+    testing::FLAGS_gtest_death_test_style = savedStyle;
+
+    unlink(path);
 }
