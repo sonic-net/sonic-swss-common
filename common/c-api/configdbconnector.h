@@ -12,6 +12,7 @@ extern "C" {
 #include <stdint.h>
 
 typedef struct SWSSConfigDBConnectorOpaque *SWSSConfigDBConnector;
+typedef struct SWSSConfigDBPipeConnectorOpaque *SWSSConfigDBPipeConnector;
 
 // Create a new ConfigDBConnector
 // Pass 0 to use TCP connection, 1 to use Unix socket
@@ -59,6 +60,26 @@ SWSSResult SWSSConfigDBConnector_get_redis_client(SWSSConfigDBConnector configDb
 // Returns a nested table structure containing all configuration data
 // The result represents a map of table_name -> (key -> (field -> value))
 SWSSResult SWSSConfigDBConnector_get_config(SWSSConfigDBConnector configDb, SWSSConfigMap *outConfig);
+
+// Create a ConfigDBPipeConnector backed by the existing native implementation.
+// Pass 0 to use TCP connection, 1 to use Unix socket.
+SWSSResult SWSSConfigDBPipeConnector_new(uint8_t use_unix_socket_path, const char *netns,
+                                         SWSSConfigDBPipeConnector *outConfigDb);
+
+SWSSResult SWSSConfigDBPipeConnector_free(SWSSConfigDBPipeConnector configDb);
+
+SWSSResult SWSSConfigDBPipeConnector_connect(SWSSConfigDBPipeConnector configDb,
+                                             uint8_t wait_for_init, uint8_t retry_on);
+
+// Apply the entire configuration with ConfigDBPipeConnector_Native::mod_config().
+// The input remains owned by the caller and is copied before the native call.
+SWSSResult SWSSConfigDBPipeConnector_mod_config(SWSSConfigDBPipeConnector configDb,
+                                                const SWSSConfigMap *config);
+
+// Read the entire configuration with ConfigDBPipeConnector_Native::get_config().
+// The result must be freed with SWSSConfigMap_free().
+SWSSResult SWSSConfigDBPipeConnector_get_config(SWSSConfigDBPipeConnector configDb,
+                                                SWSSConfigMap *outConfig);
 
 #ifdef __cplusplus
 }
