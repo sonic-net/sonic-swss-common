@@ -216,8 +216,10 @@ fn zmq_consumer_producer_state_tables_sync_api_connect_late_reconnect() -> Resul
             }
         }
 
-        let mut zmqs = ZmqServer::new(&endpoint)?;
+        let mut zmqs = ZmqServer::new_unbound(&endpoint)?;
         let zcst = ZmqConsumerStateTable::new(redis.db_connector(), "table_a", &mut zmqs, None, None)?;
+        assert_eq!(zcst.read_data(Duration::from_millis(100), true)?, Timeout);
+        zmqs.bind()?;
         let mut kfvs_seen = Vec::new();
         while kfvs_seen.len() != kfvs.len() {
             assert_eq!(zcst.read_data(Duration::from_millis(2000), true)?, Data);
