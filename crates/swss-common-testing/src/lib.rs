@@ -10,7 +10,7 @@ use std::{
 use lazy_static::lazy_static;
 use std::sync::Arc;
 
-use rand::{random, Rng};
+use rand::random;
 
 use swss_common::*;
 
@@ -237,7 +237,7 @@ pub fn random_cxx_string() -> CxxString {
 
 pub fn random_fvs() -> FieldValues {
     let mut field_values = HashMap::new();
-    for _ in 0..rand::thread_rng().gen_range(100..1000) {
+    for _ in 0..rand::random_range(100..1000) {
         field_values.insert(random_string(), random_cxx_string());
     }
     field_values
@@ -270,8 +270,7 @@ pub fn random_unix_sock() -> String {
 }
 
 pub fn random_port() -> u16 {
-    let mut rng = rand::thread_rng();
-    rng.gen_range(1000..65535)
+    rand::random_range(1000..65535)
 }
 
 // zmq doesn't clean up its own ipc sockets, so we include a deferred operation for that
