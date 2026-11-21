@@ -25,6 +25,22 @@ impl ZmqServer {
         })
     }
 
+    /// Create an unbound server so consumers can register before messages arrive.
+    /// Call [`Self::bind`] after creating its consumer tables.
+    pub fn new_unbound(endpoint: &str) -> Result<Self> {
+        let endpoint = cstr(endpoint)?;
+        let ptr = unsafe { swss_try!(p_zs => SWSSZmqServer_new_unbound(endpoint.as_ptr(), p_zs))? };
+        Ok(Self {
+            ptr,
+            message_handler_guards: Vec::new(),
+        })
+    }
+
+    /// Bind the endpoint and start receiving messages.
+    pub fn bind(&self) -> Result<()> {
+        unsafe { swss_try!(SWSSZmqServer_bind(self.ptr)) }
+    }
+
     pub(crate) fn register_consumer_state_table(&mut self, tbl_dg: Arc<zmqconsumerstatetable::DropGuard>) {
         self.message_handler_guards.push(tbl_dg);
     }
