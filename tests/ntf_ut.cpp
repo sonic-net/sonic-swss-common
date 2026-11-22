@@ -262,10 +262,9 @@ TEST(Notifications, AllowListFilter)
     send("fdb_event");          // admit
     send("ignored");            // drop
 
-    // Drain whatever is available; the publish path is async, so poll
-    // with a bounded timeout.
+    // Wait for all six replies, including those dropped by the allowlist.
     std::vector<std::string> admitted_ops;
-    for (int i = 0; i < 100 && admitted_ops.size() < 3; ++i) {
+    for (int i = 0; i < 100 && nc.getStats().received < 6; ++i) {
         swss::Selectable *sel = nullptr;
         int result = s.select(&sel, 100 /* ms */);
         if (result == swss::Select::TIMEOUT) continue;
