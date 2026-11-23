@@ -31,11 +31,14 @@ int swss::openRedisUnixSocket(const std::string& path, unsigned int timeout_ms, 
         }
         try { authenticateRedisConnection(context.get()); }
         catch (const RedisError&) {
-            // A read that reaches the socket timeout fails with REDIS_ERR_TIMEOUT, or with
-            // REDIS_ERR_IO and EAGAIN. The kernel can end that wait slightly before the
-            // deadline, so the clock alone does not identify the timeout.
+            // A read that reaches the socket timeout fails with REDIS_ERR_TIMEOUT (hiredis
+            // 1.0 and later), or with REDIS_ERR_IO and EAGAIN. The kernel can end that wait
+            // slightly before the deadline, so the clock alone does not identify the timeout.
             const auto *c = context.get();
-            const bool readTimedOut = c->err == REDIS_ERR_TIMEOUT ||
+            const bool readTimedOut =
+#ifdef REDIS_ERR_TIMEOUT
+                c->err == REDIS_ERR_TIMEOUT ||
+#endif
                 (c->err == REDIS_ERR_IO && std::strcmp(c->errstr, std::strerror(EAGAIN)) == 0);
             if (timeout_ms && (readTimedOut || Clock::now() >= deadline))
                 throw std::system_error(std::make_error_code(std::errc::timed_out));
