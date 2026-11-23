@@ -82,6 +82,25 @@ std::string RedisReply::ErrorCategory::message(int condition) const {
     }
 }
 
+// RedisReply previously threw system_error with not_enough_memory when it got a null reply,
+// and with io_error in other cases.
+// This method allows to keep existing error_code comparisons if there are any.
+std::error_condition RedisReply::ErrorCategory::default_error_condition(int code) const noexcept {
+    if (code == 0) {
+        return std::generic_category().default_error_condition(0);
+    } else switch (static_cast<Errc>(code)) {
+        case Errc::NullReply:
+            return std::errc::not_enough_memory;
+        case Errc::ErrorReply:
+        case Errc::UnexpectedValue:
+        case Errc::UnexpectedType:
+            return std::errc::io_error;
+        default:
+            assert(false);
+            return std::errc::io_error;
+    }
+}
+
 std::error_category const& RedisReply::error_category() {
     static const ErrorCategory category;
     return category;

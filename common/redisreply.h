@@ -114,6 +114,7 @@ public:
     public:
         const char *name() const noexcept override;
         std::string message(int condition) const override;
+        std::error_condition default_error_condition(int code) const noexcept override;
     };
 
     static std::error_category const& error_category();

@@ -1253,6 +1253,14 @@ TEST(Redisreply, UnexpectedType) {
     }
 }
 
+TEST(Redisreply, ErrorCategoryDefaultCondition) {
+    EXPECT_FALSE(RedisReply::error_category().default_error_condition(0));
+    EXPECT_EQ(std::error_code(RedisReply::Errc::NullReply), std::errc::not_enough_memory);
+    EXPECT_EQ(std::error_code(RedisReply::Errc::UnexpectedType), std::errc::io_error);
+    EXPECT_EQ(std::error_code(RedisReply::Errc::UnexpectedValue), std::errc::io_error);
+    EXPECT_EQ(std::error_code(RedisReply::Errc::ErrorReply), std::errc::io_error);
+}
+
 TEST(Redisreply, guard)
 {
     // Improve test coverage for guard() method.
