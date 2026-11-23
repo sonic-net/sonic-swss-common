@@ -40,8 +40,6 @@ void exportRdb(const Options& options, bool useUnixSocket)
     const auto& destination = options.m_rdb;
     const auto& db = options.m_db_or_op;
     const auto& netns = options.m_namespace;
-    using Clock = std::chrono::steady_clock;
-    const auto deadline = Clock::now() + std::chrono::milliseconds(timeout_ms);
     File connection{-1};
     if (useUnixSocket)
     {
@@ -78,6 +76,9 @@ void exportRdb(const Options& options, bool useUnixSocket)
     {
         throw std::system_error(errno, std::generic_category(), "RDB socket mode");
     }
+    using Clock = std::chrono::steady_clock;
+    const auto idleTimeout = std::chrono::milliseconds(timeout_ms);
+    auto deadline = Clock::now() + idleTimeout;
     const auto wait = [&](short events)
     {
         for (;;)
@@ -86,7 +87,7 @@ void exportRdb(const Options& options, bool useUnixSocket)
                 deadline - Clock::now()).count();
             if (left < 0)
             {
-                throw std::system_error(std::make_error_code(std::errc::timed_out));
+                throw std::system_error(std::make_error_code(std::errc::timed_out), "RDB transfer idle");
             }
             const int timeout = static_cast<int>(std::min<long long>(left + 1, INT_MAX));
             pollfd event{connection.fd, events, 0};
@@ -119,6 +120,8 @@ void exportRdb(const Options& options, bool useUnixSocket)
             {
                 throw std::runtime_error("RDB transfer truncated");
             }
+            // Redis can send newline keepalives while the background save runs.
+            deadline = Clock::now() + idleTimeout;
             return static_cast<size_t>(count);
         }
     };
@@ -138,6 +141,7 @@ void exportRdb(const Options& options, bool useUnixSocket)
             throw std::runtime_error("Cannot request RDB snapshot");
         }
         sent += static_cast<size_t>(count);
+        deadline = Clock::now() + idleTimeout;
     }
     std::string header;
     do
@@ -159,6 +163,10 @@ void exportRdb(const Options& options, bool useUnixSocket)
         }
     }
     while (header.empty() || header == "\r");
+    if (header.size() >= 3 && header.front() == '-' && header.back() == '\r')
+    {
+        throw std::runtime_error("Redis rejected SYNC: " + header.substr(1, header.size() - 2));
+    }
     if (header.size() < 3 || header.front() != '$' || header.back() != '\r')
     {
         throw std::runtime_error("RDB export requires length framing");

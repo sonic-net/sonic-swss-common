@@ -96,6 +96,8 @@ def test_cli_rdb_failure_preserves_destination(rdb, cli, fault):
         args = ["--authenticate"]
     result = cli(*args, "--rdb", str(output), "STATE_DB")
     assert result.returncode != 0
+    if fault == "no-authentication":
+        assert "Redis rejected SYNC: NOPERM" in result.stderr
     assert output.read_bytes() == b"original"
     assert list(output.parent.glob("existing.rdb.*")) == []
 
