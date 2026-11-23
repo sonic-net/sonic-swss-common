@@ -177,7 +177,8 @@ int swssloglevel(int argc, char** argv)
         }
     };
 
-    // A component that reads its level only on SIGHUP marks its STATE_DB row.
+    // A STATE_DB require_manual_refresh of "true" means the component
+    // applies a change only once it receives SIGHUP.
     auto printRefreshHints = [&stateHget](const std::vector<std::string>& components) {
         for (const auto& key : components)
         {

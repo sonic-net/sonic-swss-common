@@ -12,6 +12,7 @@
 #include <mutex>
 #include <thread>
 #include <future>
+#include <chrono>
 
 using namespace std;
 using namespace swss;
@@ -299,23 +300,34 @@ TEST(LOGGER, ForkedChildPublishesOnItsOwnConnection)
 }
 
 // Child side of ForkWhileSettingLockHeld; SIGALRM fails it if it blocks.
+// Registration takes every map lock and the setting lock, and a line logged
+// to STDERR takes the output lock.
 [[ noreturn ]] static void registerWithParentLockHeld()
 {
     alarm(10);
     Logger::linkToDbWithOutput("fork_locked_component", recordPrio, "INFO", recordOutput, "SYSLOG");
+    Logger::getInstance().m_output = Logger::SWSS_STDERR;
+    SWSS_LOG_NOTICE("logged by a child forked with the output lock held");
     _exit(0);
 }
 
-// A child forked while another thread holds the setting lock, as during a
-// publish, can still register.
+// A child forked while another thread holds the Logger's locks, as during a
+// publish or a line written to a full pipe, can still register and log.
 TEST(LOGGER, ForkWhileSettingLockHeld)
 {
     clearConfigDB();
 
+    auto& logger = Logger::getInstance();
     std::promise<void> started, release;
     std::shared_future<void> released = release.get_future().share();
-    std::thread holder([&started, released]() {
-        std::lock_guard<std::mutex> lock(Logger::getInstance().m_settingMutex);
+    std::thread holder([&started, released, &logger]() {
+        std::lock_guard<std::mutex> setting(logger.m_settingMutex);
+        std::lock_guard<std::mutex> output(logger.m_mutex);
+        std::lock_guard<std::mutex> observers(logger.m_settingChangeObservers.m_mutex);
+        std::lock_guard<std::mutex> currentPrios(logger.m_currentPrios.m_mutex);
+        std::lock_guard<std::mutex> currentOutputs(logger.m_currentOutputs.m_mutex);
+        std::lock_guard<std::mutex> defaultPrios(logger.m_defaultPrios.m_mutex);
+        std::lock_guard<std::mutex> defaultOutputs(logger.m_defaultOutputs.m_mutex);
         started.set_value();
         released.wait();
     });
@@ -331,6 +343,27 @@ TEST(LOGGER, ForkWhileSettingLockHeld)
 
     release.set_value();
     holder.join();
+}
+
+// Registration holds the setting lock from its CONFIG_DB read to its STATE_DB
+// publish, so it waits while the setting thread applies a change.
+TEST(LOGGER, RegistrationTakesSettingLock)
+{
+    clearConfigDB();
+    const string key = "lock_wait_component";
+
+    std::unique_lock<std::mutex> lock(Logger::getInstance().m_settingMutex);
+    auto registered = std::async(std::launch::async, [&key]() {
+        Logger::linkToDbWithOutput(key, recordPrio, "INFO", recordOutput, "SYSLOG");
+    });
+    bool waited = registered.wait_for(std::chrono::milliseconds(500)) == std::future_status::timeout;
+    lock.unlock();
+
+    EXPECT_TRUE(waited) << "registration did not wait for the setting lock";
+    ASSERT_EQ(registered.wait_for(std::chrono::seconds(10)), std::future_status::ready);
+    registered.get();
+    EXPECT_TRUE(waitNotified(key, "INFO", "SYSLOG"));
+    checkStateLoglevel(key, "INFO", "SYSLOG");
 }
 
 // Child side of ForkedChildReconcilesDeletedRow. The child has no setting

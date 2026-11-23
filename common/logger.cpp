@@ -51,10 +51,19 @@ Logger::Logger()
 void Logger::atForkChild()
 {
     // Only the forking thread exists in the child, so a lock another thread
-    // held at the fork would never be released. The parent's STATE_DB socket
-    // stays the parent's; the child opens its own on its next publish.
+    // held at the fork would never be released. m_mutex is held across
+    // redirected output, which can block on a full pipe. The maps' locks
+    // guard short windows; a fork inside a map update still leaves that map
+    // as the update left it. The parent's STATE_DB socket stays the parent's;
+    // the child opens its own on its next publish.
     auto& logger = getInstance();
     new (&logger.m_settingMutex) std::mutex();
+    new (&logger.m_mutex) std::mutex();
+    logger.m_settingChangeObservers.reinitLockAfterFork();
+    logger.m_currentPrios.reinitLockAfterFork();
+    logger.m_currentOutputs.reinitLockAfterFork();
+    logger.m_defaultPrios.reinitLockAfterFork();
+    logger.m_defaultOutputs.reinitLockAfterFork();
     (void)logger.m_stateTable.release();
 
     // The setting thread is not in the child, and its stop event shares the

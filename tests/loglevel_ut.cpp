@@ -350,3 +350,41 @@ TEST(LOGLEVEL, StateDbUnavailable)
 
     unlink(path);
 }
+
+// Child side of SetAllIncludesRegistered. -a exits, so stdout goes to stderr
+// where EXPECT_EXIT can match it.
+[[ noreturn ]] static void setAllToDebug()
+{
+    dup2(STDERR_FILENO, STDOUT_FILENO);
+    char* argvAll[] = {"loglevel", "-l", "DEBUG", "-a"};
+    optind = 0;
+    swssloglevel(4, argvAll);
+    _exit(3);
+}
+
+// -l -a sets every non-SAI component, including one registered only in
+// STATE_DB, and says when a target applies the change only on SIGHUP.
+TEST(LOGLEVEL, SetAllIncludesRegistered)
+{
+    DBConnector db("CONFIG_DB", 0);
+    clearConfigDB();
+    setLoglevel(db, "configured1", "INFO");
+    setLoglevel(db, "SAI_API_configured2", "SAI_LOG_LEVEL_INFO");
+
+    DBConnector stateDb("STATE_DB", 0);
+    swss::Table stateTable(&stateDb, STATE_LOGGER_TABLE_NAME);
+    stateTable.set("registered1", { { DAEMON_LOGLEVEL, "NOTICE" }, { "require_manual_refresh", "true" } });
+
+    // Re-executed rather than forked, as in ResetAndRemoveRejected.
+    const std::string savedStyle = testing::FLAGS_gtest_death_test_style;
+    testing::FLAGS_gtest_death_test_style = "threadsafe";
+    EXPECT_EXIT(setAllToDebug(), testing::ExitedWithCode(EXIT_SUCCESS),
+                "registered1 applies the change once it receives SIGHUP");
+    testing::FLAGS_gtest_death_test_style = savedStyle;
+
+    checkLoglevel(db, "configured1", "DEBUG");
+    checkLoglevel(db, "registered1", "DEBUG");
+    checkLoglevel(db, "SAI_API_configured2", "SAI_LOG_LEVEL_INFO");
+
+    stateTable.del("registered1");
+}
