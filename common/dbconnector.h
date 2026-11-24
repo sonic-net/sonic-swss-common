@@ -146,9 +146,6 @@ public:
 
 private:
     static std::recursive_mutex m_db_info_mutex;
-    // pthread_atfork child handler; registered once by m_atForkRegistered.
-    static void atForkChild();
-    static const bool m_atForkRegistered;
     // { {containerName, namespace}, { instName, { unix_socket_path, hostname, port } } }
     static std::unordered_map<SonicDBKey, std::map<std::string, RedisInstInfo>, SonicDBKeyHash> m_inst_info;
     // { {containerName, namespace}, { dbName, {instName, dbId, separator} } }

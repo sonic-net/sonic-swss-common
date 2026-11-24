@@ -8,8 +8,6 @@
 #include <nlohmann/json.hpp>
 #include <set>
 #include <unistd.h>
-#include <pthread.h>
-#include <new>
 #include "logger.h"
 
 #include "common/dbconnector.h"
@@ -180,14 +178,6 @@ void SonicDBConfig::initializeGlobalConfig(const string &file, bool ignore_nonex
 
     // Set it as the global config file is already parsed and init done.
     m_global_init = true;
-}
-
-void SonicDBConfig::atForkChild()
-{
-    // Only the forking thread exists in the child, so a lock another thread
-    // held at the fork would never be released. A fork inside a config load
-    // still leaves the maps as the load left them.
-    new (&m_db_info_mutex) std::recursive_mutex();
 }
 
 void SonicDBConfig::initialize(const string &file)
@@ -544,9 +534,6 @@ map<string, RedisInstInfo> SonicDBConfig::getInstanceList(const SonicDBKey &key)
 constexpr const char *SonicDBConfig::DEFAULT_SONIC_DB_CONFIG_FILE;
 constexpr const char *SonicDBConfig::DEFAULT_SONIC_DB_GLOBAL_CONFIG_FILE;
 std::recursive_mutex SonicDBConfig::m_db_info_mutex;
-// Defined after m_db_info_mutex, so the mutex exists before the handler can run.
-const bool SonicDBConfig::m_atForkRegistered =
-    pthread_atfork(nullptr, nullptr, &SonicDBConfig::atForkChild) == 0;
 unordered_map<SonicDBKey, std::map<std::string, RedisInstInfo>, SonicDBKeyHash> SonicDBConfig::m_inst_info;
 unordered_map<SonicDBKey, std::unordered_map<std::string, SonicDBInfo>, SonicDBKeyHash> SonicDBConfig::m_db_info;
 unordered_map<SonicDBKey, std::unordered_map<int, std::string>, SonicDBKeyHash> SonicDBConfig::m_db_separator;

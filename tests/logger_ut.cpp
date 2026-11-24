@@ -347,43 +347,6 @@ TEST(LOGGER, ForkWhileSettingLockHeld)
     holder.join();
 }
 
-// Child side of ForkWhileDbConfigLockHeld; SIGALRM fails it if it blocks.
-// Registration builds CONFIG_DB and STATE_DB connectors, and each one looks
-// up its database in SonicDBConfig.
-[[ noreturn ]] static void registerWithDbConfigLockHeld()
-{
-    alarm(10);
-    Logger::linkToDbWithOutput("fork_dbconfig_component", recordPrio, "INFO", recordOutput, "SYSLOG");
-    _exit(0);
-}
-
-// A child forked while another thread holds SonicDBConfig's lock, as during a
-// DBConnector or Table construction, can still register.
-TEST(LOGGER, ForkWhileDbConfigLockHeld)
-{
-    clearConfigDB();
-
-    std::promise<void> started, release;
-    std::shared_future<void> released = release.get_future().share();
-    std::thread holder([&started, released]() {
-        std::lock_guard<std::recursive_mutex> dbInfo(SonicDBConfig::m_db_info_mutex);
-        started.set_value();
-        released.wait();
-    });
-    started.get_future().wait();
-
-    // As in ForkedChildPublishesOnItsOwnConnection, no thread logs while
-    // this test forks.
-    auto savedPrio = Logger::getMinPrio();
-    Logger::setMinPrio(Logger::SWSS_NOTICE);
-    usleep(10 * 1000);
-    EXPECT_EXIT(registerWithDbConfigLockHeld(), testing::ExitedWithCode(0), "");
-    Logger::setMinPrio(savedPrio);
-
-    release.set_value();
-    holder.join();
-}
-
 // Registration sets the component's defaults before it adds the observer, so
 // a running setting thread never finds the observer without its defaults.
 // Each default's lock is held in turn, so each set() is pinned before the
