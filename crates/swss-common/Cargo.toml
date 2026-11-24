@@ -23,7 +23,7 @@ lazy_static.workspace = true
 tracing-subscriber.workspace = true
 
 [build-dependencies]
-bindgen = "0.70.1"
+bindgen = "0.73.0"
 
 [dev-dependencies]
 swss-common-testing = { path = "../swss-common-testing" }
