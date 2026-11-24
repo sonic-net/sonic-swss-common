@@ -139,18 +139,29 @@ TEST(LOGLEVEL, RemoveSetting)
     EXPECT_FALSE(exists("SAI_API_configured3"));
     EXPECT_TRUE(exists("configured2"));
 
+    // -r -a and -s -r -a each give the SIGHUP hint for the rows they remove.
     configTable.set("SAI_API_configured3", { { DAEMON_LOGLEVEL, "SAI_LOG_LEVEL_DEBUG" } });
+    stateTable.set("configured2", { { DAEMON_LOGLEVEL, "INFO" }, { "require_manual_refresh", "true" } });
+    stateTable.set("SAI_API_configured3", { { DAEMON_LOGLEVEL, "SAI_LOG_LEVEL_DEBUG" }, { "require_manual_refresh", "true" } });
+    const std::string hint2 = "configured2 applies the change once it receives SIGHUP\n";
+    const std::string hint3 = "SAI_API_configured3 applies the change once it receives SIGHUP\n";
     char* argvAll[] = {"loglevel", "-r", "-a"};
     optind = 0;
+    testing::internal::CaptureStdout();
     EXPECT_EQ(swssloglevel(3, argvAll), EXIT_SUCCESS);
+    EXPECT_EQ(testing::internal::GetCapturedStdout(), hint2);
     EXPECT_FALSE(exists("configured2"));
     EXPECT_TRUE(exists("SAI_API_configured3"));
 
     char* argvAllSai[] = {"loglevel", "-s", "-r", "-a"};
     optind = 0;
+    testing::internal::CaptureStdout();
     EXPECT_EQ(swssloglevel(4, argvAllSai), EXIT_SUCCESS);
+    EXPECT_EQ(testing::internal::GetCapturedStdout(), hint3);
     EXPECT_FALSE(exists("SAI_API_configured3"));
 
+    stateTable.del("configured2");
+    stateTable.del("SAI_API_configured3");
     stateTable.del("registered1");
 }
 
