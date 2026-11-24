@@ -381,8 +381,8 @@ TEST(LOGGER, ReconcileRevertsRowDeletedBeforeSubscribe)
     waitStateLoglevel(key, "INFO", "SYSLOG");
 }
 
-// A publish that fails after the STATE_DB table exists, as when the
-// connection drops, drops the table, so the next publish reconnects.
+// A publish that fails after the STATE_DB connection is open, as when it
+// drops, drops the connection, so the next publish reconnects.
 TEST(LOGGER, PublishRecoversAfterConnectionLoss)
 {
     clearConfigDB();
@@ -394,8 +394,8 @@ TEST(LOGGER, PublishRecoversAfterConnectionLoss)
     long long id;
     {
         std::lock_guard<std::mutex> lock(logger.m_settingMutex);
-        ASSERT_TRUE(logger.m_stateTable);
-        RedisReply r(logger.m_stateTable->m_pipe->getDBConnector(), "CLIENT ID", REDIS_REPLY_INTEGER);
+        ASSERT_TRUE(logger.m_stateDb);
+        RedisReply r(logger.m_stateDb.get(), "CLIENT ID", REDIS_REPLY_INTEGER);
         id = r.getContext()->integer;
     }
     DBConnector stateDb("STATE_DB", 0);
@@ -423,7 +423,7 @@ TEST(LOGGER, PublishRecoversAfterConnectionLoss)
 
     const string key = "state_down_component";
     Logger::linkToDbWithOutput(key, recordPrio, "INFO", recordOutput, "SYSLOG");
-    if (!waitNotified(key, "INFO", "SYSLOG") || Logger::getInstance().m_stateTable)
+    if (!waitNotified(key, "INFO", "SYSLOG") || Logger::getInstance().m_stateDb)
     {
         _exit(1);
     }

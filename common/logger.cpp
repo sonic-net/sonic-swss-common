@@ -35,19 +35,9 @@ void swss::err_exit(const char *fn, int ln, int e, const char *fmt, ...)
     abort();
 }
 
-namespace
-{
-// volatile: a static that is only written is otherwise optimized away.
-swss::Table* volatile s_stateTableAtExit = nullptr;
-}
-
 Logger::~Logger()
 {
     terminateSettingThread();
-
-    // Left open at exit: closing it may log, and the logger is going away.
-    // It stays reachable from s_stateTableAtExit, so it is not a leak.
-    s_stateTableAtExit = m_stateTable.release();
 }
 
 void Logger::terminateSettingThread()
@@ -180,17 +170,19 @@ void Logger::publishSetting(const std::string& key, const std::string& prio, con
     try
     {
         // Created on first use and reused by every publish.
-        if (!logger.m_stateTable)
+        if (!logger.m_stateDb)
         {
-            DBConnector db("STATE_DB", 0);
-            logger.m_stateTable = std::make_unique<swss::Table>(&db, STATE_LOGGER_TABLE_NAME);
+            logger.m_stateDb = std::make_unique<DBConnector>("STATE_DB", 0);
         }
-        logger.m_stateTable->set(key, { { DAEMON_LOGLEVEL, prio }, { DAEMON_LOGOUTPUT, output } });
+        const std::string stateKey = std::string(STATE_LOGGER_TABLE_NAME)
+            + SonicDBConfig::getSeparator(logger.m_stateDb.get()) + key;
+        const std::vector<FieldValueTuple> values = { { DAEMON_LOGLEVEL, prio }, { DAEMON_LOGOUTPUT, output } };
+        logger.m_stateDb->hmset(stateKey, values.begin(), values.end());
     }
     catch (const std::exception& e)
     {
         // Reconnect on the next publish.
-        logger.m_stateTable.reset();
+        logger.m_stateDb.reset();
         SWSS_LOG_WARN("Failed to publish %s log setting to STATE_DB: %s", key.c_str(), e.what());
     }
 }

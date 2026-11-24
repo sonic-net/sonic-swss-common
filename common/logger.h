@@ -14,7 +14,7 @@
 
 namespace swss {
 
-class Table;
+class DBConnector;
 
 #define SWSS_LOG_ERROR(MSG, ...)       swss::Logger::getInstance().write(swss::Logger::SWSS_ERROR,  ":- %s: " MSG, __FUNCTION__, ##__VA_ARGS__)
 #define SWSS_LOG_WARN(MSG, ...)        swss::Logger::getInstance().write(swss::Logger::SWSS_WARN,   ":- %s: " MSG, __FUNCTION__, ##__VA_ARGS__)
@@ -176,9 +176,13 @@ private:
     std::mutex m_mutex;
     std::unique_ptr<SelectableEvent> m_stopEvent;
     // Serializes applying a setting (m_current*, the notify callbacks) with
-    // publishing it, and guards m_stateTable.
+    // publishing it, and guards m_stateDb.
     std::mutex m_settingMutex;
-    std::unique_ptr<Table> m_stateTable;
+    // STATE_DB connection for publishing, opened on first use. A bare
+    // DBConnector rather than a Table: a Table owns a RedisPipeline, whose
+    // destructor logs, and ~Logger must not log while the Logger is being
+    // destroyed. Each publish is a single HSET, so a pipeline adds nothing.
+    std::unique_ptr<DBConnector> m_stateDb;
 };
 
 }
