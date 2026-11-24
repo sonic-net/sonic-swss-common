@@ -73,6 +73,11 @@ TEST(LOGLEVEL, RegisteredComponentWithoutConfigRow)
     EXPECT_NE(printed.find(line("registered1", "INFO")), std::string::npos) << printed;
     EXPECT_NE(printed.find(line("registered2", "NOTICE")), std::string::npos) << printed;
     EXPECT_NE(printed.find(line("SAI_API_registered3", "SAI_LOG_LEVEL_NOTICE")), std::string::npos) << printed;
+    // registered1 has both a CONFIG_DB and a STATE_DB row and is listed once.
+    const std::string listing = "\n" + printed;
+    size_t first = listing.find("\nregistered1 ");
+    ASSERT_NE(first, std::string::npos) << printed;
+    EXPECT_EQ(listing.find("\nregistered1 ", first + 1), std::string::npos) << printed;
 
     char* argvDefault[] = {"loglevel", "-d"};
     optind = 0;

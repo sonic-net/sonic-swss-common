@@ -7,6 +7,7 @@
 #include "logger_ut.h"
 #include "gtest/gtest.h"
 #include <unistd.h>
+#include <signal.h>
 #include <fcntl.h>
 #include <map>
 #include <vector>
@@ -385,25 +386,36 @@ TEST(LOGGER, ForkWhileDbConfigLockHeld)
 
 // Registration sets the component's defaults before it adds the observer, so
 // a running setting thread never finds the observer without its defaults.
+// Each default's lock is held in turn, so each set() is pinned before the
+// observer insert.
 TEST(LOGGER, DefaultsSetBeforeObserver)
 {
     clearConfigDB();
-    const string key = "defaults_first_component";
     auto& logger = Logger::getInstance();
 
-    std::unique_lock<std::mutex> lock(logger.m_defaultOutputs.m_mutex);
-    auto registered = std::async(std::launch::async, [&key]() {
-        Logger::linkToDbWithOutput(key, recordPrio, "INFO", recordOutput, "SYSLOG");
-    });
-    bool waited = registered.wait_for(std::chrono::milliseconds(500)) == std::future_status::timeout;
-    bool observed = logger.m_settingChangeObservers.contains(key);
-    lock.unlock();
+    const std::vector<std::pair<string, std::mutex*>> cases = {
+        { "defaults_first_prio_component", &logger.m_defaultPrios.m_mutex },
+        { "defaults_first_output_component", &logger.m_defaultOutputs.m_mutex },
+    };
+    for (const auto& c : cases)
+    {
+        SCOPED_TRACE(c.first);
+        const string& key = c.first;
 
-    EXPECT_TRUE(waited) << "registration did not wait for the defaults lock";
-    EXPECT_FALSE(observed) << "observer added before the component's defaults";
-    ASSERT_EQ(registered.wait_for(std::chrono::seconds(10)), std::future_status::ready);
-    registered.get();
-    EXPECT_TRUE(waitNotified(key, "INFO", "SYSLOG"));
+        std::unique_lock<std::mutex> lock(*c.second);
+        auto registered = std::async(std::launch::async, [&key]() {
+            Logger::linkToDbWithOutput(key, recordPrio, "INFO", recordOutput, "SYSLOG");
+        });
+        bool waited = registered.wait_for(std::chrono::milliseconds(500)) == std::future_status::timeout;
+        bool observed = logger.m_settingChangeObservers.contains(key);
+        lock.unlock();
+
+        EXPECT_TRUE(waited) << "registration did not wait for the defaults lock";
+        EXPECT_FALSE(observed) << "observer added before the component's defaults";
+        ASSERT_EQ(registered.wait_for(std::chrono::seconds(10)), std::future_status::ready);
+        registered.get();
+        EXPECT_TRUE(waitNotified(key, "INFO", "SYSLOG"));
+    }
 }
 
 static std::map<string, std::vector<string>> g_prioHistory;
@@ -511,6 +523,39 @@ TEST(LOGGER, ForkedChildReconcilesDeletedRow)
     // The parent's setting thread still applies changes.
     setLoglevel(db, key, "ERROR");
     EXPECT_TRUE(waitNotified(key, "ERROR", "SYSLOG"));
+}
+
+// A publish that fails after the STATE_DB table exists, as when the
+// connection drops, drops the table, so the next publish reconnects.
+TEST(LOGGER, PublishRecoversAfterConnectionLoss)
+{
+    clearConfigDB();
+    auto& logger = Logger::getInstance();
+
+    Logger::linkToDbWithOutput("conn_loss_warmup", recordPrio, "NOTICE", recordOutput, "SYSLOG");
+    checkStateLoglevel("conn_loss_warmup", "NOTICE", "SYSLOG");
+
+    long long id;
+    {
+        std::lock_guard<std::mutex> lock(logger.m_settingMutex);
+        ASSERT_TRUE(logger.m_stateTable);
+        RedisReply r(logger.m_stateTable->m_pipe->getDBConnector(), "CLIENT ID", REDIS_REPLY_INTEGER);
+        id = r.getContext()->integer;
+    }
+    DBConnector stateDb("STATE_DB", 0);
+    RedisReply killed(&stateDb, "CLIENT KILL ID " + std::to_string(id), REDIS_REPLY_INTEGER);
+    ASSERT_EQ(killed.getContext()->integer, 1);
+
+    // This publish hits the dropped connection and fails. On a Unix socket
+    // the write raises SIGPIPE, ignored here so it fails with EPIPE instead.
+    auto savedPipe = signal(SIGPIPE, SIG_IGN);
+    Logger::linkToDbWithOutput("conn_loss_failed", recordPrio, "INFO", recordOutput, "SYSLOG");
+    EXPECT_FALSE(stateDb.exists(string(STATE_LOGGER_TABLE_NAME) + "|conn_loss_failed"));
+
+    // The next one reconnects.
+    Logger::linkToDbWithOutput("conn_loss_recovered", recordPrio, "ERROR", recordOutput, "SYSLOG");
+    signal(SIGPIPE, savedPipe);
+    checkStateLoglevel("conn_loss_recovered", "ERROR", "SYSLOG");
 }
 
 // Child side of PublishWithoutStateDb: exits 0 when registration returns
