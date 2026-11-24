@@ -118,14 +118,15 @@ void Logger::linkToDbWithOutput(
         const PriorityChangeNotify& prioNotify,
         const std::string& defPrio,
         const OutputChangeNotify& outputNotify,
-        const std::string& defOutput)
+        const std::string& defOutput,
+        bool authenticate)
 {
     auto& logger = getInstance();
 
     // Initialize internal DB with observer
     logger.m_settingChangeObservers.insert(std::make_pair(dbName, std::make_pair(prioNotify, outputNotify)));
 
-    DBConnector db("CONFIG_DB", 0, false, "", true);
+    DBConnector db("CONFIG_DB", 0, false, "", authenticate);
     swss::Table table(&db, CFG_LOGGER_TABLE_NAME);
     SWSS_LOG_DEBUG("Component %s register to logger", dbName.c_str());
 
@@ -158,14 +159,15 @@ void Logger::linkToDbWithOutput(
     outputNotify(dbName, output);
 }
 
-void Logger::linkToDb(const std::string& dbName, const PriorityChangeNotify& prioNotify, const std::string& defPrio)
+void Logger::linkToDb(const std::string& dbName, const PriorityChangeNotify& prioNotify,
+                      const std::string& defPrio, bool authenticate)
 {
-    linkToDbWithOutput(dbName, prioNotify, defPrio, swssOutputNotify, "SYSLOG");
+    linkToDbWithOutput(dbName, prioNotify, defPrio, swssOutputNotify, "SYSLOG", authenticate);
 }
 
-void Logger::linkToDbNative(const std::string& dbName, const char * defPrio)
+void Logger::linkToDbNative(const std::string& dbName, const char * defPrio, bool authenticate)
 {
-    linkToDb(dbName, swssPrioNotify, defPrio);
+    linkToDb(dbName, swssPrioNotify, defPrio, authenticate);
 
     getInstance().restartSettingThread();
 }

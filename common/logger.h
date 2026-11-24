@@ -87,11 +87,13 @@ public:
             const PriorityChangeNotify& prioNotify,
             const std::string& defPrio,
             const OutputChangeNotify& outputNotify,
-            const std::string& defOutput);
+            const std::string& defOutput,
+            bool authenticate = false);
 
-    static void linkToDb(const std::string& dbName, const PriorityChangeNotify& notify, const std::string& defPrio);
+    static void linkToDb(const std::string& dbName, const PriorityChangeNotify& notify,
+                         const std::string& defPrio, bool authenticate = false);
     // Must be called after all linkToDb to start select from DB
-    static void linkToDbNative(const std::string& dbName, const char * defPrio="NOTICE");
+    static void linkToDbNative(const std::string& dbName, const char * defPrio="NOTICE", bool authenticate = false);
     static void restartLogger();
     void write(Priority prio, const char *fmt, ...)
 #ifdef __GNUC__
