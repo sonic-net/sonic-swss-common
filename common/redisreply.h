@@ -113,7 +113,7 @@ public:
     class ErrorCategory : public std::error_category {
     public:
         const char *name() const noexcept override;
-        std::string message(int condition) const override;
+        std::string message(int code) const override;
         std::error_condition default_error_condition(int code) const noexcept override;
     };
 

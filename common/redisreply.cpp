@@ -65,9 +65,10 @@ const char* RedisReply::ErrorCategory::name() const noexcept {
     return "RedisReply::ErrorCategory";
 }
 
-std::string RedisReply::ErrorCategory::message(int condition) const {
-    const auto error = static_cast<Errc>(condition);
-    switch (error) {
+std::string RedisReply::ErrorCategory::message(int code) const {
+    if (code == 0) {
+        return "Success";
+    } else switch (static_cast<Errc>(code)) {
         case Errc::ErrorReply:
             return "Redis returned an error reply";
         case Errc::UnexpectedValue:
@@ -77,7 +78,6 @@ std::string RedisReply::ErrorCategory::message(int condition) const {
         case Errc::NullReply:
             return "Redis returned a null reply";
         default:
-            assert(false);
             return "(unrecognized RedisReply error)";
     }
 }
@@ -96,7 +96,6 @@ std::error_condition RedisReply::ErrorCategory::default_error_condition(int code
         case Errc::UnexpectedType:
             return std::errc::io_error;
         default:
-            assert(false);
             return std::errc::io_error;
     }
 }

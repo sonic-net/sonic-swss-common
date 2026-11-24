@@ -1261,6 +1261,11 @@ TEST(Redisreply, ErrorCategoryDefaultCondition) {
     EXPECT_EQ(std::error_code(RedisReply::Errc::ErrorReply), std::errc::io_error);
 }
 
+TEST(Redisreply, ErrorCategorySuccess) {
+    // Check that RedisReply error category has a message for a successful error_code.
+    EXPECT_EQ(std::error_code(0, RedisReply::error_category()).message(), "Success");
+}
+
 TEST(Redisreply, guard)
 {
     // Improve test coverage for guard() method.
