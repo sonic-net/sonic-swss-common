@@ -12,6 +12,11 @@ typedef struct SWSSZmqServerOpaque *SWSSZmqServer;
 
 SWSSResult SWSSZmqServer_new(const char *endpoint, SWSSZmqServer *outZmqServer);
 
+// Register message handlers before binding an unbound server.
+SWSSResult SWSSZmqServer_new_unbound(const char *endpoint, SWSSZmqServer *outZmqServer);
+
+SWSSResult SWSSZmqServer_bind(SWSSZmqServer zmqs);
+
 SWSSResult SWSSZmqServer_free(SWSSZmqServer zmqs);
 
 #ifdef __cplusplus
