@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <map>
+#include <vector>
 #include <mutex>
 #include <thread>
 #include <future>
@@ -343,6 +344,107 @@ TEST(LOGGER, ForkWhileSettingLockHeld)
 
     release.set_value();
     holder.join();
+}
+
+// Child side of ForkWhileDbConfigLockHeld; SIGALRM fails it if it blocks.
+// Registration builds CONFIG_DB and STATE_DB connectors, and each one looks
+// up its database in SonicDBConfig.
+[[ noreturn ]] static void registerWithDbConfigLockHeld()
+{
+    alarm(10);
+    Logger::linkToDbWithOutput("fork_dbconfig_component", recordPrio, "INFO", recordOutput, "SYSLOG");
+    _exit(0);
+}
+
+// A child forked while another thread holds SonicDBConfig's lock, as during a
+// DBConnector or Table construction, can still register.
+TEST(LOGGER, ForkWhileDbConfigLockHeld)
+{
+    clearConfigDB();
+
+    std::promise<void> started, release;
+    std::shared_future<void> released = release.get_future().share();
+    std::thread holder([&started, released]() {
+        std::lock_guard<std::recursive_mutex> dbInfo(SonicDBConfig::m_db_info_mutex);
+        started.set_value();
+        released.wait();
+    });
+    started.get_future().wait();
+
+    // As in ForkedChildPublishesOnItsOwnConnection, no thread logs while
+    // this test forks.
+    auto savedPrio = Logger::getMinPrio();
+    Logger::setMinPrio(Logger::SWSS_NOTICE);
+    usleep(10 * 1000);
+    EXPECT_EXIT(registerWithDbConfigLockHeld(), testing::ExitedWithCode(0), "");
+    Logger::setMinPrio(savedPrio);
+
+    release.set_value();
+    holder.join();
+}
+
+// Registration sets the component's defaults before it adds the observer, so
+// a running setting thread never finds the observer without its defaults.
+TEST(LOGGER, DefaultsSetBeforeObserver)
+{
+    clearConfigDB();
+    const string key = "defaults_first_component";
+    auto& logger = Logger::getInstance();
+
+    std::unique_lock<std::mutex> lock(logger.m_defaultOutputs.m_mutex);
+    auto registered = std::async(std::launch::async, [&key]() {
+        Logger::linkToDbWithOutput(key, recordPrio, "INFO", recordOutput, "SYSLOG");
+    });
+    bool waited = registered.wait_for(std::chrono::milliseconds(500)) == std::future_status::timeout;
+    bool observed = logger.m_settingChangeObservers.contains(key);
+    lock.unlock();
+
+    EXPECT_TRUE(waited) << "registration did not wait for the defaults lock";
+    EXPECT_FALSE(observed) << "observer added before the component's defaults";
+    ASSERT_EQ(registered.wait_for(std::chrono::seconds(10)), std::future_status::ready);
+    registered.get();
+    EXPECT_TRUE(waitNotified(key, "INFO", "SYSLOG"));
+}
+
+static std::map<string, std::vector<string>> g_prioHistory;
+
+static void recordPrioHistory(const string& component, const string& prio)
+{
+    std::lock_guard<std::mutex> lock(g_notifiedMutex);
+    g_prioHistory[component].push_back(prio);
+}
+
+// The setting thread's start-up pass reverts only components whose row is
+// gone; a component with a configured row keeps its level throughout.
+TEST(LOGGER, ReconcileKeepsConfiguredRow)
+{
+    DBConnector db("CONFIG_DB", 0);
+    clearConfigDB();
+
+    const string key = "reconcile_kept_component";
+    const string sentinel = "reconcile_sentinel_component";
+    setLoglevel(db, key, "ERROR");
+    Logger::linkToDbWithOutput(key, recordPrioHistory, "INFO", recordOutput, "SYSLOG");
+    Logger::linkToDbWithOutput(sentinel, recordPrio, "INFO", recordOutput, "SYSLOG");
+    Logger::restartLogger();
+
+    // Events are handled after the start-up pass, so once this change is
+    // applied the pass is over.
+    setLoglevel(db, sentinel, "DEBUG");
+    ASSERT_TRUE(waitNotified(sentinel, "DEBUG", "SYSLOG"));
+
+    // A setting thread from an earlier test may also apply the row's SET,
+    // so ERROR can be notified twice; the default never is.
+    {
+        std::lock_guard<std::mutex> lock(g_notifiedMutex);
+        const auto& history = g_prioHistory[key];
+        EXPECT_FALSE(history.empty());
+        for (const auto& prio : history)
+        {
+            EXPECT_EQ(prio, "ERROR");
+        }
+    }
+    checkStateLoglevel(key, "ERROR", "SYSLOG");
 }
 
 // Registration holds the setting lock from its CONFIG_DB read to its STATE_DB

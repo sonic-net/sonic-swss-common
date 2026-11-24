@@ -208,8 +208,8 @@ void Logger::publishSetting(const std::string& key, const std::string& prio, con
     // The caller holds m_settingMutex.
     auto& logger = getInstance();
 
-    // The STATE_DB row is what lists a component that has no CONFIG_DB row;
-    // logging keeps working without it.
+    // Best-effort: a failure is logged and the next publish retries, and
+    // logging keeps working without STATE_DB.
     try
     {
         // Created once per process and reused by every publish.

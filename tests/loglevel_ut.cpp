@@ -235,8 +235,8 @@ TEST(LOGLEVEL, SetReportsManualRefresh)
     stateTable.del("plain1");
 }
 
-// -p lists a component that has only a CONFIG_DB row, as written by a daemon
-// built against an older library, with its configured level.
+// -p lists a component that has only a CONFIG_DB LOGGER row, whatever wrote
+// it, at its configured level.
 TEST(LOGLEVEL, PrintConfiguredOnly)
 {
     DBConnector db("CONFIG_DB", 0);
