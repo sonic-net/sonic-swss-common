@@ -1,4 +1,4 @@
-usage: sonic-db-cli [-h] [-s] [-j] [-n NAMESPACE] db_or_op [cmd [cmd ...]]
+usage: sonic-db-cli [-h] [-s] [-j] [-n NAMESPACE] [--rdb FILE] db_or_op [cmd [cmd ...]]
 
 SONiC DB CLI:
 
@@ -10,6 +10,7 @@ optional arguments:
   -h, --help            show this help message and exit
   -s, --unixsocket      Override use of tcp_port and use unixsocket
       --authenticate    Request native local writer authentication (requires Unix)
+      --rdb FILE        Save all databases in the selected Redis instance to FILE
   -j, --json            Print command result as JSON
   -n NAMESPACE, --namespace NAMESPACE
                         Namespace string to use asic0/asic1.../asicn
@@ -23,3 +24,4 @@ Example 4: sonic-db-cli -n asic3 APPL_DB EVAL "return {KEYS[1],KEYS[2],ARGV[1],A
 Example 5: sonic-db-cli PING | sonic-db-cli -s PING
 Example 6: sonic-db-cli SAVE | sonic-db-cli -s SAVE
 Example 7: sonic-db-cli FLUSHALL | sonic-db-cli -s FLUSHALL
+Example 8: sonic-db-cli -s --authenticate --rdb /tmp/redis.rdb ASIC_DB
