@@ -32,7 +32,7 @@ tracing = { version = "0.1", features = ["log"] }
 tracing-error = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "serde"] }
 syslog-tracing = "0.3"
-thiserror = "1"
+thiserror = "2"
 anyhow = "1"
 human-panic = "2"
 better-panic = "0.3"
@@ -45,7 +45,7 @@ serde_with = "3.12"
 
 getset = "0.1"
 lazy_static = "1.4"
-serial_test = "3.0"
+serial_test = "4.0"
 
 # Internal dependencies
 swss-common = { version = "0.1.0", path = "crates/swss-common" }
