@@ -3,7 +3,6 @@
 #include <map>
 #include <string>
 #include <mutex>
-#include <new>
 
 namespace swss
 {
@@ -58,13 +57,6 @@ namespace swss
                     std::lock_guard<std::mutex> _lock(m_mutex);
 
                     return m_map;
-                }
-
-                // For a pthread_atfork child handler only. A lock another
-                // thread held at the fork is never released in the child.
-                void reinitLockAfterFork()
-                {
-                    new (&m_mutex) std::mutex();
                 }
 
             private:

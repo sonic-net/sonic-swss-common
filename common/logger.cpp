@@ -9,8 +9,6 @@
 #include <sstream>
 #include <iomanip>
 #include <stdexcept>
-#include <pthread.h>
-#include <new>
 #include "schema.h"
 #include "select.h"
 #include "dbconnector.h"
@@ -41,37 +39,6 @@ namespace
 {
 // volatile: a static that is only written is otherwise optimized away.
 swss::Table* volatile s_stateTableAtExit = nullptr;
-}
-
-Logger::Logger()
-{
-    pthread_atfork(nullptr, nullptr, &Logger::atForkChild);
-}
-
-void Logger::atForkChild()
-{
-    // Only the forking thread exists in the child, so a lock another thread
-    // held at the fork would never be released. m_mutex is held across
-    // redirected output, which can block on a full pipe. The maps' locks
-    // guard short windows; a fork inside a map update still leaves that map
-    // as the update left it. The parent's STATE_DB socket stays the parent's;
-    // the child opens its own on its next publish.
-    auto& logger = getInstance();
-    new (&logger.m_settingMutex) std::mutex();
-    new (&logger.m_mutex) std::mutex();
-    logger.m_settingChangeObservers.reinitLockAfterFork();
-    logger.m_currentPrios.reinitLockAfterFork();
-    logger.m_currentOutputs.reinitLockAfterFork();
-    logger.m_defaultPrios.reinitLockAfterFork();
-    logger.m_defaultOutputs.reinitLockAfterFork();
-    (void)logger.m_stateTable.release();
-
-    // The setting thread is not in the child, and its stop event shares the
-    // parent's eventfd: notifying it would stop the parent's thread. Released,
-    // not reset, since destroying a joinable std::thread terminates. The
-    // child has no setting thread until it calls restartLogger.
-    (void)logger.m_settingThread.release();
-    logger.m_stopEvent.reset();
 }
 
 Logger::~Logger()
@@ -212,7 +179,7 @@ void Logger::publishSetting(const std::string& key, const std::string& prio, con
     // logging keeps working without STATE_DB.
     try
     {
-        // Created once per process and reused by every publish.
+        // Created on first use and reused by every publish.
         if (!logger.m_stateTable)
         {
             DBConnector db("STATE_DB", 0);

@@ -150,7 +150,7 @@ public:
     };
 
 private:
-    Logger();
+    Logger() = default;
     ~Logger();
     Logger(const Logger&);
     Logger& operator=(const Logger&);
@@ -160,7 +160,6 @@ private:
     void settingThread();
     void applySetting(const std::string& key, const std::string& prio, const std::string& output);
     static void publishSetting(const std::string& key, const std::string& prio, const std::string& output);
-    static void atForkChild();
     void terminateSettingThread();
     void restartSettingThread();
 

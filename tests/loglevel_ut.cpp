@@ -155,8 +155,8 @@ TEST(LOGLEVEL, RemoveSetting)
 }
 
 // -d and -r together are rejected and change nothing. swssloglevel exits, so
-// the child is re-executed rather than forked, and inherits no thread or lock
-// state from this process.
+// it runs in a death-test child; the threadsafe style re-executes the test
+// binary for that child.
 TEST(LOGLEVEL, ResetAndRemoveRejected)
 {
     DBConnector db("CONFIG_DB", 0);
@@ -347,7 +347,7 @@ TEST(LOGLEVEL, StateDbUnavailable)
     ASSERT_EQ(write(fd, config.data(), config.size()), static_cast<ssize_t>(config.size()));
     close(fd);
 
-    // Re-executed rather than forked, as in ResetAndRemoveRejected.
+    // Re-executed, as in ResetAndRemoveRejected.
     const std::string savedStyle = testing::FLAGS_gtest_death_test_style;
     testing::FLAGS_gtest_death_test_style = "threadsafe";
     EXPECT_EXIT(runWithoutStateDb(path), testing::ExitedWithCode(0), "STATE_DB unavailable");
@@ -380,7 +380,7 @@ TEST(LOGLEVEL, SetAllIncludesRegistered)
     swss::Table stateTable(&stateDb, STATE_LOGGER_TABLE_NAME);
     stateTable.set("registered1", { { DAEMON_LOGLEVEL, "NOTICE" }, { "require_manual_refresh", "true" } });
 
-    // Re-executed rather than forked, as in ResetAndRemoveRejected.
+    // Re-executed, as in ResetAndRemoveRejected.
     const std::string savedStyle = testing::FLAGS_gtest_death_test_style;
     testing::FLAGS_gtest_death_test_style = "threadsafe";
     EXPECT_EXIT(setAllToDebug(), testing::ExitedWithCode(EXIT_SUCCESS),

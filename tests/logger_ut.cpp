@@ -12,7 +12,6 @@
 #include <map>
 #include <vector>
 #include <mutex>
-#include <thread>
 #include <future>
 #include <chrono>
 
@@ -265,88 +264,6 @@ TEST(LOGGER, PublishReusesStateDbConnection)
     }
 }
 
-// Child side of ForkedChildPublishesOnItsOwnConnection.
-// Registration opens two CONFIG_DB connections; a STATE_DB table of its own
-// opens two more, where reusing the parent's socket would open none.
-[[ noreturn ]] static void registerInChild()
-{
-    long long before = connectionsReceived();
-    Logger::linkToDbWithOutput("fork_child_component", recordPrio, "INFO", recordOutput, "SYSLOG");
-    long long opened = connectionsReceived() - before - 1;
-
-    DBConnector stateDb("STATE_DB", 0);
-    auto level = stateDb.hget(string(STATE_LOGGER_TABLE_NAME) + "|fork_child_component", DAEMON_LOGLEVEL);
-    _exit(opened >= 4 && level && *level == "INFO" ? 0 : 1);
-}
-
-// A forked child publishes on a connection of its own, and the parent's
-// connection keeps working.
-TEST(LOGGER, ForkedChildPublishesOnItsOwnConnection)
-{
-    DBConnector db("CONFIG_DB", 0);
-    clearConfigDB();
-
-    Logger::linkToDbWithOutput("fork_parent_component", recordPrio, "NOTICE", recordOutput, "SYSLOG");
-
-    // An earlier test may leave the level at DEBUG, where the setting thread
-    // calls syslog() every second. A fork while it holds glibc's syslog lock
-    // would hang the child, so no thread logs while this test forks.
-    auto savedPrio = Logger::getMinPrio();
-    Logger::setMinPrio(Logger::SWSS_NOTICE);
-    usleep(10 * 1000); // let a syslog() call already under way finish
-    EXPECT_EXIT(registerInChild(), testing::ExitedWithCode(0), "");
-    Logger::setMinPrio(savedPrio);
-
-    Logger::linkToDbWithOutput("fork_parent_component2", recordPrio, "ERROR", recordOutput, "SYSLOG");
-    checkStateLoglevel("fork_parent_component2", "ERROR", "SYSLOG");
-}
-
-// Child side of ForkWhileSettingLockHeld; SIGALRM fails it if it blocks.
-// Registration takes every map lock and the setting lock, and a line logged
-// to STDERR takes the output lock.
-[[ noreturn ]] static void registerWithParentLockHeld()
-{
-    alarm(10);
-    Logger::linkToDbWithOutput("fork_locked_component", recordPrio, "INFO", recordOutput, "SYSLOG");
-    Logger::getInstance().m_output = Logger::SWSS_STDERR;
-    SWSS_LOG_NOTICE("logged by a child forked with the output lock held");
-    _exit(0);
-}
-
-// A child forked while another thread holds the Logger's locks, as during a
-// publish or a line written to a full pipe, can still register and log.
-TEST(LOGGER, ForkWhileSettingLockHeld)
-{
-    clearConfigDB();
-
-    auto& logger = Logger::getInstance();
-    std::promise<void> started, release;
-    std::shared_future<void> released = release.get_future().share();
-    std::thread holder([&started, released, &logger]() {
-        std::lock_guard<std::mutex> setting(logger.m_settingMutex);
-        std::lock_guard<std::mutex> output(logger.m_mutex);
-        std::lock_guard<std::mutex> observers(logger.m_settingChangeObservers.m_mutex);
-        std::lock_guard<std::mutex> currentPrios(logger.m_currentPrios.m_mutex);
-        std::lock_guard<std::mutex> currentOutputs(logger.m_currentOutputs.m_mutex);
-        std::lock_guard<std::mutex> defaultPrios(logger.m_defaultPrios.m_mutex);
-        std::lock_guard<std::mutex> defaultOutputs(logger.m_defaultOutputs.m_mutex);
-        started.set_value();
-        released.wait();
-    });
-    started.get_future().wait();
-
-    // As in ForkedChildPublishesOnItsOwnConnection, no thread logs while
-    // this test forks.
-    auto savedPrio = Logger::getMinPrio();
-    Logger::setMinPrio(Logger::SWSS_NOTICE);
-    usleep(10 * 1000);
-    EXPECT_EXIT(registerWithParentLockHeld(), testing::ExitedWithCode(0), "");
-    Logger::setMinPrio(savedPrio);
-
-    release.set_value();
-    holder.join();
-}
-
 // Registration sets the component's defaults before it adds the observer, so
 // a running setting thread never finds the observer without its defaults.
 // Each default's lock is held in turn, so each set() is pinned before the
@@ -443,49 +360,25 @@ TEST(LOGGER, RegistrationTakesSettingLock)
     checkStateLoglevel(key, "INFO", "SYSLOG");
 }
 
-// Child side of ForkedChildReconcilesDeletedRow. The child has no setting
-// thread, so the row deleted here is deleted while no subscription is live.
-[[ noreturn ]] static void reconcileDeletedRowInChild()
-{
-    alarm(10);
-    const string key = "gap_component";
-    DBConnector db("CONFIG_DB", 0);
-    setLoglevel(db, key, "DEBUG");
-    Logger::linkToDbWithOutput(key, recordPrio, "INFO", recordOutput, "SYSLOG");
-    if (!waitNotified(key, "DEBUG", "SYSLOG"))
-    {
-        _exit(1);
-    }
-
-    swss::Table(&db, CFG_LOGGER_TABLE_NAME).del(key);
-    // Starts the child's own setting thread, which finds the row gone.
-    Logger::restartLogger();
-    _exit(waitNotified(key, "INFO", "SYSLOG") ? 0 : 2);
-}
-
-// A forked child neither stops nor joins the parent's setting thread, and a
-// row deleted before the child's setting thread subscribes reverts the
-// component to its default.
-TEST(LOGGER, ForkedChildReconcilesDeletedRow)
+// The subscription replays only rows that exist, so a row deleted while no
+// setting thread runs produces no DEL. The next setting thread's start-up
+// pass reverts the component to its default.
+TEST(LOGGER, ReconcileRevertsRowDeletedBeforeSubscribe)
 {
     DBConnector db("CONFIG_DB", 0);
     clearConfigDB();
 
-    string key = "fork_parent_watch";
-    Logger::linkToDbWithOutput(key, recordPrio, "NOTICE", recordOutput, "SYSLOG");
+    const string key = "gap_component";
+    setLoglevel(db, key, "DEBUG");
+    Logger::linkToDbWithOutput(key, recordPrio, "INFO", recordOutput, "SYSLOG");
+    ASSERT_TRUE(waitNotified(key, "DEBUG", "SYSLOG"));
+
+    Logger::getInstance().terminateSettingThread();
+    swss::Table(&db, CFG_LOGGER_TABLE_NAME).del(key);
     Logger::restartLogger();
 
-    // As in ForkedChildPublishesOnItsOwnConnection, no thread logs while
-    // this test forks.
-    auto savedPrio = Logger::getMinPrio();
-    Logger::setMinPrio(Logger::SWSS_NOTICE);
-    usleep(10 * 1000);
-    EXPECT_EXIT(reconcileDeletedRowInChild(), testing::ExitedWithCode(0), "");
-    Logger::setMinPrio(savedPrio);
-
-    // The parent's setting thread still applies changes.
-    setLoglevel(db, key, "ERROR");
-    EXPECT_TRUE(waitNotified(key, "ERROR", "SYSLOG"));
+    EXPECT_TRUE(waitNotified(key, "INFO", "SYSLOG"));
+    waitStateLoglevel(key, "INFO", "SYSLOG");
 }
 
 // A publish that fails after the STATE_DB table exists, as when the
