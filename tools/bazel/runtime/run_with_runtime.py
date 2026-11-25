@@ -115,7 +115,14 @@ def main():
         preloads.append(str(matches.pop()))
     environment["LD_PRELOAD"] = ":".join(preloads)
     if expected_library != "-":
-        environment["SWSS_EXPECTED_LIBRARY"] = str(Path(expected_library).resolve())
+        library = Path(expected_library).resolve(strict=True)
+        # The Go test is copied out of its runfiles so its original $ORIGIN
+        # may no longer expose the producer. Stage only the declared library.
+        producer_dir = runtime_root.parent / "swsscommon-library"
+        producer_dir.mkdir()
+        (producer_dir / library.name).symlink_to(library)
+        environment["LD_LIBRARY_PATH"] = str(producer_dir) + ":" + environment["LD_LIBRARY_PATH"]
+        environment["SWSS_EXPECTED_LIBRARY"] = str(library)
 
     result = subprocess.run(declared_runtime_command(command, runtime_root, patchelf), env=environment)
     if result.returncode < 0:
