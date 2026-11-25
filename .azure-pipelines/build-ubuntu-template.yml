@@ -52,6 +52,9 @@ jobs:
   steps:
   - bash: |
       set -euo pipefail
+      # Reclaim the unused mobile and Haskell SDKs on this disposable agent,
+      # as in build-template.yml, so the full Bazel output tree fits.
+      sudo rm -rf /usr/local/lib/android /opt/ghc /usr/local/.ghcup
       cd "$AGENT_TEMPDIRECTORY"
       curl --fail --location --retry 3 -o bazel \
         https://github.com/bazelbuild/bazelisk/releases/download/v1.29.0/bazelisk-linux-amd64
