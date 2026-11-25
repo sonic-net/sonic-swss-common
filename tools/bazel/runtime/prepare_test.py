@@ -1,8 +1,15 @@
 """Check package provenance and test-cache identity without installing anything."""
 
 import copy
+import hashlib
+import io
 import json
+import os
+from pathlib import Path
+import sys
+import tempfile
 import unittest
+from unittest import mock
 
 import prepare
 
@@ -96,6 +103,80 @@ class RuntimePreparationTest(unittest.TestCase):
         changed = copy.deepcopy(original)
         changed["installed"]["libc6"] = "2.41-13"
         self.assertNotEqual(prepare.fingerprint(original), prepare.fingerprint(changed))
+
+    def test_apt_only_installs_a_verified_snapshot_archive(self):
+        archive = b"downloaded package"
+        selected = prepare.select_runtime(resolved_lock(), "amd64")
+        package = selected["libuuid1"]
+        package["sha256"] = hashlib.sha256(archive).hexdigest()
+        present = {f"{name}:amd64": row["version"] for name, row in selected.items() if name != "libuuid1"}
+        for downloaded in (archive, b"unexpected bytes"):
+            with self.subTest(checksum_matches=downloaded == archive):
+                calls = []
+
+                def run(command, **kwargs):
+                    calls.append(command)
+                    if "--download-only" in command:
+                        cache = next(arg.split("=", 1)[1] for arg in command
+                                     if arg.startswith("Dir::Cache::archives="))
+                        (Path(cache) / "libuuid1.deb").write_bytes(downloaded)
+
+                def output(command, **kwargs):
+                    if command[0] == "dpkg-deb":
+                        return "Package: libuuid1\nVersion: 2.3-1\nArchitecture: amd64\n"
+                    self.assertIn("--simulate", command)
+                    self.assertIn("libuuid1:amd64=2.3-1", command)
+                    return "Inst libuuid1 (2.3-1 Debian:trixie [amd64])\n"
+
+                with mock.patch.object(prepare.subprocess, "run", side_effect=run), \
+                        mock.patch.object(prepare.subprocess, "check_output", side_effect=output):
+                    if downloaded == archive:
+                        prepare.install_missing(selected, "amd64", present, io.StringIO())
+                        self.assertIn("--no-download", calls[-2])
+                        self.assertEqual(calls[-1], ["ldconfig"])
+                    else:
+                        with self.assertRaisesRegex(ValueError, "unselected runtime package"):
+                            prepare.install_missing(selected, "amd64", present, io.StringIO())
+                        self.assertFalse(any("--no-download" in command for command in calls))
+
+    def test_prepared_runtime_receipt_tracks_the_installed_libraries(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            lock = root / "MODULE.bazel.lock"
+            lock.write_text(json.dumps(resolved_lock()))
+            library = root / "libfixture.so.1"
+            library.write_bytes(b"\x7fELFfixture")
+            receipt_file = root / "runtime.json"
+            environment = root / "env"
+            selected = prepare.select_runtime(resolved_lock(), "amd64")
+
+            def dpkg_output(command, **kwargs):
+                if command == ["dpkg", "--print-architecture"]:
+                    return "amd64\n"
+                if command[:2] == ["dpkg-query", "-W"]:
+                    return "".join(f"{name}\t{row['version']}\tamd64\tinstalled\n"
+                                   for name, row in selected.items())
+                self.assertEqual(command[:2], ["dpkg-query", "-L"])
+                return str(library) + "\n"
+
+            args = ["prepare.py", "--lock", str(lock), "--output", receipt_file.name,
+                    "--image-reference", "trixie", "--env-file", environment.name]
+            with mock.patch.dict(os.environ, {"BUILD_WORKSPACE_DIRECTORY": temp}), \
+                    mock.patch.object(sys, "argv", args), \
+                    mock.patch.object(prepare, "require_container"), \
+                    mock.patch.object(prepare, "require_no_installed_common"), \
+                    mock.patch.object(prepare.subprocess, "check_output", side_effect=dpkg_output), \
+                    mock.patch.object(prepare.subprocess, "run") as install:
+                prepare.main()
+                first = json.loads(receipt_file.read_text())
+                self.assertEqual(first["runtime_libraries"][str(library)]["sha256"],
+                                 hashlib.sha256(library.read_bytes()).hexdigest())
+                self.assertEqual(environment.read_text(), "SONIC_TEST_RUNTIME_ID=" + first["SONIC_TEST_RUNTIME_ID"] + "\n")
+                library.write_bytes(b"\x7fELFchanged")
+                prepare.main()
+                self.assertNotEqual(first["SONIC_TEST_RUNTIME_ID"],
+                                    json.loads(receipt_file.read_text())["SONIC_TEST_RUNTIME_ID"])
+                install.assert_not_called()
 
 
 if __name__ == "__main__":
