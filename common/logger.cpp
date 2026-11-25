@@ -8,6 +8,7 @@
 #include <sstream>
 #include <iomanip>
 #include <stdexcept>
+#include <system_error>
 #include "schema.h"
 #include "select.h"
 #include "dbconnector.h"
@@ -149,7 +150,22 @@ void Logger::linkToDbWithOutput(
         FieldValueTuple fvOutput(DAEMON_LOGOUTPUT, output);
         std::vector<FieldValueTuple>fieldValues = { fvLevel, fvOutput };
         SWSS_LOG_DEBUG("Set %s loglevel to %s", dbName.c_str() , prio.c_str());
-        table.set(dbName, fieldValues);
+        try
+        {
+            table.set(dbName, fieldValues);
+        }
+        catch (const std::system_error& error)
+        {
+            if (error.code() != std::errc::permission_denied)
+            {
+                throw;
+            }
+
+            static std::once_flag warnAboutLoggerDefaults;
+            std::call_once(warnAboutLoggerDefaults, [] {
+                SWSS_LOG_WARN("Redis denied permission to save logger defaults. Using local settings.");
+            });
+        }
     }
 
     logger.m_currentPrios.set(dbName, prio);

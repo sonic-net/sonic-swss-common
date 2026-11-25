@@ -185,6 +185,11 @@ void RedisReply::checkReplyType(int expectedType)
 {
     if (m_reply->type != expectedType)
     {
+        if (m_reply->type == REDIS_REPLY_ERROR && strncmp(m_reply->str, "NOPERM ", 7) == 0)
+        {
+            throw system_error(make_error_code(errc::permission_denied), m_reply->str);
+        }
+
         const char *err = (m_reply->type == REDIS_REPLY_STRING || m_reply->type == REDIS_REPLY_ERROR) ?
             m_reply->str : "NON-STRING-REPLY";
 
