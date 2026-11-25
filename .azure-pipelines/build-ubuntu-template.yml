@@ -23,8 +23,7 @@ jobs:
       # installed on jammy, as before). It apt/pip-installs deps (libnl comes from
       # stock apt, per base.yaml), downloads + installs the libyang3 DEBs and the
       # sonic-yang wheels from common-lib, and runs the yang-models post-install
-      # hook. The redis test-config hook is test-scoped, so it is not run by this
-      # Build job (which runs the Bazel test suite, not pytest).
+      # hook. The redis test-config hook is only needed by the test jobs.
       PYTHONPATH=$(Build.SourcesDirectory)/ci python3 -m buildenv_setup \
         --repo-dir $(Build.SourcesDirectory) \
         --scope build \
@@ -36,24 +35,43 @@ jobs:
       SYSTEM_ACCESSTOKEN: $(System.AccessToken)
   - script: |
       set -ex
-      # Special-case CLI-driven installs that don't fit the packages/*.yaml schema
-      # (see design doc): compile the gtest sources shipped by libgtest-dev, and
-      # install the bazelisk binary (provides `bazel`). libgtest-dev/libgmock-dev +
-      # cmake are apt-installed by buildenv_setup (packages/tooling.yaml, jammy).
       cd /usr/src/gtest && sudo cmake . && sudo make
-      ARCH=$(dpkg --print-architecture)
-      sudo curl -fsSL -o /usr/local/bin/bazel \
-          https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-${ARCH}
-      sudo chmod 755 /usr/local/bin/bazel
-    displayName: "Compile gtest + install bazelisk"
+    displayName: "Compile gtest"
   - script: |
       ./autogen.sh
       dpkg-buildpackage -us -uc -Pnopython2 -b -j$(nproc) && cp ../*.deb .
     displayName: "Compile sonic swss common"
-  - script: |
-      bazel build //...
-      bazel test //...
-    displayName: "Compile and test all Bazel targets"
   - publish: $(System.DefaultWorkingDirectory)/
     artifact: sonic-swss-common.amd64.ubuntu22_04
     displayName: "Archive swss common debian packages"
+
+- job: BazelTrixie
+  displayName: "Bazel amd64/trixie"
+  pool:
+    vmImage: 'ubuntu-22.04'
+  steps:
+  - bash: |
+      set -euo pipefail
+      cd "$AGENT_TEMPDIRECTORY"
+      curl --fail --location --retry 3 -o bazel \
+        https://github.com/bazelbuild/bazelisk/releases/download/v1.29.0/bazelisk-linux-amd64
+      echo '5a408715e932c0250d28bd84555f12edbf70117de42f9181691c736eacc4a992  bazel' | sha256sum -c -
+      chmod +x bazel
+
+      # YANG generation loads a Trixie shared library on the execution platform.
+      docker run --rm -i -v "$BUILD_SOURCESDIRECTORY:/checkout:ro" \
+        -v "$PWD/bazel:/usr/local/bin/bazel:ro" \
+        debian:trixie-20260918@sha256:9cc080028c43b27d2074d63a5f9caf7166d731494965616c1a6d2827a004585c bash -se <<'TRIXIE'
+      apt-get update
+      apt-get install -y --no-install-recommends binutils build-essential ca-certificates gdb git python3 tar
+      cp -a /checkout /work
+      cd /work
+      git config --global --add safe.directory /work
+      bazel build //...
+      bazel run //tools/bazel/runtime:prepare -- --image-reference debian:trixie-20260918 \
+        --output /tmp/test-runtime.json --env-file /tmp/test-runtime.env
+      set -a
+      . /tmp/test-runtime.env
+      bazel test --test_env=SONIC_TEST_RUNTIME_ID --test_output=errors //...
+      TRIXIE
+    displayName: "Compile and test all Bazel targets"
