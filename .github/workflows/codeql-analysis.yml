@@ -16,7 +16,7 @@ on:
 jobs:
   analyze:
     name: Analyze
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-24.04
     permissions:
       actions: read
       contents: read
@@ -51,11 +51,11 @@ jobs:
             libnl-genl-3-dev \
             libnl-route-3-dev \
             libnl-nf-3-dev \
-            libyang-dev \
             libzmq3-dev \
             libzmq5 \
             swig \
             libpython3-dev \
+            python3-setuptools \
             libgtest-dev \
             libgmock-dev \
             libboost-dev \
