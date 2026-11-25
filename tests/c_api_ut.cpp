@@ -485,26 +485,39 @@ TEST(c_api, SubscriberStateTable) {
     SWSSDBConnector_free(db);
 }
 
+static testing::AssertionResult succeeded(SWSSResult result) {
+    if (result.exception == SWSSException_None)
+        return testing::AssertionSuccess();
+
+    auto failure = testing::AssertionFailure();
+    failure << SWSSStrRef_c_str(reinterpret_cast<SWSSStrRef>(result.message));
+    SWSSString_free(result.message);
+    SWSSString_free(result.location);
+    return failure;
+}
+
 TEST(c_api, ZmqConsumerProducerStateTable) {
     clearDB();
     SWSSStringManager sm;
 
     SWSSDBConnector db;
-    SWSSDBConnector_new_named("TEST_DB", 1000, true, &db);
+    ASSERT_TRUE(succeeded(SWSSDBConnector_new_named("TEST_DB", 1000, true, &db)));
 
+    // A process-local Linux abstract socket leaves no socket file to clean up.
+    const string endpoint = "ipc://@swsscommon-c-api-" + to_string(getpid());
     SWSSZmqServer srv;
-    SWSSZmqServer_new("tcp://127.0.0.1:42312", &srv);
+    ASSERT_TRUE(succeeded(SWSSZmqServer_new(endpoint.c_str(), &srv)));
     SWSSZmqClient cli;
-    SWSSZmqClient_new("tcp://127.0.0.1:42312", &cli);
+    ASSERT_TRUE(succeeded(SWSSZmqClient_new(endpoint.c_str(), &cli)));
     int8_t isConnected;
-    SWSSZmqClient_isConnected(cli, &isConnected);
+    ASSERT_TRUE(succeeded(SWSSZmqClient_isConnected(cli, &isConnected)));
     ASSERT_TRUE(isConnected);
-    SWSSZmqClient_connect(cli);
+    ASSERT_TRUE(succeeded(SWSSZmqClient_connect(cli)));
 
     SWSSZmqProducerStateTable pst;
-    SWSSZmqProducerStateTable_new(db, "mytable", cli, false, &pst);
+    ASSERT_TRUE(succeeded(SWSSZmqProducerStateTable_new(db, "mytable", cli, false, &pst)));
     SWSSZmqConsumerStateTable cst;
-    SWSSZmqConsumerStateTable_new(db, "mytable", srv, nullptr, nullptr, &cst);
+    ASSERT_TRUE(succeeded(SWSSZmqConsumerStateTable_new(db, "mytable", srv, nullptr, nullptr, &cst)));
 
     int32_t fd;
     SWSSZmqConsumerStateTable_getFd(cst, &fd);
