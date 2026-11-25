@@ -12,6 +12,7 @@
 #include <boost/algorithm/string.hpp>
 
 #include <hiredis/hiredis.h>
+#include <hiredis/hiredis_ssl.h>
 #include "rediscommand.h"
 #include "redisreply.h"
 #define EMPTY_NAMESPACE std::string()
