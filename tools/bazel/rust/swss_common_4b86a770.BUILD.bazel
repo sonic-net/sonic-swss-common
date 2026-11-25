@@ -1,0 +1,33 @@
+# Original host-services Git dependency; source files are never rewritten.
+package(default_visibility = ["//visibility:public"])
+
+_RUST_SOURCES = [
+    "src/lib.rs",
+    "src/types.rs",
+    "src/types/async_util.rs",
+    "src/types/configdbconnector.rs",
+    "src/types/consumerstatetable.rs",
+    "src/types/cxxstring.rs",
+    "src/types/dbconnector.rs",
+    "src/types/events.rs",
+    "src/types/exception.rs",
+    "src/types/logger.rs",
+    "src/types/producerstatetable.rs",
+    "src/types/sonicv2connector.rs",
+    "src/types/subscriberstatetable.rs",
+    "src/types/table.rs",
+    "src/types/zmqclient.rs",
+    "src/types/zmqconsumerstatetable.rs",
+    "src/types/zmqproducerstatetable.rs",
+    "src/types/zmqserver.rs",
+]
+
+filegroup(
+    name = "rust_sources",
+    srcs = _RUST_SOURCES,
+)
+
+exports_files(_RUST_SOURCES + [
+    "Cargo.toml",
+    "build.rs",
+])

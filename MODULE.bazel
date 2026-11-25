@@ -1,0 +1,151 @@
+# Keep bazel_compatibility in sync with sonic-buildimage's .bazelversion.
+module(
+    name = "sonic-swss-common",
+    version = "0.0.8",
+    bazel_compatibility = [
+        ">=8.5.1",
+        "<=8.5.1",
+    ],
+)
+
+bazel_dep(name = "buildifier_prebuilt", version = "8.5.1.3", dev_dependency = True)
+bazel_dep(name = "cppzmq", version = "4.10.0.bcr.1", dev_dependency = True)
+
+bazel_dep(name = "googletest", version = "1.11.0", repo_name = "com_google_googletest")
+bazel_dep(name = "glog", version = "0.5.0", repo_name = "com_github_google_glog")
+bazel_dep(name = "rules_python", version = "1.9.0.sonic.2")
+bazel_dep(name = "rules_rs", version = "0.1.0")
+bazel_dep(name = "sonic-rust-deps", version = "0.0.5-4064a814e8530300a7acbad4a9aff0621e2fb98e", repo_name = "sonic_rust_deps")
+
+# rules_rs selects rules_cc with sanitize_pwd; rules_go excludes that
+# C/C++ feature from cgo so its builder paths stay valid after changing cwd.
+bazel_dep(name = "rules_go", version = "0.65.0.sonic.2", repo_name = "io_bazel_rules_go")
+bazel_dep(name = "rules_cc", version = "0.2.20")
+bazel_dep(name = "rules_pkg", version = "1.1.0")
+bazel_dep(name = "rules_shell", version = "0.6.1")
+bazel_dep(name = "bazel_skylib", version = "1.9.0")
+bazel_dep(name = "platforms", version = "1.1.0")
+bazel_dep(name = "tar.bzl", version = "0.10.5.sonic.2")
+bazel_dep(name = "rules_distroless", version = "0.9.4.sonic.26")
+bazel_dep(name = "libyang", version = "3.12.2.sonic.9")
+
+# Use the owner-exported native shared targets and matching runtime metadata.
+# This retains the SONiC nexthop patch and the public Debian source URL.
+bazel_dep(name = "libnl3", version = "3.7.0.sonic.10")
+bazel_dep(name = "sonic-build-infra", version = "0.0.45-77ef625a4ddafc8cdc15f3cc6aee31eabac8a5de", repo_name = "sonic_build_infra")
+bazel_dep(name = "sonic-yang-mgmt", version = "1.0.0-9ab452d22773c41783092ae3bd6c206d6c257c8d", repo_name = "sonic_yang_mgmt")
+bazel_dep(name = "sonic-yang-models", version = "1.0.1-dd732f9512a84966487951250adae8e3e5c9943e", repo_name = "sonic_yang_models")
+
+# Select the landed infrastructure release with finalized control metadata and
+# declared BFD linker behavior across the standalone dependency graph.
+single_version_override(
+    module_name = "sonic-build-infra",
+    version = "0.0.45-77ef625a4ddafc8cdc15f3cc6aee31eabac8a5de",
+)
+
+# Use the SONiC tar implementation with default_mtime across the graph.
+single_version_override(
+    module_name = "tar.bzl",
+    version = "0.10.5.sonic.2",
+)
+
+# Distroless imports rules_cc's private cc_import implementation. Releases
+# 0.2.21 and 0.2.22 require a runtime toolchain type missing from Bazel 8.5.1.
+single_version_override(
+    module_name = "rules_cc",
+    version = "0.2.20",
+)
+
+# Keep the relative cgo header repair selected over the upstream stable release.
+single_version_override(
+    module_name = "rules_go",
+    version = "0.65.0.sonic.2",
+)
+
+# Preserve the standalone SDK used before the rules_go update. A consuming root
+# can provide its own SDK configuration.
+go_sdk = use_extension("@io_bazel_rules_go//go:extensions.bzl", "go_sdk", dev_dependency = True)
+go_sdk.download(version = "1.25.0")
+
+# Schema generation runs on the execution platform with a declared Python
+# runtime. Its native CFFI binding uses headers from that interpreter toolchain.
+python = use_extension("@rules_python//python/extensions:python.bzl", "python")
+python.toolchain(python_version = "3.13")
+use_repo(python, "python_3_13")
+
+register_toolchains("@python_3_13//:all")
+
+gcc = use_extension("@sonic_build_infra//toolchains/gcc:extensions.bzl", "gcc")
+use_repo(gcc, "gcc_toolchains")
+
+register_toolchains("@gcc_toolchains//:all")
+
+# Standalone validation selects the same Rust and bindgen tools as SWSS. These
+# root-only toolchain choices are ignored when Common is a dependency; the
+# consuming root provides its own registered Rust and bindgen toolchains.
+rules_rust = use_extension("@rules_rs//rs:rules_rust.bzl", "rules_rust")
+use_repo(rules_rust, "rules_rust")
+
+rust = use_extension("@rules_rs//rs:rules_rust_reexported_extensions.bzl", "rust", dev_dependency = True)
+rust.toolchain(
+    edition = "2021",
+    extra_target_triples = [
+        "aarch64-unknown-linux-gnu",
+        "x86_64-unknown-linux-gnu",
+    ],
+    versions = ["1.90.0"],
+)
+use_repo(rust, "rust_toolchains")
+
+register_toolchains(
+    "@rust_toolchains//:all",
+    dev_dependency = True,
+)
+
+bindgen = use_extension("@rules_rs//rs:rules_rust_bindgen.bzl", "rules_rust_bindgen")
+use_repo(bindgen, "rules_rust_bindgen")
+
+register_toolchains(
+    "@rules_rust_bindgen//:all",
+    dev_dependency = True,
+)
+
+# The actual dependencies are listed in sonic-build-infra, and re-exported.
+apt = use_extension("@rules_distroless//apt:extensions.bzl", "apt")
+
+# Expose controls/data for the target libraries already linked by Common.
+apt.install(
+    dependency_set = "trixie",
+    packages = [
+        "libboost-serialization1.83.0",
+        "libhiredis1.1.0",
+        "libpython3.13",
+        "libuuid1",
+        "libzmq5",
+    ],
+    suites = [
+        "trixie",
+        "trixie-updates",
+        "trixie-security",
+    ],
+)
+use_repo(
+    apt,
+    "trixie",
+    boost_serialization_amd64 = "trixie_libboost-serialization1.83.0-amd64_1.83.0-4.2",
+    boost_serialization_arm64 = "trixie_libboost-serialization1.83.0-arm64_1.83.0-4.2",
+)
+
+bazel_dep(name = "patchelf", version = "0.18.0.bcr.1")
+
+# host-services Cargo.lock selects this Rust source while its default build.rs
+# binds to the installed Common C API. Reuse the owner-generated bindings below.
+http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+http_archive(
+    name = "swss_common_4b86a770_src",
+    build_file = "//tools/bazel/rust:swss_common_4b86a770.BUILD.bazel",
+    sha256 = "c815671515f45821c74abd024b40781035ba9460b07db90f8b55535b6c318fed",
+    strip_prefix = "sonic-swss-common-4b86a770d3ad8a091b2a59aa3b981f938f1298d3/crates/swss-common",
+    urls = ["https://github.com/sonic-net/sonic-swss-common/archive/4b86a770d3ad8a091b2a59aa3b981f938f1298d3.tar.gz"],
+)

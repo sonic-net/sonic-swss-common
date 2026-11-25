@@ -1,0 +1,11 @@
+load("@rules_python//python:py_binary.bzl", "py_binary")
+
+package(default_visibility = ["//visibility:public"])
+
+py_binary(
+    name = "gen_cfg_schema",
+    srcs = ["//:gen_cfg_schema.py"],
+    main = "//:gen_cfg_schema.py",
+    python_version = "3.13",
+    deps = ["@sonic_yang_mgmt"],
+)

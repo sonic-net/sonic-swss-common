@@ -1,0 +1,202 @@
+name: Bazel
+run-name: Bazel validation
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  native-amd64:
+    name: Native AMD64
+    uses: ./.github/workflows/bazel-native.yml
+    with:
+      arch: AMD64
+      runner: ubuntu-24.04
+      bazel_args: "--config=ci-linux-sandbox"
+    secrets:
+      BAZEL_REMOTE_AUTH: ${{ github.ref == 'refs/heads/master' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && secrets.BAZEL_REMOTE_AUTH || '' }}
+
+  bazel-amd64:
+    name: Bazel (AMD64)
+    if: ${{ always() }}
+    needs: native-amd64
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require both native feature modes
+        env:
+          NATIVE_RESULT: ${{ needs.native-amd64.result }}
+        run: test "$NATIVE_RESULT" = success
+
+  native-arm64:
+    name: Native ARM64
+    uses: ./.github/workflows/bazel-native.yml
+    with:
+      arch: ARM64
+      runner: ubuntu-24.04-arm
+      bazel_args: "--config=aarch64 --config=ci-linux-sandbox"
+    secrets:
+      BAZEL_REMOTE_AUTH: ${{ github.ref == 'refs/heads/master' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && secrets.BAZEL_REMOTE_AUTH || '' }}
+
+  bazel-arm64:
+    name: Bazel (ARM64)
+    if: ${{ always() }}
+    needs: native-arm64
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require both native feature modes
+        env:
+          NATIVE_RESULT: ${{ needs.native-arm64.result }}
+        run: test "$NATIVE_RESULT" = success
+
+  cgo-headers:
+    name: Cgo headers (${{ matrix.arch }}, external includes ${{ matrix.external_includes }})
+    timeout-minutes: 45
+    env:
+      BAZEL_REMOTE_AUTH: ${{ github.ref == 'refs/heads/master' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && secrets.BAZEL_REMOTE_AUTH || '' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [AMD64, ARM64]
+        external_includes: [enabled, disabled]
+        include:
+          - arch: AMD64
+            runner: ubuntu-24.04
+            bazel_args: "--config=ci-linux-sandbox"
+          - arch: ARM64
+            runner: ubuntu-24.04-arm
+            bazel_args: --config=aarch64 --config=ci-linux-sandbox
+          - external_includes: enabled
+            feature: external_include_paths
+          - external_includes: disabled
+            feature: -external_include_paths
+    runs-on: ${{ matrix.runner }}
+    container:
+      image: debian:trixie-20260918
+      # Allow Bazel to create nested namespaces and mount its read-only root.
+      options: >-
+        --cap-add=SYS_ADMIN
+        --security-opt=apparmor=unconfined
+        --security-opt=systempaths=unconfined
+    steps:
+      - name: Install host build tools
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends build-essential ca-certificates git python3 tar
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
+        with:
+          bazelisk-version: 1.29.0
+          bazelisk-cache: true
+          repository-cache: true
+          disk-cache: ${{ github.workflow }}-cgo-headers-linux-sandbox
+          cache-version: "8.5.1"
+      - name: Configure remote build cache
+        run: bash tools/bazel/cache/configure.sh
+      - name: Record maintained registry inputs
+        run: python3 tools/bazel/go_validation.py record artifacts/validation
+      - name: Verify Linux sandbox isolation
+        run: |
+          test ! -e MODULE.bazel.lock
+          python3 -B tools/bazel/sandbox/verify.py \
+            --output artifacts/validation/linux-sandbox.json -- ${{ matrix.bazel_args }}
+      - name: Test direct cgo use of the imported hiredis headers
+        run: |
+          mkdir -p artifacts/validation
+          uname -m > artifacts/validation/runner-architecture.txt
+          dpkg --print-architecture > artifacts/validation/userspace-architecture.txt
+          git -c safe.directory="$GITHUB_WORKSPACE" rev-parse HEAD > artifacts/validation/tested-revision.txt
+          bazel test ${{ matrix.bazel_args }} \
+            --lockfile_mode=update \
+            --nocache_test_results \
+            --//tools/bazel:yang_modules=False \
+            --features=${{ matrix.feature }} \
+            --execution_log_json_file=artifacts/validation/cgo-actions.json \
+            --test_output=errors \
+            //goext/tests/hiredis:hiredis_cgo_test \
+            //tools/bazel/runtime:declared_loader_test
+      - name: Collect cgo header evidence
+        if: always()
+        run: |
+          mkdir -p artifacts/validation
+          if test -d bazel-testlogs/goext/tests/hiredis/hiredis_cgo_test; then
+            cp -L bazel-testlogs/goext/tests/hiredis/hiredis_cgo_test/test.log bazel-testlogs/goext/tests/hiredis/hiredis_cgo_test/test.xml artifacts/validation/
+          fi
+      - name: Record resolved Go inputs
+        if: always()
+        run: python3 tools/bazel/go_validation.py collect artifacts/validation ${{ matrix.bazel_args }}
+      - name: Upload cgo header evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sonic-swss-common-cgo-headers-${{ matrix.arch }}-${{ matrix.external_includes }}
+          # Raw Bazel event/action logs can contain environment credentials.
+          path: |
+            artifacts/validation/
+            !artifacts/validation/**/*-events.json
+            !artifacts/validation/**/*-actions*
+          if-no-files-found: error
+
+  declared-native-link:
+    name: Declared native libraries (AMD64)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    container:
+      image: ubuntu:24.04@sha256:fe81560990fae86dc4743202b2cb4d3df98d0bcf949173cecef15ce1127ef852
+      # Match the existing native jobs' explicit Linux-sandbox permissions.
+      options: >-
+        --cap-add=SYS_ADMIN
+        --security-opt=apparmor=unconfined
+        --security-opt=systempaths=unconfined
+    steps:
+      - name: Install Ubuntu execution tools
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends binutils build-essential ca-certificates gdb git libbsd0 python3 tar
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
+        with:
+          bazelisk-version: 1.29.0
+          bazelisk-cache: true
+          repository-cache: true
+          disk-cache: ${{ github.workflow }}-declared-native-amd64
+          cache-version: "8.5.1"
+      - name: Record reviewed registry and host inputs
+        run: |
+          python3 tools/bazel/go_validation.py record artifacts/declared-link
+          git -c safe.directory="$GITHUB_WORKSPACE" rev-parse HEAD > artifacts/declared-link/tested-revision.txt
+          git -c safe.directory="$GITHUB_WORKSPACE" show -s --format='%P' HEAD > artifacts/declared-link/tested-parents.txt
+          dpkg-query -W libbsd0 > artifacts/declared-link/host-libbsd.txt
+          test ! -e /usr/lib/x86_64-linux-gnu/libbsd.so.0.12.2
+      - name: Verify Linux sandbox isolation
+        run: |
+          python3 -B tools/bazel/sandbox/verify.py \
+            --output artifacts/declared-link/linux-sandbox.json -- --config=ci-linux-sandbox
+      - name: Link and execute Common's CLI through declared libraries
+        run: |
+          bazel test --config=ci-linux-sandbox --lockfile_mode=update \
+            --nocache_test_results --test_output=errors \
+            //sonic-db-cli:declared_shared_library_test \
+            //dist:libswsscommon_package_test
+      - name: Collect test results
+        if: always()
+        run: |
+          mkdir -p artifacts/declared-link/tests
+          for name in sonic-db-cli/declared_shared_library_test dist/libswsscommon_package_test; do
+            mkdir -p "artifacts/declared-link/tests/$name"
+            for file in test.log test.xml; do
+              test ! -f "bazel-testlogs/$name/$file" || cp -L "bazel-testlogs/$name/$file" "artifacts/declared-link/tests/$name/$file"
+            done
+          done
+          test ! -f MODULE.bazel.lock || cp MODULE.bazel.lock artifacts/declared-link/
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: common-declared-native-link-amd64
+          path: artifacts/declared-link/
+          if-no-files-found: error

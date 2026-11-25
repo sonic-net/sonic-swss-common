@@ -1,0 +1,142 @@
+load("@tar.bzl", "tar")
+load("//tools/bazel:bzlmod.bzl", "IS_BZLMOD")
+load("//tools/bazel/yang:cfg_schema.bzl", "cfg_schema")
+
+package(default_visibility = ["//visibility:public"])
+
+# The minimal cfg_schema.h that `./configure --disable-yangmodules` produces.
+# The CFG_*_TABLE_NAME macros the library itself uses remain defined inline in schema.h.
+#
+# The no-YANG configuration selects this through :cfg_schema_default.
+genrule(
+    name = "cfg_schema_stub",
+    outs = ["cfg_schema_stub.h"],
+    cmd = """{
+echo '#ifndef CFG_SCHEMA_H'
+echo '#define CFG_SCHEMA_H'
+echo ''
+echo '// Minimal cfg_schema.h generated when YANG modules are disabled'
+echo '#ifdef __cplusplus'
+echo 'namespace swss {'
+echo '#endif'
+echo ''
+echo '#ifdef __cplusplus'
+echo '}'
+echo '#endif'
+echo '#endif'
+} > $@""",
+    target_compatible_with = select({
+        "//tools/bazel:yang_modules_enabled": ["@platforms//:incompatible"],
+        "//conditions:default": [],
+    }),
+)
+
+# The standalone Bazel 8 path consumes the registry model set and runs the
+# same Python schema generator as Make. An explicit generated-header override
+# remains available through --//tools/bazel:cfg_schema.
+cfg_schema(
+    name = "cfg_schema_generated",
+    out = "cfg_schema_generated.h",
+    models = "@sonic_yang_models//:yang_models",
+)
+
+alias(
+    name = "cfg_schema_default",
+    actual = select({
+        "//tools/bazel:yang_modules_enabled": ":cfg_schema_generated" if IS_BZLMOD else ":cfg_schema_stub",
+        "//conditions:default": ":cfg_schema_stub",
+    }),
+)
+
+# Genrule to import the value of --//tools/bazel:cfg_schema into the build.
+#
+# It lives in common/ to match common/Makefile.am (BUILT_SOURCES = common/cfg_schema.h).
+genrule(
+    name = "cfg_schema_h",
+    srcs = ["//tools/bazel:cfg_schema"],
+    outs = ["cfg_schema.h"],
+    cmd = "cp $< $@",
+)
+
+# Sources that need libyang, mirroring the YANGMODS conditional in common/Makefile.am.
+YANG_SRCS = [
+    "decoratorsubscriberstatetable.cpp",
+    "decoratortable.cpp",
+    "defaultvalueprovider.cpp",
+]
+
+# Library sources, excluding the standalone swssloglevel tool sources.
+#
+# c-api/ is listed separately because glob() does not recurse: "*.cpp" alone
+# silently drops the whole C API, which common/Makefile.am builds into the
+# library. Nothing fails at build time; the .so just ships without it.
+filegroup(
+    name = "srcs",
+    srcs = glob(
+        [
+            "*.cpp",
+            "c-api/*.cpp",
+            "c-api/internal/*.h",
+        ],
+        exclude = [
+            "loglevel.cpp",
+            "loglevel_util.cpp",
+        ] + YANG_SRCS,
+    ) + select({
+        "//tools/bazel:yang_modules_enabled": YANG_SRCS,
+        "//conditions:default": [],
+    }),
+)
+
+# All library headers, including the generated cfg_schema.h.
+# c-api/ is spelled out for the same reason as in :srcs above. These install as
+# swss/c-api/*.h, matching the layout of the libswsscommon-dev deb.
+filegroup(
+    name = "c_api_hdrs",
+    srcs = glob(["c-api/*.h"]),
+    visibility = ["//crates/swss-common:__pkg__"],
+)
+
+filegroup(
+    name = "hdrs",
+    srcs = glob(
+        [
+            "*.h",
+            "*.hpp",
+        ],
+        allow_empty = True,
+    ) + [
+        ":c_api_hdrs",
+        ":cfg_schema_h",
+    ],
+)
+
+# swssloglevel standalone tool sources.
+filegroup(
+    name = "loglevel_srcs",
+    srcs = [
+        "loglevel.cpp",
+        "loglevel.h",
+        "loglevel_util.cpp",
+    ],
+)
+
+# Redis Lua scripts shipped in the libswsscommon package.
+_LUA_FILES = glob(["*.lua"])
+
+filegroup(
+    name = "luas",
+    srcs = _LUA_FILES,
+)
+
+tar(
+    name = "lua_runtime",
+    srcs = _LUA_FILES,
+    default_mtime = "1672560000",
+    mtree = [
+        "usr/share/swss/{} uid=0 gid=0 mode=0644 type=file content=$(location {})".format(name, name)
+        for name in _LUA_FILES
+    ],
+)
+
+exports_files(["database_config.json"])

@@ -1,0 +1,33 @@
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@sonic_build_infra//cc:runtime_test.bzl", "native_runtime_test")
+
+package(default_visibility = ["//visibility:public"])
+
+# Linkmgrd uses both Common and libnl directly. The native shared providers
+# must agree about ownership; reimporting a DSO would hide this regression.
+cc_binary(
+    name = "consumer",
+    testonly = True,
+    srcs = ["consumer.c"],
+    dynamic_deps = [
+        "//:libswsscommon_consolidated.so",
+        "@libnl3//:libnl_3_shared",
+        "@libnl3//:libnl_route_3_shared",
+        "@libnl3//:libnl_nf_3_shared",
+    ],
+    deps = [
+        "//:libswsscommon_shared",
+        "@libnl3//:libnl_3",
+        "@libnl3//:libnl_nf_3",
+        "@libnl3//:libnl_route_3",
+    ],
+)
+
+native_runtime_test(
+    name = "consumer_test",
+    binary = ":consumer",
+    runtime_payloads = [
+        "//dist:libswsscommon_pkg",
+        "//tools/bazel/runtime:test_runtime",
+    ],
+)

@@ -1,0 +1,33 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_test")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+
+go_test(
+    name = "alias_test_binary",
+    srcs = ["alias_test.go"],
+    args = ["-test.v"],
+    tags = ["manual"],
+    deps = ["//goext:swsscommon"],
+)
+
+sh_test(
+    name = "alias_test",
+    srcs = ["//tools/bazel/runtime:run_with_runtime.py"],
+    args = [
+        "$(location @patchelf//:patchelf)",
+        "$(location //tools/bazel/runtime:test_runtime)",
+        "$(location //:libswsscommon_consolidated.so)",
+    ] + select({
+        "//tools/bazel:yang_modules_enabled": ["enabled"],
+        "//conditions:default": ["disabled"],
+    }) + [
+        "$(location :alias_test_binary)",
+        "-test.v",
+    ],
+    data = [
+        ":alias_test_binary",
+        "//:libswsscommon_consolidated.so",
+        "//tools/bazel/runtime:test_runtime",
+        "@patchelf",
+    ],
+    env = {"GO_TEST_WRAP_TESTV": "1"},
+)

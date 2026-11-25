@@ -50,6 +50,80 @@ You can also build a debian package using:
     ./configure
     dpkg-buildpackage -us -uc -b
 
+### Build with Bazel
+
+Clone the fork containing the standalone Bazel build:
+
+```sh
+git clone --recursive https://github.com/securely1g/sonic-swss-common.git
+cd sonic-swss-common
+```
+
+Use a native AMD64 or ARM64 Linux environment with Debian Trixie userspace.
+The standalone Bazel build supports YANG enabled (the default) and disabled.
+Install [Bazelisk](https://bazel.build/install/bazelisk) as `bazel`;
+`.bazelversion` selects Bazel 8.5.1. Bazel downloads the native compiler
+toolchain and library dependencies.
+
+Install the host build tools:
+
+```sh
+sudo apt-get update
+sudo apt-get install -y --no-install-recommends \
+  binutils build-essential ca-certificates git python3 tar
+```
+
+From the repository root, build the C++ shared library and package archives.
+Rust dependencies come from the pinned `sonic-rust-deps` registry module;
+no separate Rust preparation command is needed. Common and SWSS use its shared
+Serde targets so their public serialization traits remain compatible.
+
+```sh
+# Native AMD64
+bazel build --//tools/bazel:yang_modules=True \
+  //:libswsscommon_shared \
+  //dist:libswsscommon_pkg \
+  //dist:libswsscommon_pkg.debug_symbols \
+  //dist:sonic-db-cli_pkg \
+  //pyext:swsscommon_pkg
+```
+
+For native ARM64, add `--config=aarch64` after `build`. The package archives
+are written to `bazel-bin/dist/libswsscommon_pkg.tar`,
+`bazel-bin/dist/libswsscommon_pkg.debug_symbols.tar`,
+`bazel-bin/dist/sonic-db-cli_pkg.tar`, and
+`bazel-bin/pyext/swsscommon_pkg.tar.gz`. To build without YANG, pass
+`--//tools/bazel:yang_modules=False`.
+
+Enabled deployments also need the prepared models under `/usr/local/yang-models`
+and the matching native libyang runtime. These dependencies are built, tested,
+and published by the [SONiC Bazel registry](https://github.com/sonic-net/sonic-bazel-registry/actions),
+separately from Common's four package archives. Use the module versions selected
+by `MODULE.bazel` and retain libyang's matching debug archive. See the
+[deployment inputs](docs/bazel.md#dependency-runtime-packages) for details.
+
+The runtime package contains the library and `swssloglevel` with their debug
+information removed. The matching detached information is in
+`libswsscommon_pkg.debug_symbols.tar`, derived from the same linked files.
+
+To keep source-level debug information embedded in the raw shared library,
+build it with explicit compiler and strip settings. These flags work with either
+YANG mode:
+
+```sh
+bazel build --copt=-g --strip=never \
+  //:libswsscommon_consolidated.so
+```
+
+Add `--//tools/bazel:yang_modules=False` for disabled mode and
+`--config=aarch64` for native ARM64. The symbols are embedded in
+`bazel-bin/libswsscommon_consolidated.so/libswsscommon.so.0`. The current
+compiler toolchain needs `--copt=-g`; selecting `-c dbg` alone does not add
+debug information.
+
+See the [Bazel build guide](docs/bazel.md) for the complete build and test
+commands, Go bindings, supported configuration, and GitHub Actions artifacts.
+
 ### Build with Google Test
 1. Rebuild with Google Test
 ```
@@ -117,6 +191,19 @@ For example:
 * Use a pull request to do code review
 * Use issues to keep track of what is going on
 
+### Common Go bindings for gNMI
+
+Bazel gNMI consumers depend on `@sonic_swss_common//goext:swsscommon`.
+The owner generates and compiles the SWIG binding once. Both
+`github.com/sonic-net/sonic-swss-common/goext` and gNMI's existing
+`github.com/sonic-net/sonic-gnmi/swsscommon` import refer to that same Go archive.
+Keep the gNMI source imports and native Make generator unchanged; resolve the
+legacy import to this owner target in the consumer's BUILD files.
+
+`//goext/tests/gnmi:alias_test` checks that both spellings expose identical Go
+types and interoperate through the owner-built C++ library. Native AMD64 CI runs
+it with YANG enabled and disabled. A consumer root still selects its Go SDK and
+must validate its own gNMI API and service behavior.
 ## Explicit DBConnector authentication
 
 Existing endpoint constructors keep their transport selection and do not consult writer

@@ -1,0 +1,102 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_rs//rs:rules_rust_bindgen.bzl", "rust_bindgen")
+load("@rules_rs//rs:rust_library.bzl", "rust_library")
+load("@rules_rs//rs:rust_test.bzl", "rust_test")
+load("//tools/bazel/rust:bindings.bzl", "bindings_directory", "c_api_header")
+
+c_api_header(
+    name = "c_api_header",
+)
+
+cc_library(
+    name = "c_api_bindgen_input",
+    hdrs = [":c_api_header"],
+    deps = ["//:libswsscommon_shared"],
+)
+
+rust_bindgen(
+    name = "bindings",
+    bindgen_flags = ["--with-derive-partialeq"],
+    cc_lib = ":c_api_bindgen_input",
+    header = ":c_api_header",
+)
+
+# Keep the generated bindings available to consumers that need the raw C API.
+bindings_directory(
+    name = "bindings_dir",
+    src = ":bindings.rs",
+    visibility = ["//visibility:public"],
+)
+
+# Shared third-party targets keep public Serde traits identical in Common and
+# its consumers, including when Common is an external module.
+rust_library(
+    name = "swss_common",
+    srcs = glob(["src/**/*.rs"]),
+    compile_data = [":bindings_dir"],
+    crate_name = "swss_common",
+    crate_root = "src/lib.rs",
+    edition = "2021",
+    link_deps = ["//:libswsscommon_shared"],
+    rustc_env = {"OUT_DIR": "$(execpath :bindings_dir)"},
+    rustc_flags = ["-Cdebuginfo=2"],
+    version = "0.1.0",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@sonic_rust_deps//:getset",
+        "@sonic_rust_deps//:lazy_static",
+        "@sonic_rust_deps//:libc",
+        "@sonic_rust_deps//:serde",
+        "@sonic_rust_deps//:tracing-subscriber",
+    ],
+)
+
+# Cargo consumers enabling `async` use this variant and a matching testing
+# library. Both variants share the same bindings and third-party crate owners.
+rust_library(
+    name = "swss_common_async",
+    srcs = glob(["src/**/*.rs"]),
+    compile_data = [":bindings_dir"],
+    crate_features = ["async"],
+    crate_name = "swss_common",
+    crate_root = "src/lib.rs",
+    edition = "2021",
+    link_deps = ["//:libswsscommon_shared"],
+    rustc_env = {"OUT_DIR": "$(execpath :bindings_dir)"},
+    rustc_flags = ["-Cdebuginfo=2"],
+    version = "0.1.0",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@sonic_rust_deps//:getset",
+        "@sonic_rust_deps//:lazy_static",
+        "@sonic_rust_deps//:libc",
+        "@sonic_rust_deps//:serde",
+        "@sonic_rust_deps//:tokio",
+        "@sonic_rust_deps//:tracing-subscriber",
+    ],
+)
+
+rust_test(
+    name = "swss_common_async_test",
+    crate = ":swss_common_async",
+    experimental_use_cc_common_link = 1,
+)
+
+rust_test(
+    name = "swss_common_test",
+    crate = ":swss_common",
+    experimental_use_cc_common_link = 1,
+)
+
+# rules_rs names the Cargo Git dependency after the package. This alias lets a
+# consuming root map that repository to Common's source-owned Bazel target.
+alias(
+    name = "swss-common",
+    actual = ":swss_common",
+    visibility = ["//visibility:public"],
+)
+
+exports_files(
+    ["locked_source.bzl"],
+    visibility = ["//visibility:public"],
+)

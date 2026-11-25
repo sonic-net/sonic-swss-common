@@ -1,0 +1,192 @@
+load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
+load("@rules_distroless//distroless:defs.bzl", "flatten")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+load("@sonic_build_infra//tar:sonic_deploy_tar.bzl", "sonic_deploy_tar")
+load("@tar.bzl", "mtree_mutate", "mtree_spec", "tar")
+
+package(default_visibility = ["//visibility:public"])
+
+# P4RT's Bazel 6 build imports this SDK instead of evaluating Common's Bazel 8
+# source rules. Package the selected architecture and YANG mode together.
+mtree_spec(
+    name = "sdk_headers_mtree_base",
+    srcs = ["//common:hdrs"],
+)
+
+mtree_mutate(
+    name = "sdk_headers_mtree",
+    mtree = ":sdk_headers_mtree_base",
+    package_dir = "include/swss",
+    strip_prefix = "common",
+)
+
+tar(
+    name = "sdk_headers",
+    srcs = ["//common:hdrs"],
+    mtree = ":sdk_headers_mtree",
+)
+
+# Use the runtime package's stripping and path cleanup, so the SDK contains the
+# same deployable ELF rather than a library referring to Bazel's output tree.
+sonic_deploy_tar(
+    name = "sdk_library",
+    binaries = {"lib/libswsscommon.so.0 type=file mode=0555": "//:libswsscommon_consolidated.so"},
+    force_debug_build = True,
+    mtree = ["lib/libswsscommon.so type=link time=0 link=libswsscommon.so.0"],
+    visibility = ["//visibility:public"],
+)
+
+flatten(
+    name = "libswsscommon_sdk",
+    tars = [
+        ":sdk_headers",
+        ":sdk_library",
+    ],
+)
+
+sh_test(
+    name = "libswsscommon_sdk_test",
+    srcs = ["libswsscommon_sdk_test.sh"],
+    args = [
+        "$(location :libswsscommon_sdk)",
+        "$(location :libswsscommon_pkg)",
+    ] + select({
+        "@platforms//cpu:x86_64": ["amd64"],
+        "@platforms//cpu:arm64": ["arm64"],
+    }) + select({
+        "//tools/bazel:yang_modules_enabled": ["enabled"],
+        "//conditions:default": ["disabled"],
+    }) + ["$(locations //common:hdrs)"],
+    data = [
+        ":libswsscommon_pkg",
+        ":libswsscommon_sdk",
+        "//common:hdrs",
+    ],
+)
+
+# libswsscommon deb-style distribution package
+# Matches debian/libswsscommon.install:
+#   usr/lib/*/lib*.so.*
+#   usr/share/swss/*.lua
+#   var/run/redis/sonic-db/database_config.json (canonical /run in the TAR)
+#   usr/bin/swssloglevel
+
+alias(
+    name = "dist_lua",
+    actual = "//common:lua_runtime",
+)
+
+# Loose files: shared library, config, and binaries.
+#
+# The library lands in a multiarch directory, and sonic_deploy_tar's mtree and
+# binaries attributes must be literal values rather than select(). Declare one
+# deploy tar per architecture and select between them below.
+DIST_LOOSE_SRCS = [
+    "//common:database_config.json",
+]
+
+# sonic_deploy_tar selects tar.bzl's default_mtime for missing entry timestamps.
+DIST_LOOSE_COMMON_MTREE = [
+    "run/redis/sonic-db/database_config.json uid=0 gid=0 mode=0644 type=file content=$(location //common:database_config.json)",
+]
+
+[
+    sonic_deploy_tar(
+        name = "dist_loose_" + cpu,
+        srcs = DIST_LOOSE_SRCS,
+        binaries = {
+            "usr/lib/{}/libswsscommon.so.0.0.0 uid=0 gid=0 type=file mode=0555".format(multiarch): "//:libswsscommon_consolidated.so",
+            "usr/lib/{}/libsonicdbcli.so.0.0.0 uid=0 gid=0 type=file mode=0555".format(multiarch): "//sonic-db-cli:libsonicdbcli.so.0",
+            "usr/bin/swssloglevel uid=0 gid=0 type=file mode=0755": "//:swssloglevel",
+        },
+        force_debug_build = True,
+        mtree = [
+            "usr/lib/{}/libswsscommon.so.0 uid=0 gid=0 mode=0777 type=link time=0 link=libswsscommon.so.0.0.0".format(multiarch),
+            "usr/lib/{}/libswsscommon.so uid=0 gid=0 mode=0777 type=link time=0 link=libswsscommon.so.0".format(multiarch),
+            "usr/lib/{}/libsonicdbcli.so.0 uid=0 gid=0 mode=0777 type=link time=0 link=libsonicdbcli.so.0.0.0".format(multiarch),
+            "usr/lib/{}/libsonicdbcli.so uid=0 gid=0 mode=0777 type=link time=0 link=libsonicdbcli.so.0".format(multiarch),
+        ] + DIST_LOOSE_COMMON_MTREE,
+        target_compatible_with = ["@platforms//cpu:" + cpu],
+        visibility = ["//visibility:public"],
+    )
+    for cpu, multiarch in [
+        ("x86_64", "x86_64-linux-gnu"),
+        ("arm64", "aarch64-linux-gnu"),
+    ]
+]
+
+alias(
+    name = "dist_loose",
+    actual = select({
+        "@platforms//cpu:x86_64": ":dist_loose_x86_64",
+        "@platforms//cpu:arm64": ":dist_loose_arm64",
+    }),
+)
+
+alias(
+    name = "dist_loose.debug_symbols",
+    actual = select({
+        "@platforms//cpu:x86_64": ":dist_loose_x86_64.debug_symbols",
+        "@platforms//cpu:arm64": ":dist_loose_arm64.debug_symbols",
+    }),
+)
+
+flatten(
+    name = "libswsscommon_pkg",
+    tars = [
+        ":dist_lua",
+        ":dist_loose",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+copy_file(
+    name = "libswsscommon_pkg.debug_symbols",
+    src = ":dist_loose.debug_symbols",
+    out = "libswsscommon_pkg.debug_symbols.tar",
+    allow_symlink = False,
+)
+
+sh_test(
+    name = "libswsscommon_package_test",
+    srcs = ["libswsscommon_package_test.sh"],
+    args = [
+        "$(location :libswsscommon_pkg)",
+        "$(location :libswsscommon_pkg.debug_symbols)",
+        "$(location :sonic-db-cli_pkg)",
+        "$(location :sonic-db-cli_pkg.debug_symbols)",
+    ] + select({
+        "//tools/bazel:yang_modules_enabled": ["enabled"],
+        "//conditions:default": ["disabled"],
+    }) + ["$(location //common:database_config.json)"],
+    data = [
+        ":libswsscommon_pkg",
+        ":libswsscommon_pkg.debug_symbols",
+        ":sonic-db-cli_pkg",
+        ":sonic-db-cli_pkg.debug_symbols",
+        "//common:database_config.json",
+    ],
+)
+
+sonic_deploy_tar(
+    name = "sonic-db-cli_pkg",
+    out = "sonic-db-cli_pkg.tar",
+    binaries = {"usr/bin/sonic-db-cli type=file uid=0 gid=0 mode=0755": "//sonic-db-cli:sonic-db-cli"},
+    force_debug_build = True,
+    visibility = ["//visibility:public"],
+)
+
+sh_test(
+    name = "package_timestamps_test",
+    srcs = ["package_timestamps_test.sh"],
+    args = [
+        "$(location :libswsscommon_pkg)",
+        "$(location :sonic-db-cli_pkg)",
+        "$(location //pyext:swsscommon_pkg)",
+    ],
+    data = [
+        ":libswsscommon_pkg",
+        ":sonic-db-cli_pkg",
+        "//pyext:swsscommon_pkg",
+    ],
+)
