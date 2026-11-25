@@ -77,8 +77,12 @@ go_library(
 
 go_test(
     name = "swsscommon_runtime_test_binary",
-    srcs = ["swsscommon_runtime_test.go"],
+    srcs = [
+        "bazel_runtime_libraries_test.go",
+        "swsscommon_runtime_test.go",
+    ],
     embed = [":swsscommon"],
+    gotags = ["bazel_runtime"],
     tags = ["manual"],
 )
 
