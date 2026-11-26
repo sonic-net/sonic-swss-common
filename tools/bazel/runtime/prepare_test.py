@@ -8,8 +8,7 @@ import os
 from pathlib import Path
 import sys
 import tempfile
-import unittest
-from unittest import mock
+from unittest import TestCase, main, mock
 
 import prepare
 
@@ -39,7 +38,7 @@ def resolved_lock():
     }}}
 
 
-class RuntimePreparationTest(unittest.TestCase):
+class RuntimePreparationTest(TestCase):
     def test_selects_native_packages_and_preserves_debian_epoch(self):
         for architecture in ("amd64", "arm64"):
             selected = prepare.select_runtime(resolved_lock(), architecture)
@@ -180,4 +179,4 @@ class RuntimePreparationTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    main()

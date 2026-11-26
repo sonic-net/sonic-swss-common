@@ -55,7 +55,7 @@ You can also build a debian package using:
 Clone the fork containing the standalone Bazel build:
 
 ```sh
-git clone --recursive https://github.com/securely1g/sonic-swss-common.git
+git clone --recursive https://github.com/sonic-net/sonic-swss-common.git
 cd sonic-swss-common
 ```
 
