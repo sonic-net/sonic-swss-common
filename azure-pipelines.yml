@@ -67,7 +67,6 @@ stages:
   - template: .azure-pipelines/build-template.yml
     parameters:
       arch: amd64
-      pool: sonic-ubuntu-1c
       artifact_name: sonic-swss-common-${{ parameters.debian_version }}
       run_unit_test: true
       archive_gcov: true
@@ -78,7 +77,6 @@ stages:
   - template: .azure-pipelines/build-template.yml
     parameters:
       arch: amd64
-      pool: sonic-ubuntu-1c
       display_name: amd64/bookworm
       artifact_name: sonic-swss-common-bookworm
       debian_version: bookworm
@@ -166,7 +164,6 @@ stages:
   jobs:
   - template: .azure-pipelines/build-docker-sonic-vs-template.yml@sonic-swss
     parameters:
-      pool: sonic-ubuntu-1c
       repo: sonic-swss
       swss_common_artifact_name: sonic-swss-common-bookworm
       swss_common_current_run: true
@@ -200,12 +197,10 @@ stages:
   jobs:
   - job:
     displayName: "buildenv_setup unit tests"
-    pool: sonic-ubuntu-1c
+    pool:
+      vmImage: 'ubuntu-22.04'
     steps:
     - script: |
-        set -ex
-        sudo apt-get update
-        sudo apt-get install -y python3-pip
         sudo pip3 install pytest pyyaml requests
       displayName: "Install test dependencies"
     - script: |

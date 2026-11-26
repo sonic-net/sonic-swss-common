@@ -6,17 +6,10 @@ parameters:
 jobs:
 - job:
   displayName: "amd64/ubuntu-22.04"
-  pool: sonic-ubuntu-1c
+  pool:
+    vmImage: 'ubuntu-22.04'
 
   steps:
-  - script: |
-      set -euxo pipefail
-      sudo apt-get update
-      sudo apt-get install -y build-essential libclang-dev
-      curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
-        sh -s -- -y --profile minimal --default-toolchain 1.98.1 --no-modify-path
-      echo "##vso[task.prependpath]$HOME/.cargo/bin"
-    displayName: "Install host build toolchain"
   - script: |
       set -ex
       # Bootstrap the tool's own runtime deps (buildenv_setup needs PyYAML + requests).
