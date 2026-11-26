@@ -1,7 +1,7 @@
 # Keep bazel_compatibility in sync with sonic-buildimage's .bazelversion.
 module(
     name = "sonic-swss-common",
-    version = "0.0.8",
+    version = "0.0.9",
     bazel_compatibility = [
         ">=8.5.1",
         "<=8.5.1",
@@ -27,7 +27,7 @@ bazel_dep(name = "bazel_skylib", version = "1.9.0")
 bazel_dep(name = "platforms", version = "1.1.0")
 bazel_dep(name = "tar.bzl", version = "0.10.5.sonic.2")
 bazel_dep(name = "rules_distroless", version = "0.9.4.sonic.26")
-bazel_dep(name = "libyang", version = "3.12.2.sonic.9")
+bazel_dep(name = "libyang", version = "3.12.2.sonic.10")
 
 # Use the owner-exported native shared targets and matching runtime metadata.
 # This retains the SONiC nexthop patch and the public Debian source URL.
