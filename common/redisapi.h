@@ -2,6 +2,9 @@
 #include <unistd.h>
 #include <poll.h>
 #include <cstring>
+#include <cstdlib>
+#include <memory>
+#include <sys/stat.h>
 #include <stdexcept>
 #include <vector>
 #include <set>
@@ -63,7 +66,50 @@ static inline std::string loadLuaScript(const std::string& path)
 {
     SWSS_LOG_ENTER();
 
-    return readTextFile("/usr/share/swss/" + path);
+    // Ignore process-environment overrides across a privileged exec boundary.
+    const char *directory = secure_getenv("SWSS_COMMON_LUA_DIR");
+    if (!directory || !*directory)
+    {
+        return readTextFile("/usr/share/swss/" + path);
+    }
+    if (path.empty() || path == "." || path == ".." ||
+        path.find_first_of("/\\") != std::string::npos)
+    {
+        throw std::invalid_argument("Lua script must be a single file name");
+    }
+    if (directory[0] != '/')
+    {
+        throw std::invalid_argument("SWSS_COMMON_LUA_DIR must be absolute");
+    }
+
+    // The operator selects the runtime root. Resolve it once and confine the
+    // requested script to that root, including the target of any symlink.
+    std::unique_ptr<char, decltype(&std::free)> resolvedDirectory(
+        realpath(directory, nullptr), std::free);
+    if (!resolvedDirectory)
+    {
+        SWSS_LOG_THROW("failed to resolve Lua directory '%s': %s", directory, strerror(errno));
+    }
+    struct stat metadata;
+    if (stat(resolvedDirectory.get(), &metadata) != 0 || !S_ISDIR(metadata.st_mode))
+    {
+        throw std::invalid_argument("SWSS_COMMON_LUA_DIR must be a directory");
+    }
+    std::string root = resolvedDirectory.get();
+    if (root != "/") root += "/";
+    const std::string requested = root + path;
+    std::unique_ptr<char, decltype(&std::free)> resolvedScript(
+        realpath(requested.c_str(), nullptr), std::free);
+    if (!resolvedScript)
+    {
+        SWSS_LOG_THROW("failed to read file: '%s': %s", requested.c_str(), strerror(errno));
+    }
+    const std::string script = resolvedScript.get();
+    if (script.compare(0, root.size(), root) != 0)
+    {
+        throw std::invalid_argument("Lua script escapes its configured directory");
+    }
+    return readTextFile(script);
 }
 
 static inline std::set<std::string> runRedisScript(RedisContext &ctx, const std::string& sha,

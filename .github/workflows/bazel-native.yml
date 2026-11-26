@@ -177,6 +177,7 @@ jobs:
           //goext/redisconn:redisconn_test
           //tools/bazel/runtime:declared_loader_test
           //tests:status_code_util_test
+          //tests:redis_lua_path_test
           //tests:saiaclschema_ut
           //tests:notification_queue_ut
           //tests:interface_ut
@@ -290,6 +291,7 @@ jobs:
           //goext/redisconn:redisconn_test
           //tools/bazel/runtime:declared_loader_test
           //tests:status_code_util_test
+          //tests:redis_lua_path_test
           //tests:saiaclschema_ut
           //tests:notification_queue_ut
           //tests:interface_ut

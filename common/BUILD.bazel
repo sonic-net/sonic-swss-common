@@ -140,3 +140,6 @@ tar(
 )
 
 exports_files(["database_config.json"])
+
+# Runtime-path regression uses this actual owner script as a declared fixture.
+exports_files(["producer_state_table_apply_view.lua"])

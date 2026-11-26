@@ -135,5 +135,41 @@ cc_library(
         "@com_github_google_glog//:glog",
         "@com_google_googletest//:gtest",
         "@cppzmq",
+        "@rules_cc//cc/runfiles",
+    ],
+)
+
+# Read the actual owner Lua fixture through the public loader, without Redis
+# or writes to the execution host's /usr/share/swss directory.
+cc_binary(
+    name = "redis_lua_path_test_binary",
+    testonly = True,
+    srcs = ["redis_lua_path_test.cpp"],
+    deps = [
+        "//:libswsscommon",
+        "@com_github_google_glog//:glog",
+        "@com_google_googletest//:gtest",
+        "@rules_cc//cc/runfiles",
+    ],
+)
+
+sh_test(
+    name = "redis_lua_path_test",
+    srcs = ["//tools/bazel/runtime:run_with_runtime.py"],
+    args = [
+        "$(location @patchelf//:patchelf)",
+        "$(location //tools/bazel/runtime:test_runtime)",
+        "-",
+    ] + select({
+        "//tools/bazel:yang_modules_enabled": ["enabled"],
+        "//conditions:default": ["disabled"],
+    }) + [
+        "$(location :redis_lua_path_test_binary)",
+    ],
+    data = [
+        ":redis_lua_path_test_binary",
+        "//common:producer_state_table_apply_view.lua",
+        "//tools/bazel/runtime:test_runtime",
+        "@patchelf",
     ],
 )
