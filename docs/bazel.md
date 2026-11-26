@@ -617,17 +617,7 @@ wrapper with YANG enabled. The manual `//tests:codeql_test_sources` target also
 compiles all 49 legacy C++ test files, including the YANG fixture source, without
 requiring Redis services.
 
-## SWIG constant wrapping
-
-SWIG 4.3 generates mutable `char *` variable wrappers for some C++
-`static constexpr const char *` constants, which produces const-correctness
-errors when GCC compiles the generated code. The directives in
-`pyext/swsscommon.i` handle these constants before their headers are included:
-Python uses `%naturalvar` to retain class attributes with value-style wrapping,
-while Go uses explicit `%extend` getters and `%ignore` for the problematic
-automatic wrappers. `%naturalvar` alone does not correct the Go-generated code.
-
-### Python binding debug symbols
+## Python binding debug symbols
 
 `//pyext:swsscommon_pkg` installs the Python wrapper and a stripped native
 extension. `//pyext:swsscommon_pkg.debug_symbols` contains that extension's
