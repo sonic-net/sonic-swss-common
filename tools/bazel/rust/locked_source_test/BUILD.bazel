@@ -1,0 +1,37 @@
+load("@rules_rs//rs:rust_binary.bzl", "rust_binary")
+load("@sonic_build_infra//cc:runtime_test.bzl", "native_runtime_test")
+load("//crates/swss-common:locked_source.bzl", "swss_common_4b86a770")
+
+package(default_testonly = True)
+
+# This deliberately tests the generic caller API with Common's maintained
+# graph. The host-services consumer separately verifies its original lock.
+swss_common_4b86a770(
+    name = "caller_common",
+    getset = "@sonic_rust_deps//:getset",
+    lazy_static = "@sonic_rust_deps//:lazy_static",
+    libc = "@sonic_rust_deps//:libc",
+    serde = "@sonic_rust_deps//:serde",
+    tracing_subscriber = "@sonic_rust_deps//:tracing-subscriber",
+)
+
+rust_binary(
+    name = "ffi_binary",
+    srcs = ["ffi.rs"],
+    crate_root = "ffi.rs",
+    edition = "2021",
+    experimental_use_cc_common_link = 1,
+    deps = [
+        ":caller_common",
+        "@sonic_rust_deps//:serde_json",
+    ],
+)
+
+native_runtime_test(
+    name = "caller_test",
+    binary = ":ffi_binary",
+    runtime_payloads = [
+        "//dist:libswsscommon_pkg",
+        "//tools/bazel/runtime:test_runtime",
+    ],
+)

@@ -1,0 +1,13 @@
+load("@rules_cc//cc:cc_import.bzl", "cc_import")
+
+# The generic apt target exposes Boost through search flags and empty interface
+# libraries. Native cc_shared_library needs the actual prebuilt DSO in CcInfo.
+# These files come from the same locked apt packages as the Boost headers.
+cc_import(
+    name = "serialization",
+    shared_library = select({
+        "@platforms//cpu:aarch64": "@boost_serialization_arm64//:usr/lib/aarch64-linux-gnu/libboost_serialization.so.1.83.0",
+        "@platforms//cpu:x86_64": "@boost_serialization_amd64//:usr/lib/x86_64-linux-gnu/libboost_serialization.so.1.83.0",
+    }),
+    visibility = ["//visibility:public"],
+)

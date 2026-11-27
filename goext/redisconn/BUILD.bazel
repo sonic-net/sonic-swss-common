@@ -1,0 +1,47 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+
+go_library(
+    name = "redisconn",
+    srcs = [
+        "dial.go",
+        "gcov.go",
+    ],
+    cdeps = ["//:libswsscommon_shared"],
+    cgo = True,
+    importpath = "github.com/sonic-net/sonic-swss-common/goext/redisconn",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "redisconn_test_binary",
+    srcs = [
+        "dial_test.go",
+        "gcov_test.go",
+    ],
+    embed = [":redisconn"],
+    tags = ["manual"],
+)
+
+sh_test(
+    name = "redisconn_test",
+    srcs = ["//tools/bazel/runtime:run_with_runtime.py"],
+    args = [
+        "$(location @patchelf//:patchelf)",
+        "$(location //tools/bazel/runtime:test_runtime)",
+        "$(location //:libswsscommon_consolidated.so)",
+    ] + select({
+        "//tools/bazel:yang_modules_enabled": ["enabled"],
+        "//conditions:default": ["disabled"],
+    }) + [
+        "$(location :redisconn_test_binary)",
+        "-test.v",
+    ],
+    data = [
+        ":redisconn_test_binary",
+        "//:libswsscommon_consolidated.so",
+        "//tools/bazel/runtime:test_runtime",
+        "@patchelf",
+    ],
+    env = {"GO_TEST_WRAP_TESTV": "1"},
+)

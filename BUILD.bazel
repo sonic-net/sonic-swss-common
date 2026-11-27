@@ -1,0 +1,207 @@
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_shared_library.bzl", "cc_shared_library")
+load("@sonic_build_infra//cc:shared_library.bzl", "shared_library_cc_info")
+load("@sonic_build_infra//oci:runtime_packages.bzl", "runtime_packages")
+load("//tools/bazel:cc.bzl", "swss_cc_binary")
+load(
+    "//tools/bazel:deps.bzl",
+    "SWSS_COMMON_COPTS",
+    "SWSS_COMMON_DEPS",
+    "SWSS_COMMON_LINKOPTS",
+)
+load("//tools/bazel:flags.bzl", "CXXFLAGS_COMMON")
+
+package(default_visibility = ["//visibility:public"])
+
+exports_files([
+    "Cargo.lock",
+    "Cargo.toml",
+    "LICENSE",
+    "gen_cfg_schema.py",
+])
+
+swss_common_hdrs = ["//common:hdrs"]
+
+filegroup(
+    name = "hdrs",
+    srcs = swss_common_hdrs,
+)
+
+# Headers and external libraries needed by consumers of the shared Common library.
+cc_library(
+    name = "common_deps",
+    linkopts = SWSS_COMMON_LINKOPTS,
+    deps = SWSS_COMMON_DEPS,
+)
+
+cc_library(
+    name = "common",
+    srcs = ["//common:srcs"],
+    hdrs = swss_common_hdrs,
+    copts = [
+        "-fPIC",
+        "-std=c++14",
+    ] + SWSS_COMMON_COPTS,
+    includes = [
+        "common",
+    ],
+    linkopts = SWSS_COMMON_LINKOPTS,
+    visibility = ["//visibility:public"],
+    deps = SWSS_COMMON_DEPS,
+)
+
+cc_library(
+    name = "libswsscommon",
+    hdrs = swss_common_hdrs,
+    include_prefix = "swss",
+    strip_include_prefix = "common",
+    deps = [":common"],
+)
+
+# cc_shared_library includes every object in its direct :common dependency.
+# Ordinary :common consumers still link selectively, so tests can use mocks.
+# Produce the SONAME filename directly; copying/reimporting the ELF would move
+# it away from the runtime paths calculated when Bazel linked it.
+cc_shared_library(
+    name = "libswsscommon_consolidated.so",
+    # Consumers such as Linkmgrd also use libnl's public shared targets. Keep
+    # their ownership instead of embedding a second copy of libnl in Common.
+    dynamic_deps = [
+        "@libnl3//:libnl_3_shared",
+        "@libnl3//:libnl_route_3_shared",
+        "@libnl3//:libnl_nf_3_shared",
+    ],
+    shared_lib_name = "libswsscommon.so.0",
+    user_link_flags = [
+        # Allow undefined symbols from external runtime deps (hiredis, zmq, etc.)
+        # These are resolved at runtime when the .so is loaded
+        "-Wl,--allow-shlib-undefined",
+        "-Wl,--undefined-version",
+        # Match the SONAME libtool derives for common/Makefile.am.
+        "-Wl,-soname,libswsscommon.so.0",
+    ],
+    deps = [":common"],
+)
+
+# Go and Rust need CcInfo. Forward the native shared-library link information
+# without copying the output or creating a second set of library symlinks.
+shared_library_cc_info(
+    name = "libswsscommon_so",
+    shared_library = ":libswsscommon_consolidated.so",
+)
+
+cc_library(
+    name = "libswsscommon_shared",
+    hdrs = swss_common_hdrs,
+    include_prefix = "swss",
+    # Consumers include these headers unprefixed, the way :common exposes them.
+    includes = ["common"],
+    strip_include_prefix = "common",
+    deps = [
+        ":common_deps",
+        ":libswsscommon_so",
+    ],
+)
+
+# Alias for compatibility with existing references
+alias(
+    name = "swsscommon_base",
+    actual = ":common",
+)
+
+# Filegroups for swig bindings and other assets
+filegroup(
+    name = "all_hdrs",
+    srcs = swss_common_hdrs,
+)
+
+filegroup(
+    name = "swig_template",
+    srcs = ["//pyext:swsscommon.i"],
+)
+
+filegroup(
+    name = "all_luas",
+    srcs = ["//common:luas"],
+)
+
+# TODO(bazel-ready): CFLAGS_COMMON is not respected yet in many of these targets.
+
+swss_cc_binary(
+    name = "swssloglevel",
+    srcs = ["//common:loglevel_srcs"],
+    cxxopts = CXXFLAGS_COMMON,
+    linkopts = [
+        "-Wl,-z,now",
+    ],
+    linkstatic = True,
+    deps = ["libswsscommon"],
+)
+
+# Packaging and the headers/library SDK live in //dist.
+alias(
+    name = "libswsscommon_pkg",
+    actual = "//dist:libswsscommon_pkg",
+)
+
+alias(
+    name = "libswsscommon_pkg.debug_symbols",
+    actual = "//dist:libswsscommon_pkg.debug_symbols",
+)
+
+alias(
+    name = "sonic-db-cli_pkg",
+    actual = "//dist:sonic-db-cli_pkg",
+)
+
+alias(
+    name = "sonic-db-cli_pkg.debug_symbols",
+    actual = "//dist:sonic-db-cli_pkg.debug_symbols",
+)
+
+# Reuse the Debian package declarations and generate dependency controls from
+# these exact source-built TARs. The JSON is a build output, not another recipe.
+runtime_packages(
+    name = "runtime_packages.json",
+    apt_packages = {
+        "@trixie//" + package + ":data": "@trixie//" + package + ":control"
+        for package in [
+            "libboost-serialization1.83.0",
+            "libhiredis1.1.0",
+            "libpython3.13",
+            "libuuid1",
+            "libzmq5",
+        ]
+    },
+    changelog = "debian/changelog",
+    control = "debian/control",
+    control_file_helpers = [
+        ["dh_makeshlibs"],
+        ["dh_installdeb"],
+    ],
+    debian_files = {
+        "compat": "debian/compat",
+        "conffiles": "debian/conffiles",
+    },
+    dependencies = ["@libnl3//:runtime_packages.json"] + select({
+        "//tools/bazel:yang_modules_enabled": ["@libyang//:runtime_packages.json"],
+        "//conditions:default": [],
+    }),
+    packages = {
+        "libswsscommon": "//dist:libswsscommon_pkg",
+        "python3-swsscommon": "//pyext:swsscommon_pkg",
+        "sonic-db-cli": "//dist:sonic-db-cli_pkg",
+    },
+    required_paths = {
+        "libswsscommon": [
+            "usr/lib/{multiarch}/libswsscommon.so.0",
+            "usr/lib/{multiarch}/libsonicdbcli.so.0",
+            "run/redis/sonic-db/database_config.json",
+        ],
+        "python3-swsscommon": ["usr/lib/python3/dist-packages/swsscommon/_swsscommon.so"],
+        "sonic-db-cli": ["usr/bin/sonic-db-cli"],
+    },
+    visibility = ["//visibility:public"],
+)
+
+exports_files(["runtime_packages.md"])

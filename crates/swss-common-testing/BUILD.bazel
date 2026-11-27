@@ -1,0 +1,33 @@
+load("@rules_rs//rs:rust_library.bzl", "rust_library")
+
+# Each testing variant must use the same Common crate as its consumer: Rust
+# types from different feature variants are not interchangeable.
+rust_library(
+    name = "swss_common_testing",
+    srcs = ["src/lib.rs"],
+    crate_name = "swss_common_testing",
+    crate_root = "src/lib.rs",
+    edition = "2021",
+    version = "0.1.0",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//crates/swss-common:swss_common",
+        "@sonic_rust_deps//:lazy_static",
+        "@sonic_rust_deps//:rand",
+    ],
+)
+
+rust_library(
+    name = "swss_common_testing_async",
+    srcs = ["src/lib.rs"],
+    crate_name = "swss_common_testing",
+    crate_root = "src/lib.rs",
+    edition = "2021",
+    version = "0.1.0",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//crates/swss-common:swss_common_async",
+        "@sonic_rust_deps//:lazy_static",
+        "@sonic_rust_deps//:rand",
+    ],
+)

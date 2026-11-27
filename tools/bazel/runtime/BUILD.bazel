@@ -1,0 +1,82 @@
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_distroless//distroless:defs.bzl", "flatten")
+load("@rules_python//python:defs.bzl", "py_binary")
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+
+package(default_visibility = ["//visibility:public"])
+
+exports_files(["run_with_runtime.py"])
+
+py_binary(
+    name = "prepare",
+    srcs = ["prepare.py"],
+    args = ["--apt-lock=$(rootpath @sonic_build_infra//apt:apt.lock.json)"],
+    data = ["@sonic_build_infra//apt:apt.lock.json"],
+    python_version = "3.13",
+    deps = ["@sonic_build_infra//apt:lib"],
+)
+
+# Native runtime dependencies from the same pinned package set as the build.
+flatten(
+    name = "test_runtime",
+    testonly = True,
+    deduplicate = True,
+    tars = [
+        "@libnl3//:libnl-3_pkg",
+        "@libnl3//:libnl-route-3_pkg",
+        "@libnl3//:libnl-nf-3_pkg",
+        "@trixie//libboost-serialization-dev",
+        "@trixie//libhiredis-dev",
+        "@trixie//libzmq3-dev",
+        "@trixie//python3-dev",
+        "@trixie//uuid-dev",
+    ] + select({
+        "//tools/bazel:yang_modules_enabled": [
+            "@libyang//:libyang_pkg",
+            "@libyang//:sys_libpcre2-8-0_data",
+            "@libyang//:sys_libxxhash0_data",
+        ],
+        "//conditions:default": [],
+    }),
+)
+
+# Python and C bindings share the installed Common library and its DB configuration.
+flatten(
+    name = "python_test_runtime",
+    testonly = True,
+    tars = [
+        ":test_runtime",
+        "//dist:libswsscommon_pkg",
+    ],
+)
+
+sh_binary(
+    name = "run_with_runtime",
+    testonly = True,
+    srcs = ["run_with_runtime.py"],
+)
+
+cc_binary(
+    name = "loader_probe",
+    testonly = True,
+    srcs = ["loader_probe.c"],
+)
+
+sh_test(
+    name = "declared_loader_test",
+    srcs = ["run_with_runtime.py"],
+    args = [
+        "$(location @patchelf//:patchelf)",
+        "$(location :test_runtime)",
+        "-",
+    ] + select({
+        "//tools/bazel:yang_modules_enabled": ["enabled"],
+        "//conditions:default": ["disabled"],
+    }) + ["$(location :loader_probe)"],
+    data = [
+        ":loader_probe",
+        ":test_runtime",
+        "@patchelf",
+    ],
+)

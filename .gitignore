@@ -66,5 +66,8 @@ sonic-db-cli/sonic-db-cli
 
 # Bazel Build System #
 /bazel-*
+/MODULE.bazel.lock
+/Cargo.Bazel.lock
+/artifacts/
 aminclude_static.am
 common/cfg_schema.h

@@ -1,0 +1,441 @@
+name: Native Bazel validation
+
+on:
+  workflow_call:
+    inputs:
+      arch:
+        required: true
+        type: string
+      runner:
+        required: true
+        type: string
+      bazel_args:
+        required: false
+        type: string
+        default: ""
+    secrets:
+      BAZEL_REMOTE_AUTH:
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  native:
+    name: Native (${{ inputs.arch }}, YANG ${{ matrix.yang }})
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        yang: [enabled, disabled]
+    runs-on: ${{ inputs.runner }}
+    env:
+      BAZEL_ARGS: ${{ inputs.bazel_args }}
+      BAZEL_REMOTE_AUTH: ${{ github.ref == 'refs/heads/master' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && secrets.BAZEL_REMOTE_AUTH || '' }}
+    container:
+      image: debian:trixie-20260918
+      # Allow Bazel to create nested namespaces and mount its read-only root.
+      options: >-
+        --cap-add=SYS_ADMIN
+        --security-opt=apparmor=unconfined
+        --security-opt=systempaths=unconfined
+    steps:
+      - name: Install host build tools
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            binutils build-essential ca-certificates gdb git python3 tar
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Configure Git for the container checkout
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
+        with:
+          bazelisk-version: 1.29.0
+          bazelisk-cache: true
+          repository-cache: true
+          disk-cache: ${{ github.workflow }}-${{ inputs.arch }}-${{ matrix.yang }}-linux-sandbox
+          cache-version: "8.5.1"
+
+      - name: Test registry evidence checks
+        run: |
+          python3 -m unittest discover -s tools/bazel -p go_validation_test.py -v
+          python3 -B -m unittest discover -s tools/bazel/runtime -p prepare_test.py -v
+          python3 -B -m unittest discover -s tools/bazel/cache -p '*_test.py' -v
+
+      - name: Configure remote build cache
+        run: bash tools/bazel/cache/configure.sh
+
+      - name: Record Rust source inputs
+        shell: bash
+        run: |
+          test ! -e Cargo.Bazel.lock
+          test -z "$(git ls-files Cargo.Bazel.lock)"
+          git ls-files --error-unmatch Cargo.lock
+          mkdir -p artifacts/validation
+          cp Cargo.lock artifacts/validation/
+          git rev-parse HEAD > artifacts/validation/source-commit.txt
+          git rev-parse HEAD^{tree} > artifacts/validation/source-tree.txt
+
+      - name: Record maintained registry inputs
+        run: python3 tools/bazel/go_validation.py record artifacts/validation
+
+      - name: Record native build inputs
+        run: |
+          test ! -e MODULE.bazel.lock
+          mkdir -p artifacts/validation
+          printf '%s\n' '${{ matrix.yang }}' > artifacts/validation/feature-mode.txt
+          uname -m > artifacts/validation/runner-architecture.txt
+          dpkg --print-architecture > artifacts/validation/userspace-architecture.txt
+          git -c safe.directory="$GITHUB_WORKSPACE" rev-parse HEAD > artifacts/validation/tested-revision.txt
+          bazel version > artifacts/validation/bazel-version.txt
+
+      - name: Verify Linux sandbox isolation
+        run: >-
+          python3 -B tools/bazel/sandbox/verify.py
+          --output artifacts/validation/linux-sandbox.json -- $BAZEL_ARGS
+
+      - name: Check Bazel formatting
+        run: bazel run $BAZEL_ARGS //tools/bazel/buildifier:buildifier.format.check
+
+      - name: Resolve the native runtime dependency versions
+        run: >-
+          bazel build --nobuild
+          $BAZEL_ARGS
+          --lockfile_mode=update
+          --//tools/bazel:yang_modules=${{ matrix.yang == 'enabled' && 'True' || 'False' }}
+          //:libswsscommon_shared
+
+      - name: Prepare the container runtime
+        run: >-
+          bazel run $BAZEL_ARGS //tools/bazel/runtime:prepare --
+          --image-reference debian:trixie-20260918
+          --output artifacts/validation/test-runtime.json
+          --env-file "$GITHUB_ENV"
+
+      - name: Record disk usage before YANG build
+        if: matrix.yang == 'enabled'
+        continue-on-error: true
+        run: bash tools/bazel/record_disk_usage.sh before-yang
+
+      - name: Test the gNMI import of Common's Go binding
+        if: inputs.arch == 'AMD64'
+        run: |
+          bazel test $BAZEL_ARGS \
+            --lockfile_mode=update \
+            --test_env=SONIC_TEST_RUNTIME_ID \
+            --//tools/bazel:yang_modules=${{ matrix.yang == 'enabled' && 'True' || 'False' }} \
+            --test_output=errors //goext/tests/gnmi:alias_test
+          mkdir -p artifacts/validation/gnmi-binding
+          cp -L bazel-testlogs/goext/tests/gnmi/alias_test/test.log \
+            bazel-testlogs/goext/tests/gnmi/alias_test/test.xml artifacts/validation/gnmi-binding/
+
+      - name: Build and test with YANG
+        if: matrix.yang == 'enabled'
+        id: yang_build
+        run: >-
+          bazel test
+          $BAZEL_ARGS
+          --lockfile_mode=update
+          --nocache_test_results
+          --test_env=SONIC_TEST_RUNTIME_ID
+          --execution_log_compact_file=artifacts/validation/yang-actions.binpb.zst
+          --build_event_json_file=artifacts/validation/yang-events.json
+          --//tools/bazel:yang_modules=True
+          --test_output=errors
+          --verbose_failures
+          --sandbox_debug
+          @libyang//:libyang_pkg
+          //common:cfg_schema_generated
+          //:libswsscommon
+          //:libswsscommon_shared
+          //:libswsscommon_consolidated.so
+          //:swssloglevel
+          //crates/swss-common:bindings_dir
+          //crates/swss-common:swss_common
+          //crates/swss-common:swss_common_test
+          //crates/swss-common:swss_common_async_test
+          //crates/swss-common-testing:swss_common_testing
+          //crates/swss-common-testing:swss_common_testing_async
+          //tools/bazel/rust:testing_interface_test
+          //tools/bazel/rust:async_testing_interface_test
+          //tools/bazel/rust:shared_serde_test
+          //tools/bazel/rust/locked_source_test:caller_test
+          //dist:libswsscommon_sdk
+          //dist:libswsscommon_sdk_test
+          //:runtime_packages.json
+          //dist:libswsscommon_pkg
+          //dist:libswsscommon_pkg.debug_symbols
+          //dist:sonic-db-cli_pkg
+          //dist:sonic-db-cli_pkg.debug_symbols
+          //pyext:swsscommon_pkg
+          //pyext:swsscommon_pkg.debug_symbols
+          //goext:swsscommon
+          //goext:swsscommon_runtime_test
+          //goext/redisconn:redisconn_test
+          //tools/bazel/runtime:declared_loader_test
+          //tests:status_code_util_test
+          //tests:redis_lua_path_test
+          //tests:saiaclschema_ut
+          //tests:notification_queue_ut
+          //tests:interface_ut
+          //tests:vrf_ut
+          //tests:shared_library_runtime_test
+          //tests:shared_library_elf_test
+          //tests/shared_netlink:consumer_test
+          @libnl3//:libnl-3_pkg
+          @libnl3//:libnl-route-3_pkg
+          @libnl3//:libnl-nf-3_pkg
+          //sonic-db-cli:shared_library_test
+          //tests:defaultvalueprovider_ut
+          //dist:libswsscommon_package_test
+          //dist:package_timestamps_test
+          //pyext:swsscommon_package_test
+
+      - name: Record disk usage after YANG build
+        if: ${{ always() && matrix.yang == 'enabled' && (steps.yang_build.outcome == 'success' || steps.yang_build.outcome == 'failure') }}
+        continue-on-error: true
+        run: bash tools/bazel/record_disk_usage.sh after-yang
+
+      - name: Collect YANG package artifacts
+        if: matrix.yang == 'enabled'
+        run: |
+          test ! -e Cargo.Bazel.lock
+          git diff --exit-code HEAD -- Cargo.lock
+          mkdir -p artifacts/yang artifacts/validation/yang
+          cp artifacts/validation/effective.bazelrc artifacts/yang/effective.bazelrc
+          cp MODULE.bazel.lock artifacts/yang/
+          cp bazel-testlogs/crates/swss-common/swss_common_test/test.xml bazel-testlogs/crates/swss-common/swss_common_test/test.log artifacts/validation/yang/
+          mkdir -p artifacts/validation/yang/shared-serde
+          cp bazel-testlogs/tools/bazel/rust/shared_serde_test/test.xml bazel-testlogs/tools/bazel/rust/shared_serde_test/test.log artifacts/validation/yang/shared-serde/
+          for target in crates/swss-common/swss_common_async_test tools/bazel/rust/testing_interface_test tools/bazel/rust/async_testing_interface_test tools/bazel/rust/locked_source_test/caller_test; do
+            mkdir -p "artifacts/validation/yang/rust-interfaces/$target"
+            cp "bazel-testlogs/$target/test.xml" "bazel-testlogs/$target/test.log" "artifacts/validation/yang/rust-interfaces/$target/"
+          done
+          cp MODULE.bazel.lock artifacts/validation/yang/
+          mkdir -p artifacts/validation/yang/go
+          cp -L bazel-testlogs/goext/swsscommon_runtime_test/test.log bazel-testlogs/goext/swsscommon_runtime_test/test.xml artifacts/validation/yang/go/
+          cp \
+            bazel-bin/runtime_packages.json \
+            bazel-bin/dist/libswsscommon_sdk.tar \
+            bazel-bin/dist/libswsscommon_pkg.tar \
+            bazel-bin/dist/libswsscommon_pkg.debug_symbols.tar \
+            bazel-bin/dist/sonic-db-cli_pkg.tar \
+            bazel-bin/dist/sonic-db-cli_pkg.debug_symbols.tar \
+            bazel-bin/pyext/swsscommon_pkg.tar.gz \
+            bazel-bin/pyext/swsscommon_pkg.debug_symbols.tar \
+            artifacts/yang/
+
+      - name: Retain the AMD64 YANG test runtime
+        if: inputs.arch == 'AMD64' && matrix.yang == 'enabled'
+        run: |
+          cp -L bazel-bin/tools/bazel/runtime/test_runtime.tar artifacts/yang/
+          cp artifacts/validation/test-runtime.json \
+            artifacts/validation/source-commit.txt \
+            artifacts/validation/source-tree.txt \
+            artifacts/validation/feature-mode.txt \
+            artifacts/validation/userspace-architecture.txt artifacts/yang/
+          (cd artifacts/yang && sha256sum test_runtime.tar > test_runtime.tar.sha256)
+          mkdir -p artifacts/validation/yang/declared-loader
+          cp -L bazel-testlogs/tools/bazel/runtime/declared_loader_test/test.log \
+            bazel-testlogs/tools/bazel/runtime/declared_loader_test/test.xml \
+            artifacts/validation/yang/declared-loader/
+
+      - name: Record disk usage before no-YANG build
+        if: matrix.yang == 'disabled'
+        continue-on-error: true
+        run: bash tools/bazel/record_disk_usage.sh before-no-yang
+
+      - name: Build and test without YANG
+        if: matrix.yang == 'disabled'
+        id: no_yang_build
+        run: >-
+          bazel test
+          $BAZEL_ARGS
+          --lockfile_mode=update
+          --nocache_test_results
+          --test_env=SONIC_TEST_RUNTIME_ID
+          --execution_log_compact_file=artifacts/validation/no-yang-actions.binpb.zst
+          --build_event_json_file=artifacts/validation/no-yang-events.json
+          --//tools/bazel:yang_modules=False
+          --test_output=errors
+          --verbose_failures
+          --sandbox_debug
+          //:libswsscommon
+          //:libswsscommon_shared
+          //:libswsscommon_consolidated.so
+          //:swssloglevel
+          //crates/swss-common:bindings_dir
+          //crates/swss-common:swss_common
+          //crates/swss-common:swss_common_test
+          //crates/swss-common:swss_common_async_test
+          //crates/swss-common-testing:swss_common_testing
+          //crates/swss-common-testing:swss_common_testing_async
+          //tools/bazel/rust:testing_interface_test
+          //tools/bazel/rust:async_testing_interface_test
+          //tools/bazel/rust:shared_serde_test
+          //tools/bazel/rust/locked_source_test:caller_test
+          //dist:libswsscommon_sdk
+          //dist:libswsscommon_sdk_test
+          //:runtime_packages.json
+          //dist:libswsscommon_pkg
+          //dist:libswsscommon_pkg.debug_symbols
+          //dist:sonic-db-cli_pkg
+          //dist:sonic-db-cli_pkg.debug_symbols
+          //pyext:swsscommon_pkg
+          //pyext:swsscommon_pkg.debug_symbols
+          //goext:swsscommon
+          //goext:swsscommon_runtime_test
+          //goext/redisconn:redisconn_test
+          //tools/bazel/runtime:declared_loader_test
+          //tests:status_code_util_test
+          //tests:redis_lua_path_test
+          //tests:saiaclschema_ut
+          //tests:notification_queue_ut
+          //tests:interface_ut
+          //tests:vrf_ut
+          //tests:shared_library_runtime_test
+          //tests:shared_library_elf_test
+          //tests/shared_netlink:consumer_test
+          @libnl3//:libnl-3_pkg
+          @libnl3//:libnl-route-3_pkg
+          @libnl3//:libnl-nf-3_pkg
+          //sonic-db-cli:shared_library_test
+          //dist:libswsscommon_package_test
+          //dist:package_timestamps_test
+          //pyext:swsscommon_package_test
+
+      - name: Record disk usage after no-YANG build
+        if: ${{ always() && matrix.yang == 'disabled' && (steps.no_yang_build.outcome == 'success' || steps.no_yang_build.outcome == 'failure') }}
+        continue-on-error: true
+        run: bash tools/bazel/record_disk_usage.sh after-no-yang
+
+      - name: Collect no-YANG package artifacts
+        if: matrix.yang == 'disabled'
+        run: |
+          test ! -e Cargo.Bazel.lock
+          git diff --exit-code HEAD -- Cargo.lock
+          mkdir -p artifacts/no-yang artifacts/validation/no-yang
+          cp artifacts/validation/effective.bazelrc artifacts/no-yang/effective.bazelrc
+          cp MODULE.bazel.lock artifacts/no-yang/
+          cp bazel-testlogs/crates/swss-common/swss_common_test/test.xml bazel-testlogs/crates/swss-common/swss_common_test/test.log artifacts/validation/no-yang/
+          mkdir -p artifacts/validation/no-yang/shared-serde
+          cp bazel-testlogs/tools/bazel/rust/shared_serde_test/test.xml bazel-testlogs/tools/bazel/rust/shared_serde_test/test.log artifacts/validation/no-yang/shared-serde/
+          for target in crates/swss-common/swss_common_async_test tools/bazel/rust/testing_interface_test tools/bazel/rust/async_testing_interface_test tools/bazel/rust/locked_source_test/caller_test; do
+            mkdir -p "artifacts/validation/no-yang/rust-interfaces/$target"
+            cp "bazel-testlogs/$target/test.xml" "bazel-testlogs/$target/test.log" "artifacts/validation/no-yang/rust-interfaces/$target/"
+          done
+          cp MODULE.bazel.lock artifacts/validation/no-yang/
+          mkdir -p artifacts/validation/no-yang/go
+          cp -L bazel-testlogs/goext/swsscommon_runtime_test/test.log bazel-testlogs/goext/swsscommon_runtime_test/test.xml artifacts/validation/no-yang/go/
+          cp \
+            bazel-bin/runtime_packages.json \
+            bazel-bin/dist/libswsscommon_sdk.tar \
+            bazel-bin/dist/libswsscommon_pkg.tar \
+            bazel-bin/dist/libswsscommon_pkg.debug_symbols.tar \
+            bazel-bin/dist/sonic-db-cli_pkg.tar \
+            bazel-bin/dist/sonic-db-cli_pkg.debug_symbols.tar \
+            bazel-bin/pyext/swsscommon_pkg.tar.gz \
+            bazel-bin/pyext/swsscommon_pkg.debug_symbols.tar \
+            artifacts/no-yang/
+
+      - name: Test the installed Common and CLI libraries
+        shell: bash
+        run: |
+          installed_runtime_args=()
+          if [ '${{ matrix.yang }}' = enabled ]; then
+            # Build and query this runtime package as the same top-level target.
+            # A transitive package can use a different configuration. Match the
+            # test-only environment option inherited from .bazelrc too.
+            libyang_runtime_archive="$(bazel cquery $BAZEL_ARGS \
+              --test_env=SWSS_EXPECT_RUNPATH=1 \
+              --test_env=SONIC_TEST_RUNTIME_ID \
+              --//tools/bazel:yang_modules=True --output=files \
+              '@libyang//:libyang_pkg')"
+            if [ ! -f "$libyang_runtime_archive" ]; then
+              printf 'Expected one built libyang runtime archive, got: %s\n' "$libyang_runtime_archive" >&2
+              exit 1
+            fi
+            installed_runtime_args+=(--libyang-package "$libyang_runtime_archive")
+          fi
+          for package in libnl-3 libnl-route-3 libnl-nf-3; do
+            archive="$(bazel cquery $BAZEL_ARGS \
+              --test_env=SWSS_EXPECT_RUNPATH=1 --test_env=SONIC_TEST_RUNTIME_ID \
+              --//tools/bazel:yang_modules=${{ matrix.yang == 'enabled' && 'True' || 'False' }} \
+              --output=files "config(@libnl3//:${package}_pkg, target)")"
+            test -f "$archive"
+            installed_runtime_args+=(--libnl-package "$archive")
+          done
+          python3 -B tools/bazel/runtime/installed_check.py \
+            --common-package bazel-bin/dist/libswsscommon_pkg.tar \
+            --cli-package bazel-bin/dist/sonic-db-cli_pkg.tar \
+            --common-probe bazel-bin/tests/shared_library_runtime_test \
+            --cli-probe bazel-bin/sonic-db-cli/shared_library_test \
+            --netlink-probe bazel-bin/tests/shared_netlink/consumer \
+            --output artifacts/validation/installed-runtime.json \
+            "${installed_runtime_args[@]}"
+
+      - name: Retain shared netlink consumer results
+        if: always()
+        run: |
+          mkdir -p artifacts/validation/shared-netlink
+          for file in test.log test.xml; do
+            source="bazel-testlogs/tests/shared_netlink/consumer_test/$file"
+            test ! -f "$source" || cp -L "$source" artifacts/validation/shared-netlink/
+          done
+
+      - name: Upload YANG package artifacts
+        if: matrix.yang == 'enabled'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sonic-swss-common-yang-${{ inputs.arch }}
+          path: artifacts/yang/
+          if-no-files-found: error
+
+      - name: Upload no-YANG package artifacts
+        if: matrix.yang == 'disabled'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sonic-swss-common-no-yang-${{ inputs.arch }}
+          path: artifacts/no-yang/
+          if-no-files-found: error
+
+      - name: Retain Go builder failure evidence
+        if: failure()
+        continue-on-error: true
+        shell: bash
+        run: |
+          output_base="$(bazel info output_base)"
+          python3 tools/bazel/diagnose_go_builder.py \
+            --output-base "$output_base" \
+            --destination artifacts/validation/go-builder-failure
+
+      - name: Upload Rust validation evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sonic-swss-common-rust-${{ inputs.arch }}-${{ matrix.yang }}
+          # Raw Bazel event/action logs can contain environment credentials.
+          path: |
+            artifacts/validation/
+            !artifacts/validation/**/*-events.json
+            !artifacts/validation/**/*-actions*
+          if-no-files-found: error
+
+      - name: Record resolved Go inputs
+        if: always()
+        run: python3 tools/bazel/go_validation.py collect artifacts/validation $BAZEL_ARGS
+
+      - name: Upload native validation evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sonic-swss-common-go-validation-${{ inputs.arch }}-${{ matrix.yang }}
+          # Keep source, registry and test receipts; omit raw environment logs.
+          path: |
+            artifacts/validation/
+            !artifacts/validation/**/*-events.json
+            !artifacts/validation/**/*-actions*
+          if-no-files-found: error

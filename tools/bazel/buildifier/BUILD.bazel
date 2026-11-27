@@ -1,0 +1,36 @@
+# buildifier lives in its own package so the root package does not have to
+# load @buildifier_prebuilt.
+# Otherwise everyone would have to depend on buildifier_prebuilt.
+load("@buildifier_prebuilt//:rules.bzl", "buildifier")
+
+buildifier(
+    name = "buildifier",
+    exclude_patterns = [
+        "./.git/*",
+        "./artifacts/*",
+    ],
+    lint_mode = "fix",
+    mode = "fix",
+)
+
+buildifier(
+    name = "buildifier.check",
+    exclude_patterns = [
+        "./.git/*",
+        "./artifacts/*",
+    ],
+    lint_mode = "warn",
+    mode = "diff",
+)
+
+# Keep formatting in CI while the Bazel 6 compatibility code intentionally
+# retains native C++ rules that current Buildifier flags as lint warnings.
+buildifier(
+    name = "buildifier.format.check",
+    exclude_patterns = [
+        "./.git/*",
+        "./artifacts/*",
+    ],
+    lint_mode = "",
+    mode = "diff",
+)

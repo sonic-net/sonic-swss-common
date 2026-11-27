@@ -1,0 +1,39 @@
+common --check_direct_dependencies=off
+common --noincompatible_disallow_empty_glob
+
+# Local builds and normal CI use the same maintained SONiC registry.
+common --registry=https://raw.githubusercontent.com/sonic-net/sonic-bazel-registry/main
+# If a dependency is not found there, use the Bazel Central Registry
+common --registry=https://bcr.bazel.build/
+
+# Import the per-module override configs shared across sonic-buildimage submodules.
+try-import %workspace%/../../tools/bazel/submodule-config.bazelrc
+
+# Build all release binaries for `trixie`.
+# These are host toolchains (exec == target == $cpu),
+# so --config=aarch64 only resolves when Bazel itself is running on an aarch64 machine.
+common --platforms=@sonic_build_infra//platforms:x86_64_trixie
+common --host_platform=@sonic_build_infra//platforms:x86_64_trixie
+common:aarch64 --platforms=@sonic_build_infra//platforms:aarch64_trixie
+common:aarch64 --host_platform=@sonic_build_infra//platforms:aarch64_trixie
+
+# Normal CI requires Linux namespaces; CodeQL keeps its local tracing strategy.
+build:ci-linux-sandbox --spawn_strategy=linux-sandbox
+build:ci-linux-sandbox --strategy=Genrule=linux-sandbox
+build:ci-linux-sandbox --strategy=TestRunner=linux-sandbox
+build:ci-linux-sandbox --noincompatible_legacy_local_fallback
+
+# Rust 1.90's allocator shim is required when the C++ toolchain links Rust tests.
+build --@rules_rust//rust/settings:experimental_use_allocator_libraries_with_mangled_symbols=True
+
+# Native library tests require the linker's default RUNPATH behavior.
+test --test_env=SWSS_EXPECT_RUNPATH=1
+
+# Materialize cached kernel tool files through their original directory aliases.
+build --remote_download_regex=(^|.*/)tools/build_tools/kernel_runtime_(amd64|arm64)(/.*)?$
+
+# PRs read anonymously. Only master writers select the credential helper.
+build:ci-remote-cache --remote_cache=https://lgh-bazel-87263989.eastus.cloudapp.azure.com/
+build:ci-remote-cache --remote_upload_local_results=false
+common:ci-remote-cache-write --credential_helper=lgh-bazel-87263989.eastus.cloudapp.azure.com=%workspace%/tools/bazel/cache/credentials.py
+build:ci-remote-cache-write --remote_upload_local_results=true
