@@ -47,7 +47,8 @@ public:
     static void initialize(const std::string &app_name,
                            const std::string &docker_name,
                            unsigned int db_timeout = 0,
-                           bool isTcpConn = false);
+                           bool isTcpConn = false,
+                           bool authenticate = false);
 
     static bool checkWarmStart(const std::string &app_name,
                                const std::string &docker_name,

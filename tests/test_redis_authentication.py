@@ -167,6 +167,93 @@ else:
                    check=True, timeout=5)
 
 
+@pytest.fixture
+def protected_config_db(protected):
+    metadata = protected["metadata"]
+    config = json.loads(metadata.read_text())
+    config["DATABASES"] = {"CONFIG_DB": {"id": 4, "separator": "|", "instance": "redis"}}
+    metadata.write_text(json.dumps(config))
+    swss.SonicDBConfig.reset()
+    swss.SonicDBConfig.initialize(str(metadata))
+    return protected
+
+
+# The root reader run also records coverage when UID 1000 cannot write build artifacts.
+@pytest.mark.parametrize("uid, authenticate", [(0, False), (1000, False), (1000, True)])
+def test_logger_registration_with_read_only_redis(protected_config_db, uid, authenticate):
+    program = """
+import os
+import sys
+from swsscommon import swsscommon as s
+
+assert os.geteuid() == int(sys.argv[2])
+s.SonicDBConfig.initialize(sys.argv[1])
+for component in ("logger-reader-one", "logger-reader-two"):
+    s.Logger.swssOutputNotify(component, "STDERR")
+    s.Logger.linkToDbNative(component, "INFO", sys.argv[3] == "True")
+    assert s.Logger.getMinPrio() == s.Logger.SWSS_INFO
+"""
+    command = []
+    if uid:
+        command = ["setpriv", f"--reuid={uid}", f"--regid={uid}", "--clear-groups"]
+    result = subprocess.run(
+        [*command, sys.executable, "-c", program, str(protected_config_db["metadata"]),
+         str(uid), str(authenticate)],
+        check=True, text=True, capture_output=True, timeout=5,
+    )
+    assert result.stderr.count("Redis denied permission to save logger defaults") == 1
+    reader = swss.DBConnector("CONFIG_DB", 500, False)
+    assert not reader.exists("LOGGER|logger-reader-one")
+    assert not reader.exists("LOGGER|logger-reader-two")
+
+
+@pytest.fixture
+def swssloglevel(protected_config_db):
+    target = Path("/var/run/redis/sonic-db/database_config.json")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    backup = target.with_name("database_config.json.loglevel-test-backup")
+    assert not backup.exists() and not backup.is_symlink()
+    had_original = target.exists() or target.is_symlink()
+    if had_original:
+        target.rename(backup)
+    try:
+        shutil.copyfile(protected_config_db["metadata"], target)
+        binary = Path(__file__).resolve().parents[1] / "common/swssloglevel"
+        yield lambda *args: subprocess.run(
+            [str(binary), *args], text=True, capture_output=True, timeout=5,
+        )
+    finally:
+        target.unlink(missing_ok=True)
+        if had_original:
+            backup.rename(target)
+
+
+def test_swssloglevel_with_bad_writer_secret(protected_config_db, swssloglevel):
+    writer = swss.DBConnector("CONFIG_DB", 500, False, "", True)
+    writer.hset("LOGGER|loglevel-test", "LOGLEVEL", "INFO")
+    protected_config_db["secret"].write_text("incorrect-test-password")
+
+    for args, message in (
+        ([], "Invalid loglevel value"),
+        (["-c", "loglevel-test", "-l", "invalid"], "Invalid loglevel value"),
+        (["-s", "-c", "SWITCH", "-l", "invalid"], "Invalid SAI loglevel value"),
+        (["-a", "-c", "loglevel-test", "-l", "DEBUG"], "Invalid options provided with -a"),
+        (["-p", "-d"], "-p option does not accept other options"),
+    ):
+        result = swssloglevel(*args)
+        assert result.returncode == 1
+        assert message in result.stdout and "Usage:" in result.stdout
+        assert not result.stderr
+
+    result = swssloglevel("-c", "loglevel-test", "-l", "DEBUG")
+    assert result.returncode == 1
+    assert "Redis writer authentication failed" in result.stderr
+
+    result = swssloglevel("-p")
+    assert result.returncode == 0
+    assert result.stdout.split() == ["loglevel-test", "INFO"]
+
+
 def test_notification_connections_reauthenticate(protected):
     writer = connect(True)
     consumer = swss.NotificationConsumer(writer, "auth-test")

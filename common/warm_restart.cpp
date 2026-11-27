@@ -35,7 +35,8 @@ WarmStart &WarmStart::getInstance(void)
 void WarmStart::initialize(const std::string &app_name,
                            const std::string &docker_name,
                            unsigned int db_timeout,
-                           bool isTcpConn)
+                           bool isTcpConn,
+                           bool authenticate)
 {
     auto& warmStart = getInstance();
 
@@ -46,7 +47,7 @@ void WarmStart::initialize(const std::string &app_name,
 
     /* Use unix socket for db connection by default */
     warmStart.m_stateDb =
-        std::make_shared<swss::DBConnector>("STATE_DB", db_timeout, isTcpConn);
+        std::make_shared<swss::DBConnector>("STATE_DB", db_timeout, isTcpConn, "", authenticate);
     warmStart.m_cfgDb =
         std::make_shared<swss::DBConnector>("CONFIG_DB", db_timeout, isTcpConn);
 

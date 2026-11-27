@@ -8,6 +8,7 @@
 #include <sstream>
 #include <iomanip>
 #include <stdexcept>
+#include <system_error>
 #include "schema.h"
 #include "select.h"
 #include "dbconnector.h"
@@ -118,14 +119,15 @@ void Logger::linkToDbWithOutput(
         const PriorityChangeNotify& prioNotify,
         const std::string& defPrio,
         const OutputChangeNotify& outputNotify,
-        const std::string& defOutput)
+        const std::string& defOutput,
+        bool authenticate)
 {
     auto& logger = getInstance();
 
     // Initialize internal DB with observer
     logger.m_settingChangeObservers.insert(std::make_pair(dbName, std::make_pair(prioNotify, outputNotify)));
 
-    DBConnector db("CONFIG_DB", 0);
+    DBConnector db("CONFIG_DB", 0, false, "", authenticate);
     swss::Table table(&db, CFG_LOGGER_TABLE_NAME);
     SWSS_LOG_DEBUG("Component %s register to logger", dbName.c_str());
 
@@ -148,7 +150,22 @@ void Logger::linkToDbWithOutput(
         FieldValueTuple fvOutput(DAEMON_LOGOUTPUT, output);
         std::vector<FieldValueTuple>fieldValues = { fvLevel, fvOutput };
         SWSS_LOG_DEBUG("Set %s loglevel to %s", dbName.c_str() , prio.c_str());
-        table.set(dbName, fieldValues);
+        try
+        {
+            table.set(dbName, fieldValues);
+        }
+        catch (const std::system_error& error)
+        {
+            if (error.code() != std::errc::permission_denied)
+            {
+                throw;
+            }
+
+            static std::once_flag warnAboutLoggerDefaults;
+            std::call_once(warnAboutLoggerDefaults, [] {
+                SWSS_LOG_WARN("Redis denied permission to save logger defaults. Using local settings.");
+            });
+        }
     }
 
     logger.m_currentPrios.set(dbName, prio);
@@ -158,14 +175,15 @@ void Logger::linkToDbWithOutput(
     outputNotify(dbName, output);
 }
 
-void Logger::linkToDb(const std::string& dbName, const PriorityChangeNotify& prioNotify, const std::string& defPrio)
+void Logger::linkToDb(const std::string& dbName, const PriorityChangeNotify& prioNotify,
+                      const std::string& defPrio, bool authenticate)
 {
-    linkToDbWithOutput(dbName, prioNotify, defPrio, swssOutputNotify, "SYSLOG");
+    linkToDbWithOutput(dbName, prioNotify, defPrio, swssOutputNotify, "SYSLOG", authenticate);
 }
 
-void Logger::linkToDbNative(const std::string& dbName, const char * defPrio)
+void Logger::linkToDbNative(const std::string& dbName, const char * defPrio, bool authenticate)
 {
-    linkToDb(dbName, swssPrioNotify, defPrio);
+    linkToDb(dbName, swssPrioNotify, defPrio, authenticate);
 
     getInstance().restartSettingThread();
 }

@@ -126,7 +126,28 @@ int swssloglevel(int argc, char** argv)
         }
     }
 
-    DBConnector config_db("CONFIG_DB", 0);
+    if (print && argc != 2)
+    {
+        exitWithUsage(EXIT_FAILURE, "-p option does not accept other options");
+    }
+
+    if (!print && !default_loglevel_opt)
+    {
+        if ((prefix == "SAI_API_") && !validateSaiLoglevel(loglevel))
+        {
+            exitWithUsage(EXIT_FAILURE, "Invalid SAI loglevel value");
+        }
+        if ((prefix == "") && (Logger::priorityStringMap.find(loglevel) == Logger::priorityStringMap.end()))
+        {
+            exitWithUsage(EXIT_FAILURE, "Invalid loglevel value");
+        }
+        if (applyToAll && !component.empty())
+        {
+            exitWithUsage(EXIT_FAILURE, "Invalid options provided with -a");
+        }
+    }
+
+    DBConnector config_db("CONFIG_DB", 0, false, "", !print);
     swss::Table logger_tbl(&config_db, CFG_LOGGER_TABLE_NAME);
     std::vector<std::string> keys;
     logger_tbl.getKeys(keys);
@@ -134,11 +155,6 @@ int swssloglevel(int argc, char** argv)
     if (print)
     {
         int errorCount = 0;
-
-        if (argc != 2)
-        {
-            exitWithUsage(EXIT_FAILURE, "-p option does not accept other options");
-        }
 
         std::sort(keys.begin(), keys.end());
         for (const auto& key : keys)
@@ -169,22 +185,9 @@ int swssloglevel(int argc, char** argv)
         setAllLoglevel(logger_tbl,sai_keys, std::string(SAI_DEFAULT_LOGLEVEL));
         return (EXIT_SUCCESS);
     }
-    if ((prefix == "SAI_API_") && !validateSaiLoglevel(loglevel))
-    {
-        exitWithUsage(EXIT_FAILURE, "Invalid SAI loglevel value");
-    }
-    else if ((prefix == "") && (Logger::priorityStringMap.find(loglevel) == Logger::priorityStringMap.end()))
-    {
-        exitWithUsage(EXIT_FAILURE, "Invalid loglevel value");
-    }
 
     if (applyToAll)
     {
-        if (component != "")
-        {
-            exitWithUsage(EXIT_FAILURE, "Invalid options provided with -a");
-        }
-
         if (prefix == "SAI_API_")
         {
             keys.erase(std::remove_if(keys.begin(), keys.end(), filterSaiKeys), keys.end());
