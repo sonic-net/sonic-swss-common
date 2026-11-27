@@ -80,12 +80,12 @@ void Logger::swssPrioNotify(const std::string& component, const std::string& pri
     if (it == priorityStringMap.end())
     {
         SWSS_LOG_ERROR("Invalid loglevel. Setting to NOTICE. %s", prioStr.c_str());
-        s_minPrio = SWSS_NOTICE;
+        s_minPrio.store(SWSS_NOTICE, std::memory_order_relaxed);
     }
     else
     {
         SWSS_LOG_DEBUG("Changing logger minPrio to %s", prioStr.c_str());
-        s_minPrio = it->second;
+        s_minPrio.store(it->second, std::memory_order_relaxed);
     }
 }
 
@@ -179,16 +179,17 @@ Logger& Logger::getInstance()
     return m_logger;
 }
 
+// the level is read and written on its own, with nothing to order around it
 std::atomic<Logger::Priority> Logger::s_minPrio = { Logger::SWSS_NOTICE };
 
 void Logger::setMinPrio(Priority prio)
 {
-    s_minPrio = prio;
+    s_minPrio.store(prio, std::memory_order_relaxed);
 }
 
 Logger::Priority Logger::getMinPrio()
 {
-    return s_minPrio;
+    return s_minPrio.load(std::memory_order_relaxed);
 }
 
 void Logger::settingThread()

@@ -18,16 +18,19 @@ namespace swss {
  * The macros test the priority inline, before evaluating their arguments: a
  * message below the minimum priority costs a load and a branch, neither a call
  * nor the formatting of its arguments. SWSS_LOG_THROW always logs, as it throws.
+ *
+ * SWSS_LOG_PRIO's PRIO names a Logger::Priority, as in SWSS_NOTICE, so that
+ * it is a constant: the macro uses it twice.
  */
 
-#define SWSS_LOG_PRIO(PRIO, MSG, ...)  (swss::Logger::isPrioEnabled(PRIO) ? \
-        swss::Logger::getInstance().write(PRIO, ":- %s: " MSG, __FUNCTION__, ##__VA_ARGS__) : (void)0)
+#define SWSS_LOG_PRIO(PRIO, MSG, ...)  (swss::Logger::isPrioEnabled(swss::Logger::PRIO) ? \
+        swss::Logger::getInstance().write(swss::Logger::PRIO, ":- %s: " MSG, __FUNCTION__, ##__VA_ARGS__) : (void)0)
 
-#define SWSS_LOG_ERROR(MSG, ...)       SWSS_LOG_PRIO(swss::Logger::SWSS_ERROR,  MSG, ##__VA_ARGS__)
-#define SWSS_LOG_WARN(MSG, ...)        SWSS_LOG_PRIO(swss::Logger::SWSS_WARN,   MSG, ##__VA_ARGS__)
-#define SWSS_LOG_NOTICE(MSG, ...)      SWSS_LOG_PRIO(swss::Logger::SWSS_NOTICE, MSG, ##__VA_ARGS__)
-#define SWSS_LOG_INFO(MSG, ...)        SWSS_LOG_PRIO(swss::Logger::SWSS_INFO,   MSG, ##__VA_ARGS__)
-#define SWSS_LOG_DEBUG(MSG, ...)       SWSS_LOG_PRIO(swss::Logger::SWSS_DEBUG,  MSG, ##__VA_ARGS__)
+#define SWSS_LOG_ERROR(MSG, ...)       SWSS_LOG_PRIO(SWSS_ERROR,  MSG, ##__VA_ARGS__)
+#define SWSS_LOG_WARN(MSG, ...)        SWSS_LOG_PRIO(SWSS_WARN,   MSG, ##__VA_ARGS__)
+#define SWSS_LOG_NOTICE(MSG, ...)      SWSS_LOG_PRIO(SWSS_NOTICE, MSG, ##__VA_ARGS__)
+#define SWSS_LOG_INFO(MSG, ...)        SWSS_LOG_PRIO(SWSS_INFO,   MSG, ##__VA_ARGS__)
+#define SWSS_LOG_DEBUG(MSG, ...)       SWSS_LOG_PRIO(SWSS_DEBUG,  MSG, ##__VA_ARGS__)
 
 #define SWSS_LOG_ENTER()               swss::Logger::InlineScopeLogger logger ## __LINE__ (__FUNCTION__)
 #define SWSS_LOG_TIMER(msg, ...)       swss::Logger::ScopeTimer scopetimer ## __LINE__ (__LINE__, __FUNCTION__, msg, ##__VA_ARGS__)
