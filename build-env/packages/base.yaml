@@ -32,7 +32,7 @@ packages:
   - name: libyang==3.3.0
     type: pip
     pip_args: [--no-build-isolation]
-    requires: [libyang3]
+    requires: [libyang3, wheel]
 
   # redis-server is required to run sonic-swss-common's unit tests during the
   # Build stage, and by downstream VS test hosts. Kept in base.yaml (cascades)

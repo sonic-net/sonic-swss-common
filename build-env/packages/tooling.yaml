@@ -33,7 +33,8 @@ packages:
   - { name: redis-tools,                type: apt, when: { host_os: ubuntu-22.04 } }
   - { name: libgtest-dev,               type: apt, when: { host_os: ubuntu-22.04 } }
   - { name: libgmock-dev,               type: apt, when: { host_os: ubuntu-22.04 } }
-  - { name: python3-pip,                type: apt, when: { host_os: ubuntu-22.04 } }
+  - { name: python3-setuptools,         type: apt, when: { host_os: ubuntu-22.04 } }
+  - { name: wheel,                      type: pip, when: { host_os: ubuntu-22.04 } }
   # python3-cffi: needed so `pip install --no-build-isolation libyang` uses the
   # system cffi on jammy (avoids a cffi version mismatch); baked into containers.
   - { name: python3-cffi,               type: apt, when: { host_os: ubuntu-22.04 } }
