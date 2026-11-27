@@ -14,13 +14,25 @@
 
 namespace swss {
 
-#define SWSS_LOG_ERROR(MSG, ...)       swss::Logger::getInstance().write(swss::Logger::SWSS_ERROR,  ":- %s: " MSG, __FUNCTION__, ##__VA_ARGS__)
-#define SWSS_LOG_WARN(MSG, ...)        swss::Logger::getInstance().write(swss::Logger::SWSS_WARN,   ":- %s: " MSG, __FUNCTION__, ##__VA_ARGS__)
-#define SWSS_LOG_NOTICE(MSG, ...)      swss::Logger::getInstance().write(swss::Logger::SWSS_NOTICE, ":- %s: " MSG, __FUNCTION__, ##__VA_ARGS__)
-#define SWSS_LOG_INFO(MSG, ...)        swss::Logger::getInstance().write(swss::Logger::SWSS_INFO,   ":- %s: " MSG, __FUNCTION__, ##__VA_ARGS__)
-#define SWSS_LOG_DEBUG(MSG, ...)       swss::Logger::getInstance().write(swss::Logger::SWSS_DEBUG,  ":- %s: " MSG, __FUNCTION__, ##__VA_ARGS__)
+/*
+ * The macros test the priority inline, before evaluating their arguments: a
+ * message below the minimum priority costs a load and a branch, neither a call
+ * nor the formatting of its arguments. SWSS_LOG_THROW always logs, as it throws.
+ *
+ * SWSS_LOG_PRIO's PRIO names a Logger::Priority, as in SWSS_NOTICE, so that
+ * it is a constant: the macro uses it twice.
+ */
 
-#define SWSS_LOG_ENTER()               swss::Logger::ScopeLogger logger ## __LINE__ (__LINE__, __FUNCTION__)
+#define SWSS_LOG_PRIO(PRIO, MSG, ...)  (swss::Logger::isPrioEnabled(swss::Logger::PRIO) ? \
+        swss::Logger::getInstance().write(swss::Logger::PRIO, ":- %s: " MSG, __FUNCTION__, ##__VA_ARGS__) : (void)0)
+
+#define SWSS_LOG_ERROR(MSG, ...)       SWSS_LOG_PRIO(SWSS_ERROR,  MSG, ##__VA_ARGS__)
+#define SWSS_LOG_WARN(MSG, ...)        SWSS_LOG_PRIO(SWSS_WARN,   MSG, ##__VA_ARGS__)
+#define SWSS_LOG_NOTICE(MSG, ...)      SWSS_LOG_PRIO(SWSS_NOTICE, MSG, ##__VA_ARGS__)
+#define SWSS_LOG_INFO(MSG, ...)        SWSS_LOG_PRIO(SWSS_INFO,   MSG, ##__VA_ARGS__)
+#define SWSS_LOG_DEBUG(MSG, ...)       SWSS_LOG_PRIO(SWSS_DEBUG,  MSG, ##__VA_ARGS__)
+
+#define SWSS_LOG_ENTER()               swss::Logger::InlineScopeLogger logger ## __LINE__ (__FUNCTION__)
 #define SWSS_LOG_TIMER(msg, ...)       swss::Logger::ScopeTimer scopetimer ## __LINE__ (__LINE__, __FUNCTION__, msg, ##__VA_ARGS__)
 
 #define SWSS_LOG_THROW(MSG, ...)       swss::Logger::getInstance().wthrow(swss::Logger::SWSS_ERROR,  ":- %s: " MSG, __FUNCTION__, ##__VA_ARGS__)
@@ -82,6 +94,12 @@ public:
     static void setMinPrio(Priority prio);
     static Priority getMinPrio();
 
+    // Whether messages of prio are written: inline, without a call
+    static bool isPrioEnabled(Priority prio)
+    {
+        return prio <= s_minPrio.load(std::memory_order_relaxed);
+    }
+
     static void linkToDbWithOutput(
             const std::string& dbName,
             const PriorityChangeNotify& prioNotify,
@@ -110,6 +128,11 @@ public:
     static std::string outputToString(Output output);
     static void swssOutputNotify(const std::string& component, const std::string& outputStr);
 
+    /*
+     * Logs entering and leaving a scope at DEBUG. Its constructor and
+     * destructor stay out of line for binaries built against earlier headers,
+     * whose SWSS_LOG_ENTER() constructs it.
+     */
     class ScopeLogger
     {
         public:
@@ -119,6 +142,34 @@ public:
 
         private:
             const int m_line;
+            const char *m_fun;
+    };
+
+    /*
+     * ScopeLogger with the priority test inline, for SWSS_LOG_ENTER(): with
+     * DEBUG off, entering and leaving the scope cost a load and a branch each.
+     */
+    class InlineScopeLogger
+    {
+        public:
+
+        explicit InlineScopeLogger(const char *fun) : m_fun(fun)
+        {
+            if (isPrioEnabled(SWSS_DEBUG))
+            {
+                logScopeEnter(m_fun);
+            }
+        }
+
+        ~InlineScopeLogger()
+        {
+            if (isPrioEnabled(SWSS_DEBUG))
+            {
+                logScopeExit(m_fun);
+            }
+        }
+
+        private:
             const char *m_fun;
     };
 
@@ -149,6 +200,9 @@ private:
 
     static void swssPrioNotify(const std::string& component, const std::string& prioStr);
 
+    static void logScopeEnter(const char *fun);
+    static void logScopeExit(const char *fun);
+
     void settingThread();
     void terminateSettingThread();
     void restartSettingThread();
@@ -157,7 +211,8 @@ private:
 
     LogSettingChangeObservers m_settingChangeObservers;
     ConcurrentMap<std::string, std::string> m_currentPrios;
-    std::atomic<Priority> m_minPrio = { SWSS_NOTICE };
+    // the minimum priority written, static for isPrioEnabled to read it inline
+    static std::atomic<Priority> s_minPrio;
     ConcurrentMap<std::string, std::string> m_currentOutputs;
     std::atomic<Output> m_output = { SWSS_SYSLOG };
     std::unique_ptr<std::thread> m_settingThread;

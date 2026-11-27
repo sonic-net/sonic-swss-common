@@ -5,6 +5,8 @@
 #include "common/schema.h"
 #include "logger_ut.h"
 #include "gtest/gtest.h"
+#include <chrono>
+#include <thread>
 #include <unistd.h>
 
 using namespace std;
@@ -43,6 +45,21 @@ void checkLoglevel(DBConnector& db, const string& key, const string& loglevel)
     }
 }
 
+// The setting thread applies a level set in CONFIG_DB asynchronously
+static bool waitForMinPrio(Logger::Priority prio, chrono::milliseconds timeout)
+{
+    auto deadline = chrono::steady_clock::now() + timeout;
+    while (Logger::getMinPrio() != prio)
+    {
+        if (chrono::steady_clock::now() >= deadline)
+        {
+            return false;
+        }
+        this_thread::sleep_for(chrono::milliseconds(10));
+    }
+    return true;
+}
+
 TEST(LOGGER, loglevel)
 {
     DBConnector db("CONFIG_DB", 0);
@@ -70,7 +87,74 @@ TEST(LOGGER, loglevel)
     checkLoglevel(db, key2, "NOTICE");
     checkLoglevel(db, key3, "INFO");
 
+    // the native logger, table1, takes DEBUG from CONFIG_DB
+    EXPECT_TRUE(waitForMinPrio(Logger::SWSS_DEBUG, chrono::seconds(5)))
+        << "minimum priority: " << Logger::priorityToString(Logger::getMinPrio());
+    EXPECT_TRUE(Logger::isPrioEnabled(Logger::SWSS_DEBUG));
+
     cout << "Done." << endl;
+}
+
+TEST(LOGGER, MacrosEvaluateArgumentsOnlyWhenEnabled)
+{
+    auto prio = Logger::getMinPrio();
+    int calls = 0;
+    auto arg = [&calls]() { calls++; return "arg"; };
+
+    Logger::setMinPrio(Logger::SWSS_NOTICE);
+    EXPECT_TRUE(Logger::isPrioEnabled(Logger::SWSS_NOTICE));
+    EXPECT_FALSE(Logger::isPrioEnabled(Logger::SWSS_INFO));
+
+    SWSS_LOG_DEBUG("%s", arg());
+    SWSS_LOG_INFO("%s", arg());
+    EXPECT_EQ(calls, 0);
+
+    SWSS_LOG_NOTICE("%s", arg());
+    SWSS_LOG_NOTICE("no arguments");
+    EXPECT_EQ(calls, 1);
+
+    Logger::setMinPrio(Logger::SWSS_DEBUG);
+    EXPECT_TRUE(Logger::isPrioEnabled(Logger::SWSS_DEBUG));
+    SWSS_LOG_DEBUG("%s", arg());
+    EXPECT_EQ(calls, 2);
+
+    Logger::setMinPrio(prio);
+}
+
+TEST(LOGGER, ScopeLoggersWriteOnlyAtDebug)
+{
+    auto prio = Logger::getMinPrio();
+    const vector<string> markers = {
+        ":> TestBody: enter", ":< TestBody: exit", ":> outOfLine: enter", ":< outOfLine: exit" };
+    Logger::swssOutputNotify("logger_ut", "STDOUT");
+
+    // other threads may log too: look for the scopes' messages only
+    Logger::setMinPrio(Logger::SWSS_NOTICE);
+    testing::internal::CaptureStdout();
+    {
+        SWSS_LOG_ENTER();
+        Logger::ScopeLogger scope(__LINE__, "outOfLine");
+    }
+    auto output = testing::internal::GetCapturedStdout();
+    for (const auto& marker: markers)
+    {
+        EXPECT_EQ(output.find(marker), string::npos) << marker;
+    }
+
+    Logger::setMinPrio(Logger::SWSS_DEBUG);
+    testing::internal::CaptureStdout();
+    {
+        SWSS_LOG_ENTER();
+        Logger::ScopeLogger scope(__LINE__, "outOfLine");
+    }
+    output = testing::internal::GetCapturedStdout();
+    for (const auto& marker: markers)
+    {
+        EXPECT_NE(output.find(marker), string::npos) << marker;
+    }
+
+    Logger::swssOutputNotify("logger_ut", "SYSLOG");
+    Logger::setMinPrio(prio);
 }
 
 TEST(LOGGER, CustomLogObserver)
