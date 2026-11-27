@@ -4,7 +4,9 @@
 #include <cerrno>
 #include <cstring>
 #include <fcntl.h>
+#include <limits>
 #include <set>
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <nlohmann/json.hpp>
@@ -85,6 +87,7 @@ void swss::authenticateRedisConnection(redisContext *context, RedisAuthCommand c
     checkFile(policy.fd, false);
 
     std::string username;
+    uid_t serverUid = 0;
     try
     {
         auto entries = nlohmann::json::parse(readFile(policy.fd, 4096));
@@ -98,12 +101,19 @@ void swss::authenticateRedisConnection(redisContext *context, RedisAuthCommand c
             const auto user = entry.at("username").get<std::string>();
             const auto host = entry.at("tcp_host").get<std::string>();
             const auto& port = entry.at("tcp_port");
-            if (entry.size() != 4 || path.empty() || path.front() != '/' ||
+            const auto& uid = entry.at("server_uid");
+            if (entry.size() != 5 || path.empty() || path.front() != '/' ||
                 path.find('\0') != std::string::npos || user.empty() || user.size() > 128 ||
                 user.find('\0') != std::string::npos || (host != "127.0.0.1" && host != "::1") ||
-                !port.is_number_integer() || port < 0 || port > 65535 || !sockets.insert(path).second)
+                !port.is_number_integer() || port < 0 || port > 65535 ||
+                !uid.is_number_integer() || uid < 0 || uid >= std::numeric_limits<uid_t>::max() ||
+                !sockets.insert(path).second)
                 throw RedisAuthenticationError("Invalid Redis authentication policy");
-            if (context->unix_sock.path && path == context->unix_sock.path) username = user;
+            if (context->unix_sock.path && path == context->unix_sock.path)
+            {
+                username = user;
+                serverUid = uid.get<uid_t>();
+            }
         }
     }
     catch (const nlohmann::json::exception&)
@@ -111,6 +121,12 @@ void swss::authenticateRedisConnection(redisContext *context, RedisAuthCommand c
         throw RedisAuthenticationError("Invalid Redis authentication policy");
     }
     if (username.empty()) return;
+
+    struct ucred peer{};
+    socklen_t length = sizeof(peer);
+    if (getsockopt(context->fd, SOL_SOCKET, SO_PEERCRED, &peer, &length) != 0 ||
+        length != sizeof(peer) || peer.uid != serverUid)
+        throw RedisAuthenticationError("Redis server identity differs from authentication policy");
 
     File secrets(openat(directory.fd, "local-system", O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC));
     if (secrets.fd < 0) throw RedisAuthenticationError("Cannot open Redis credential directory");
