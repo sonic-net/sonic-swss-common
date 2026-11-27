@@ -70,7 +70,69 @@ TEST(LOGGER, loglevel)
     checkLoglevel(db, key2, "NOTICE");
     checkLoglevel(db, key3, "INFO");
 
+    // the native logger, table1, takes DEBUG from CONFIG_DB in its setting thread
+    for (int i = 0; i < 50 && !Logger::isPrioEnabled(Logger::SWSS_DEBUG); i++)
+    {
+        usleep(100 * 1000);
+    }
+    EXPECT_TRUE(Logger::isPrioEnabled(Logger::SWSS_DEBUG));
+
     cout << "Done." << endl;
+}
+
+TEST(LOGGER, MacrosEvaluateArgumentsOnlyWhenEnabled)
+{
+    auto prio = Logger::getMinPrio();
+    int calls = 0;
+    auto arg = [&calls]() { calls++; return "arg"; };
+
+    Logger::setMinPrio(Logger::SWSS_NOTICE);
+    EXPECT_TRUE(Logger::isPrioEnabled(Logger::SWSS_NOTICE));
+    EXPECT_FALSE(Logger::isPrioEnabled(Logger::SWSS_INFO));
+
+    SWSS_LOG_DEBUG("%s", arg());
+    SWSS_LOG_INFO("%s", arg());
+    EXPECT_EQ(calls, 0);
+
+    SWSS_LOG_NOTICE("%s", arg());
+    SWSS_LOG_NOTICE("no arguments");
+    EXPECT_EQ(calls, 1);
+
+    Logger::setMinPrio(Logger::SWSS_DEBUG);
+    EXPECT_TRUE(Logger::isPrioEnabled(Logger::SWSS_DEBUG));
+    SWSS_LOG_DEBUG("%s", arg());
+    EXPECT_EQ(calls, 2);
+
+    Logger::setMinPrio(prio);
+}
+
+TEST(LOGGER, ScopeLoggersWriteOnlyAtDebug)
+{
+    auto prio = Logger::getMinPrio();
+    Logger::swssOutputNotify("logger_ut", "STDOUT");
+
+    Logger::setMinPrio(Logger::SWSS_NOTICE);
+    testing::internal::CaptureStdout();
+    {
+        SWSS_LOG_ENTER();
+        Logger::ScopeLogger scope(__LINE__, "outOfLine");
+    }
+    EXPECT_EQ(testing::internal::GetCapturedStdout(), "");
+
+    Logger::setMinPrio(Logger::SWSS_DEBUG);
+    testing::internal::CaptureStdout();
+    {
+        SWSS_LOG_ENTER();
+        Logger::ScopeLogger scope(__LINE__, "outOfLine");
+    }
+    auto output = testing::internal::GetCapturedStdout();
+    EXPECT_NE(output.find(":> TestBody: enter"), string::npos);
+    EXPECT_NE(output.find(":< TestBody: exit"), string::npos);
+    EXPECT_NE(output.find(":> outOfLine: enter"), string::npos);
+    EXPECT_NE(output.find(":< outOfLine: exit"), string::npos);
+
+    Logger::swssOutputNotify("logger_ut", "SYSLOG");
+    Logger::setMinPrio(prio);
 }
 
 TEST(LOGGER, CustomLogObserver)

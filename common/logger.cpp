@@ -76,18 +76,16 @@ const Logger::PriorityStringMap Logger::priorityStringMap = {
 
 void Logger::swssPrioNotify(const std::string& component, const std::string& prioStr)
 {
-    auto& logger = getInstance();
-
     auto it = priorityStringMap.find(prioStr);
     if (it == priorityStringMap.end())
     {
         SWSS_LOG_ERROR("Invalid loglevel. Setting to NOTICE. %s", prioStr.c_str());
-        logger.m_minPrio = SWSS_NOTICE;
+        s_minPrio = SWSS_NOTICE;
     }
     else
     {
         SWSS_LOG_DEBUG("Changing logger minPrio to %s", prioStr.c_str());
-        logger.m_minPrio = it->second;
+        s_minPrio = it->second;
     }
 }
 
@@ -181,14 +179,16 @@ Logger& Logger::getInstance()
     return m_logger;
 }
 
+std::atomic<Logger::Priority> Logger::s_minPrio = { Logger::SWSS_NOTICE };
+
 void Logger::setMinPrio(Priority prio)
 {
-    getInstance().m_minPrio = prio;
+    s_minPrio = prio;
 }
 
 Logger::Priority Logger::getMinPrio()
 {
-    return getInstance().m_minPrio;
+    return s_minPrio;
 }
 
 void Logger::settingThread()
@@ -265,7 +265,7 @@ void Logger::settingThread()
 
 void Logger::write(Priority prio, const char *fmt, ...)
 {
-    if (prio > m_minPrio)
+    if (!isPrioEnabled(prio))
         return;
 
     // TODO
@@ -363,14 +363,30 @@ std::string Logger::outputToString(Logger::Output output)
     return "UNKNOWN";
 }
 
+void Logger::logScopeEnter(const char *fun)
+{
+    getInstance().write(SWSS_DEBUG, ":> %s: enter", fun);
+}
+
+void Logger::logScopeExit(const char *fun)
+{
+    getInstance().write(SWSS_DEBUG, ":< %s: exit", fun);
+}
+
 Logger::ScopeLogger::ScopeLogger(int line, const char *fun) : m_line(line), m_fun(fun)
 {
-    swss::Logger::getInstance().write(swss::Logger::SWSS_DEBUG, ":> %s: enter", m_fun);
+    if (isPrioEnabled(SWSS_DEBUG))
+    {
+        logScopeEnter(m_fun);
+    }
 }
 
 Logger::ScopeLogger::~ScopeLogger()
 {
-    swss::Logger::getInstance().write(swss::Logger::SWSS_DEBUG, ":< %s: exit", m_fun);
+    if (isPrioEnabled(SWSS_DEBUG))
+    {
+        logScopeExit(m_fun);
+    }
 }
 
 Logger::ScopeTimer::ScopeTimer(int line, const char *fun, const char *fmt, ...) :
