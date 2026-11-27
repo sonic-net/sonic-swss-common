@@ -95,7 +95,7 @@ jobs:
         bash tools/bazel/codeql/build.sh prepare
 
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@ec3cf9c605b848da5f1e41e8452719eb1ccfb9a6 # v2.1.29
+      uses: github/codeql-action/init@1bd86f2fdb4b86187fa4059f16f31a3202acc9ea # v4.39.4
       with:
         config-file: ./.github/codeql/codeql-config.yml
         languages: cpp
@@ -123,7 +123,7 @@ jobs:
         --output-base-file artifacts/codeql-go-inputs/build-output-base.txt
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@ec3cf9c605b848da5f1e41e8452719eb1ccfb9a6 # v2.1.29
+      uses: github/codeql-action/analyze@1bd86f2fdb4b86187fa4059f16f31a3202acc9ea # v4.39.4
       with:
         category: "/language:cpp"
 
