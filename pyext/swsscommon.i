@@ -331,6 +331,16 @@ T castSelectableObj(swss::Selectable *temp)
 
 %extend swss::DBConnector {
     %template(hgetall) hgetall<std::map<std::string, std::string>>;
+
+    void setTimeout(unsigned int timeout_ms) {
+        struct timeval tv = {
+            .tv_sec = (time_t)(timeout_ms / 1000),
+            .tv_usec = (suseconds_t)((timeout_ms % 1000) * 1000)
+        };
+        if (redisSetTimeout($self->getContext(), tv) != REDIS_OK) {
+            throw std::runtime_error("Failed to set Redis timeout");
+        }
+    }
 }
 
 %ignore swss::ZmqProducerStateTable::wait;
