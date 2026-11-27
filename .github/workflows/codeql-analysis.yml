@@ -16,7 +16,7 @@ on:
 jobs:
   analyze:
     name: Analyze
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-26.04
     permissions:
       actions: read
       contents: read
@@ -45,7 +45,7 @@ jobs:
 
   analyze-cpp:
     name: Analyze (cpp)
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     container:
       image: debian:trixie-20260918
       options: --init

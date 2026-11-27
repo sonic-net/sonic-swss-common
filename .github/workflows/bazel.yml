@@ -26,7 +26,7 @@ jobs:
     name: Bazel (AMD64)
     if: ${{ always() }}
     needs: native-amd64
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: Require both native feature modes
         env:
@@ -47,7 +47,7 @@ jobs:
     name: Bazel (ARM64)
     if: ${{ always() }}
     needs: native-arm64
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: Require both native feature modes
         env:
@@ -144,10 +144,10 @@ jobs:
 
   declared-native-link:
     name: Declared native libraries (AMD64)
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 45
     container:
-      image: ubuntu:24.04@sha256:fe81560990fae86dc4743202b2cb4d3df98d0bcf949173cecef15ce1127ef852
+      image: ubuntu:26.04@sha256:d66b366dac61b575bee2aef07e9c26e8070096fbe84a3d4d3eb0da069b5d76db
       # Match the existing native jobs' explicit Linux-sandbox permissions.
       options: >-
         --cap-add=SYS_ADMIN
