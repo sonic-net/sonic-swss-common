@@ -51,7 +51,7 @@ jobs:
       - name: Configure Git for the container checkout
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
-      - uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
+      - uses: bazel-contrib/setup-bazel@f34d6a05eae3c24acab7fa54587492daeaeffdab # 0.19.2
         with:
           bazelisk-version: 1.29.0
           bazelisk-cache: true
@@ -388,7 +388,7 @@ jobs:
 
       - name: Upload YANG package artifacts
         if: matrix.yang == 'enabled'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: sonic-swss-common-yang-${{ inputs.arch }}
           path: artifacts/yang/
@@ -396,7 +396,7 @@ jobs:
 
       - name: Upload no-YANG package artifacts
         if: matrix.yang == 'disabled'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: sonic-swss-common-no-yang-${{ inputs.arch }}
           path: artifacts/no-yang/
@@ -414,7 +414,7 @@ jobs:
 
       - name: Upload Rust validation evidence
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: sonic-swss-common-rust-${{ inputs.arch }}-${{ matrix.yang }}
           # Raw Bazel event/action logs can contain environment credentials.
@@ -430,7 +430,7 @@ jobs:
 
       - name: Upload native validation evidence
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: sonic-swss-common-go-validation-${{ inputs.arch }}-${{ matrix.yang }}
           # Keep source, registry and test receipts; omit raw environment logs.
