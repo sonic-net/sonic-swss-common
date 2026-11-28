@@ -1,6 +1,7 @@
 #include "logger.h"
 
 #include <algorithm>
+#include <set>
 #include <stdarg.h>
 #include <stdio.h>
 #include <syslog.h>
@@ -12,6 +13,7 @@
 #include "select.h"
 #include "dbconnector.h"
 #include "subscriberstatetable.h"
+#include "table.h"
 #include "producerstatetable.h"
 
 using namespace swss;
@@ -122,6 +124,11 @@ void Logger::linkToDbWithOutput(
 {
     auto& logger = getInstance();
 
+    // The defaults are in place before the observer, so a setting thread
+    // that is already running never sees the component without them.
+    logger.m_defaultPrios.set(dbName, defPrio);
+    logger.m_defaultOutputs.set(dbName, defOutput);
+
     // Initialize internal DB with observer
     logger.m_settingChangeObservers.insert(std::make_pair(dbName, std::make_pair(prioNotify, outputNotify)));
 
@@ -129,26 +136,19 @@ void Logger::linkToDbWithOutput(
     swss::Table table(&db, CFG_LOGGER_TABLE_NAME);
     SWSS_LOG_DEBUG("Component %s register to logger", dbName.c_str());
 
+    // Held from the read to the publish, so a change the setting thread
+    // applies meanwhile is either seen by the read or applied after it.
+    std::lock_guard<std::mutex> lock(logger.m_settingMutex);
+
+    // An absent field means the component's default, and it is not written back.
     std::string prio, output;
-    bool doUpdate = false;
-    if(!table.hget(dbName, DAEMON_LOGLEVEL, prio))
+    if (!table.hget(dbName, DAEMON_LOGLEVEL, prio))
     {
         prio = defPrio;
-        doUpdate = true;
     }
-    if(!table.hget(dbName, DAEMON_LOGOUTPUT, output))
+    if (!table.hget(dbName, DAEMON_LOGOUTPUT, output))
     {
         output = defOutput;
-        doUpdate = true;
-    }
-
-    if (doUpdate)
-    {
-        FieldValueTuple fvLevel(DAEMON_LOGLEVEL, prio);
-        FieldValueTuple fvOutput(DAEMON_LOGOUTPUT, output);
-        std::vector<FieldValueTuple>fieldValues = { fvLevel, fvOutput };
-        SWSS_LOG_DEBUG("Set %s loglevel to %s", dbName.c_str() , prio.c_str());
-        table.set(dbName, fieldValues);
     }
 
     logger.m_currentPrios.set(dbName, prio);
@@ -156,6 +156,35 @@ void Logger::linkToDbWithOutput(
 
     prioNotify(dbName, prio);
     outputNotify(dbName, output);
+
+    publishSetting(dbName, prio, output);
+}
+
+void Logger::publishSetting(const std::string& key, const std::string& prio, const std::string& output)
+{
+    // The caller holds m_settingMutex.
+    auto& logger = getInstance();
+
+    // Best-effort: a failure is logged and the next publish retries, and
+    // logging keeps working without STATE_DB.
+    try
+    {
+        // Created on first use and reused by every publish.
+        if (!logger.m_stateDb)
+        {
+            logger.m_stateDb = std::make_unique<DBConnector>("STATE_DB", 0);
+        }
+        const std::string stateKey = std::string(STATE_LOGGER_TABLE_NAME)
+            + SonicDBConfig::getSeparator(logger.m_stateDb.get()) + key;
+        const std::vector<FieldValueTuple> values = { { DAEMON_LOGLEVEL, prio }, { DAEMON_LOGOUTPUT, output } };
+        logger.m_stateDb->hmset(stateKey, values.begin(), values.end());
+    }
+    catch (const std::exception& e)
+    {
+        // Reconnect on the next publish.
+        logger.m_stateDb.reset();
+        SWSS_LOG_WARN("Failed to publish %s log setting to STATE_DB: %s", key.c_str(), e.what());
+    }
 }
 
 void Logger::linkToDb(const std::string& dbName, const PriorityChangeNotify& prioNotify, const std::string& defPrio)
@@ -201,6 +230,21 @@ void Logger::settingThread()
     select.addSelectable(table.get());
     select.addSelectable(m_stopEvent.get());
 
+    // The subscription replays only rows that exist, so a row deleted while
+    // no subscription was live produces no DEL. Read after subscribing, so a
+    // row that changes meanwhile is also seen as an event.
+    std::vector<std::string> keys;
+    swss::Table(&db, CFG_LOGGER_TABLE_NAME).getKeys(keys);
+    std::set<std::string> present(keys.begin(), keys.end());
+    for (const auto& observer : m_settingChangeObservers.getCopy())
+    {
+        const std::string& key = observer.first;
+        if (present.find(key) == present.end())
+        {
+            applySetting(key, m_defaultPrios.get(key), m_defaultOutputs.get(key));
+        }
+    }
+
     while (1)
     {
 
@@ -237,29 +281,60 @@ void Logger::settingThread()
         subscriberStateTable->pop(koValues);
         std::string key = kfvKey(koValues), op = kfvOp(koValues);
 
-        if (op != SET_COMMAND || !m_settingChangeObservers.contains(key))
+        if (!m_settingChangeObservers.contains(key))
         {
             continue;
         }
 
-        const auto& values = kfvFieldsValues(koValues);
+        // A field the row lacks, or a deleted row, means the default.
+        std::string prio = m_defaultPrios.get(key);
+        std::string output = m_defaultOutputs.get(key);
 
-        for (auto& i : values)
+        if (op == SET_COMMAND)
         {
-            auto& field = fvField(i);
-            auto& value = fvValue(i);
-
-            if ((field == DAEMON_LOGLEVEL) && (value != m_currentPrios.get(key)))
+            for (const auto& i : kfvFieldsValues(koValues))
             {
-                m_currentPrios.set(key, value);
-                m_settingChangeObservers.get(key).first(key, value);
-            }
-            else if ((field == DAEMON_LOGOUTPUT) && (value != m_currentOutputs.get(key)))
-            {
-                m_currentOutputs.set(key, value);
-                m_settingChangeObservers.get(key).second(key, value);
+                if (fvField(i) == DAEMON_LOGLEVEL)
+                {
+                    prio = fvValue(i);
+                }
+                else if (fvField(i) == DAEMON_LOGOUTPUT)
+                {
+                    output = fvValue(i);
+                }
             }
         }
+        else if (op != DEL_COMMAND)
+        {
+            continue;
+        }
+
+        applySetting(key, prio, output);
+    }
+}
+
+void Logger::applySetting(const std::string& key, const std::string& prio, const std::string& output)
+{
+    std::lock_guard<std::mutex> lock(m_settingMutex);
+    bool changed = false;
+
+    if (prio != m_currentPrios.get(key))
+    {
+        m_currentPrios.set(key, prio);
+        m_settingChangeObservers.get(key).first(key, prio);
+        changed = true;
+    }
+
+    if (output != m_currentOutputs.get(key))
+    {
+        m_currentOutputs.set(key, output);
+        m_settingChangeObservers.get(key).second(key, output);
+        changed = true;
+    }
+
+    if (changed)
+    {
+        publishSetting(key, prio, output);
     }
 }
 
