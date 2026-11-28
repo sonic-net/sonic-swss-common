@@ -129,7 +129,7 @@ stages:
     parameters:
       repo: sonic-sairedis
       arch: amd64
-      pool: sonic-ubuntu-1c
+      pool: sonicso1ES-amd64-submod
       timeout: 90
       artifact_name: sonic-sairedis-bookworm
       syslog_artifact_name: sonic-sairedis.syslog
@@ -146,7 +146,7 @@ stages:
     parameters:
       repo: sonic-swss
       arch: amd64
-      pool: sonic-ubuntu-1c
+      pool: sonicso1ES-amd64-submod
       # sonic-swss is a large compile that intermittently exceeds the 90m default;
       # give it more headroom to avoid spurious timeouts.
       timeout: 120
